@@ -270,6 +270,10 @@ func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanReques
 	if !req.State.Raw.IsNull() && !plan.IsNull() && onlyUnsetUnknowns(plan, req.Config.Raw, req.State.Raw) {
 		resp.Plan.Raw = req.State.Raw
 	}
+	// The hook runs after these steps, so it sees the plan that they leave, and what it sets stays.
+	if !plan.IsNull() && !resp.Diagnostics.HasError() && r.hooks.ModifyPlan != nil {
+		r.hooks.ModifyPlan(ctx, req, resp)
+	}
 }
 
 // onlyUnsetUnknowns reports whether plan is state, except for unknown values where config has no

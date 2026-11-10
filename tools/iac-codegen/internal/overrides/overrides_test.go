@@ -113,7 +113,7 @@ func TestParseIsStrict(t *testing.T) {
 		"no mode":                                    {"resource: Thing\n", `mode is ""`},
 		"no validators":                              {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
 		"bad readEmptyAs":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
-		"bad default":                                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: {a: 1}}\n", "default is"},
+		"bad default":                                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: {1: a}}\n", "default is"},
 		"non-empty list default":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "must be empty"},
 		"send unknown as zero not computed":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {sendUnknownAsZero: true}\n", "needs computed: true"},
 		"send unknown as zero with default":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {sendUnknownAsZero: true, computed: true, default: 1}\n", "never unknown"},
@@ -141,6 +141,15 @@ func TestParseIsStrict(t *testing.T) {
 		"bad name":                                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "is not a Terraform attribute name"},
 		"empty value name":                           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},
 		"skip and asBool":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asBool: true}\n", "skipped field"},
+		"group computed without optional":            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      g: {fields: [a], computed: true}\n", "computed needs optional: true"},
+		"group useStateForUnknown without computed":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      g: {fields: [a], optional: true, useStateForUnknown: true}\n", "useStateForUnknown needs computed: true"},
+		"optional group with requireOne":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      g: {fields: [a], optional: true, requireOne: true}\n", "requireOne needs an object that the user sets"},
+		"optional top-level group":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ngroups:\n  g: {fields: [a], optional: true}\n", "keys of types.<Type>.groups"},
+		"asString and asBool":                        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {asString: true, asBool: true}\n", "asString and asBool cannot both be set"},
+		"asString and requireOne":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {asString: true, requireOne: true}\n", "asString cannot be combined with requireOne"},
+		"asString and collection":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {asString: true, collection: set}\n", "asString shows the oneOf as one string"},
+		"asString and enumExceptZero":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {asString: true, validators: [{enumExceptZero: true}]}\n", "enumExceptZero cannot be set"},
+		"skip and asString":                          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asString: true}\n", "skipped field"},
 		"same value name":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 7: Sunday}}\n", "1 and 7 both have the name"},
 		"name of a readable rejected value":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: unspecified\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n    names: {E_ONE: E_TWO}\n", "have the same Terraform value"},
 		"bad nested group name":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
@@ -234,6 +243,55 @@ func TestADefaultCanBeANumber(t *testing.T) {
 	}
 	if got := strings.Join(f.Policy().Defaults, ","); got != "R.count,R.ratio" {
 		t.Fatalf("policy defaults = %s, want R.count,R.ratio", got)
+	}
+}
+
+// A default can be null, an empty list, or an object. A YAML null decodes as a missing key, so Parse
+// finds it in the YAML tree. The line with it is a line with a default, as one with a value is.
+func TestADefaultCanBeNullOrAnObject(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n"
+	f, err := Parse([]byte(head + "      a: {computed: true, default: null}\n      b: {computed: true, default: ~}\n      c: {computed: true, default: {}}\n      d: {computed: true, default: {x: 1, y: {z: [], w: null}}}\n      e: {computed: true, default: []}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields := f.Types["R"].Fields
+	for _, name := range []string{"a", "b"} {
+		if !IsNullDefault(fields[name].Default) {
+			t.Errorf("%s default = %#v, want the null default", name, fields[name].Default)
+		}
+	}
+	if got, ok := fields["c"].Default.(map[string]any); !ok || len(got) != 0 {
+		t.Errorf("c default = %#v, want an empty object", fields["c"].Default)
+	}
+	if got, ok := fields["d"].Default.(map[string]any); !ok || got["x"] != 1 || got["y"].(map[string]any)["w"] != nil {
+		t.Errorf("d default = %#v, want the object", fields["d"].Default)
+	}
+	if IsNullDefault(fields["e"].Default) {
+		t.Errorf("e default = %#v, want an empty list", fields["e"].Default)
+	}
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.b,R.c,R.d,R.e" {
+		t.Errorf("policy defaults = %s, want the five lines", got)
+	}
+}
+
+// A null default changes nothing outside a field line, so the file is refused instead of ignoring it.
+func TestANullDefaultOutsideAFieldLineIsAnError(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	tests := map[string]struct{ text, want string }{
+		"extra attribute":   {head + "types:\n  R:\n    extraAttributes:\n      a: {type: set, elementType: string, optional: true, computed: true, default: null, markdownDescription: x}\n", "types.R.extraAttributes.a.default: default: null changes nothing here"},
+		"list in an object": {head + "types:\n  R:\n    fields:\n      a: {computed: true, default: {x: 1}}\n      b: {computed: true, default: {x: 1, y: [a]}}\n", "a list default must be empty"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(test.text))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+	// A field that is named default is no key of a line.
+	if _, err := Parse([]byte(head + "types:\n  R:\n    fields:\n      default: {computed: true, default: null}\n")); err != nil {
+		t.Fatalf("a field named default: %v", err)
 	}
 }
 
@@ -621,17 +679,18 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 	const head = "resource: Target\nmode: existing\nvalidators:\n  inferred: false\n"
 	const upsert = "api:\n  operations: {create: S, get: G, update: S, delete: none}\n"
 	tests := map[string]struct{ text, want string }{
-		"delete none with two calls":  {head + "api:\n  operations: {create: C, get: G, update: U, delete: none}\n", "create and update must name the same operation"},
-		"delete none with idProperty": {head + upsert + "  idProperty: uid\n", "idProperty"},
-		"singletonID with both keys":  {head + "singletonID: {fixed: a, fromAPI: true}\n", "exactly one of fixed"},
-		"singletonID with no key":     {head + "singletonID: {}\n", "exactly one of fixed"},
-		"inline with other keys":      {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, computed: true}\n", "sets only inline"},
-		"inline with negate":          {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, negate: true}\n", "sets only inline"},
-		"inline with split":           {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, split: \",\"}\n", "sets only inline"},
-		"inline with requestAs":       {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, requestAs: bucket}\n", "sets only inline"},
-		"name not a Terraform name":   {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
-		"skipped field with a name":   {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
-		"the removed fixedID key":     {head + "fixedID: settings\n", "fixedID not found"},
+		"delete none with two calls":      {head + "api:\n  operations: {create: C, get: G, update: U, delete: none}\n", "create and update must name the same operation"},
+		"delete none with idProperty":     {head + upsert + "  idProperty: uid\n", "idProperty"},
+		"singletonID with both keys":      {head + "singletonID: {fixed: a, fromAPI: true}\n", "exactly one of fixed"},
+		"singletonID with no key":         {head + "singletonID: {}\n", "exactly one of fixed"},
+		"inline with other keys":          {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, computed: true}\n", "sets only inline"},
+		"inline with required and a name": {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, required: true, name: bucket}\n", "sets only inline"},
+		"inline with negate":              {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, negate: true}\n", "sets only inline"},
+		"inline with split":               {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, split: \",\"}\n", "sets only inline"},
+		"inline with requestAs":           {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, requestAs: bucket}\n", "sets only inline"},
+		"name not a Terraform name":       {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
+		"skipped field with a name":       {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
+		"the removed fixedID key":         {head + "fixedID: settings\n", "fixedID not found"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -642,15 +701,40 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 	}
 }
 
+// An inline line can say that the API always has the object, when the contract has no required
+// list that can say so.
+func TestParseInlineWithRequired(t *testing.T) {
+	text := "resource: Target\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Target:\n    fields:\n      s3: {inline: true, required: true}\n"
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(f.InlinedFields(), []string{"s3"}) || !f.Types["Target"].Fields["s3"].Required {
+		t.Fatalf("file = %+v, want s3 inlined and required", f)
+	}
+}
+
 func TestExtraAttributeShapeErrors(t *testing.T) {
 	tests := map[string]struct {
 		extra ExtraAttribute
 		want  string
 	}{
-		"unknown shape":        {ExtraAttribute{Type: "list"}, "want string, int64, or set"},
-		"set without elements": {ExtraAttribute{Type: "set"}, "needs elementType string"},
-		"string with elements": {ExtraAttribute{Type: "string", ElementType: "string"}, "string attribute has no elementType"},
-		"computed write-only":  {ExtraAttribute{Type: "string", Computed: true, WriteOnly: true}, "computed cannot be combined"},
+		"unknown shape":                    {ExtraAttribute{Type: "tuple"}, "want string, int64, bool, set, list, or object"},
+		"list without elements":            {ExtraAttribute{Type: "list"}, "needs elementType string"},
+		"object without attributes":        {ExtraAttribute{Type: "object"}, "has attributes"},
+		"attributes of a string":           {ExtraAttribute{Type: "string", Attributes: map[string]ExtraAttribute{"a": {Type: "string"}}}, "attributes belong to type: object"},
+		"read-only object":                 {ExtraAttribute{Type: "object", Computed: true, Attributes: map[string]ExtraAttribute{"a": {Type: "string", MarkdownDescription: "d"}}}, "cannot be computed-only"},
+		"optional without computed":        {ExtraAttribute{Type: "string", Optional: true}, "needs computed: true"},
+		"optional and required":            {ExtraAttribute{Type: "string", Optional: true, Computed: true, Required: true}, "needs computed: true and no required"},
+		"default without optional":         {ExtraAttribute{Type: "string", Computed: true, Default: "x"}, "default needs optional: true"},
+		"equality on a set":                {ExtraAttribute{Type: "set", ElementType: "string", Equality: "json"}, "equality needs a string"},
+		"unknown equality":                 {ExtraAttribute{Type: "string", Equality: "toml"}, "want json or yaml"},
+		"state value of a plain attribute": {ExtraAttribute{Type: "string", UseStateForUnknown: true}, "needs a computed attribute"},
+		"nested write-only":                {ExtraAttribute{Type: "object", Attributes: map[string]ExtraAttribute{"a": {Type: "string", WriteOnly: true, MarkdownDescription: "d"}}, MarkdownDescription: "d"}, "inside an object cannot be"},
+		"nested without text":              {ExtraAttribute{Type: "object", Attributes: map[string]ExtraAttribute{"a": {Type: "string"}}, MarkdownDescription: "d"}, "attributes.a: markdownDescription is required"},
+		"set without elements":             {ExtraAttribute{Type: "set"}, "needs elementType string"},
+		"string with elements":             {ExtraAttribute{Type: "string", ElementType: "string"}, "string attribute has no elementType"},
+		"computed write-only":              {ExtraAttribute{Type: "string", Computed: true, WriteOnly: true}, "computed cannot be combined"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

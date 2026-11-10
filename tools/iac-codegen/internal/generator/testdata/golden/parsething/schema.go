@@ -64,7 +64,7 @@ func Schema() schema.Schema {
 				Validators: []validator.Set{
 					setvalidator.ValueStringsAre(stringvalidator.OneOf("debug", "error", "info")),
 				},
-				MarkdownDescription: "",
+				MarkdownDescription: "Valid values: [\"debug\" \"error\" \"info\"].",
 			},
 			"groups": schema.ListNestedAttribute{
 				Optional: true,
@@ -199,7 +199,7 @@ func Schema() schema.Schema {
 												Validators: []validator.String{
 													stringvalidator.OneOfCaseInsensitive("category", "text", "threadID"),
 												},
-												MarkdownDescription: "",
+												MarkdownDescription: "Valid values: [\"category\" \"text\" \"threadID\"].",
 											},
 										},
 										MarkdownDescription: "",

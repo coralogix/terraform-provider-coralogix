@@ -26,18 +26,20 @@ type GroupSetThing struct {
 }
 
 type InGroupThing struct {
-	Interval *int64
-	Items    []InItemThing
-	Limit    *string
-	Name     string
+	Interval      *int64
+	Items         []InItemThing
+	Limit         *string
+	Name          string
+	PeriodMinutes *int64
 }
 
 type OutGroupThing struct {
-	Interval   *int64
-	Items      []OutItemThing
-	LastSeenAt *string
-	Limit      *string
-	Name       string
+	Interval      *int64
+	Items         []OutItemThing
+	LastSeenAt    *string
+	Limit         *string
+	Name          string
+	PeriodMinutes *int64
 }
 
 type InItemThing struct {
@@ -115,7 +117,7 @@ func store(id string, name *string, groups []InGroupThing) {
 		if g.Limit != nil {
 			limit = *g.Limit
 		}
-		out := OutGroupThing{Name: g.Name, Interval: &interval, Limit: &limit, LastSeenAt: &seen, Items: []OutItemThing{}}
+		out := OutGroupThing{Name: g.Name, Interval: &interval, Limit: &limit, LastSeenAt: &seen, PeriodMinutes: g.PeriodMinutes, Items: []OutItemThing{}}
 		for _, item := range g.Items {
 			labels := item.Labels
 			if labels == nil {

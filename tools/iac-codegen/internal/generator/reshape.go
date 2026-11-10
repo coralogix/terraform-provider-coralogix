@@ -52,8 +52,9 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 	}
 	doc := root.Content[0]
 	schemas := mapValue(mapValue(doc, "components"), "schemas")
-	h := inliner{schemas: schemas, fields: inlined, resource: component, file: file, done: map[*yaml.Node]map[string]overrides.Parent{}}
+	h := inliner{schemas: schemas, fields: inlined, resource: component, file: file, done: map[*yaml.Node]map[string]overrides.Parent{}, relied: map[*yaml.Node][]string{}}
 	shape := &overrides.Inlined{}
+	var needed []*yaml.Node // the schemas of the resource that an inline line with required: true can be needed in
 	if len(inlined) != 0 {
 		response := mapValue(schemas, component)
 		if response == nil {
@@ -64,6 +65,7 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 			return data, ids, issue.Report{inlineIssue(component, component+": "+err.Error())}
 		}
 		h.done[response] = shape.Get
+		needed = append(needed, response)
 	}
 	if len(nested) != 0 {
 		var report issue.Report
@@ -87,6 +89,7 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 				return data, ids, issue.Report{inlineIssue(component, "create body: "+err.Error())}
 			}
 			shape.Update = shape.Create
+			needed = append(needed, bodySchema(h.schemas, set))
 		}
 		out = model.OperationIDs{Create: ops.Create, Get: ops.Get, Update: ops.Create + upsertPutSuffix, Delete: ops.Get + upsertDeleteSuffix}
 	}
@@ -95,12 +98,17 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 		return data, ids, issue.Report{{Code: "OPENAPI_INVALID", Location: "openapi", Message: fmt.Sprintf("write the contract: %v", err), Remediation: "Correct the source OpenAPI document."}}
 	}
 	if !file.Upserts() {
-		if report := h.inlineCreateAndUpdate(&root, component, ids, policy, shape); len(report) != 0 {
+		bodies, report := h.inlineCreateAndUpdate(&root, component, ids, policy, shape)
+		if len(report) != 0 {
 			return data, ids, report
 		}
+		needed = append(needed, bodies...)
 		if written, err = yaml.Marshal(&root); err != nil {
 			return data, ids, issue.Report{{Code: "OPENAPI_INVALID", Location: "openapi", Message: fmt.Sprintf("write the contract: %v", err), Remediation: "Correct the source OpenAPI document."}}
 		}
+	}
+	if report := h.unusedRequired(inlined, needed); len(report) != 0 {
+		return data, ids, report
 	}
 	file.Inlined = shape
 	return written, out, nil
@@ -111,8 +119,8 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 // can sit at another depth than the response field before. So every request body with an inlined
 // field is inlined; the Create and Update bodies that the model then selects give the parents, and
 // an error counts only for them. The Update must send the whole resource.
-func (h inliner) inlineCreateAndUpdate(root *yaml.Node, component string, ids model.OperationIDs, policy model.Policy, shape *overrides.Inlined) issue.Report {
-	parents, errs := map[string]map[string]overrides.Parent{}, map[string]error{}
+func (h inliner) inlineCreateAndUpdate(root *yaml.Node, component string, ids model.OperationIDs, policy model.Policy, shape *overrides.Inlined) ([]*yaml.Node, issue.Report) {
+	parents, errs, nodes := map[string]map[string]overrides.Parent{}, map[string]error{}, map[string]*yaml.Node{}
 	paths := mapValue(root.Content[0], "paths")
 	for i := 0; paths != nil && i+1 < len(paths.Content); i += 2 {
 		item := paths.Content[i+1]
@@ -123,39 +131,37 @@ func (h inliner) inlineCreateAndUpdate(root *yaml.Node, component string, ids mo
 				continue
 			}
 			parents[id.Value], errs[id.Value] = h.body(op)
+			nodes[id.Value] = bodySchema(h.schemas, op)
 		}
 	}
 	data, err := yaml.Marshal(root)
 	if err != nil {
-		return issue.Report{inlineIssue(component, err.Error())}
+		return nil, issue.Report{inlineIssue(component, err.Error())}
 	}
 	doc, err := model.Load(data)
 	if err != nil {
-		return issue.Report{inlineIssue(component, err.Error())}
+		return nil, issue.Report{inlineIssue(component, err.Error())}
 	}
 	r, err := model.BuildWithPolicy(doc, component, ids, policy)
 	if err != nil {
-		return issue.Report{inlineIssue(component, "find the Create and Update operations of "+component+": "+err.Error())}
+		return nil, issue.Report{inlineIssue(component, "find the Create and Update operations of "+component+": "+err.Error())}
 	}
 	for _, op := range []struct{ name, id string }{{"create body", r.Create.OperationID}, {"update body", r.Update.OperationID}} {
 		if errs[op.id] != nil {
-			return issue.Report{inlineIssue(component, op.name+": "+errs[op.id].Error())}
+			return nil, issue.Report{inlineIssue(component, op.name+": "+errs[op.id].Error())}
 		}
 	}
 	if !r.Replace {
-		return issue.Report{inlineIssue(component, fmt.Sprintf("inline needs an Update that sends the whole resource, a PUT or the Set call of an upsert, but %s is %s with an update mask: the mask names API fields, and an inlined field is inside its object in the API", r.Update.OperationID, r.Update.Method))}
+		return nil, issue.Report{inlineIssue(component, fmt.Sprintf("inline needs an Update that sends the whole resource, a PUT or the Set call of an upsert, but %s is %s with an update mask: the mask names API fields, and an inlined field is inside its object in the API", r.Update.OperationID, r.Update.Method))}
 	}
 	shape.Create, shape.Update = parents[r.Create.OperationID], parents[r.Update.OperationID]
-	return nil
+	return []*yaml.Node{nodes[r.Create.OperationID], nodes[r.Update.OperationID]}, nil
 }
 
 // body inlines the request body of op, once per schema: a body that is a component that another
 // place inlined already gets the same parents.
 func (h inliner) body(op *yaml.Node) (map[string]overrides.Parent, error) {
-	schema := mapValue(mapValue(mapValue(mapValue(op, "requestBody"), "content"), "application/json"), "schema")
-	if ref := refName(schema); ref != "" {
-		schema = mapValue(h.schemas, ref)
-	}
+	schema := bodySchema(h.schemas, op)
 	if schema == nil {
 		return nil, nil
 	}
@@ -168,6 +174,49 @@ func (h inliner) body(op *yaml.Node) (map[string]overrides.Parent, error) {
 	}
 	h.done[schema] = parents
 	return parents, nil
+}
+
+// bodySchema returns the schema of the request body of op: the component that it refers to, or the
+// inline schema.
+func bodySchema(schemas, op *yaml.Node) *yaml.Node {
+	schema := mapValue(mapValue(mapValue(mapValue(op, "requestBody"), "content"), "application/json"), "schema")
+	if ref := refName(schema); ref != "" {
+		return mapValue(schemas, ref)
+	}
+	return schema
+}
+
+// unusedRequired reports an inline line of the resource with required: true that none of the
+// schemas needs: each of them requires the object, so the contract states what the line says.
+func (h inliner) unusedRequired(inlined []string, schemas []*yaml.Node) issue.Report {
+	var report issue.Report
+	for _, field := range inlined {
+		if !h.file.Types[h.resource].Fields[field].Required || h.reliesOn(schemas, field) {
+			continue
+		}
+		report = append(report, issue.Issue{Code: "OVERRIDE_UNUSED", Location: overrides.FileName + ":types." + h.resource + ".fields." + field, Message: fmt.Sprintf("the contract already requires %q in the response and in the Create and Update bodies, so required: true on its inline line says nothing", field), Remediation: "Delete only the key required from the inline line."})
+	}
+	return report
+}
+
+// unusedNestedRequired is unusedRequired for the inline lines of nested components. relied has
+// component.field of each line that some schema needs required: true for.
+func (h inliner) unusedNestedRequired(nested map[string][]string, relied map[string]bool) issue.Report {
+	var report issue.Report
+	for _, component := range slices.Sorted(maps.Keys(nested)) {
+		for _, field := range nested[component] {
+			if h.file.Types[component].Fields[field].Required && !relied[component+"."+field] {
+				report = append(report, issue.Issue{Code: "OVERRIDE_UNUSED", Location: overrides.FileName + ":types." + component + ".fields." + field, Message: fmt.Sprintf("every schema that holds %q requires it, so required: true on its inline line says nothing", field), Remediation: "Delete only the key required from the inline line."})
+			}
+		}
+	}
+	return report
+}
+
+// reliesOn reports whether one of schemas does not require the inlined field, so that the line
+// of the field needs required: true there.
+func (h inliner) reliesOn(schemas []*yaml.Node, field string) bool {
+	return slices.ContainsFunc(schemas, func(s *yaml.Node) bool { return slices.Contains(h.relied[s], field) })
 }
 
 // upsertOperations checks the two calls of an upsert, a GET and a POST on one path without path
@@ -224,11 +273,16 @@ func inlineIssue(component, message string) issue.Issue {
 // inliner replaces the inlined objects of a schema by their fields.
 type inliner struct {
 	// done has the parents of each schema that inline replaced already.
-	done     map[*yaml.Node]map[string]overrides.Parent
-	schemas  *yaml.Node
-	fields   []string // the inlined fields of the resource
+	done    map[*yaml.Node]map[string]overrides.Parent
+	schemas *yaml.Node
+	fields  []string // the inlined fields of the resource
+	// resource is the component whose field lines state the inline lines: the resource component,
+	// or a nested one.
 	resource string
 	file     *overrides.File
+	// relied has, for each schema that inline changed, the inlined fields that the schema does not
+	// require and that the inline line states as required: the line is needed there.
+	relied map[*yaml.Node][]string
 }
 
 // inline replaces each inlined object of s by its fields, in place and in order. An inlined object
@@ -252,6 +306,7 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 	parents := map[string]overrides.Parent{}
 	flat := &yaml.Node{Kind: yaml.MappingNode}
 	var flatRequired []string
+	var carried *yaml.Node // the oneOf of an inlined object
 	add := func(key, value *yaml.Node, isRequired bool) error {
 		if mapValue(flat, key.Value) != nil {
 			return fmt.Errorf("inline: two fields have the name %q", key.Value)
@@ -282,12 +337,17 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 			return nil, fmt.Errorf("inline: %s must be a $ref to an object component", name)
 		}
 		objectProps := mapValue(object, "properties")
-		if objectProps == nil || len(objectProps.Content) == 0 || mapValue(object, "oneOf") != nil || mapValue(object, "allOf") != nil || mapValue(object, "anyOf") != nil {
-			return nil, fmt.Errorf("inline: %s must be an object with fields and no oneOf, allOf, or anyOf", name)
+		if objectProps == nil || len(objectProps.Content) == 0 || mapValue(object, "allOf") != nil || mapValue(object, "anyOf") != nil {
+			return nil, fmt.Errorf("inline: %s must be an object with fields and no allOf or anyOf", name)
+		}
+		if carried, err = carryOneOf(s, object, name, carried); err != nil {
+			return nil, err
 		}
 		isArm := name == arm
 		if !isArm && !slices.Contains(required, name) {
-			return nil, fmt.Errorf("inline: %s must be required, so that its fields are always in the API value", name)
+			if err := h.requireObject(s, name); err != nil {
+				return nil, err
+			}
 		}
 		objectRequired := stringList(mapValue(object, "required"))
 		for j := 0; j+1 < len(objectProps.Content); j += 2 {
@@ -306,7 +366,34 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 	if arm != "" {
 		deleteMap(s, "oneOf") // the group is the inlined arm; its other arms are skipped fields
 	}
+	if carried != nil {
+		setMap(s, "oneOf", carried)
+	}
 	return parents, nil
+}
+
+// carryOneOf returns the oneOf group that the fields of the inlined object bring to s: the group of
+// the object, whose arms are its fields. s must not have a group of its own, and no other inlined
+// object may have brought one (carried).
+func carryOneOf(s, object *yaml.Node, name string, carried *yaml.Node) (*yaml.Node, error) {
+	oneOf := mapValue(object, "oneOf")
+	if oneOf == nil {
+		return carried, nil
+	}
+	if carried != nil || mapValue(s, "oneOf") != nil {
+		return nil, fmt.Errorf("inline: %s has a oneOf, and its arms become the arms of the oneOf group of the schema that receives its fields, but that schema has a group already: its own, or one that another inlined object brought", name)
+	}
+	return oneOf, nil
+}
+
+// requireObject checks an inlined object that s does not require. The line states that the API
+// always has it, when the contract cannot say so, and the line is then needed for s.
+func (h inliner) requireObject(s *yaml.Node, name string) error {
+	if !h.file.Types[h.resource].Fields[name].Required {
+		return fmt.Errorf("inline: %s must be required, so that its fields are always in the API value; if the API always has it but the contract has no required list that can say so, add required: true to the inline line of %s", name, name)
+	}
+	h.relied[s] = append(h.relied[s], name)
+	return nil
 }
 
 // inlinedArm returns the inlined field that is an arm of the oneOf group of s, or "". The other
@@ -571,6 +658,7 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		h.reachable(mapValue(mapValue(mapValue(mapValue(op, "requestBody"), "content"), "application/json"), "schema"), requests)
 	}
 	out := map[string]map[string]overrides.Parent{}
+	relied := map[string]bool{}         // component.field of each inline line that a schema needs required: true for
 	counterparts := map[string]string{} // the request counterpart of each component
 	for _, name := range slices.Sorted(maps.Keys(mergeSets(responses, requests))) {
 		schema := mapValue(h.schemas, name)
@@ -599,10 +687,15 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 				counterparts[component] = name
 			}
 			slices.Sort(fields)
-			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done}
+			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done, relied: h.relied}
 			parents, err := nestedInliner.inline(schema, responses[name] && !requests[name])
 			if err != nil {
 				return nil, issue.Report{inlineIssue(name, name+": "+err.Error())}
+			}
+			for _, field := range fields {
+				if slices.Contains(h.relied[schema], field) {
+					relied[component+"."+field] = true
+				}
 			}
 			if out[name] == nil {
 				out[name] = map[string]overrides.Parent{}
@@ -614,6 +707,9 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		if len(out[component]) == 0 {
 			return nil, issue.Report{inlineIssue(component, "the resource does not hold "+component+", so its inline lines change nothing")}
 		}
+	}
+	if report := h.unusedNestedRequired(nested, relied); len(report) != 0 {
+		return nil, report
 	}
 	return out, nil
 }

@@ -3,14 +3,14 @@
 package {{.Package}}
 
 import (
-{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms}}
+{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms .SetItemState}}
 	"context"
 {{- end}}
 {{- if .HasTypedArms}}
 	"fmt"
 {{- end}}
 	"regexp"
-{{- if or .SetServerDefaults .HasTypedArms}}
+{{- if or .SetServerDefaults .HasTypedArms .SetItemState}}
 	"slices"
 {{- end}}
 
@@ -44,7 +44,7 @@ import (
 {{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-{{- if .SetServerDefaults}}
+{{- if or .SetServerDefaults .SetItemState}}
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 {{- end}}
 )
@@ -133,6 +133,166 @@ func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
 }
 
 {{if .SetServerDefaults -}}
+{{template "setItemHelpers" .}}{{end -}}
+func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
+	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
+		return false, false
+	}
+	if state.Equal(declared) {
+		return false, true
+	}
+	return true, false
+}
+
+{{range .ServerDefaultKinds}}
+func (m serverDefaultModifier) PlanModify{{.}}({{if $.SetServerDefaults}}ctx{{else}}_{{end}} context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+{{- if $.SetServerDefaults}}
+	config, prior := attr.Value(req.ConfigValue), attr.Value(req.StateValue)
+	if m.fromPlan {
+		value, ok := setItemConfig(ctx, req.Config.Raw, req.Path)
+		if !ok || !value.IsNull() {
+			return
+		}
+		config, prior = types.{{.}}Null(), req.PlanValue
+	}
+	unknown, preserve := serverDefaultPlan(config, prior, m.value)
+	if unknown {
+		resp.PlanValue = types.{{.}}Unknown()
+	} else if preserve {
+		resp.PlanValue = prior.(types.{{.}})
+	}
+{{- else}}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.{{.}}Unknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
+{{- end}}
+}
+{{end}}
+{{- end}}
+{{- if .SetItemState}}
+{{- if not .SetServerDefaults}}
+
+{{template "setItemHelpers" .}}
+{{- end}}
+
+// setItemStateModifier keeps the state value of an object inside a set item when the plan leaves it
+// unknown. The framework gives a modifier the state of the item at the same index, which can be
+// another item: the plan and the state sort their items apart. The set step of the path holds the
+// planned item, so the modifier takes the state item that the planned item matches: every value
+// that the state item has is the planned one, or the plan leaves it unknown. A planned item that
+// matches no state item, such as one that changes, keeps its unknown value, and so does an item whose
+// configuration of the group is unknown.
+type setItemStateModifier struct{}
+
+func (setItemStateModifier) Description(context.Context) string {
+	return "Once set, the value of this attribute in state will not change."
+}
+
+func (m setItemStateModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (setItemStateModifier) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	if req.State.Raw.IsNull() || !req.PlanValue.IsUnknown() {
+		return
+	}
+	// A group that the configuration sets from a value that is unknown now stays unknown: the state
+	// value may differ once the value is known. The configured item is the one that the planned item
+	// matches, not the item at the same index.
+	if configured, found := setItemConfig(ctx, req.Config.Raw, req.Path); found && !configured.IsFullyKnown() {
+		return
+	}
+	value, ok := setItemConfig(ctx, req.State.Raw, req.Path)
+	if !ok || value.IsNull() || !value.IsFullyKnown() {
+		return
+	}
+	kept, err := req.PlanValue.Type(ctx).ValueFromTerraform(ctx, value)
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid state value", err.Error())
+		return
+	}
+	if object, ok := kept.(types.Object); ok {
+		resp.PlanValue = object
+	}
+}
+{{- end}}
+
+{{define "attribute" -}}
+schema.{{.Kind}}Attribute{
+{{- if .Required}}
+	Required: true,
+{{- end}}
+{{- if .Optional}}
+	Optional: true,
+{{- end}}
+{{- if .WriteOnly}}
+	WriteOnly: true,
+{{- end}}
+{{- if .Computed}}
+	Computed: true,
+{{- end}}
+{{- if .CustomType}}
+	CustomType: {{.CustomType}},
+{{- end}}
+{{- if .ElementType}}
+	ElementType: {{.ElementType}},
+{{- end}}
+{{- if .Default}}
+	Default: {{.Default}},
+{{- end}}
+{{- if .DeprecationMessage}}
+	DeprecationMessage: {{printf "%q" .DeprecationMessage}},
+{{- end}}
+{{- if .Sensitive}}
+	Sensitive: true,
+{{- end}}
+{{- if .Validators}}
+	Validators: []validator.{{.ValueKind}}{
+	{{- range .Validators}}
+		{{.}},
+	{{- end}}
+	},
+{{- end}}
+{{- if .Modifiers}}
+	PlanModifiers: []planmodifier.{{.ValueKind}}{
+	{{- range .Modifiers}}
+		{{.}},
+	{{- end}}
+	},
+{{- end}}
+{{- if eq .Kind "SingleNested"}}
+	Attributes: {{template "attributes" .Attributes}},
+{{- else if or (eq .Kind "ListNested") (eq .Kind "SetNested") (eq .Kind "MapNested")}}
+	NestedObject: schema.NestedAttributeObject{
+		Attributes: {{template "attributes" .Attributes}},
+	{{- if .ItemModifiers}}
+		PlanModifiers: []planmodifier.Object{
+		{{- range .ItemModifiers}}
+			{{.}},
+		{{- end}}
+		},
+	{{- end}}
+	},
+{{- end}}
+	{{if .PlainDescription}}Description{{else}}MarkdownDescription{{end}}: {{printf "%q" .Description}},
+}
+{{- end}}
+
+{{define "attributes" -}}
+map[string]schema.Attribute{
+{{- range .}}
+	{{printf "%q" .Name}}: {{template "attribute" .}},
+{{- end}}
+}
+{{- end}}
+
+{{define "setItemHelpers" -}}
 // setItemConfig returns the configuration value of the attribute on the path p, which is inside a
 // set item. The framework gives the modifier the configuration of the item at the same index, which
 // can be another item: the configuration and the plan sort their items apart. The set step of p
@@ -244,110 +404,7 @@ func configMatches(config, plan tftypes.Value) bool {
 	return config.Equal(plan)
 }
 
-{{end -}}
-func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
-	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
-		return false, false
-	}
-	if state.Equal(declared) {
-		return false, true
-	}
-	return true, false
-}
-
-{{range .ServerDefaultKinds}}
-func (m serverDefaultModifier) PlanModify{{.}}({{if $.SetServerDefaults}}ctx{{else}}_{{end}} context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
-	if req.Plan.Raw.IsNull() {
-		return
-	}
-{{- if $.SetServerDefaults}}
-	config, prior := attr.Value(req.ConfigValue), attr.Value(req.StateValue)
-	if m.fromPlan {
-		value, ok := setItemConfig(ctx, req.Config.Raw, req.Path)
-		if !ok || !value.IsNull() {
-			return
-		}
-		config, prior = types.{{.}}Null(), req.PlanValue
-	}
-	unknown, preserve := serverDefaultPlan(config, prior, m.value)
-	if unknown {
-		resp.PlanValue = types.{{.}}Unknown()
-	} else if preserve {
-		resp.PlanValue = prior.(types.{{.}})
-	}
-{{- else}}
-	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
-	if unknown {
-		resp.PlanValue = types.{{.}}Unknown()
-	} else if preserve {
-		resp.PlanValue = req.StateValue
-	}
-{{- end}}
-}
 {{end}}
-{{- end}}
-
-{{define "attribute" -}}
-schema.{{.Kind}}Attribute{
-{{- if .Required}}
-	Required: true,
-{{- end}}
-{{- if .Optional}}
-	Optional: true,
-{{- end}}
-{{- if .WriteOnly}}
-	WriteOnly: true,
-{{- end}}
-{{- if .Computed}}
-	Computed: true,
-{{- end}}
-{{- if .CustomType}}
-	CustomType: {{.CustomType}},
-{{- end}}
-{{- if .ElementType}}
-	ElementType: {{.ElementType}},
-{{- end}}
-{{- if .Default}}
-	Default: {{.Default}},
-{{- end}}
-{{- if .DeprecationMessage}}
-	DeprecationMessage: {{printf "%q" .DeprecationMessage}},
-{{- end}}
-{{- if .Sensitive}}
-	Sensitive: true,
-{{- end}}
-{{- if .Validators}}
-	Validators: []validator.{{.ValueKind}}{
-	{{- range .Validators}}
-		{{.}},
-	{{- end}}
-	},
-{{- end}}
-{{- if .Modifiers}}
-	PlanModifiers: []planmodifier.{{.ValueKind}}{
-	{{- range .Modifiers}}
-		{{.}},
-	{{- end}}
-	},
-{{- end}}
-{{- if eq .Kind "SingleNested"}}
-	Attributes: {{template "attributes" .Attributes}},
-{{- else if or (eq .Kind "ListNested") (eq .Kind "SetNested") (eq .Kind "MapNested")}}
-	NestedObject: schema.NestedAttributeObject{
-		Attributes: {{template "attributes" .Attributes}},
-	},
-{{- end}}
-	{{if .PlainDescription}}Description{{else}}MarkdownDescription{{end}}: {{printf "%q" .Description}},
-}
-{{- end}}
-
-{{define "attributes" -}}
-map[string]schema.Attribute{
-{{- range .}}
-	{{printf "%q" .Name}}: {{template "attribute" .}},
-{{- end}}
-}
-{{- end}}
 
 {{- if .HasTypedArms}}
 

@@ -1012,6 +1012,15 @@ func TestCarrySiblingsIsRefusedWithAnUpdateMask(t *testing.T) {
 	}
 }
 
+// An asString line is refused on a resource that Update patches with a mask: the mask names the
+// arms of the oneOf, not the string that Terraform shows.
+func TestAsStringIsRefusedWithAnUpdateMask(t *testing.T) {
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Step:\n    fields:\n      window: {asString: true}\n"
+	if err := replaceOnlyLines(mustParse(t, base)); err == nil || !strings.Contains(err.Error(), "Step.window: asString needs an Update that replaces the resource") {
+		t.Fatalf("err = %v, want asString refused for a masked Update", err)
+	}
+}
+
 // valueNames names the numbers of an integer list or set. On any other field it is an error.
 func TestValueNamesNeedIntegerCollection(t *testing.T) {
 	err := generateSuppressedWith(t, "timezone: {name: time_zone}", "timezone: {name: time_zone, valueNames: {1: UTC}}")

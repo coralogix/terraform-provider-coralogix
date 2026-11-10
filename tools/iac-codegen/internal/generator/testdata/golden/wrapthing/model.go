@@ -17,8 +17,11 @@ type WrapThingModel struct {
 	WidgetIds  types.List         `tfsdk:"widget_ids"`
 	Filter     *SimpleFilterModel `tfsdk:"filter"`
 	Selection  types.List         `tfsdk:"selection"`
+	Tags       types.Set          `tfsdk:"tags"`
+	Window     types.String       `tfsdk:"window"`
 	MainLabel  types.String       `tfsdk:"main_label"`
 	ExtraLabel *LabelModel        `tfsdk:"extra_label"`
+	Offset     types.Int64        `tfsdk:"offset"`
 }
 
 type LuceneQueryModel struct {
@@ -28,6 +31,7 @@ type LuceneQueryModel struct {
 type SimpleFilterModel struct {
 	Text  types.String `tfsdk:"text"`
 	Limit types.Int32  `tfsdk:"limit"`
+	Span  types.Int64  `tfsdk:"span"`
 }
 
 type LabelModel struct {

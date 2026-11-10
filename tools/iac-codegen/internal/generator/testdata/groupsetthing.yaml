@@ -2,7 +2,8 @@
 # Delete return {}. The requests send InGroupThing and InItemThing, and the response returns
 # OutGroupThing and OutItemThing, which require what the server always fills in: the interval and
 # the limit of a group, which have server defaults, and the labels of an item. The groups are a set.
-# The limit and lastSeenAt are uint64 numbers sent as strings of up to 20 digits. The limit has the
+# A group has a flat periodMinutes that the released resource shows as an optional object, period = { minutes },
+# which the server keeps when the configuration leaves it out. The limit and lastSeenAt are uint64 numbers sent as strings of up to 20 digits. The limit has the
 # shape that protoc-gen-openapiv3 writes for a uint64: a digit pattern and no format.
 openapi: 3.1.0
 info: {title: groupset, version: 1.0.0}
@@ -88,6 +89,7 @@ components:
         name: {type: string, minLength: 1}
         interval: {type: integer, format: int64, minimum: 60, default: 60, x-coralogix-presence: true}
         limit: {type: string, pattern: "^[0-9]+$", minLength: 1, maxLength: 20, default: "0", x-coralogix-presence: true}
+        periodMinutes: {type: integer, format: int64, x-coralogix-presence: true}
         items: {type: array, items: {$ref: '#/components/schemas/InItemThing'}}
     OutGroupThing:
       type: object
@@ -97,6 +99,7 @@ components:
         interval: {type: integer, format: int64, minimum: 60, default: 60, x-coralogix-presence: true}
         limit: {type: string, pattern: "^[0-9]+$", minLength: 1, maxLength: 20, default: "0", x-coralogix-presence: true}
         lastSeenAt: {type: string, format: uint64, maxLength: 20, x-coralogix-presence: true}
+        periodMinutes: {type: integer, format: int64, x-coralogix-presence: true}
         items: {type: array, items: {$ref: '#/components/schemas/OutItemThing'}}
     InItemThing:
       type: object
