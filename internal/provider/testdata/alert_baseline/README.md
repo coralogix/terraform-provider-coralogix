@@ -11,8 +11,8 @@ UPDATE_GOLDEN=1 go test ./internal/provider -run TestAlertBaseline
 Always run a single scenario while you write it (`-run 'TestAlertBaselineScenarios/<name>$'`).
 The data source is not part of this baseline: it moves later.
 
-The unit tests job leaves these tests out and the `alert-baseline` job of `build.yml` runs them
-(about 80 seconds): the pattern is `ALERT_BASELINE_TESTS` in that file.
+`make test` (the unit tests job) leaves these tests out and the `alert-baseline` job runs them with
+`make test-alert-baseline` (about 80 seconds): the pattern is `ALERT_BASELINE_TESTS` in the Makefile.
 
 ## What is covered
 
