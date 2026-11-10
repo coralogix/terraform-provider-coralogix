@@ -40,6 +40,7 @@
 - FEAT: `readNullAs: empty` also reads a missing string as `""`.
 - FIX: A `required` or `optional` line on a field of the resource component is no longer reported as stale when no request body reaches the component: the required list of the Get response says nothing about a Create body of its own.
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that has `updateAs`, `updateDefault`, the request-only wrapper, and `itemName`.
+- CHORE: Bump the generator to `v0.1.0-beta.74`. The generated packages are the same; only `versions.yaml` changes.
 
 # Release 3.24.0
 
