@@ -35,6 +35,16 @@ concurrency:
 
 env:
   SDK_REPO: coralogix/coralogix-management-sdk
+  # The paths that the regeneration changes. The build job packages them into the patch and the
+  # pull request commits them, so both read this one list.
+  REGENERATED_PATHS: |
+    go.mod
+    go.sum
+    CHANGELOG.md
+    internal/provider/generated
+    internal/provider/testdata
+    docs
+    examples
 
 jobs:
   build:
@@ -117,7 +127,9 @@ jobs:
         if: steps.regenerate.outputs.resources != ''
         # A patch also carries a generated file that the generator no longer writes.
         run: |
-          git add -A -- go.mod go.sum CHANGELOG.md internal/provider/generated docs examples
+          # Word splitting of the list is intended: one path per line, none with spaces.
+          # shellcheck disable=SC2086
+          git add -A -- $REGENERATED_PATHS
           git diff --cached --binary > "$RUNNER_TEMP/regenerated/change.patch"
 
       - uses: actions/upload-artifact@v4
@@ -186,14 +198,7 @@ jobs:
           base: master
           branch: auto/sdk-regenerate
           delete-branch: true
-          add-paths: |
-            go.mod
-            go.sum
-            CHANGELOG.md
-            internal/provider/generated/**
-            internal/provider/testdata/**
-            docs/**
-            examples/**
+          add-paths: ${{ env.REGENERATED_PATHS }}
           commit-message: "chore: regenerate generated resources from Management SDK ${{ needs.build.outputs.sdk_short_sha }}"
           title: "Regenerate generated resources from Management SDK ${{ needs.build.outputs.sdk_short_sha }}"
           body-path: ${{ runner.temp }}/regenerated/pr-body.md
