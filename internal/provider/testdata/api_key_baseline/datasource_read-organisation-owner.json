@@ -1,0 +1,32 @@
+[
+  {
+    "step": "read a key of an organisation",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "owner": {
+        "organisation_id": "22222222-2222-4222-8222-222222222222",
+        "team_id": null,
+        "user_id": null
+      },
+      "permissions": [],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    }
+  }
+]

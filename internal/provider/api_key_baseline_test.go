@@ -61,6 +61,17 @@ var apiKeyFirstID = apiKeyFakeID(1)
 // apiKeyTeam is the owner of every key that a scenario creates: the team of the fake.
 func apiKeyTeam() j { return j{"team_id": strconv.Itoa(apiKeyFakeTeamID)} }
 
+const (
+	apiKeyUserID         = "11111111-1111-4111-8111-111111111111"
+	apiKeyOrganisationID = "22222222-2222-4222-8222-222222222222"
+)
+
+// The owner objects that Get shows for a key of a user and of an organisation.
+var (
+	apiKeyUserOwner         = map[string]any{"userId": apiKeyUserID}
+	apiKeyOrganisationOwner = map[string]any{"organisationId": apiKeyOrganisationID}
+)
+
 // apiKeyConfig is a key of the team with one preset and one permission. Each scenario changes it.
 func apiKeyConfig(name string, extra j) j {
 	cfg := j{
@@ -337,10 +348,15 @@ var apiKeyScenarios = map[string]func(h *grHarness){
 		h.apiKeys().createStatus = 500
 		h.Apply("create: the API answers 500", h.null(), apiKeyConfig("broken", nil))
 	},
-	// The key exists and the secret is lost: the resource returns before it stores any state.
+	// The key exists and the secret is lost: the resource returns before it stores any state. The
+	// next apply, with the API back, creates a second key, and the first one stays: it is still
+	// there for an import, which reads its value.
 	"create-read-fails": func(h *grHarness) {
 		h.apiKeys().getStatus = 500
 		h.Apply("create: Get after Create answers 500", h.null(), apiKeyConfig("unread", nil))
+		h.apiKeys().getStatus = 0
+		h.ApplyAfterFailedCreate("next apply after the API recovers", apiKeyConfig("unread", nil))
+		h.Import("import the key that the failed create made", apiKeyFirstID)
 	},
 	"read-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), apiKeyConfig("gone", nil))
@@ -389,6 +405,20 @@ var apiKeyScenarios = map[string]func(h *grHarness){
 			accessPolicy: `{"version":"2025-01-01","default":{"permissions":{"team-custom-api-keys:Manage":"deny"}},"rules":[]}`})
 		s := h.Import("import", id)
 		h.Apply("plan a config without access_policy", s, apiKeyConfig("imported", nil))
+	},
+	// Keys of a user or an organisation. The recording key belongs to a team, so these answers were
+	// not recorded: the owner of the Get answer follows the Owner message of the contract.
+	"import-user-owner": func(h *grHarness) {
+		id := h.apiKeys().seed(apiKeySeed{name: "imported", owner: apiKeyUserOwner, presets: []string{"APM"}, permissions: []string{"livetail:Read"}})
+		s := h.Import("import a key of a user", id)
+		s = h.RefreshPlan("refresh and replan", s)
+		h.Apply("plan the matching config", s, apiKeyConfig("imported", j{"owner": j{"user_id": apiKeyUserID}}))
+	},
+	"import-organisation-owner": func(h *grHarness) {
+		id := h.apiKeys().seed(apiKeySeed{name: "imported", owner: apiKeyOrganisationOwner, presets: []string{"APM"}, permissions: []string{"livetail:Read"}})
+		s := h.Import("import a key of an organisation", id)
+		s = h.RefreshPlan("refresh and replan", s)
+		h.Apply("plan the matching config", s, apiKeyConfig("imported", j{"owner": j{"organisation_id": apiKeyOrganisationID}}))
 	},
 	"import-not-found": func(h *grHarness) {
 		h.Import("import an id that does not exist", apiKeyFakeID(9))
@@ -440,6 +470,14 @@ var apiKeyDataSourceScenarios = map[string]func(h *grHarness){
 	"read-hashed": func(h *grHarness) {
 		id := h.apiKeys().seed(apiKeySeed{name: "hashed", hashed: true, presets: []string{"APM"}})
 		h.ReadDataSource("read a hashed key", j{"id": id})
+	},
+	"read-user-owner": func(h *grHarness) {
+		id := h.apiKeys().seed(apiKeySeed{name: "seeded", owner: apiKeyUserOwner, presets: []string{"APM"}})
+		h.ReadDataSource("read a key of a user", j{"id": id})
+	},
+	"read-organisation-owner": func(h *grHarness) {
+		id := h.apiKeys().seed(apiKeySeed{name: "seeded", owner: apiKeyOrganisationOwner, presets: []string{"APM"}})
+		h.ReadDataSource("read a key of an organisation", j{"id": id})
 	},
 	"read-not-found": func(h *grHarness) {
 		h.ReadDataSource("Get answers 404", j{"id": apiKeyFakeID(9)})
