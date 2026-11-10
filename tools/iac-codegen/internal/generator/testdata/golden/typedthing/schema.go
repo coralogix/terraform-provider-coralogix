@@ -140,7 +140,7 @@ func Schema() schema.Schema {
 							Required: true,
 							Validators: []validator.String{
 								stringvalidator.OneOf("metadata", "tag", "process_tag"),
-								typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "service_name")}}}},
+								typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "service_name")}}}},
 							},
 							MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"tag\", \"process_tag\".",
 						},
@@ -246,12 +246,17 @@ func (m typedArmInferred) PlanModifyString(ctx context.Context, req planmodifier
 
 // typedArmValidator checks an object that shows a oneOf as a type attribute and the merged fields
 // of its arms. It runs on the type attribute. A field that the arm named by the type does not have
-// must be unset, and the checks of a scalar arm run on the value that the arm holds.
+// must be unset, a field that the arm needs must be set, and the checks of a scalar arm run on the
+// value that the arm holds.
 type typedArmValidator struct {
 	// Names are the merged attributes, in schema order.
 	Names []string
 	// Fields are the attributes that each arm has, by value of the type.
 	Fields map[string][]string
+	// Required are the attributes that an arm needs, by value of the type: the value of a scalar
+	// arm, and the fields that the arm requires. The attributes are optional because other arms
+	// do not have them.
+	Required map[string][]string
 	// Values are the checks of a scalar arm, by value of the type and attribute.
 	Values map[string]map[string][]validator.String
 }
@@ -272,6 +277,18 @@ func (v typedArmValidator) ValidateString(ctx context.Context, req validator.Str
 	allowed, ok := v.Fields[kind]
 	if !ok {
 		return // the OneOf validator of the type reports it
+	}
+	for _, name := range v.Required[kind] {
+		at := req.Path.ParentPath().AtName(name)
+		var value attr.Value
+		if diags := req.Config.GetAttribute(ctx, at, &value); diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			continue
+		}
+		// An unknown value is checked when it is known.
+		if value == nil || value.IsNull() {
+			resp.Diagnostics.AddAttributeError(at, "Missing required attribute", fmt.Sprintf("When the type is %q, %s must be set.", kind, name))
+		}
 	}
 	for _, name := range v.Names {
 		at := req.Path.ParentPath().AtName(name)

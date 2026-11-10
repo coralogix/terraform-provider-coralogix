@@ -212,6 +212,42 @@ func TestTypeValidatorChecksTheArm(t *testing.T) {
 	if !validate("fields", map[string]tftypes.Value{"type": str("metadata"), "value": str("service_name")}, nil) {
 		t.Fatal("service_name is a metadata value")
 	}
+	// A scalar arm is chosen by its value, so the type alone selects no arm.
+	if validate("fields", map[string]tftypes.Value{"type": str("tag")}, nil) {
+		t.Fatal("a tag without a value must be rejected")
+	}
+	if !validate("fields", map[string]tftypes.Value{"type": str("tag"), "value": tftypes.NewValue(tftypes.String, tftypes.UnknownValue)}, nil) {
+		t.Fatal("an unknown value is checked when it is known")
+	}
+}
+
+// A field that the chosen arm requires must be set, although the attribute is optional for the
+// other arms. The fixture has no such field, so the validator is built by hand.
+func TestTypeValidatorRequiresTheFieldsOfTheArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	check := typedArmValidator{
+		Names:    []string{"field", "percent"},
+		Fields:   map[string][]string{"avg": {"field"}, "percentile": {"field", "percent"}},
+		Required: map[string][]string{"avg": {"field"}, "percentile": {"field", "percent"}},
+	}
+	validate := func(aggregation map[string]tftypes.Value) bool {
+		config := tfsdk.Config{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{
+			"name": str("a"), "aggregation": objectValue(aggregationType(root), aggregation),
+		})}
+		at := path.Root("aggregation").AtName("type")
+		resp := &validator.StringResponse{}
+		check.ValidateString(context.Background(), validator.StringRequest{Path: at, PathExpression: at.Expression(), Config: config, ConfigValue: types.StringValue(*stringOf(aggregation["type"]))}, resp)
+		return !resp.Diagnostics.HasError()
+	}
+	if !validate(map[string]tftypes.Value{"type": str("avg"), "field": str("f")}) {
+		t.Fatal("avg with its field is valid")
+	}
+	if validate(map[string]tftypes.Value{"type": str("avg")}) {
+		t.Fatal("avg without its field must be rejected")
+	}
+	if validate(map[string]tftypes.Value{"type": str("percentile"), "field": str("f")}) {
+		t.Fatal("percentile without its percent must be rejected")
+	}
 }
 
 func stringOf(v tftypes.Value) *string {

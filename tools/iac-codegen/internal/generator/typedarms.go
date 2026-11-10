@@ -81,6 +81,7 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	}}
 	fields := []tfModelField{{Name: camelize(typeName), Type: "types.String", TFName: typeName}}
 	has := map[string][]string{}
+	required := map[string][]string{}
 	checked := map[string]map[string][]string{}
 	for _, arm := range arms {
 		armAttrs, armFields, armChecks, err := b.typedArm(p, t, arm, line)
@@ -93,6 +94,11 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 		}
 		for _, a := range armAttrs {
 			has[values[arm.Name]] = append(has[values[arm.Name]], a.Name)
+			// A merged field is optional, because other arms do not have it. The arm that
+			// requires it (or that is the scalar itself) still needs it when the type names the arm.
+			if a.Required || arm.Type.Kind != model.Object {
+				required[values[arm.Name]] = append(required[values[arm.Name]], a.Name)
+			}
 			if a.Name == typeName {
 				return nil, fmt.Errorf("%s: typedArms.field %q is also a field of the arm %s", t.Schema, typeName, arm.Name)
 			}
@@ -114,7 +120,7 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	if line.Infer {
 		inferTypeAttribute(attrs[0], arms, values, has)
 	}
-	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, checked))
+	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
@@ -342,8 +348,8 @@ func (b *convBuilder) mergeTyped(obj *convObject, merged []*convField, f *convFi
 
 // typedValidator is the Go expression of the typedArmValidator of an object whose merged attributes
 // are attrs[1:]. has lists the attributes of each arm, by value of the type, and checked the checks
-// of a scalar arm.
-func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]string, has map[string][]string, checked map[string]map[string][]string) string {
+// of a scalar arm. required lists the fields that each arm needs when its type is chosen.
+func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]string, has, required map[string][]string, checked map[string]map[string][]string) string {
 	quote := func(names []string) string {
 		quoted := make([]string, 0, len(names))
 		for _, n := range names {
@@ -364,6 +370,15 @@ func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]stri
 		}
 	}
 	out := fmt.Sprintf("%s{Names: []string{%s}, Fields: map[string][]string{%s}", typedArmValidatorName, quote(names), strings.Join(fields, ", "))
+	var needs []string
+	for _, arm := range arms {
+		if v := values[arm.Name]; len(required[v]) > 0 {
+			needs = append(needs, fmt.Sprintf("%q: {%s}", v, quote(required[v])))
+		}
+	}
+	if len(needs) > 0 {
+		out += ", Required: map[string][]string{" + strings.Join(needs, ", ") + "}"
+	}
 	if len(vals) > 0 {
 		out += ", Values: map[string]map[string][]validator.String{" + strings.Join(vals, ", ") + "}"
 	}
