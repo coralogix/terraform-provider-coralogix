@@ -32,10 +32,10 @@ var accessPolicyPath = path.Root("access_policy")
 // getAlert reads the alert with include_access_permissions, so the response carries the access policy.
 // A key without alerts:ReadAccessPolicy can get a 403 for the flag instead of a response without the
 // policy, so the call is repeated without it: the policy is then not readable.
-func getAlert(ctx context.Context, client *alertapi.AlertDefinitionsServiceAPIService, id string) (*alertapi.GetAlertDefResponse, *http.Response, error) {
-	out, httpResp, err := client.AlertDefsServiceGetAlertDef(ctx, id).IncludeAccessPermissions(true).Execute()
+func getAlert(_ context.Context, request func() alertapi.ApiAlertDefsServiceGetAlertDefRequest) (*alertapi.GetAlertDefResponse, *http.Response, error) {
+	out, httpResp, err := request().IncludeAccessPermissions(true).Execute()
 	if err != nil && httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
-		return client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
+		return request().Execute()
 	}
 	return out, httpResp, err
 }

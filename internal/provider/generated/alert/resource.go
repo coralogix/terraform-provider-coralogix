@@ -54,14 +54,16 @@ type Hooks struct {
 	BeforeFlatten func(context.Context, *alert_definitions_service.AlertDef) diag.Diagnostics
 	// AfterFlatten projects API values into the Terraform model before it enters state.
 	AfterFlatten func(context.Context, *AlertDefModel, *alert_definitions_service.AlertDef) diag.Diagnostics
-	// Get replaces the Get call that Read, the data source, and every read after a write make
-	// (nil: the generated call). It returns what the generated call returns: the whole Get
-	// response, the HTTP response, and the error. A hook adds a query parameter that the
-	// generated call cannot send, or retries the call. The generated code classifies the error
-	// as it does for its own call (a 404 of the resource is a resource that is gone, a 404 of a
-	// route that does not exist is an error), and takes the resource out of the response. It
-	// sends the fixed query values of the contract itself only when the hook does.
-	Get func(context.Context, *alert_definitions_service.AlertDefinitionsServiceAPIService, string) (*alert_definitions_service.GetAlertDefResponse, *http.Response, error)
+	// Get replaces the Execute step of the Get call that Read, the data source, and every read
+	// after a write make (nil: the generated call). It receives a factory of the generated
+	// request, which already holds the context, the id, and the fixed query values of the
+	// contract: every call of the factory returns a fresh request that the hook adds a query
+	// parameter to and executes, as many times as it needs (a retry without the parameter calls
+	// the factory again). It returns what Execute returns: the whole Get response, the HTTP
+	// response, and the error. The generated code classifies the error as it does for its own
+	// call (a 404 of the resource is a resource that is gone, a 404 of a route that does not
+	// exist is an error), and takes the resource out of the response.
+	Get func(context.Context, func() alert_definitions_service.ApiAlertDefsServiceGetAlertDefRequest) (*alert_definitions_service.GetAlertDefResponse, *http.Response, error)
 	// AfterGet receives the whole Get response, with the values next to the resource that the
 	// generated code drops, and the state that was just written from it. It runs after
 	// the state was written and before AfterRead, only for a state that a Get call produced
@@ -286,13 +288,16 @@ func withGetResult(ctx context.Context) (context.Context, *getResult) {
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*alert_definitions_service.AlertDef, error) {
+	request := func() alert_definitions_service.ApiAlertDefsServiceGetAlertDefRequest {
+		return r.client.AlertDefsServiceGetAlertDef(ctx, id)
+	}
 	var out *alert_definitions_service.GetAlertDefResponse
 	var httpResp *http.Response
 	var err error
 	if r.hooks.Get != nil {
-		out, httpResp, err = r.hooks.Get(ctx, r.client, id)
+		out, httpResp, err = r.hooks.Get(ctx, request)
 	} else {
-		out, httpResp, err = r.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
+		out, httpResp, err = request().Execute()
 	}
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
@@ -359,8 +364,10 @@ func (r *Resource) setStateKept(ctx context.Context, v *alert_definitions_servic
 		// state, then let AfterFlatten replace it when the API supplies another value.
 		var kept types.Object
 		if !keptFrom.GetAttribute(ctx, path.Root("schedule"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
-			// A value of another shape, or one with an unknown value inside, cannot enter state.
-			if value, err := kept.ToTerraformValue(ctx); err == nil && value.IsFullyKnown() && kept.Type(ctx).Equal(types.ObjectType{AttrTypes: map[string]attr.Type{"active_on": types.ObjectType{AttrTypes: map[string]attr.Type{"days_of_week": types.SetType{ElemType: types.StringType}, "end_time": types.StringType, "start_time": types.StringType, "utc_offset": types.StringType}}}}) {
+			// A value of another shape cannot enter state. One with an unknown value inside, such
+			// as an Optional and Computed child that the configuration leaves out, is kept for
+			// AfterFlatten to fill in; it is checked below, after the hook has run.
+			if _, err := kept.ToTerraformValue(ctx); err == nil && kept.Type(ctx).Equal(types.ObjectType{AttrTypes: map[string]attr.Type{"active_on": types.ObjectType{AttrTypes: map[string]attr.Type{"days_of_week": types.SetType{ElemType: types.StringType}, "end_time": types.StringType, "start_time": types.StringType, "utc_offset": types.StringType}}}}) {
 				m.Schedule = kept
 			}
 		}
@@ -370,6 +377,12 @@ func (r *Resource) setStateKept(ctx context.Context, v *alert_definitions_servic
 		if diags.HasError() {
 			return diags
 		}
+	}
+	// State cannot hold an unknown value. A value that the plan left unknown inside the object
+	// must have been set by AfterFlatten.
+	if value, err := m.Schedule.ToTerraformValue(ctx); err == nil && !value.IsFullyKnown() {
+		diags.AddError("Unable to write the state of "+TypeName, fmt.Sprintf("the attribute %q has a value inside it that is still unknown after the API response was read; the AfterFlatten hook must set it", "schedule"))
+		return diags
 	}
 	diags.Append(state.Set(ctx, m)...)
 	if diags.HasError() {
@@ -449,7 +462,7 @@ func apiID(v *alert_definitions_service.AlertDef) (string, bool) {
 	if v == nil || v.Id == nil {
 		return "", false
 	}
-	return *v.Id, true
+	return *v.Id, *v.Id != ""
 }
 
 // idStateValue returns the value of the id attribute for id.

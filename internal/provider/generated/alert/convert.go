@@ -694,7 +694,7 @@ func flatten(ctx context.Context, v *alert_definitions_service.AlertDef) (*Alert
 		return nil, diags
 	}
 	out := flattenAlertDef(ctx, path.Empty(), v, &diags)
-	if out.Id.IsNull() {
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
 	return out, diags

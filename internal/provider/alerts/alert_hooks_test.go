@@ -269,7 +269,10 @@ func TestGetAlertRetriesWithoutAccessPermissionsOnForbidden(t *testing.T) {
 	cfg.Servers = alertapi.ServerConfigurations{{URL: server.URL}}
 	client := alertapi.NewAPIClient(cfg).AlertDefinitionsServiceAPI
 
-	out, _, err := getAlert(context.Background(), client, "3dd36c34-2b3c-4d7d-8b0c-1f6b0c1c0f11")
+	id := "3dd36c34-2b3c-4d7d-8b0c-1f6b0c1c0f11"
+	out, _, err := getAlert(context.Background(), func() alertapi.ApiAlertDefsServiceGetAlertDefRequest {
+		return client.AlertDefsServiceGetAlertDef(context.Background(), id)
+	})
 	if err != nil || out == nil || out.AlertDef == nil {
 		t.Fatalf("getAlert = %v, %v", out, err)
 	}
