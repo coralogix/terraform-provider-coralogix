@@ -1,0 +1,451 @@
+[
+  {
+    "step": "create on a grouped SLO",
+    "config": {
+      "name": "tfbaseline-slo-change",
+      "type_definition": {
+        "slo_threshold": {
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 10
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": "(unknown)",
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-slo-change",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": null,
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "name": "tfbaseline-slo-change",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "errorBudget": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 10
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          }
+        },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-change",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": null,
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: another SLO without labels (group_by was filled by the API)",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-000000005002"
+      }
+    },
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/group_by": [
+          "service"
+        ],
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
+        },
+        "/priority": "P5",
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-000000005002"
+      }
+    },
+    "requests": [
+      {
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-change",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "errorBudget": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 10
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005002"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "group_by (length 0, planned 1)"
+    ],
+    "stateDelta": {
+      "set": {
+        "/group_by": [],
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-000000005002"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "stateDelta": {},
+    "replanEmpty": true
+  },
+  {
+    "step": "update: back to the grouped SLO",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-000000005001"
+      }
+    },
+    "planDelta": {
+      "set": {
+        "/group_by": [],
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-000000005001"
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/groupByKeys": [],
+          "/body/alertDefProperties/sloThreshold/sloDefinition/sloId": "00000000-0000-4000-8000-000000005001"
+        }
+      }
+    ],
+    "inconsistentResult": [
+      "group_by (length 1, planned 0)"
+    ],
+    "stateDelta": {
+      "set": {
+        "/group_by": [
+          "service"
+        ],
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-000000005001"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "deltaOf": "GET"
+      }
+    ],
+    "stateDelta": {},
+    "replanEmpty": true
+  },
+  {
+    "step": "update: an SLO id that no SLO has",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-0000000000aa"
+      }
+    },
+    "planDelta": {
+      "set": {
+        "/group_by": [
+          "service"
+        ],
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-0000000000aa"
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/groupByKeys": [
+            "service"
+          ],
+          "/body/alertDefProperties/sloThreshold/sloDefinition/sloId": "00000000-0000-4000-8000-0000000000aa",
+          "/status": 404
+        }
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_alert 00000000-0000-4000-8000-000000000001 is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+    ],
+    "state": null
+  },
+  {
+    "step": "update: an id that is no id",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition/slo_id": "tfbaseline-no-such-slo"
+      }
+    },
+    "planDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition/slo_id": "tfbaseline-no-such-slo"
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/sloThreshold/sloDefinition/sloId": "tfbaseline-no-such-slo",
+          "/status": 500
+        }
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Failed Getting SLO definition\"}\noperation - Replace"
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-change",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": null,
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

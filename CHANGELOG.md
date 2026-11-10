@@ -50,7 +50,7 @@
 - FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.
 - FEAT: `terraformType: String` on an int64 resource id keeps a released String id: the state holds the decimal text, the calls parse it, and a non-integer import id is an error at the import. A data source lookup by name does not parse the id that it leaves null.
 - FEAT: `storedAs: float32` on a double field reads a value that the API stores as a float32 as its shortest decimal, so `0.3` reads back as `0.3` instead of `0.30000001192092896`. A plan or state value of the same float32 stays, so a configured `0.123456789` does not make the apply inconsistent.
-- CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper. Before, `tfgen check` panicked on such an id.
+- CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
 - FEAT: `updateAs` on a field line names the path of a field in the Update body only, for an API that calls a value `newName` in Update and `name` in Create and Get. Create keeps the field name, or the `requestAs` path.
 - FEAT: `updateDefault` on a field line gives the value that Create leaves in a field that only Update can set, when the contract cannot declare it as the Update default because an omitted value in Update keeps the stored value. The field is managed: Create follows with an Update when the configuration sets another value. The line is refused where Create has the field, and unused when the contract declares the default.
 - FEAT: An `unwrap` entry also collapses a wrapper that only Update holds (Create and Get hold a list, and Update holds it in a one-property object). Before, the check reported `FIELD_TYPE_INCONSISTENT`.
@@ -60,6 +60,7 @@
 - FEAT: `readNullAs: empty` also reads a missing string as `""`.
 - FIX: A `required` or `optional` line on a field of the resource component is no longer reported as stale when no request body reaches the component: the required list of the Get response says nothing about a Create body of its own.
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that has `updateAs`, `updateDefault`, the request-only wrapper, and `itemName`.
+- CHORE: Bump the generator to `v0.1.0-beta.74`. The generated packages are the same; only `versions.yaml` changes.
 
 # Release 3.24.0
 

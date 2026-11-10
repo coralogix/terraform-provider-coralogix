@@ -1,0 +1,2291 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "state": "NO_DATA_POLICY_STATE_OK"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_OK"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_OK"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "state": "NO_DATA_POLICY_STATE_ALERTING"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_ALERTING"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_ALERTING"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "state": "NO_DATA_POLICY_STATE_NO_DATA"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_NO_DATA"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_NO_DATA"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 600,
+            "state": "NO_DATA_POLICY_STATE_OK"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 600,
+              "state": "NO_DATA_POLICY_STATE_OK"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 600,
+            "state": "NO_DATA_POLICY_STATE_ALERTING"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 600,
+              "state": "NO_DATA_POLICY_STATE_ALERTING"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 600,
+            "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 600,
+              "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 600,
+            "state": "NO_DATA_POLICY_STATE_NO_DATA"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 600,
+              "state": "NO_DATA_POLICY_STATE_NO_DATA"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 600,
+              "state": "NO_DATA_POLICY_STATE_NO_DATA"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 3600,
+            "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 3600,
+              "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 120
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 120,
+              "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "autoRetireSeconds": 120,
+              "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {},
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricThreshold": {
+            "metricFilter": {
+              "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+            },
+            "missingValues": {
+              "replaceWithZero": true
+            },
+            "noDataPolicy": {
+              "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-mt-nodata",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 90,
+            "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"not_multiple_of\",\n    \"multipleOf\": 60,\n    \"message\": \"Number must be a multiple of 60\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"metricThreshold\",\n      \"noDataPolicy\",\n      \"autoRetireSeconds\"\n    ]\n  }\n]"
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricThreshold": {
+          "metricFilter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "missingValues": {
+            "replaceWithZero": true
+          },
+          "noDataPolicy": {
+            "autoRetireSeconds": 0,
+            "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "undetectedValuesManagement": {
+            "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+            "triggerUndetectedValues": false
+          }
+        },
+        "name": "tfbaseline-mt-nodata",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 0,\n    \"type\": \"number\",\n    \"inclusive\": false,\n    \"exact\": false,\n    \"message\": \"Number must be greater than 0\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"metricThreshold\",\n      \"noDataPolicy\",\n      \"autoRetireSeconds\"\n    ]\n  }\n]"
+    }
+  }
+]

@@ -217,6 +217,9 @@ type convObject struct {
 	FlattenParents []convParent
 	// Carry is set when Terraform shows the object as the arms of its oneOf field (carrySiblings).
 	Carry *convCarry
+	// Typed is set when Terraform shows the oneOf as a type attribute plus the merged fields of
+	// its arms (typedArms). Fields then holds the type and the merged fields, all Carried.
+	Typed *convTyped
 }
 
 // convCarry is an object that Terraform shows as the arms of its oneOf field: each arm attribute
@@ -362,6 +365,10 @@ type convField struct {
 	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
 	// the value in any case, and flatten keeps the prior spelling of an equal value.
 	CaseInsensitive bool
+	// EmptyDefault is the Go expression of the empty list or set that the line gives as its default
+	// (default: []), for a field of a typedArms arm. A typedArms object reads a null of it as that
+	// value, because an arm that lacks the field gives null, and an import has no prior to restore.
+	EmptyDefault string
 	// Carried: a sibling or a fold flag in the model of a carrySiblings arm. The arm functions
 	// leave it to the object that holds the oneOf; it counts for the attribute types.
 	Carried bool
@@ -1930,11 +1937,10 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		}
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
-	case model.OneOf:
-		if cf.SplitArms {
+	case model.Object, model.OneOf:
+		if t.Elem.Kind == model.OneOf && cf.SplitArms {
 			return b.splitArmsConv(cf, t)
 		}
-	case model.Object:
 		if len(t.Elem.Fields) == 0 {
 			break
 		}
@@ -1996,7 +2002,11 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 			return nil, fmt.Errorf("request component %s holds both %s and %s", t.Schema, obj.Model, modelName)
 		}
 		// In existing mode, a request that shares the component leaves out its read-only
-		// fields. The object serves both, so it gets the fields of either walk.
+		// fields. The object serves both, so it gets the fields of either walk. A typedArms
+		// object holds the merged fields, not the arms, so it has nothing to add.
+		if obj.Typed != nil {
+			return obj, nil
+		}
 		if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
 			return nil, err
 		}
@@ -2026,6 +2036,10 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	}
 	obj.DefaultArms = arms
 	if obj.Unsupported, err = b.unsupportedArms(t, ref.Path); err != nil {
+		return nil, err
+	}
+	// Last: the steps above read the arms as the fields of the oneOf.
+	if err := b.typed(obj, t); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -2326,6 +2340,16 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		obj.Expand = true
 	} else {
 		obj.Flatten = true
+	}
+	if obj.Typed != nil {
+		// The merged fields are copies. The arm objects convert each arm.
+		for _, arm := range obj.Typed.Arms {
+			if arm.Object != nil {
+				if err := b.mark(arm.Object, expand); err != nil {
+					return fmt.Errorf("%s: %w", arm.Value, err)
+				}
+			}
+		}
 	}
 	for _, f := range obj.Fields {
 		switch {
@@ -2744,6 +2768,9 @@ func propagatePrior(d *convData) {
 	for changed := true; changed; {
 		changed = false
 		for _, obj := range d.Objects {
+			if !obj.NeedsPrior && obj.Typed != nil && typedArmNeedsPrior(obj.Typed) {
+				obj.NeedsPrior, changed = true, true
+			}
 			for _, f := range obj.Fields {
 				if (f.Conv != convObj && f.Conv != convObjects && f.Conv != convGroup && f.Conv != convKeyedObjects) || f.Object == nil {
 					continue

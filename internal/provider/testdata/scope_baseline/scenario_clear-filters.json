@@ -78,7 +78,6 @@
         "body": {
           "defaultExpression": "\u003cv1\u003etrue",
           "displayName": "example",
-          "filters": null,
           "id": "00000000-0000-4000-8000-000000000001"
         },
         "status": 200

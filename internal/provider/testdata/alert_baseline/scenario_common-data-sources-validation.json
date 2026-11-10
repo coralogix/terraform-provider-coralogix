@@ -1,0 +1,66 @@
+[
+  {
+    "step": "data_sources without data_set",
+    "config": {
+      "data_sources": [
+        {
+          "data_space": "default"
+        }
+      ],
+      "name": "tfbaseline-common-data-sources-validation",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "lucene_query": "tfbaseline"
+            }
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"data_sources\").ElementKeyInt(0).AttributeName(\"data_set\")] | Must set a configuration value for the data_sources[0].data_set attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "data_sources without data_space",
+    "configDelta": {
+      "set": {
+        "/data_sources/0/data_set": "logs"
+      },
+      "remove": [
+        "/data_sources/0/data_space"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"data_sources\").ElementKeyInt(0).AttributeName(\"data_space\")] | Must set a configuration value for the data_sources[0].data_space attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty data_space",
+    "configDelta": {
+      "set": {
+        "/data_sources/0/data_space": ""
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"data_sources\").ElementKeyInt(0).AttributeName(\"data_space\")] | Attribute data_sources[0].data_space string length must be at least 1, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty data_set",
+    "configDelta": {
+      "set": {
+        "/data_sources/0/data_set": "",
+        "/data_sources/0/data_space": "default"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"data_sources\").ElementKeyInt(0).AttributeName(\"data_set\")] | Attribute data_sources[0].data_set string length must be at least 1, got: 0"
+    ],
+    "stateDelta": {}
+  }
+]
