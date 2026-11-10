@@ -63,13 +63,20 @@ const prerequisites = ``
 
 const fullConfig = `resource "coralogix_view_folder" "test" {
   name = "@{run}-name"
+  description = "@{run}-description"
 }`
 
 const updatedConfig = `resource "coralogix_view_folder" "test" {
   name = "@{run}-name-updated"
+  description = "@{run}-description-updated"
 }`
 
 const minimalConfig = `resource "coralogix_view_folder" "test" {
+  name = "@{run}-name"
+}`
+
+// upgradeFullConfig is the full config without the attributes that provider 3.20.0 does not have.
+const upgradeFullConfig = `resource "coralogix_view_folder" "test" {
   name = "@{run}-name"
 }`
 
@@ -100,24 +107,35 @@ func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "description", resourceAddress, "description"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
+	)
+}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
@@ -251,7 +269,7 @@ func TestAccCoralogixResourceViewFolderGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
 				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
@@ -261,7 +279,7 @@ func TestAccCoralogixResourceViewFolderGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 }

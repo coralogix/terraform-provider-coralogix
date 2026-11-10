@@ -15,6 +15,7 @@
       "error: coralogix_view_folder with name \"missing\" not found"
     ],
     "state": {
+      "description": null,
       "id": null,
       "name": "missing"
     }

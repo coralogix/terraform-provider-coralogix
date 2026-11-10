@@ -15,6 +15,7 @@
       "error: coralogix_view_folder not found | The API did not find coralogix_view_folder with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"View folder with id 00000000-0000-4000-8000-999999999999 not found\\\"}\"}"
     ],
     "state": {
+      "description": null,
       "id": "00000000-0000-4000-8000-999999999999",
       "name": null
     }

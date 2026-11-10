@@ -1,5 +1,11 @@
 # Unreleased
 
+#### data-source/coralogix_view_folder
+- FEAT: Add `description` from the API contract of Management SDK `v1.9.4-0.20261110134925-39265b5a6566`.
+
+#### resource/coralogix_view_folder
+- FEAT: Add `description` from the API contract of Management SDK `v1.9.4-0.20261110134925-39265b5a6566`.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.

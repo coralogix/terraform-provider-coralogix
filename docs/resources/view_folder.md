@@ -39,6 +39,10 @@ resource "coralogix_view_folder" "example" {
 
 - `name` (String) Display name of the view folder. Between 1 and 100 characters - the backend silently truncates a longer name, so the provider rejects it instead. Folder names must currently be unique within the team.
 
+### Optional
+
+- `description` (String) Folder description. Test field for the provider regeneration pipeline.
+
 ### Read-Only
 
 - `id` (String) Unique identifier for the view folder, assigned by Coralogix. Stays the same when the folder is renamed.
