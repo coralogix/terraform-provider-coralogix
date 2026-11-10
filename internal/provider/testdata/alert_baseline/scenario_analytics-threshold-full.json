@@ -1,0 +1,671 @@
+[
+  {
+    "step": "create with every optional attribute",
+    "config": {
+      "description": "full",
+      "enabled": false,
+      "group_by": [
+        "app"
+      ],
+      "name": "tfbaseline-analytics-threshold",
+      "priority": "P2",
+      "type_definition": {
+        "analytics_threshold": {
+          "custom_evaluation_delay": 120000,
+          "dataprime_query": {
+            "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+          },
+          "no_data_policy": {
+            "auto_retire_seconds": 3600,
+            "state": "ALERTING"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 45,
+          "use_rows_as_permutations": true
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": "full",
+      "enabled": false,
+      "group_by": [
+        "app"
+      ],
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P2",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": 120000,
+          "dataprime_query": {
+            "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+          },
+          "no_data_policy": {
+            "auto_retire_seconds": 3600,
+            "state": "ALERTING"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 45,
+          "use_rows_as_permutations": true
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+              },
+              "evaluationDelayMs": 120000,
+              "noDataPolicy": {
+                "autoRetireSeconds": 3600,
+                "state": "NO_DATA_POLICY_STATE_ALERTING"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 5
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P3"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 45,
+              "useRowsAsPermutations": true
+            },
+            "description": "full",
+            "enabled": false,
+            "groupByKeys": [
+              "app"
+            ],
+            "name": "tfbaseline-analytics-threshold",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P2",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          }
+        },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": "full",
+      "enabled": false,
+      "group_by": [
+        "app"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P2",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": 120000,
+          "dataprime_query": {
+            "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+          },
+          "no_data_policy": {
+            "auto_retire_seconds": 3600,
+            "state": "ALERTING"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 45,
+          "use_rows_as_permutations": true
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "stateDelta": {},
+    "replanEmpty": true
+  },
+  {
+    "step": "import by id",
+    "state": null
+  },
+  {
+    "step": "import by id (refresh)",
+    "requests": [
+      {
+        "deltaOf": "GET"
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": "full",
+      "enabled": false,
+      "group_by": [
+        "app"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P2",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": 120000,
+          "dataprime_query": {
+            "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+          },
+          "no_data_policy": {
+            "auto_retire_seconds": 3600,
+            "state": "ALERTING"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 45,
+          "use_rows_as_permutations": true
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "drift": [
+      "AttributeName(\"deleted\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"enabled\")",
+      "AttributeName(\"group_by\")",
+      "AttributeName(\"group_by\").ElementKeyInt(0)",
+      "AttributeName(\"incidents_settings\")",
+      "AttributeName(\"incidents_settings\").AttributeName(\"notify_on\")",
+      "AttributeName(\"incidents_settings\").AttributeName(\"retriggering_period\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"notification_group\")",
+      "AttributeName(\"notification_group\").AttributeName(\"destinations\")",
+      "AttributeName(\"notification_group\").AttributeName(\"group_by_keys\")",
+      "AttributeName(\"notification_group\").AttributeName(\"router\")",
+      "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\")",
+      "AttributeName(\"phantom_mode\")",
+      "AttributeName(\"priority\")",
+      "AttributeName(\"type_definition\")",
+      "AttributeName(\"type_definition\").AttributeName(\"analytics_immediate\")",
+      "AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"flow\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_new_value\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_ratio_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_time_relative_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_unique_count\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"slo_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\")",
+      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\")"
+    ]
+  },
+  {
+    "step": "plan the same config on the imported state",
+    "configDelta": {},
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
+        }
+      }
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "update: change every value",
+    "config": {
+      "description": "changed",
+      "enabled": true,
+      "group_by": [
+        "sub",
+        "app"
+      ],
+      "name": "tfbaseline-analytics-threshold",
+      "priority": "P4",
+      "type_definition": {
+        "analytics_threshold": {
+          "custom_evaluation_delay": 60000,
+          "dataprime_query": {
+            "query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+          },
+          "no_data_policy": {
+            "auto_retire_seconds": 7200,
+            "state": "OK"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 15,
+          "use_rows_as_permutations": false
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "planDelta": {
+      "set": {
+        "/description": "changed",
+        "/enabled": true,
+        "/group_by": [
+          "sub",
+          "app"
+        ],
+        "/priority": "P4",
+        "/type_definition/analytics_threshold/custom_evaluation_delay": 60000,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
+        "/type_definition/analytics_threshold/no_data_policy/auto_retire_seconds": 7200,
+        "/type_definition/analytics_threshold/no_data_policy/state": "OK",
+        "/type_definition/analytics_threshold/timeframe_minutes": 15,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": false
+      }
+    },
+    "requests": [
+      {
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+              },
+              "evaluationDelayMs": 60000,
+              "noDataPolicy": {
+                "autoRetireSeconds": 7200,
+                "state": "NO_DATA_POLICY_STATE_OK"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 5
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P3"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 15,
+              "useRowsAsPermutations": false
+            },
+            "description": "changed",
+            "enabled": true,
+            "groupByKeys": [
+              "sub",
+              "app"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P4",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 200
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/description": "changed",
+        "/enabled": true,
+        "/group_by": [
+          "sub",
+          "app"
+        ],
+        "/priority": "P4",
+        "/type_definition/analytics_threshold/custom_evaluation_delay": 60000,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
+        "/type_definition/analytics_threshold/no_data_policy/auto_retire_seconds": 7200,
+        "/type_definition/analytics_threshold/no_data_policy/state": "OK",
+        "/type_definition/analytics_threshold/timeframe_minutes": 15,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": false
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after the change",
+    "requests": [
+      {
+        "deltaOf": "GET"
+      }
+    ],
+    "stateDelta": {},
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove every optional attribute",
+    "config": {
+      "name": "tfbaseline-analytics-threshold",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "planDelta": {
+      "set": {
+        "/description": null,
+        "/group_by": null,
+        "/type_definition/analytics_threshold/custom_evaluation_delay": null,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | count as c",
+        "/type_definition/analytics_threshold/timeframe_minutes": 10,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": null
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/analyticsThreshold/dataprimeQuery/query": "source logs | count as c",
+          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 10,
+          "/body/alertDefProperties/groupByKeys": []
+        },
+        "remove": [
+          "/body/alertDefProperties/analyticsThreshold/evaluationDelayMs",
+          "/body/alertDefProperties/analyticsThreshold/useRowsAsPermutations",
+          "/body/alertDefProperties/description"
+        ]
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/description": null,
+        "/group_by": null,
+        "/type_definition/analytics_threshold/custom_evaluation_delay": null,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | count as c",
+        "/type_definition/analytics_threshold/timeframe_minutes": 10,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after the removal",
+    "requests": [
+      {
+        "deltaOf": "GET"
+      }
+    ],
+    "stateDelta": {},
+    "replanEmpty": true
+  },
+  {
+    "step": "update: set them again",
+    "configDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/group_by": [
+          "app"
+        ],
+        "/priority": "P2",
+        "/type_definition/analytics_threshold/custom_evaluation_delay": 120000,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
+        "/type_definition/analytics_threshold/no_data_policy": {
+          "auto_retire_seconds": 3600,
+          "state": "ALERTING"
+        },
+        "/type_definition/analytics_threshold/timeframe_minutes": 45,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": true
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "planDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/group_by": [
+          "app"
+        ],
+        "/priority": "P2",
+        "/type_definition/analytics_threshold/custom_evaluation_delay": 120000,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
+        "/type_definition/analytics_threshold/no_data_policy/auto_retire_seconds": 3600,
+        "/type_definition/analytics_threshold/no_data_policy/state": "ALERTING",
+        "/type_definition/analytics_threshold/timeframe_minutes": 45,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": true
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/analyticsThreshold/dataprimeQuery/query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
+          "/body/alertDefProperties/analyticsThreshold/evaluationDelayMs": 120000,
+          "/body/alertDefProperties/analyticsThreshold/noDataPolicy/autoRetireSeconds": 3600,
+          "/body/alertDefProperties/analyticsThreshold/noDataPolicy/state": "NO_DATA_POLICY_STATE_ALERTING",
+          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 45,
+          "/body/alertDefProperties/analyticsThreshold/useRowsAsPermutations": true,
+          "/body/alertDefProperties/description": "full",
+          "/body/alertDefProperties/enabled": false,
+          "/body/alertDefProperties/groupByKeys": [
+            "app"
+          ],
+          "/body/alertDefProperties/priority": "ALERT_DEF_PRIORITY_P2"
+        }
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/group_by": [
+          "app"
+        ],
+        "/priority": "P2",
+        "/type_definition/analytics_threshold/custom_evaluation_delay": 120000,
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
+        "/type_definition/analytics_threshold/no_data_policy/auto_retire_seconds": 3600,
+        "/type_definition/analytics_threshold/no_data_policy/state": "ALERTING",
+        "/type_definition/analytics_threshold/timeframe_minutes": 45,
+        "/type_definition/analytics_threshold/use_rows_as_permutations": true
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

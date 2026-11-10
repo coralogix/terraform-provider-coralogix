@@ -1,0 +1,32 @@
+[
+  {
+    "step": "upgrade",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "owner": null,
+      "active": true,
+      "hashed": false,
+      "value": "v",
+      "roles": [
+        "Send Data"
+      ]
+    },
+    "state": {
+      "access_policy": null,
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "owner": null,
+      "permissions": [
+        "cloud-metadata-ingress:SendData",
+        "logs.data-ingress:SendData",
+        "metrics.data-ingress:SendData",
+        "spans.data-ingress:SendData"
+      ],
+      "presets": null,
+      "value": "v"
+    }
+  }
+]

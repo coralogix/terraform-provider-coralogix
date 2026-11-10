@@ -1,0 +1,492 @@
+[
+  {
+    "step": "no body",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\")] | Must set a configuration value for the type_definition.analytics_threshold.dataprime_query attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Must set a configuration value for the type_definition.analytics_threshold.operator attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.analytics_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"target_column\")] | Must set a configuration value for the type_definition.analytics_threshold.target_column attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"timeframe_minutes\")] | Must set a configuration value for the type_definition.analytics_threshold.timeframe_minutes attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no dataprime_query",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\")] | Must set a configuration value for the type_definition.analytics_threshold.dataprime_query attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no rules",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/dataprime_query": {
+          "query": "source logs | count as c"
+        }
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/rules"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.analytics_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no operator",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules": [
+          {
+            "condition": {
+              "threshold": 5
+            },
+            "override": {
+              "priority": "P3"
+            }
+          }
+        ]
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/operator"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Must set a configuration value for the type_definition.analytics_threshold.operator attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no target_column",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/operator": "MORE_THAN"
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/target_column"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"target_column\")] | Must set a configuration value for the type_definition.analytics_threshold.target_column attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no timeframe_minutes",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/target_column": "c"
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/timeframe_minutes"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"timeframe_minutes\")] | Must set a configuration value for the type_definition.analytics_threshold.timeframe_minutes attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "an empty query",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/dataprime_query/query": "",
+        "/type_definition/analytics_threshold/timeframe_minutes": 10
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\").AttributeName(\"query\")] | Attribute type_definition.analytics_threshold.dataprime_query.query string length must be between 1 and 65535, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "operator outside the list",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/dataprime_query/query": "source logs | count as c",
+        "/type_definition/analytics_threshold/operator": "GREATER_THAN"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Attribute type_definition.analytics_threshold.operator value must be one of: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"], got: \"GREATER_THAN\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "lowercase operator",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/operator": "more_than"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Attribute type_definition.analytics_threshold.operator value must be one of: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"], got: \"more_than\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "the enum name as operator",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/operator": "ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Attribute type_definition.analytics_threshold.operator value must be one of: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"], got: \"ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty rules",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/operator": "MORE_THAN",
+        "/type_definition/analytics_threshold/rules": []
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "six rules",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules": [
+          {
+            "condition": {
+              "threshold": 1
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 2
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 3
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 4
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 5
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 6
+            },
+            "override": {
+              "priority": "P1"
+            }
+          }
+        ]
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 6"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "five rules are fine",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules": [
+          {
+            "condition": {
+              "threshold": 1
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 2
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 3
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 4
+            },
+            "override": {
+              "priority": "P1"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 5
+            },
+            "override": {
+              "priority": "P1"
+            }
+          }
+        ]
+      }
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "a rule without condition",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules": [
+          {
+            "override": {
+              "priority": "P1"
+            }
+          }
+        ]
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.analytics_threshold.rules[0].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "a rule without override",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules/0/condition": {
+          "threshold": 1
+        }
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/rules/0/override"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\")] | Must set a configuration value for the type_definition.analytics_threshold.rules[0].override attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "a condition without threshold",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules/0/override": {}
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/rules/0/condition/threshold"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\").AttributeName(\"threshold\")] | Must set a configuration value for the type_definition.analytics_threshold.rules[0].condition.threshold attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "override priority outside the list",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules/0/condition/threshold": 1,
+        "/type_definition/analytics_threshold/rules/0/override/priority": "P6"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.analytics_threshold.rules[0].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P6\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "lowercase override priority",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules/0/override/priority": "p1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.analytics_threshold.rules[0].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"p1\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "target_column of 256 characters",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/rules/0/condition/threshold": 5,
+        "/type_definition/analytics_threshold/rules/0/override/priority": "P3",
+        "/type_definition/analytics_threshold/target_column": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccx"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"target_column\")] | Attribute type_definition.analytics_threshold.target_column string length must be at most 255, got: 256"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "target_column of 255 characters is fine",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/target_column": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "an empty target_column is fine for the schema",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/target_column": ""
+      }
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "timeframe_minutes 0",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/target_column": "c",
+        "/type_definition/analytics_threshold/timeframe_minutes": 0
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"timeframe_minutes\")] | Attribute type_definition.analytics_threshold.timeframe_minutes value must be at least 1, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "custom_evaluation_delay negative",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/custom_evaluation_delay": -1,
+        "/type_definition/analytics_threshold/timeframe_minutes": 10
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"custom_evaluation_delay\")] | Attribute type_definition.analytics_threshold.custom_evaluation_delay value must be at least 0, got: -1"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "an empty no_data_policy",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/no_data_policy": {}
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/custom_evaluation_delay"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Empty no_data_policy [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\")] | no_data_policy must set at least one of state or auto_retire_seconds; remove the block to leave the policy unset."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no_data_policy state outside the list",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/no_data_policy/state": "BROKEN"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.analytics_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"BROKEN\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no_data_policy state UNSPECIFIED warns",
+    "configDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/no_data_policy/state": "UNSPECIFIED"
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | `UNSPECIFIED` is a protobuf sentinel, not a UI option. Omit `no_data_policy` entirely for the same legacy no-data handling, or set `state` to one of `OK`, `ALERTING`, `KEEP_LAST`, or `NO_DATA`. `UNSPECIFIED` will be rejected in a future provider release."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "group_by is allowed",
+    "configDelta": {
+      "set": {
+        "/group_by": [
+          "coralogix.metadata.applicationName"
+        ]
+      },
+      "remove": [
+        "/type_definition/analytics_threshold/no_data_policy"
+      ]
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "priority gets a deprecation warning next to rules",
+    "configDelta": {
+      "set": {
+        "/priority": "P2"
+      },
+      "remove": [
+        "/group_by"
+      ]
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "stateDelta": {}
+  }
+]

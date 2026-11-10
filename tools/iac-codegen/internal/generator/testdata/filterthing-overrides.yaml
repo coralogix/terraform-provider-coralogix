@@ -1,0 +1,25 @@
+# A released resource whose filters are a list of oneOf items, as in a dashboard widget.
+resource: FilterThing
+mode: existing
+typeName: filter_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: FilterThingsService_CreateFilterThing
+    get: FilterThingsService_GetFilterThing
+    update: FilterThingsService_ReplaceFilterThing
+    delete: FilterThingsService_DeleteFilterThing
+  idProperty: id
+  serverSetID: true
+
+types:
+  FilterThing:
+    fields:
+      id: {readOnly: true}
+  Filter:
+    fields:
+      # The released resource shows an arm with no fields as a bool.
+      everything: {asBool: true}

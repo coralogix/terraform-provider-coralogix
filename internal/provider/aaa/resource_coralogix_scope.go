@@ -205,8 +205,9 @@ func extractCreateScope(plan *ScopeResourceModel) (*scopess.CreateScopeRequest, 
 		})
 	}
 
+	displayName := plan.DisplayName.ValueString()
 	return &scopess.CreateScopeRequest{
-		DisplayName:       scopess.PtrString(plan.DisplayName.ValueString()),
+		DisplayName:       &displayName,
 		Description:       plan.Description.ValueStringPointer(),
 		Filters:           filters,
 		DefaultExpression: plan.DefaultExpression.ValueString(),
@@ -353,9 +354,10 @@ func extractUpdateScope(plan *ScopeResourceModel) (*scopess.UpdateScopeRequest, 
 		})
 	}
 
+	displayName := plan.DisplayName.ValueString()
 	return &scopess.UpdateScopeRequest{
 		Id:                plan.ID.ValueString(),
-		DisplayName:       scopess.PtrString(plan.DisplayName.ValueString()),
+		DisplayName:       &displayName,
 		Description:       plan.Description.ValueStringPointer(),
 		Filters:           filters,
 		DefaultExpression: plan.DefaultExpression.ValueString(),

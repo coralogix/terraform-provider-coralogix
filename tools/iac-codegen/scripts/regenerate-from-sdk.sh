@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pin the Management SDK at a ref, regenerate the resources of tools/iac-codegen/auto-regenerate.txt
-# and the docs, and add a changelog entry for each resource whose generated files changed: its
+# Pin the Management SDK at a ref, regenerate the resources of tools/iac-codegen/auto-regenerate.txt,
+# the docs, and the protocol baseline golden files, and add a changelog entry for each resource whose generated files changed: its
 # package under internal/provider/generated or its examples, the paths that
 # check-generated-resources.sh compares.
 # Usage: regenerate-from-sdk.sh <SDK ref: commit SHA, tag, or branch>
@@ -43,6 +43,11 @@ while read -r resource out _; do
   "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2
 done <"$work/resources"
 make generate >&2
+# The protocol baseline tests of internal/provider compare the schemas and requests of the generated
+# resources and data sources with golden files, so a schema change also changes those files. The
+# pull request shows their diff for review. A failing test that is not a golden comparison still
+# stops the regeneration.
+UPDATE_GOLDEN=1 go test ./internal/provider -count=1 >&2
 
 # changelog_entries adds the entries of one doc kind (resources or data-sources) of a resource and
 # counts them in entries. It is not called in a command substitution: there, set -e would not stop

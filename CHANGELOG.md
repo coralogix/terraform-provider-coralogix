@@ -1,7 +1,6 @@
 # Unreleased
 
 #### provider
-- CHORE: Refresh the management SDK scope contract. Empty filter requests omit `filters` instead of sending null; the API treats both as empty. Malformed scope responses can now report SDK validation errors before flattening.
 - FIX: Reject empty string response IDs before writing or recovering state in generated resources.
 
 #### tools/iac-codegen

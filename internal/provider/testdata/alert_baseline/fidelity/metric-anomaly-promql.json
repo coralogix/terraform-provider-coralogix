@@ -1,0 +1,536 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "metricAnomaly": {
+          "metricFilter": {
+            "promql": "tfbaseline_up"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "minNonNullValuesPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-ma-promql",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricAnomaly": {
+            "anomalyAlertSettings": {},
+            "metricFilter": {
+              "promql": "tfbaseline_up"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "minNonNullValuesPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-ma-promql",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricAnomaly": {
+          "metricFilter": {
+            "promql": "tfbaseline_up{job=\"api\", env=~\"prod|stage\"}"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "minNonNullValuesPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-ma-promql",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "env",
+            "job"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricAnomaly": {
+            "anomalyAlertSettings": {},
+            "metricFilter": {
+              "promql": "tfbaseline_up{job=\"api\", env=~\"prod|stage\"}"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "minNonNullValuesPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-ma-promql",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "env",
+            "job"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricAnomaly": {
+            "anomalyAlertSettings": {},
+            "metricFilter": {
+              "promql": "tfbaseline_up{job=\"api\", env=~\"prod|stage\"}"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "minNonNullValuesPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-ma-promql",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricAnomaly": {
+          "metricFilter": {
+            "promql": "sum by (job) (\n  rate(tfbaseline_requests_total[5m])\n)"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "minNonNullValuesPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-ma-promql",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "job"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricAnomaly": {
+            "anomalyAlertSettings": {},
+            "metricFilter": {
+              "promql": "sum by (job) (\n  rate(tfbaseline_requests_total[5m])\n)"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "minNonNullValuesPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-ma-promql",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "job"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricAnomaly": {
+            "anomalyAlertSettings": {},
+            "metricFilter": {
+              "promql": "sum by (job) (\n  rate(tfbaseline_requests_total[5m])\n)"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "minNonNullValuesPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-ma-promql",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricAnomaly": {
+          "metricFilter": {
+            "promql": "this is ((not promql"
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "minNonNullValuesPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-ma-promql",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "metricAnomaly": {
+            "anomalyAlertSettings": {},
+            "metricFilter": {
+              "promql": "this is ((not promql"
+            },
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "forOverPct": 50,
+                  "minNonNullValuesPct": 50,
+                  "ofTheLast": {
+                    "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                  },
+                  "threshold": 10
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-ma-promql",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "metricAnomaly": {
+          "metricFilter": {
+            "promql": ""
+          },
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "minNonNullValuesPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-ma-promql",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"type\": \"string\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"String must contain at least 1 character(s)\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"metricAnomaly\",\n      \"metricFilter\",\n      \"type\",\n      \"promql\"\n    ]\n  }\n]"
+    }
+  }
+]

@@ -1,0 +1,294 @@
+[
+  {
+    "step": "priority outside P1..P5",
+    "config": {
+      "name": "tfbaseline-common-validation",
+      "priority": "P6",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "lucene_query": "tfbaseline"
+            }
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"priority\")] | Attribute priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P6\""
+    ],
+    "state": null
+  },
+  {
+    "step": "lowercase priority",
+    "configDelta": {
+      "set": {
+        "/priority": "p1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"priority\")] | Attribute priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"p1\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty labels map",
+    "configDelta": {
+      "set": {
+        "/labels": {}
+      },
+      "remove": [
+        "/priority"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"labels\")] | Attribute labels map must contain at least 1 elements, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "incidents_settings.notify_on outside the list",
+    "configDelta": {
+      "set": {
+        "/incidents_settings": {
+          "notify_on": "Never",
+          "retriggering_period": {
+            "minutes": 10
+          }
+        }
+      },
+      "remove": [
+        "/labels"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"incidents_settings\").AttributeName(\"notify_on\")] | Attribute incidents_settings.notify_on value must be one of: [\"Triggered Only\" \"Triggered and Resolved\"], got: \"Never\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "incidents_settings without retriggering_period",
+    "configDelta": {
+      "set": {
+        "/incidents_settings/notify_on": "Triggered Only"
+      },
+      "remove": [
+        "/incidents_settings/retriggering_period"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"incidents_settings\").AttributeName(\"retriggering_period\")] | Must set a configuration value for the incidents_settings.retriggering_period attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "schedule start_time without leading zero",
+    "configDelta": {
+      "set": {
+        "/schedule": {
+          "active_on": {
+            "days_of_week": [
+              "Monday"
+            ],
+            "end_time": "17:00",
+            "start_time": "8:00"
+          }
+        }
+      },
+      "remove": [
+        "/incidents_settings"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"active_on\").AttributeName(\"start_time\")] | Attribute schedule.active_on.start_time Use 24h time formats like 15:04 with a leading zero, got: 8:00"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "schedule day name outside the list",
+    "configDelta": {
+      "set": {
+        "/schedule/active_on/days_of_week/0": "Mon",
+        "/schedule/active_on/start_time": "08:00"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"active_on\").AttributeName(\"days_of_week\").ElementKeyValue(tftypes.String<\"Mon\">)] | Attribute schedule.active_on.days_of_week[Value(\"Mon\")] value must be one of: [\"Friday\" \"Monday\" \"Saturday\" \"Sunday\" \"Thursday\" \"Tuesday\" \"Wednesday\"], got: \"Mon\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "schedule utc_offset with a colon",
+    "configDelta": {
+      "set": {
+        "/schedule/active_on/days_of_week/0": "Monday",
+        "/schedule/active_on/utc_offset": "+02:00"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"active_on\").AttributeName(\"utc_offset\")] | Attribute schedule.active_on.utc_offset Time zone to interpret the start/end times in, using a UTC offset like -0700, got: +02:00"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty destinations list",
+    "configDelta": {
+      "set": {
+        "/notification_group": {
+          "destinations": []
+        }
+      },
+      "remove": [
+        "/schedule"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"notification_group\").AttributeName(\"destinations\")] | Attribute notification_group.destinations list must contain at least 1 elements, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty group_by_keys",
+    "configDelta": {
+      "set": {
+        "/notification_group/group_by_keys": []
+      },
+      "remove": [
+        "/notification_group/destinations"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"notification_group\").AttributeName(\"group_by_keys\")] | Attribute notification_group.group_by_keys list must contain at least 1 elements, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "webhook with neither integration_id nor recipients",
+    "configDelta": {
+      "set": {
+        "/notification_group/webhooks_settings": [
+          {
+            "notify_on": "Triggered Only"
+          }
+        ]
+      },
+      "remove": [
+        "/notification_group/group_by_keys"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<\"Triggered Only\">, \"recipients\":tftypes.Set[tftypes.String]<null>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"integration_id\")] | No attribute specified when one (and only one) of [notification_group.webhooks_settings[Value({\"integration_id\":<null>,\"notify_on\":\"Triggered Only\",\"recipients\":<null>,\"retriggering_period\":<null>})].integration_id.<.recipients] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "webhook with both integration_id and recipients",
+    "configDelta": {
+      "set": {
+        "/notification_group/webhooks_settings/0/integration_id": "1",
+        "/notification_group/webhooks_settings/0/recipients": [
+          "a@example.com"
+        ]
+      },
+      "remove": [
+        "/notification_group/webhooks_settings/0/notify_on"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<\"1\">, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"integration_id\")] | 2 attributes specified when one (and only one) of [notification_group.webhooks_settings[Value({\"integration_id\":\"1\",\"notify_on\":<null>,\"recipients\":[\"a@example.com\"],\"retriggering_period\":<null>})].integration_id.<.recipients] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "webhook notify_on outside the list",
+    "configDelta": {
+      "set": {
+        "/notification_group/webhooks_settings/0/notify_on": "Always"
+      },
+      "remove": [
+        "/notification_group/webhooks_settings/0/integration_id"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<\"Always\">, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"notify_on\")] | Attribute notification_group.webhooks_settings[Value({\"integration_id\":<null>,\"notify_on\":\"Always\",\"recipients\":[\"a@example.com\"],\"retriggering_period\":<null>})].notify_on value must be one of: [\"Triggered Only\" \"Triggered and Resolved\"], got: \"Always\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty data_sources list",
+    "configDelta": {
+      "set": {
+        "/data_sources": []
+      },
+      "remove": [
+        "/notification_group"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"data_sources\")] | Attribute data_sources list must contain at least 1 elements, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty name",
+    "configDelta": {
+      "set": {
+        "/name": ""
+      },
+      "remove": [
+        "/data_sources"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be at least 1, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no type_definition",
+    "config": {
+      "name": "tfbaseline-common-validation"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\")] | Must set a configuration value for the type_definition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no name",
+    "config": {
+      "type_definition": {
+        "logs_immediate": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "two type arms",
+    "configDelta": {
+      "set": {
+        "/name": "tfbaseline-common-validation",
+        "/type_definition/tracing_immediate": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")] | 2 attributes specified when one (and only one) of [type_definition.logs_threshold,type_definition.logs_anomaly,type_definition.logs_ratio_threshold,type_definition.logs_unique_count,type_definition.logs_new_value,type_definition.logs_time_relative_threshold,type_definition.metric_threshold,type_definition.metric_anomaly,type_definition.tracing_immediate,type_definition.tracing_threshold,type_definition.flow,type_definition.slo_threshold,type_definition.analytics_immediate,type_definition.analytics_threshold] is required",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\")] | Must set a configuration value for the type_definition.tracing_immediate.tracing_filter attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty type_definition",
+    "config": {
+      "name": "tfbaseline-common-validation",
+      "type_definition": {}
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")] | No attribute specified when one (and only one) of [type_definition.logs_threshold,type_definition.logs_anomaly,type_definition.logs_ratio_threshold,type_definition.logs_unique_count,type_definition.logs_new_value,type_definition.logs_time_relative_threshold,type_definition.metric_threshold,type_definition.metric_anomaly,type_definition.tracing_immediate,type_definition.tracing_threshold,type_definition.flow,type_definition.slo_threshold,type_definition.analytics_immediate,type_definition.analytics_threshold] is required"
+    ],
+    "stateDelta": {}
+  }
+]

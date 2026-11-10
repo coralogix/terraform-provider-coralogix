@@ -100,7 +100,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_scope | error - no value given for required property defaultExpression — {\"scope\":{}}\noperation - Replace"
+      "error: Error updating coralogix_scope | error - no value given for required property id — {\"scope\":{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}}\noperation - Replace"
     ],
     "state": {
       "default_expression": "<v1>true",

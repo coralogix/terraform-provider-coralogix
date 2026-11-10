@@ -357,6 +357,68 @@ type Type struct {
 	// its fields, for a request item {"thing": {"name": ...}, "rules": ...} of a read item
 	// {"name": ..., "rules": ...}. The requestAs lines of its fields are relative to it.
 	RequestWrapper string `yaml:"requestWrapper"`
+	// TypedArms shows this oneOf object as a type attribute plus the merged fields of its arms.
+	TypedArms *TypedArms `yaml:"typedArms"`
+}
+
+// TypedArms shows a oneOf object as one object. A required string attribute (Field) names the arm.
+// The other attributes are the fields of all arms, merged by name, and all optional. The API
+// spelling `aggregation: {percentile: {field: duration, percent: 95}}` is
+// `{type = "percentile", field = "duration", percent = 95}` in Terraform.
+type TypedArms struct {
+	// Field is the Terraform name of the attribute that names the arm. The default is "type".
+	Field string `yaml:"field"`
+	// Names maps an arm (its API name) to the value of Field, for a released spelling that is not
+	// the Terraform name of the arm, such as `average: avg`. Every arm has a value.
+	Names map[string]string `yaml:"names"`
+	// Value is the Terraform name of the attribute that holds an arm that is a scalar, such as a
+	// string or an enum. The default is "value". Two scalar arms share it, so they have one type.
+	Value string `yaml:"value"`
+	// Infer makes the type attribute optional and computed, for a released resource whose users
+	// leave it out. The plan then picks the first arm that has a field the configuration sets (a
+	// list counts as set when it is not empty), and else the arm without fields. For a oneOf of
+	// `all` (no fields) and `list` (values), no values mean `all`, and some values mean `list`.
+	Infer bool `yaml:"infer"`
+}
+
+// check checks the names of a typedArms line and that no two arms have one value.
+func (t *TypedArms) check() error {
+	for _, name := range []struct{ key, value string }{{"field", t.Field}, {"value", t.Value}} {
+		if name.value != "" && !tfNamePattern.MatchString(name.value) {
+			return fmt.Errorf("typedArms.%s %q must be lower case letters, digits, and _", name.key, name.value)
+		}
+	}
+	if t.TypeField() == t.ValueField() {
+		return fmt.Errorf("typedArms: field and value are both %q", t.TypeField())
+	}
+	seen := map[string]string{}
+	for _, arm := range sortedKeys(t.Names) {
+		value := t.Names[arm]
+		if value == "" {
+			return fmt.Errorf("typedArms.names.%s is empty", arm)
+		}
+		if other, ok := seen[value]; ok {
+			return fmt.Errorf("typedArms.names: %s and %s are both %q", other, arm, value)
+		}
+		seen[value] = arm
+	}
+	return nil
+}
+
+// TypeField returns the Terraform name of the attribute that names the arm.
+func (t *TypedArms) TypeField() string {
+	if t.Field == "" {
+		return "type"
+	}
+	return t.Field
+}
+
+// ValueField returns the Terraform name of the attribute that holds a scalar arm.
+func (t *TypedArms) ValueField() string {
+	if t.Value == "" {
+		return "value"
+	}
+	return t.Value
 }
 
 // GroupOf returns the group of the type that holds field, or "".
@@ -836,11 +898,16 @@ func (f *File) checkTypes() error {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
 		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
-			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" {
+			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && t.TypedArms == nil {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		if err := t.checkUnsupported(); err != nil {
 			return fmt.Errorf("types.%s: %w", name, err)
+		}
+		if t.TypedArms != nil {
+			if err := t.TypedArms.check(); err != nil {
+				return fmt.Errorf("types.%s.%w", name, err)
+			}
 		}
 		if t.RequestWrapper != "" && name == f.Resource {
 			return fmt.Errorf("types.%s.requestWrapper: the resource component uses api.requestWrapper", name)
@@ -1614,4 +1681,12 @@ func (f *File) accepted(k *iacoverrides.KeyedBy) map[string]map[string]string {
 		}
 	}
 	return out
+}
+
+// TypedArmsOf returns the typedArms line of the component, or nil.
+func (f *File) TypedArmsOf(component string) *TypedArms {
+	if f == nil {
+		return nil
+	}
+	return f.Types[component].TypedArms
 }

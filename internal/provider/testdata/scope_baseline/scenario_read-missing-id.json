@@ -66,7 +66,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | error - no value given for required property defaultExpression — {\"scopes\":[{}]}\noperation - Read"
+      "error: Error reading coralogix_scope | error - no value given for required property id — {\"scopes\":[{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}]}\noperation - Read"
     ],
     "state": {
       "default_expression": "<v1>true",
@@ -95,7 +95,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | error - no value given for required property defaultExpression — {\"scopes\":[{}]}\noperation - Read"
+      "error: Error reading coralogix_scope | error - no value given for required property id — {\"scopes\":[{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}]}\noperation - Read"
     ],
     "state": {
       "default_expression": null,

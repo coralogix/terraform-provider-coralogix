@@ -1,0 +1,368 @@
+[
+  {
+    "step": "create: auto_retire_seconds is no multiple of 60",
+    "config": {
+      "name": "tfbaseline-logs-threshold-nodata-err",
+      "type_definition": {
+        "logs_threshold": {
+          "no_data_policy": {
+            "auto_retire_seconds": 90,
+            "state": "ALERTING"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-logs-threshold-nodata-err",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": {
+          "custom_evaluation_delay": null,
+          "logs_filter": "(unknown)",
+          "no_data_policy": {
+            "auto_retire_seconds": 90,
+            "state": "ALERTING"
+          },
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "logsThreshold": {
+              "noDataPolicy": {
+                "autoRetireSeconds": 90,
+                "state": "NO_DATA_POLICY_STATE_ALERTING"
+              },
+              "notificationPayloadFilter": [],
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 1,
+                    "timeWindow": {
+                      "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-threshold-nodata-err",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
+          }
+        },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create",
+    "configDelta": {
+      "remove": [
+        "/type_definition/logs_threshold/no_data_policy"
+      ]
+    },
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_threshold/no_data_policy": "(unknown)"
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "POST",
+        "set": {
+          "/status": 200
+        },
+        "remove": [
+          "/body/alertDefProperties/logsThreshold/noDataPolicy"
+        ]
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-threshold-nodata-err",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": {
+          "custom_evaluation_delay": null,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "no_data_policy": {
+            "auto_retire_seconds": null,
+            "state": null
+          },
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: auto_retire_seconds below 60",
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_threshold/no_data_policy": {
+          "auto_retire_seconds": 30,
+          "state": "ALERTING"
+        }
+      }
+    },
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
+        },
+        "/priority": "P5",
+        "/type_definition/logs_threshold/logs_filter": {
+          "simple_filter": {
+            "label_filters": {
+              "application_name": null,
+              "severities": null,
+              "subsystem_name": null
+            },
+            "lucene_query": ""
+          }
+        },
+        "/type_definition/logs_threshold/no_data_policy": {
+          "auto_retire_seconds": 30,
+          "state": "ALERTING"
+        }
+      }
+    },
+    "requests": [
+      {
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsThreshold": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": ""
+                }
+              },
+              "noDataPolicy": {
+                "autoRetireSeconds": 30,
+                "state": "NO_DATA_POLICY_STATE_ALERTING"
+              },
+              "notificationPayloadFilter": [],
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 1,
+                    "timeWindow": {
+                      "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-threshold-nodata-err",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "refresh after the failed update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "stateDelta": {},
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"auto_retire_seconds\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

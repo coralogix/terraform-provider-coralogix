@@ -94,6 +94,10 @@ A further small golden contract, `suppressedthing`, is an existing resource whos
 A further small golden contract, `parsething`, is an existing resource like the parsing rule groups: a team id that only the requests have (`skip`), unknown scalars sent as zero (`sendUnknownAsZero`), matchers shown as one set per arm (`splitArms`, `default: []`), groups and steps numbered by place (`requestPosition`), a step shown as the arms of its parameters with a fixed source in one arm and two arms folded into one (`carrySiblings`), an inverted flag and a fixed one (`showInverted`, `requestValue: "true"`), and a case-insensitive enum.
 A further small golden contract, `storagething`, is an existing singleton like the metrics archive: a GET reads it, a POST on the same path sets it and returns an empty object, and the path also has a PUT and a PATCH that the resource does not use. The storage is one arm of a oneOf of the resource itself, and its behavior-overrides file lists the `gcs` arm in `unsupportedArms`.
 
+A small golden contract, `filterthing`, is an existing resource whose list items are each one arm of a oneOf, as the filters of a dashboard widget are: an arm with a nested object, an object, a string, and an empty object shown as a bool (`asBool`). Each item is a nested object with one attribute per arm, and the arms exclude each other (`ConflictsWith`), as for a oneOf that is a single field. A list or set of oneOf items that has no `splitArms` line works this way.
+
+A small golden contract, `typedthing`, is an existing resource that shows oneOf fields with `typedArms`: an arm without fields, two arms that share a field, an arm with a nested object, and scalar arms (a string and an enum) that share one `value`, in a single field and in a list.
+
 A small golden contract, `retagthing`, is a collection resource whose write renames the items by id: the write takes the list under another name (`requestAs`), returns the resource (`writeReturnsResource`), and needs the server id of each item, which a test hook fills for Create.
 
 A further small golden contract, `overwritething`, is a collection resource whose write replaces the things of kind A and whose Get lists every kind. Its behavior-overrides file has `api.overwrite` with a `getQuery`, a `requestWrapper` and a negated `requestAs` line on the item, an `inline` line on the rules arm of kind A and a `skip` line on the arm of kind B, a `split` line with element validators on an inlined field, and a data source.
@@ -230,6 +234,51 @@ types:
 ```
 
 `requestValues` leaves a sibling out of an arm and sends the API value there instead. `fold` shows an arm as another arm with the same fields, chosen by a bool flag that is true, its default, for the arm `into` and false for the folded arm. Two arms of a fold need the same fields and the same `requestValues`. A name that is no arm or no sibling is an error. A `requestValues` entry must name a sibling that the requests send, not the field that holds the oneOf, and an enum value must be an accepted value of the enum. An arm takes one fold, a folded arm cannot be a fold target, and the two arms need fields of the same names and SDK types.
+
+`types.<Type>.typedArms` on a oneOf component shows the oneOf as one object: a required `type` attribute that names the arm, and the fields of all arms, merged by name, all optional. The API spelling `{"aggregation": {"percentile": {"field": "duration", "percent": 95}}}` is `aggregation = {type = "percentile", field = "duration", percent = 95}` in Terraform. One line serves every field that uses the component, in a single field and in the items of a list.
+
+```yaml
+types:
+  LogsAggregation:
+    typedArms:
+      field: type                                # the Terraform name of the arm attribute (default: type)
+      names: {average: avg}                      # arm -> released value; an arm without a name takes its Terraform name
+  SpanField:
+    typedArms:
+      value: value                               # the attribute of the scalar arms (default: value)
+      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
+```
+
+An arm is an object, an object without fields, or a scalar (a string, a number, a bool, or an enum). The fields of an object arm keep their own lines. Scalar arms share the `value` attribute, so their types must be the same Go type. Two arms with a same-name field must give it one Terraform type (`field` in `average` and in `percentile` is one attribute). The generator reports a `names` key that is no arm, two arms with one value, a `field` that an arm also has, and a field with two types. It needs an Update that replaces the resource, because an update mask names API fields.
+
+Create and Update send the arm that `type` names, filled from the merged fields. Read sets `type` from the arm that the response has, and the fields of the other arms are null. A response with no arm fails the read. A `type` that is not a value is an error at plan (a `OneOf` validator) and at apply.
+
+The `type` attribute also has a `typedArmValidator`, which the schema file defines. It rejects a field that the chosen arm does not have (`type = "count"` with a `field`). An empty list, set, or map counts as no value, because the default and the API give it. A scalar arm is chosen by its value, so the validator also requires `value` when `type` names that arm, and it requires the fields that an object arm requires. A null value is an error. An unknown value is checked when it is known. A text field that two or more object arms share (an enum in one arm, free text in another) gets its checks for each arm, and they run only when `type` names that arm. A shared field of another kind (number, bool) must have the same checks in every arm, or generation stops. A field of an arm with `default: []` reads as that empty list or set when the arm lacks it or the answer has no values, so an import plans no change. Set the checks of a shared text field with the `enums` line, not with a `validators` line on one arm: the line would apply to every arm. For a scalar arm that is a mapped enum, it checks the value against the Terraform values of its `enums` line (without the zero value), only when `type` names that arm, because the attribute is shared. The checks of a scalar arm are not on the attribute itself. The limits of the contract that the file keeps with `validators.inferred: true` follow the same rule. An object arm keeps its own checks.
+
+`typedArms.infer: true` makes the `type` attribute optional and computed, for a released resource whose users leave it out. The plan picks the first arm that has a field that the configuration sets (a list counts as set when it is not empty), and else the arm without fields. Expand uses the same rule when the type is unknown at apply, and reports an error when a deciding field is unknown. For a oneOf of `all` (no fields) and `list` (`values`), no values mean `all`, and values mean `list`, and a configured `selection_type = "list"` with an empty list stays a list.
+
+A `typedArms` line also works on an object whose fields are all arms, such as `{list: {values}}` with no oneOf in the contract.
+
+An arm that is an object with one field whose type has a `typedArms` line is shown as the attributes of that inner object. The two levels of a filter operator become one object (`equals` or `not_equals`, each with its own selection):
+
+```yaml
+types:
+  Filter.Operator:
+    typedArms: {names: {notEquals: not_equals}}   # the arms are Filter.Equals and Filter.NotEquals, which hold one selection each
+  Equals.Selection:                                # all (no fields) or list
+    typedArms: {field: selection_type, infer: true}
+  NotEquals.Selection:                             # list only
+    typedArms: {field: selection_type, infer: true}
+  Equals.Selection.ListSelection:
+    fields:
+      values: {name: selected_values, computed: true, default: []}
+```
+
+```hcl
+operator = { type = "equals", selection_type = "list", selected_values = ["a"] }
+```
+
+The attributes of the inner object join the merged attributes. The first inner object gives the checks of a shared attribute (here `selection_type` allows `all` and `list`, and `all` has no values). The outer `type` attribute also limits the values of the inner type for each arm (`not_equals` allows only `list`). An inner object with scalar arms or another typed object inside it is not supported.
 
 `enums.<Enum>.caseInsensitive: true` accepts a Terraform value in any case: the `enum: true` validator is `OneOfCaseInsensitive`, expand matches the value in any case, and flatten keeps the spelling of the plan or the state when the API value differs only in case. A scalar field of the enum only. Two values of the enum may not differ only in case.
 
@@ -534,7 +583,7 @@ A behavior change is a change of what the generator produces, whatever caused it
 
 An API change reaches the provider through three syncs: `cx-management-apis` dispatches each merge to `openapi-facade`, the facade dispatches its spec to `coralogix-management-sdk`, and the SDK merges its sync pull request. Only preview and stable elements reach the published spec, so an element that is still in development never reaches the generator. After `openapi.yaml` changes on the SDK master, the SDK dispatches `sdk-spec-updated` to this repository.
 
-The `Regenerate generated resources` workflow (`.github/workflows/regenerate-generated-resources.yml`) then runs `scripts/regenerate-from-sdk.sh` with that SDK commit. The script pins the SDK, regenerates the resources of `auto-regenerate.txt` and the docs, and adds changelog entries for each resource whose generated package or examples changed. `scripts/schema-changes.sh` compares the resource and data source docs before and after: an added attribute is FEAT, a removed one is BREAKING, and a changed section or type is BREAKING unless it only makes a Required attribute Optional. A resource with no attribute change gets a regeneration note. When generated files changed, the workflow opens or updates the pull request on the `auto/sdk-regenerate` branch and posts it with the regenerated resource names to Slack. It posts a failure too, for example when the new SDK breaks a handwritten resource. It also runs every weekday and by hand with an SDK ref: a commit SHA, or a branch or tag name that `scripts/resolve-sdk-ref.sh` resolves to exactly one commit. The `iac` module of this module stays pinned: a generator change is its own pull request with a new version.
+The `Regenerate generated resources` workflow (`.github/workflows/regenerate-generated-resources.yml`) then runs `scripts/regenerate-from-sdk.sh` with that SDK commit. The script pins the SDK, regenerates the resources of `auto-regenerate.txt` and the docs, rewrites the protocol baseline golden files of `internal/provider/testdata/` (`UPDATE_GOLDEN=1 go test ./internal/provider`), and adds changelog entries for each resource whose generated package or examples changed. `scripts/schema-changes.sh` compares the resource and data source docs before and after: an added attribute is FEAT, a removed one is BREAKING, and a changed section or type is BREAKING unless it only makes a Required attribute Optional. A resource with no attribute change gets a regeneration note. When generated files changed, the workflow opens or updates the pull request on the `auto/sdk-regenerate` branch and posts it with the regenerated resource names to Slack. It posts a failure too, for example when the new SDK breaks a handwritten resource. It also runs every weekday and by hand with an SDK ref: a commit SHA, or a branch or tag name that `scripts/resolve-sdk-ref.sh` resolves to exactly one commit. The `iac` module of this module stays pinned: a generator change is its own pull request with a new version.
 
 `auto-regenerate.txt` lists the Terraform resources that the workflow regenerates. Most resources are handwritten and are not listed. When you generate a resource, add its name: CI fails when a resource of `internal/provider/codegen.go` is missing (`scripts/check-auto-regenerate-list.sh`), because the build check requires every generated resource to match the pinned SDK. A listed resource that `codegen.go` does not have yet, such as one whose migration is in review, is skipped.
 

@@ -1,0 +1,50 @@
+[
+  {
+    "step": "create with both lists empty",
+    "config": {
+      "name": "empty",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [],
+      "presets": []
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "(unknown)",
+      "name": "empty",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [],
+      "presets": [],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3",
+        "body": {
+          "hashed": false,
+          "keyPermissions": {
+            "permissions": [],
+            "presets": []
+          },
+          "name": "empty",
+          "owner": {
+            "teamId": 4000001
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: preset_ids or permission_ids must be provided\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

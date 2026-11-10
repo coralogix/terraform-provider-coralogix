@@ -66,7 +66,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | error - no value given for required property defaultExpression — {\"scopes\":[{\"id\":\"\"}]}\noperation - Read"
+      "error: Unable to read coralogix_scope \"00000000-0000-4000-8000-000000000001\" | The read returned a scope with no id. State is left unchanged rather than overwritten with an empty id."
     ],
     "state": {
       "default_expression": "<v1>true",
@@ -95,7 +95,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | error - no value given for required property defaultExpression — {\"scopes\":[{\"id\":\"\"}]}\noperation - Read"
+      "error: Unable to read coralogix_scope \"00000000-0000-4000-8000-000000000001\" | The read returned a scope with no id."
     ],
     "state": {
       "default_expression": null,
