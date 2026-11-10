@@ -1,0 +1,326 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "logsUniqueCount": {
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "2",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": ""
+        },
+        "name": "tfbaseline-unique-errors",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      }
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"type\": \"string\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"String must contain at least 1 character(s)\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"logsUniqueCount\",\n      \"uniqueCountKeypath\"\n    ]\n  }\n]"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [
+          "remote_addr_geoip.city_name"
+        ],
+        "logsUniqueCount": {
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "2",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": "remote_addr_geoip.country_name"
+        },
+        "name": "tfbaseline-unique-errors",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      }
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"custom\",\n    \"message\": \"Logs Unique Count alerts with group-by keys must also have maxUniqueCountPerGroupByKey\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"logsUniqueCount\",\n      \"maxUniqueCountPerGroupByKey\"\n    ],\n    \"fatal\": true\n  }\n]"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "logsUniqueCount": {
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "1",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                }
+              }
+            },
+            {
+              "condition": {
+                "maxUniqueCount": "2",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_1"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": "remote_addr_geoip.country_name"
+        },
+        "name": "tfbaseline-unique-errors",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      }
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"too_big\",\n    \"maximum\": 1,\n    \"type\": \"array\",\n    \"inclusive\": true,\n    \"exact\": true,\n    \"message\": \"Array must contain exactly 1 element(s)\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"logsUniqueCount\",\n      \"rules\"\n    ]\n  }\n]"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "logsUniqueCount": {
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "2",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": "remote_addr_geoip.country_name"
+        },
+        "name": "tfbaseline-unique-errors",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "2",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "remote_addr_geoip.country_name"
+          },
+          "name": "tfbaseline-unique-errors",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsUniqueCount": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "2",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": ""
+        },
+        "name": "tfbaseline-unique-errors",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"type\": \"string\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"String must contain at least 1 character(s)\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"typeDefinition\",\n      \"logsUniqueCount\",\n      \"uniqueCountKeypath\"\n    ]\n  }\n]"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "2",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "remote_addr_geoip.country_name"
+          },
+          "name": "tfbaseline-unique-errors",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e",
+    "status": 200,
+    "response": {}
+  }
+]

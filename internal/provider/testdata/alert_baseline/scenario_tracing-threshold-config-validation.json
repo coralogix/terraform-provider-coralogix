@@ -1,0 +1,196 @@
+[
+  {
+    "step": "no tracing_filter and no rules",
+    "config": {
+      "name": "tfbaseline-tracing-threshold-validation",
+      "type_definition": {
+        "tracing_threshold": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.tracing_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\")] | Must set a configuration value for the type_definition.tracing_threshold.tracing_filter attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no rules",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter": {
+          "latency_threshold_ms": 100,
+          "tracing_label_filters": {}
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.tracing_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "no tracing_filter",
+    "config": {
+      "name": "tfbaseline-tracing-threshold-validation",
+      "type_definition": {
+        "tracing_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "span_amount": 1,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\")] | Must set a configuration value for the type_definition.tracing_threshold.tracing_filter attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "empty rules",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules": [],
+        "/type_definition/tracing_threshold/tracing_filter": {
+          "latency_threshold_ms": 100,
+          "tracing_label_filters": {}
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\")] | Attribute type_definition.tracing_threshold.rules set must contain at least 1 elements, got: 0"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "a rule without condition",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules": [
+          {}
+        ]
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<null>>).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.tracing_threshold.rules[Value({\"condition\":<null>})].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "a condition without time_window",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules/0/condition": {
+          "span_amount": 1
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<null>, \"span_amount\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Must set a configuration value for the type_definition.tracing_threshold.rules[Value({\"condition\":{\"condition_type\":<null>,\"span_amount\":1.000000,\"time_window\":<null>}})].condition.time_window attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "a condition without span_amount",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "5_MINUTES"
+      },
+      "remove": [
+        "/type_definition/tracing_threshold/rules/0/condition/span_amount"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<null>, \"span_amount\":tftypes.Number<null>, \"time_window\":tftypes.String<\"5_MINUTES\">>>).AttributeName(\"condition\").AttributeName(\"span_amount\")] | Must set a configuration value for the type_definition.tracing_threshold.rules[Value({\"condition\":{\"condition_type\":<null>,\"span_amount\":<null>,\"time_window\":\"5_MINUTES\"}})].condition.span_amount attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "time_window outside the list",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules/0/condition/span_amount": 1,
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "7_MINUTES"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<null>, \"span_amount\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"7_MINUTES\">>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.tracing_threshold.rules[Value({\"condition\":{\"condition_type\":<null>,\"span_amount\":1.000000,\"time_window\":\"7_MINUTES\"}})].condition.time_window value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"7_MINUTES\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "time_window of another alert type",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "1_WEEK"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<null>, \"span_amount\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"1_WEEK\">>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.tracing_threshold.rules[Value({\"condition\":{\"condition_type\":<null>,\"span_amount\":1.000000,\"time_window\":\"1_WEEK\"}})].condition.time_window value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"1_WEEK\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "lowercase time_window",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "1_hour"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<null>, \"span_amount\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"1_hour\">>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.tracing_threshold.rules[Value({\"condition\":{\"condition_type\":<null>,\"span_amount\":1.000000,\"time_window\":\"1_hour\"}})].condition.time_window value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"1_hour\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "condition_type is computed and cannot be set to another value",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/rules/0/condition/condition_type": "LESS_THAN",
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "5_MINUTES"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"span_amount\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"LESS_THAN\">, \"span_amount\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"5_MINUTES\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "operation outside the list",
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": [
+          {
+            "operation": "EQUALS",
+            "values": [
+              "a"
+            ]
+          }
+        ]
+      },
+      "remove": [
+        "/type_definition/tracing_threshold/rules/0/condition/condition_type"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"EQUALS\">, \"values\":tftypes.Set[tftypes.String]<tftypes.String<\"a\">>>).AttributeName(\"operation\")] | Attribute type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name[Value({\"operation\":\"EQUALS\",\"values\":[\"a\"]})].operation value must be one of: [\"ENDS_WITH\" \"INCLUDES\" \"IS\" \"IS_NOT\" \"STARTS_WITH\"], got: \"EQUALS\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "a null group_by is fine",
+    "configDelta": {
+      "set": {
+        "/group_by": null
+      },
+      "remove": [
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name"
+      ]
+    },
+    "stateDelta": {}
+  }
+]

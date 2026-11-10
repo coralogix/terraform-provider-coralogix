@@ -1,0 +1,93 @@
+[
+  {
+    "step": "auto_resolve_mode outside the list",
+    "config": {
+      "case_settings": {
+        "auto_resolve_mode": "auto"
+      },
+      "name": "tfbaseline-common-case-validation",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "lucene_query": "tfbaseline"
+            }
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"case_settings\").AttributeName(\"auto_resolve_mode\")] | Attribute case_settings.auto_resolve_mode value must be one of: [\"enabled\" \"disabled\"], got: \"auto\""
+    ],
+    "state": null
+  },
+  {
+    "step": "enrichment query type outside the list",
+    "configDelta": {
+      "set": {
+        "/case_settings/enrichment_queries": [
+          {
+            "query": "q",
+            "type": "sql"
+          }
+        ]
+      },
+      "remove": [
+        "/case_settings/auto_resolve_mode"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"case_settings\").AttributeName(\"enrichment_queries\").ElementKeyInt(0).AttributeName(\"type\")] | Attribute case_settings.enrichment_queries[0].type value must be one of: [\"dataprime\"], got: \"sql\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "enrichment query without a query",
+    "configDelta": {
+      "set": {
+        "/case_settings/enrichment_queries/0/type": "dataprime"
+      },
+      "remove": [
+        "/case_settings/enrichment_queries/0/query"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"case_settings\").AttributeName(\"enrichment_queries\").ElementKeyInt(0).AttributeName(\"query\")] | Must set a configuration value for the case_settings.enrichment_queries[0].query attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "destination without a condition",
+    "configDelta": {
+      "set": {
+        "/case_settings/destinations": [
+          {
+            "connector_id": "c"
+          }
+        ]
+      },
+      "remove": [
+        "/case_settings/enrichment_queries"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"case_settings\").AttributeName(\"destinations\").ElementKeyInt(0).AttributeName(\"condition\")] | Must set a configuration value for the case_settings.destinations[0].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "destination without a connector_id",
+    "configDelta": {
+      "set": {
+        "/case_settings/destinations/0/condition": "true"
+      },
+      "remove": [
+        "/case_settings/destinations/0/connector_id"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"case_settings\").AttributeName(\"destinations\").ElementKeyInt(0).AttributeName(\"connector_id\")] | Must set a configuration value for the case_settings.destinations[0].connector_id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  }
+]

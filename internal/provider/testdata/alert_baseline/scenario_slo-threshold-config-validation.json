@@ -1,0 +1,473 @@
+[
+  {
+    "step": "a valid error_budget config",
+    "config": {
+      "name": "tfbaseline-slo-validation",
+      "type_definition": {
+        "slo_threshold": {
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "a valid single burn_rate config",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate": {
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ],
+          "single": {
+            "time_duration": {
+              "duration": 1,
+              "unit": "HOURS"
+            }
+          }
+        }
+      },
+      "remove": [
+        "/type_definition/slo_threshold/error_budget"
+      ]
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "a valid dual burn_rate config",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/dual": {
+          "time_duration": {
+            "duration": 1,
+            "unit": "HOURS"
+          }
+        }
+      },
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate/single"
+      ]
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "neither error_budget nor burn_rate",
+    "configDelta": {
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\")] | No attribute specified when one (and only one) of [type_definition.slo_threshold.burn_rate.<.error_budget] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\")] | No attribute specified when one (and only one) of [type_definition.slo_threshold.error_budget.<.burn_rate] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "both error_budget and burn_rate",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate": {
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ],
+          "single": {
+            "time_duration": {
+              "duration": 1,
+              "unit": "HOURS"
+            }
+          }
+        },
+        "/type_definition/slo_threshold/error_budget": {
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\")] | 2 attributes specified when one (and only one) of [type_definition.slo_threshold.burn_rate.<.error_budget] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\")] | 2 attributes specified when one (and only one) of [type_definition.slo_threshold.error_budget.<.burn_rate] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "burn_rate with neither single nor dual",
+    "configDelta": {
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate/single",
+        "/type_definition/slo_threshold/error_budget"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"dual\")] | No attribute specified when one (and only one) of [type_definition.slo_threshold.burn_rate.dual.<.single] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\")] | No attribute specified when one (and only one) of [type_definition.slo_threshold.burn_rate.single.<.dual] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "burn_rate with both single and dual",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/dual": {
+          "time_duration": {
+            "duration": 1,
+            "unit": "HOURS"
+          }
+        },
+        "/type_definition/slo_threshold/burn_rate/single": {
+          "time_duration": {
+            "duration": 1,
+            "unit": "HOURS"
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"dual\")] | 2 attributes specified when one (and only one) of [type_definition.slo_threshold.burn_rate.dual.<.single] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\")] | 2 attributes specified when one (and only one) of [type_definition.slo_threshold.burn_rate.single.<.dual] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "burn_rate with null rules",
+    "configDelta": {
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate/dual",
+        "/type_definition/slo_threshold/burn_rate/rules"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.slo_threshold.burn_rate.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "error_budget with null rules",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget": {}
+      },
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.slo_threshold.error_budget.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "error_budget with an empty rules list",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules": null
+      }
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "burn_rate with an empty rules list",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate": {
+          "rules": null,
+          "single": {
+            "time_duration": {
+              "duration": 1,
+              "unit": "HOURS"
+            }
+          }
+        }
+      },
+      "remove": [
+        "/type_definition/slo_threshold/error_budget"
+      ]
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "slo_definition null",
+    "config": {
+      "name": "tfbaseline-slo-validation",
+      "type_definition": {
+        "slo_threshold": {
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ]
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"slo_definition\")] | Must set a configuration value for the type_definition.slo_threshold.slo_definition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "slo_definition without slo_id",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"slo_definition\").AttributeName(\"slo_id\")] | Must set a configuration value for the type_definition.slo_threshold.slo_definition.slo_id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "slo_id null",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/slo_definition/slo_id": null
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"slo_definition\").AttributeName(\"slo_id\")] | Must set a configuration value for the type_definition.slo_threshold.slo_definition.slo_id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "time_duration unit outside the list",
+    "config": {
+      "name": "tfbaseline-slo-validation",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "DAYS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\").AttributeName(\"time_duration\").AttributeName(\"unit\")] | Attribute type_definition.slo_threshold.burn_rate.single.time_duration.unit value must be one of: [\"HOURS\" \"UNSPECIFIED\"], got: \"DAYS\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "time_duration unit UNSPECIFIED",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit": "UNSPECIFIED"
+      }
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "time_duration without duration",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit": "HOURS"
+      },
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\").AttributeName(\"time_duration\").AttributeName(\"duration\")] | Must set a configuration value for the type_definition.slo_threshold.burn_rate.single.time_duration.duration attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "time_duration without unit",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 1
+      },
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\").AttributeName(\"time_duration\").AttributeName(\"unit\")] | Must set a configuration value for the type_definition.slo_threshold.burn_rate.single.time_duration.unit attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "single without time_duration",
+    "configDelta": {
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate/single/time_duration"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\").AttributeName(\"time_duration\")] | Must set a configuration value for the type_definition.slo_threshold.burn_rate.single.time_duration attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "rule without condition",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget": {
+          "rules": [
+            {
+              "override": {}
+            }
+          ]
+        }
+      },
+      "remove": [
+        "/type_definition/slo_threshold/burn_rate"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.slo_threshold.error_budget.rules[0].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "rule without override",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules/0/condition": {
+          "threshold": 1
+        }
+      },
+      "remove": [
+        "/type_definition/slo_threshold/error_budget/rules/0/override"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\")] | Must set a configuration value for the type_definition.slo_threshold.error_budget.rules[0].override attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "rule without threshold",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules/0/override": {}
+      },
+      "remove": [
+        "/type_definition/slo_threshold/error_budget/rules/0/condition/threshold"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\").AttributeName(\"threshold\")] | Must set a configuration value for the type_definition.slo_threshold.error_budget.rules[0].condition.threshold attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "override priority outside P1..P5",
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules/0/condition/threshold": 1,
+        "/type_definition/slo_threshold/error_budget/rules/0/override/priority": "P6"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.slo_threshold.error_budget.rules[0].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P6\""
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "group_by is allowed on an slo alert",
+    "configDelta": {
+      "set": {
+        "/group_by": [
+          "service"
+        ]
+      },
+      "remove": [
+        "/type_definition/slo_threshold/error_budget/rules/0/override/priority"
+      ]
+    },
+    "stateDelta": {}
+  },
+  {
+    "step": "priority warns that it is deprecated",
+    "configDelta": {
+      "set": {
+        "/priority": "P2"
+      },
+      "remove": [
+        "/group_by"
+      ]
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "two arms: slo_threshold and logs_immediate",
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate": {}
+      },
+      "remove": [
+        "/priority"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")] | 2 attributes specified when one (and only one) of [type_definition.logs_threshold,type_definition.logs_anomaly,type_definition.logs_ratio_threshold,type_definition.logs_unique_count,type_definition.logs_new_value,type_definition.logs_time_relative_threshold,type_definition.metric_threshold,type_definition.metric_anomaly,type_definition.tracing_immediate,type_definition.tracing_threshold,type_definition.flow,type_definition.slo_threshold,type_definition.analytics_immediate,type_definition.analytics_threshold] is required"
+    ],
+    "stateDelta": {}
+  },
+  {
+    "step": "an empty slo_threshold",
+    "config": {
+      "name": "tfbaseline-slo-validation",
+      "type_definition": {
+        "slo_threshold": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\")] | No attribute specified when one (and only one) of [type_definition.slo_threshold.burn_rate.<.error_budget] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"error_budget\")] | No attribute specified when one (and only one) of [type_definition.slo_threshold.error_budget.<.burn_rate] is required",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"slo_definition\")] | Must set a configuration value for the type_definition.slo_threshold.slo_definition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "stateDelta": {}
+  }
+]

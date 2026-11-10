@@ -65,8 +65,18 @@ install: build
 # scenarios, and `make test-dashboard-walk SHARD=1` to `SHARD=4` for the schema walk.
 DASHBOARD_BASELINE_TESTS=^TestDashboard(Baseline|Walk|Fake|Fidelity)
 
+# The coralogix_alert protocol baseline has about 230 scenarios and runs for over a minute, so it has
+# a job of its own: `make test-alert-baseline`. `make test` leaves it out. Go keeps only the last
+# -skip flag, so the pattern is joined into the one -skip of `test` and not passed in TESTARGS.
+ALERT_BASELINE_TESTS=^(TestAlertBaseline|TestAlertFake|TestRecordAlertFidelity)
+
 test:
-	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -skip '$(DASHBOARD_BASELINE_TESTS)' -timeout=120s -parallel=4
+	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -skip '$(DASHBOARD_BASELINE_TESTS)|$(ALERT_BASELINE_TESTS)' -timeout=120s -parallel=4
+
+# The fake reads the OpenAPI document of the pinned SDK from the module cache. The tests make no call
+# to a real API.
+test-alert-baseline:
+	go test ${BUILD_ARGS} ./internal/provider -run '$(ALERT_BASELINE_TESTS)' $(TESTARGS) -count=1 -timeout=300s
 
 # The second command reads every walk base through the data source. The walk shards are near their
 # limit, so these reads run here.

@@ -1,0 +1,559 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [
+          "remote_addr_geoip.city_name"
+        ],
+        "logsUniqueCount": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "applicationName": [
+                  {
+                    "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "LOG_SEVERITY_WARNING",
+                  "LOG_SEVERITY_ERROR"
+                ],
+                "subsystemName": [
+                  {
+                    "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "luceneQuery": "message:\"tfbaseline\""
+            }
+          },
+          "maxUniqueCountPerGroupByKey": "500",
+          "notificationPayloadFilter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "2",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": "remote_addr_geoip.country_name"
+        },
+        "name": "tfbaseline-unique-full",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "remote_addr_geoip.city_name"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "value": "app-a"
+                    },
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "value": "app-"
+                    }
+                  ],
+                  "severities": [
+                    "LOG_SEVERITY_WARNING",
+                    "LOG_SEVERITY_ERROR"
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "value": "-sub"
+                    },
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                      "value": "ub"
+                    }
+                  ]
+                },
+                "luceneQuery": "message:\"tfbaseline\""
+              }
+            },
+            "maxUniqueCountPerGroupByKey": "500",
+            "notificationPayloadFilter": [
+              "coralogix.metadata.sdkId",
+              "coralogix.metadata.sdkName"
+            ],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "2",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "remote_addr_geoip.country_name"
+          },
+          "name": "tfbaseline-unique-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "remote_addr_geoip.city_name"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "value": "app-a"
+                    },
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "value": "app-"
+                    }
+                  ],
+                  "severities": [
+                    "LOG_SEVERITY_WARNING",
+                    "LOG_SEVERITY_ERROR"
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "value": "-sub"
+                    },
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                      "value": "ub"
+                    }
+                  ]
+                },
+                "luceneQuery": "message:\"tfbaseline\""
+              }
+            },
+            "maxUniqueCountPerGroupByKey": "500",
+            "notificationPayloadFilter": [
+              "coralogix.metadata.sdkId",
+              "coralogix.metadata.sdkName"
+            ],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "2",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "remote_addr_geoip.country_name"
+          },
+          "name": "tfbaseline-unique-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [
+          "a.key",
+          "b.key"
+        ],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsUniqueCount": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "applicationName": [
+                  {
+                    "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                    "value": "app-b"
+                  }
+                ],
+                "severities": [
+                  "LOG_SEVERITY_CRITICAL"
+                ],
+                "subsystemName": [
+                  {
+                    "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "value": "sub-b"
+                  }
+                ]
+              },
+              "luceneQuery": "message:\"changed\""
+            }
+          },
+          "maxUniqueCountPerGroupByKey": "900",
+          "notificationPayloadFilter": [
+            "coralogix.metadata.sdkVersion"
+          ],
+          "rules": [
+            {
+              "condition": {
+                "maxUniqueCount": "9",
+                "timeWindow": {
+                  "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2"
+                }
+              }
+            }
+          ],
+          "uniqueCountKeypath": "other.keypath"
+        },
+        "name": "tfbaseline-unique-full",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "a.key",
+            "b.key"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                      "value": "app-b"
+                    }
+                  ],
+                  "severities": [
+                    "LOG_SEVERITY_CRITICAL"
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "value": "sub-b"
+                    }
+                  ]
+                },
+                "luceneQuery": "message:\"changed\""
+              }
+            },
+            "maxUniqueCountPerGroupByKey": "900",
+            "notificationPayloadFilter": [
+              "coralogix.metadata.sdkVersion"
+            ],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "9",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "other.keypath"
+          },
+          "name": "tfbaseline-unique-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "a.key",
+            "b.key"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                      "value": "app-b"
+                    }
+                  ],
+                  "severities": [
+                    "LOG_SEVERITY_CRITICAL"
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "value": "sub-b"
+                    }
+                  ]
+                },
+                "luceneQuery": "message:\"changed\""
+              }
+            },
+            "maxUniqueCountPerGroupByKey": "900",
+            "notificationPayloadFilter": [
+              "coralogix.metadata.sdkVersion"
+            ],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "9",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "other.keypath"
+          },
+          "name": "tfbaseline-unique-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "a.key",
+            "b.key"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsUniqueCount": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                      "value": "app-b"
+                    }
+                  ],
+                  "severities": [
+                    "LOG_SEVERITY_CRITICAL"
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "value": "sub-b"
+                    }
+                  ]
+                },
+                "luceneQuery": "message:\"changed\""
+              }
+            },
+            "maxUniqueCountPerGroupByKey": "900",
+            "notificationPayloadFilter": [
+              "coralogix.metadata.sdkVersion"
+            ],
+            "rules": [
+              {
+                "condition": {
+                  "maxUniqueCount": "9",
+                  "timeWindow": {
+                    "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2"
+                  }
+                }
+              }
+            ],
+            "uniqueCountKeypath": "other.keypath"
+          },
+          "name": "tfbaseline-unique-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e",
+    "status": 200,
+    "response": {}
+  }
+]

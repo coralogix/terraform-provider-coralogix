@@ -1,0 +1,1146 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "description": "full",
+        "enabled": false,
+        "groupByKeys": [],
+        "name": "tfbaseline-tracing-immediate-full",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P2",
+        "tracingImmediate": {
+          "notificationPayloadFilter": [
+            "obj.field",
+            "obj.other"
+          ],
+          "tracingFilter": {
+            "simpleFilter": {
+              "latencyThresholdMs": "100",
+              "tracingLabelFilters": {
+                "applicationName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "values": [
+                      "app-a",
+                      "app-b"
+                    ]
+                  },
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                    "values": [
+                      "app-"
+                    ]
+                  }
+                ],
+                "operationName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                    "values": [
+                      "op-a",
+                      "op-b"
+                    ]
+                  }
+                ],
+                "serviceName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                    "values": [
+                      "svc"
+                    ]
+                  }
+                ],
+                "spanFields": [
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "200"
+                      ]
+                    },
+                    "key": "status"
+                  },
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "40",
+                        "50"
+                      ]
+                    },
+                    "key": "status"
+                  },
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                      "values": [
+                        "GET"
+                      ]
+                    },
+                    "key": "http.method"
+                  }
+                ],
+                "subsystemName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "values": [
+                      "sub-a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "description": "full",
+          "enabled": false,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P2",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [
+              "obj.field",
+              "obj.other"
+            ],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "100",
+                "tracingLabelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "app-a",
+                        "app-b"
+                      ]
+                    },
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "app-"
+                      ]
+                    }
+                  ],
+                  "operationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "op-a",
+                        "op-b"
+                      ]
+                    }
+                  ],
+                  "serviceName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                      "values": [
+                        "svc"
+                      ]
+                    }
+                  ],
+                  "spanFields": [
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "values": [
+                          "200"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "values": [
+                          "40",
+                          "50"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                        "values": [
+                          "GET"
+                        ]
+                      },
+                      "key": "http.method"
+                    }
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "sub-a"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "description": "full",
+          "enabled": false,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P2",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [
+              "obj.field",
+              "obj.other"
+            ],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "100",
+                "tracingLabelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "app-a",
+                        "app-b"
+                      ]
+                    },
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "app-"
+                      ]
+                    }
+                  ],
+                  "operationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "op-a",
+                        "op-b"
+                      ]
+                    }
+                  ],
+                  "serviceName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                      "values": [
+                        "svc"
+                      ]
+                    }
+                  ],
+                  "spanFields": [
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "values": [
+                          "200"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "values": [
+                          "40",
+                          "50"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                        "values": [
+                          "GET"
+                        ]
+                      },
+                      "key": "http.method"
+                    }
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "sub-a"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "description": "full",
+          "enabled": false,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P2",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [
+              "obj.field",
+              "obj.other"
+            ],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "100",
+                "tracingLabelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "app-a",
+                        "app-b"
+                      ]
+                    },
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "app-"
+                      ]
+                    }
+                  ],
+                  "operationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "op-a",
+                        "op-b"
+                      ]
+                    }
+                  ],
+                  "serviceName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                      "values": [
+                        "svc"
+                      ]
+                    }
+                  ],
+                  "spanFields": [
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "values": [
+                          "200"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "values": [
+                          "40",
+                          "50"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                        "values": [
+                          "GET"
+                        ]
+                      },
+                      "key": "http.method"
+                    }
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "sub-a"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "description": "changed",
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "name": "tfbaseline-tracing-immediate-full",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P4",
+        "tracingImmediate": {
+          "notificationPayloadFilter": [
+            "obj.changed"
+          ],
+          "tracingFilter": {
+            "simpleFilter": {
+              "latencyThresholdMs": "250",
+              "tracingLabelFilters": {
+                "applicationName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                    "values": [
+                      "app-c"
+                    ]
+                  }
+                ],
+                "operationName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                    "values": [
+                      "op-c"
+                    ]
+                  }
+                ],
+                "serviceName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "values": [
+                      "svc-a"
+                    ]
+                  },
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                    "values": [
+                      "-svc"
+                    ]
+                  }
+                ],
+                "spanFields": [
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "00"
+                      ]
+                    },
+                    "key": "status"
+                  },
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "postgres"
+                      ]
+                    },
+                    "key": "db.system"
+                  }
+                ],
+                "subsystemName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                    "values": [
+                      "sub-b",
+                      "sub-c"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "description": "changed",
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P4",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [
+              "obj.changed"
+            ],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "250",
+                "tracingLabelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                      "values": [
+                        "app-c"
+                      ]
+                    }
+                  ],
+                  "operationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                      "values": [
+                        "op-c"
+                      ]
+                    }
+                  ],
+                  "serviceName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "svc-a"
+                      ]
+                    },
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "-svc"
+                      ]
+                    }
+                  ],
+                  "spanFields": [
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "values": [
+                          "00"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "values": [
+                          "postgres"
+                        ]
+                      },
+                      "key": "db.system"
+                    }
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "sub-b",
+                        "sub-c"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "description": "changed",
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P4",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [
+              "obj.changed"
+            ],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "250",
+                "tracingLabelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                      "values": [
+                        "app-c"
+                      ]
+                    }
+                  ],
+                  "operationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                      "values": [
+                        "op-c"
+                      ]
+                    }
+                  ],
+                  "serviceName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "svc-a"
+                      ]
+                    },
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "-svc"
+                      ]
+                    }
+                  ],
+                  "spanFields": [
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "values": [
+                          "00"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "values": [
+                          "postgres"
+                        ]
+                      },
+                      "key": "db.system"
+                    }
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "sub-b",
+                        "sub-c"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "name": "tfbaseline-tracing-immediate-full",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P4",
+        "tracingImmediate": {
+          "notificationPayloadFilter": [],
+          "tracingFilter": {
+            "simpleFilter": {
+              "latencyThresholdMs": "250",
+              "tracingLabelFilters": {}
+            }
+          }
+        },
+        "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P4",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "250",
+                "tracingLabelFilters": {
+                  "applicationName": [],
+                  "operationName": [],
+                  "serviceName": [],
+                  "spanFields": [],
+                  "subsystemName": []
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P4",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "250",
+                "tracingLabelFilters": {
+                  "applicationName": [],
+                  "operationName": [],
+                  "serviceName": [],
+                  "spanFields": [],
+                  "subsystemName": []
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "description": "full",
+        "enabled": false,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "name": "tfbaseline-tracing-immediate-full",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P2",
+        "tracingImmediate": {
+          "notificationPayloadFilter": [
+            "obj.field",
+            "obj.other"
+          ],
+          "tracingFilter": {
+            "simpleFilter": {
+              "latencyThresholdMs": "100",
+              "tracingLabelFilters": {
+                "applicationName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "values": [
+                      "app-a",
+                      "app-b"
+                    ]
+                  },
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                    "values": [
+                      "app-"
+                    ]
+                  }
+                ],
+                "operationName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                    "values": [
+                      "op-a",
+                      "op-b"
+                    ]
+                  }
+                ],
+                "serviceName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                    "values": [
+                      "svc"
+                    ]
+                  }
+                ],
+                "spanFields": [
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "200"
+                      ]
+                    },
+                    "key": "status"
+                  },
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "40",
+                        "50"
+                      ]
+                    },
+                    "key": "status"
+                  },
+                  {
+                    "filterType": {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                      "values": [
+                        "GET"
+                      ]
+                    },
+                    "key": "http.method"
+                  }
+                ],
+                "subsystemName": [
+                  {
+                    "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                    "values": [
+                      "sub-a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "description": "full",
+          "enabled": false,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-tracing-immediate-full",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P2",
+          "tracingImmediate": {
+            "notificationPayloadFilter": [
+              "obj.field",
+              "obj.other"
+            ],
+            "tracingFilter": {
+              "simpleFilter": {
+                "latencyThresholdMs": "100",
+                "tracingLabelFilters": {
+                  "applicationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "app-a",
+                        "app-b"
+                      ]
+                    },
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                      "values": [
+                        "app-"
+                      ]
+                    }
+                  ],
+                  "operationName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_ENDS_WITH",
+                      "values": [
+                        "op-a",
+                        "op-b"
+                      ]
+                    }
+                  ],
+                  "serviceName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_INCLUDES",
+                      "values": [
+                        "svc"
+                      ]
+                    }
+                  ],
+                  "spanFields": [
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "values": [
+                          "200"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "values": [
+                          "40",
+                          "50"
+                        ]
+                      },
+                      "key": "status"
+                    },
+                    {
+                      "filterType": {
+                        "operation": "TRACING_FILTER_OPERATION_TYPE_IS_NOT",
+                        "values": [
+                          "GET"
+                        ]
+                      },
+                      "key": "http.method"
+                    }
+                  ],
+                  "subsystemName": [
+                    {
+                      "operation": "TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                      "values": [
+                        "sub-a"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e",
+    "status": 200,
+    "response": {}
+  }
+]
