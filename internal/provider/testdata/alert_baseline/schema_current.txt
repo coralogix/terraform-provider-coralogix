@@ -160,6 +160,11 @@ type_definition.analytics_immediate.dataprime_query  SingleNestedAttribute requi
 type_definition.analytics_immediate.dataprime_query.query  StringAttribute required
     markdown: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."
     validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 65535
+type_definition.analytics_immediate.evaluation_period_minutes  Int32Attribute optional computed
+    markdown: "How often the alert is evaluated, in minutes, between 1 and 15 and not greater than `timeframe_minutes`. Each evaluation runs the DataPrime query over the last `timeframe_minutes`. When omitted on create, the API sets it to the smaller of 10 and `timeframe_minutes`, and the provider reads it back. When omitted later, the current value stays, except that it falls back to that default if it would exceed a lowered `timeframe_minutes`. Removing the line from the configuration therefore does not reset the value; set it explicitly to change it."
+    plan modifier: alertschema.keepEvaluationPeriodUnlessInvalid Keeps the current evaluation period unless it exceeds a lowered timeframe_minutes, then plans the default.
+    validator: alertschema.evaluationPeriodNotAboveTimeframe must not be greater than timeframe_minutes
+    validator: int32validator.betweenValidator value must be between 1 and 15
 type_definition.analytics_immediate.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
@@ -186,6 +191,11 @@ type_definition.analytics_threshold.dataprime_query  SingleNestedAttribute requi
 type_definition.analytics_threshold.dataprime_query.query  StringAttribute required
     markdown: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."
     validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 65535
+type_definition.analytics_threshold.evaluation_period_minutes  Int32Attribute optional computed
+    markdown: "How often the alert is evaluated, in minutes, between 1 and 15 and not greater than `timeframe_minutes`. Each evaluation runs the DataPrime query over the last `timeframe_minutes`. When omitted on create, the API sets it to the smaller of 10 and `timeframe_minutes`, and the provider reads it back. When omitted later, the current value stays, except that it falls back to that default if it would exceed a lowered `timeframe_minutes`. Removing the line from the configuration therefore does not reset the value; set it explicitly to change it."
+    plan modifier: alertschema.keepEvaluationPeriodUnlessInvalid Keeps the current evaluation period unless it exceeds a lowered timeframe_minutes, then plans the default.
+    validator: alertschema.evaluationPeriodNotAboveTimeframe must not be greater than timeframe_minutes
+    validator: int32validator.betweenValidator value must be between 1 and 15
 type_definition.analytics_threshold.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

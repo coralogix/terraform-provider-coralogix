@@ -34,7 +34,7 @@ scenario, and a change shows once. The format is in `alert_baseline_delta_test.g
 
 ## What is covered
 
-229 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).
+231 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).
 
 | Prefix | Alert type or topic |
 |---|---|

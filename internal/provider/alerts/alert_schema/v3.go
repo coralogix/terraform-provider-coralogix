@@ -635,11 +635,12 @@ func V3() schema.Schema {
 					"analytics_immediate": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"dataprime_query":          dataprimeQuerySchema(),
-							"no_data_policy":           analyticsNoDataPolicySchema(),
-							"use_rows_as_permutations": analyticsUseRowsAsPermutationsSchema(),
-							"timeframe_minutes":        analyticsTimeframeMinutesSchema(),
-							"custom_evaluation_delay":  evaluationDelaySchema(),
+							"dataprime_query":           dataprimeQuerySchema(),
+							"no_data_policy":            analyticsNoDataPolicySchema(),
+							"use_rows_as_permutations":  analyticsUseRowsAsPermutationsSchema(),
+							"timeframe_minutes":         analyticsTimeframeMinutesSchema(),
+							"evaluation_period_minutes": analyticsEvaluationPeriodMinutesSchema(),
+							"custom_evaluation_delay":   evaluationDelaySchema(),
 						},
 						MarkdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime " +
 							"query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`.",
@@ -683,10 +684,11 @@ func V3() schema.Schema {
 								},
 								MarkdownDescription: "The name of the numeric column in the DataPrime result to compare against the thresholds.",
 							},
-							"no_data_policy":           analyticsNoDataPolicySchema(),
-							"use_rows_as_permutations": analyticsUseRowsAsPermutationsSchema(),
-							"timeframe_minutes":        analyticsTimeframeMinutesSchema(),
-							"custom_evaluation_delay":  evaluationDelaySchema(),
+							"no_data_policy":            analyticsNoDataPolicySchema(),
+							"use_rows_as_permutations":  analyticsUseRowsAsPermutationsSchema(),
+							"timeframe_minutes":         analyticsTimeframeMinutesSchema(),
+							"evaluation_period_minutes": analyticsEvaluationPeriodMinutesSchema(),
+							"custom_evaluation_delay":   evaluationDelaySchema(),
 						},
 						MarkdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the " +
 							"DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with " +

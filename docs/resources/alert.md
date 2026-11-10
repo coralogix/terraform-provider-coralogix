@@ -936,6 +936,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
+- `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes, between 1 and 15 and not greater than `timeframe_minutes`. Each evaluation runs the DataPrime query over the last `timeframe_minutes`. When omitted on create, the API sets it to the smaller of 10 and `timeframe_minutes`, and the provider reads it back. When omitted later, the current value stays, except that it falls back to that default if it would exceed a lowered `timeframe_minutes`. Removing the line from the configuration therefore does not reset the value; set it explicitly to change it.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
 - `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
 
@@ -971,6 +972,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
+- `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes, between 1 and 15 and not greater than `timeframe_minutes`. Each evaluation runs the DataPrime query over the last `timeframe_minutes`. When omitted on create, the API sets it to the smaller of 10 and `timeframe_minutes`, and the provider reads it back. When omitted later, the current value stays, except that it falls back to that default if it would exceed a lowered `timeframe_minutes`. Removing the line from the configuration therefore does not reset the value; set it explicitly to change it.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
 - `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
 

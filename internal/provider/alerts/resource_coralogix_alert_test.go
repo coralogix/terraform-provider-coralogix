@@ -553,9 +553,10 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 				"auto_retire_seconds": types.Int64Value(3600),
 				"state":               types.StringValue("ALERTING"),
 			}),
-			"use_rows_as_permutations": types.BoolValue(true),
-			"timeframe_minutes":        types.Int32Value(45),
-			"custom_evaluation_delay":  types.Int32Value(120000),
+			"use_rows_as_permutations":  types.BoolValue(true),
+			"timeframe_minutes":         types.Int32Value(45),
+			"evaluation_period_minutes": types.Int32Value(5),
+			"custom_evaluation_delay":   types.Int32Value(120000),
 		})
 
 		got, diags := expandAnalyticsImmediateTypeDefinition(ctx, &alerts.AlertDefProperties{}, object, analyticsAlertResourceModel())
@@ -581,6 +582,9 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 		if immediate.EvaluationDelayMs == nil || *immediate.EvaluationDelayMs != 120000 {
 			t.Errorf("EvaluationDelayMs = %v, want 120000", immediate.EvaluationDelayMs)
 		}
+		if immediate.EvaluationPeriodMinutes == nil || *immediate.EvaluationPeriodMinutes != 5 {
+			t.Errorf("EvaluationPeriodMinutes = %v, want 5", immediate.EvaluationPeriodMinutes)
+		}
 		if immediate.NoDataPolicy == nil || immediate.NoDataPolicy.State == nil ||
 			*immediate.NoDataPolicy.State != alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_ALERTING {
 			t.Errorf("NoDataPolicy.State = %v, want ALERTING", immediate.NoDataPolicy)
@@ -592,11 +596,12 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 
 	t.Run("omitted optionals are not sent", func(t *testing.T) {
 		object := types.ObjectValueMust(alertschema.AnalyticsImmediateAttr(), map[string]attr.Value{
-			"dataprime_query":          dataprimeQueryObject("source logs | count"),
-			"no_data_policy":           types.ObjectNull(alertschema.NoDataPolicyAttr()),
-			"use_rows_as_permutations": types.BoolNull(),
-			"timeframe_minutes":        types.Int32Value(10),
-			"custom_evaluation_delay":  types.Int32Null(),
+			"dataprime_query":           dataprimeQueryObject("source logs | count"),
+			"no_data_policy":            types.ObjectNull(alertschema.NoDataPolicyAttr()),
+			"use_rows_as_permutations":  types.BoolNull(),
+			"timeframe_minutes":         types.Int32Value(10),
+			"evaluation_period_minutes": types.Int32Unknown(),
+			"custom_evaluation_delay":   types.Int32Null(),
 		})
 
 		got, diags := expandAnalyticsImmediateTypeDefinition(ctx, &alerts.AlertDefProperties{}, object, analyticsAlertResourceModel())
@@ -613,6 +618,10 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 		if immediate.EvaluationDelayMs != nil {
 			t.Errorf("EvaluationDelayMs = %v, want nil", *immediate.EvaluationDelayMs)
 		}
+		// An unknown Computed value must not be sent as a pointer to zero.
+		if immediate.EvaluationPeriodMinutes != nil {
+			t.Errorf("EvaluationPeriodMinutes = %v, want nil", *immediate.EvaluationPeriodMinutes)
+		}
 	})
 }
 
@@ -621,7 +630,7 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 // producing a perpetual diff.
 func TestFlattenAnalyticsImmediate(t *testing.T) {
 	ctx := context.Background()
-	query, delay, timeframe, permutations, retire := "source logs | count", int32(120000), int32(45), true, int32(3600)
+	query, delay, timeframe, permutations, retire, period := "source logs | count", int32(120000), int32(45), true, int32(3600), int32(7)
 	state := alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_ALERTING
 
 	t.Run("minimal read leaves optional leaves null", func(t *testing.T) {
@@ -645,15 +654,19 @@ func TestFlattenAnalyticsImmediate(t *testing.T) {
 		if !model.CustomEvaluationDelay.IsNull() {
 			t.Errorf("custom_evaluation_delay = %v, want null", model.CustomEvaluationDelay)
 		}
+		if !model.EvaluationPeriodMinutes.IsNull() {
+			t.Errorf("evaluation_period_minutes = %v, want null", model.EvaluationPeriodMinutes)
+		}
 	})
 
 	t.Run("populated read round-trips", func(t *testing.T) {
 		got, diags := flattenAnalyticsImmediate(ctx, &alerts.AnalyticsImmediateType{
-			DataprimeQuery:        &alerts.DataprimeAlertQuery{Query: &query},
-			NoDataPolicy:          &alerts.NoDataPolicy{State: &state, AutoRetireSeconds: &retire},
-			UseRowsAsPermutations: &permutations,
-			TimeframeMinutes:      &timeframe,
-			EvaluationDelayMs:     &delay,
+			DataprimeQuery:          &alerts.DataprimeAlertQuery{Query: &query},
+			NoDataPolicy:            &alerts.NoDataPolicy{State: &state, AutoRetireSeconds: &retire},
+			UseRowsAsPermutations:   &permutations,
+			TimeframeMinutes:        &timeframe,
+			EvaluationPeriodMinutes: &period,
+			EvaluationDelayMs:       &delay,
 		})
 		if diags.HasError() {
 			t.Fatalf("flattenAnalyticsImmediate returned diagnostics: %v", diags)
@@ -678,6 +691,9 @@ func TestFlattenAnalyticsImmediate(t *testing.T) {
 		if model.CustomEvaluationDelay.ValueInt32() != 120000 {
 			t.Errorf("custom_evaluation_delay = %d, want 120000", model.CustomEvaluationDelay.ValueInt32())
 		}
+		if model.EvaluationPeriodMinutes.ValueInt32() != 7 {
+			t.Errorf("evaluation_period_minutes = %d, want 7", model.EvaluationPeriodMinutes.ValueInt32())
+		}
 		var policy alerttypes.NoDataPolicyModel
 		if diags := model.NoDataPolicy.As(ctx, &policy, basetypes.ObjectAsOptions{}); diags.HasError() {
 			t.Fatalf("As() returned diagnostics: %v", diags)
@@ -700,12 +716,13 @@ func TestExpandAnalyticsThreshold(t *testing.T) {
 				analyticsThresholdRuleObject(30, "P2"),
 			},
 		),
-		"operator":                 types.StringValue("LESS_THAN"),
-		"target_column":            types.StringValue("error_count"),
-		"no_data_policy":           types.ObjectNull(alertschema.NoDataPolicyAttr()),
-		"use_rows_as_permutations": types.BoolValue(false),
-		"timeframe_minutes":        types.Int32Value(30),
-		"custom_evaluation_delay":  types.Int32Null(),
+		"operator":                  types.StringValue("LESS_THAN"),
+		"target_column":             types.StringValue("error_count"),
+		"no_data_policy":            types.ObjectNull(alertschema.NoDataPolicyAttr()),
+		"use_rows_as_permutations":  types.BoolValue(false),
+		"timeframe_minutes":         types.Int32Value(30),
+		"evaluation_period_minutes": types.Int32Value(15),
+		"custom_evaluation_delay":   types.Int32Null(),
 	})
 
 	got, diags := expandAnalyticsThresholdTypeDefinition(ctx, &alerts.AlertDefProperties{}, object, analyticsAlertResourceModel())
@@ -733,6 +750,9 @@ func TestExpandAnalyticsThreshold(t *testing.T) {
 	}
 	if threshold.EvaluationDelayMs != nil {
 		t.Errorf("EvaluationDelayMs = %v, want nil", *threshold.EvaluationDelayMs)
+	}
+	if threshold.EvaluationPeriodMinutes == nil || *threshold.EvaluationPeriodMinutes != 15 {
+		t.Errorf("EvaluationPeriodMinutes = %v, want 15", threshold.EvaluationPeriodMinutes)
 	}
 	// Configured order must survive the expand — analytics rules are positional.
 	want := []float64{10, 20, 30}

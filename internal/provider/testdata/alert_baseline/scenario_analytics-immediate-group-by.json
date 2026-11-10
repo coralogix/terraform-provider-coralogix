@@ -39,6 +39,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
+          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -117,6 +118,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
+          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -175,6 +177,7 @@
           }
         },
         "/priority": "P5",
+        "/type_definition/analytics_immediate/evaluation_period_minutes": 10,
         "/type_definition/analytics_immediate/no_data_policy": null
       }
     },
@@ -186,6 +189,7 @@
               "dataprimeQuery": {
                 "query": "source logs | count"
               },
+              "evaluationPeriodMinutes": 10,
               "timeframeMinutes": 10
             },
             "enabled": true,

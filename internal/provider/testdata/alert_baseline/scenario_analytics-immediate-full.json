@@ -53,6 +53,7 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
+          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -145,6 +146,7 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
+          "evaluation_period_minutes": 10,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -227,6 +229,7 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
+          "evaluation_period_minutes": 10,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -298,7 +301,8 @@
           "retriggering_period": {
             "minutes": 10
           }
-        }
+        },
+        "/type_definition/analytics_immediate/evaluation_period_minutes": 10
       }
     },
     "stateDelta": {}
@@ -355,6 +359,7 @@
                 "query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
               },
               "evaluationDelayMs": 60000,
+              "evaluationPeriodMinutes": 10,
               "noDataPolicy": {
                 "autoRetireSeconds": 7200,
                 "state": "NO_DATA_POLICY_STATE_OK"

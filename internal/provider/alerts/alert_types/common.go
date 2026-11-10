@@ -805,22 +805,24 @@ type DataprimeQueryModel struct {
 }
 
 type AnalyticsImmediateModel struct {
-	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
-	NoDataPolicy          types.Object `tfsdk:"no_data_policy"`  // NoDataPolicyModel
-	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
-	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
-	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
+	DataprimeQuery          types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
+	NoDataPolicy            types.Object `tfsdk:"no_data_policy"`  // NoDataPolicyModel
+	UseRowsAsPermutations   types.Bool   `tfsdk:"use_rows_as_permutations"`
+	TimeframeMinutes        types.Int32  `tfsdk:"timeframe_minutes"`
+	EvaluationPeriodMinutes types.Int32  `tfsdk:"evaluation_period_minutes"`
+	CustomEvaluationDelay   types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type AnalyticsThresholdModel struct {
-	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
-	Rules                 types.List   `tfsdk:"rules"`           // []AnalyticsThresholdRuleModel
-	Operator              types.String `tfsdk:"operator"`
-	TargetColumn          types.String `tfsdk:"target_column"`
-	NoDataPolicy          types.Object `tfsdk:"no_data_policy"` // NoDataPolicyModel
-	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
-	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
-	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
+	DataprimeQuery          types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
+	Rules                   types.List   `tfsdk:"rules"`           // []AnalyticsThresholdRuleModel
+	Operator                types.String `tfsdk:"operator"`
+	TargetColumn            types.String `tfsdk:"target_column"`
+	NoDataPolicy            types.Object `tfsdk:"no_data_policy"` // NoDataPolicyModel
+	UseRowsAsPermutations   types.Bool   `tfsdk:"use_rows_as_permutations"`
+	TimeframeMinutes        types.Int32  `tfsdk:"timeframe_minutes"`
+	EvaluationPeriodMinutes types.Int32  `tfsdk:"evaluation_period_minutes"`
+	CustomEvaluationDelay   types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type AnalyticsThresholdRuleModel struct {

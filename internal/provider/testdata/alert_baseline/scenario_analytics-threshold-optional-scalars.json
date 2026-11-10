@@ -52,6 +52,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "operator": "MORE_THAN",
           "rules": [
@@ -154,6 +155,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [
@@ -218,6 +220,7 @@
           }
         },
         "/priority": "P5",
+        "/type_definition/analytics_threshold/evaluation_period_minutes": 10,
         "/type_definition/analytics_threshold/no_data_policy": null,
         "/type_definition/analytics_threshold/use_rows_as_permutations": true
       }
@@ -230,6 +233,7 @@
               "dataprimeQuery": {
                 "query": "source logs | count as c"
               },
+              "evaluationPeriodMinutes": 10,
               "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
               "rules": [
                 {
@@ -535,6 +539,7 @@
     },
     "planDelta": {
       "set": {
+        "/type_definition/analytics_threshold/evaluation_period_minutes": 1,
         "/type_definition/analytics_threshold/timeframe_minutes": 1
       }
     },
@@ -542,15 +547,18 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 1,
-          "/status": 400
+          "/body/alertDefProperties/analyticsThreshold/evaluationPeriodMinutes": 1,
+          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 1
         }
       }
     ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"evaluationPeriodMinutes is omitted, so the alert keeps its current value (10), which exceeds the new timeframeMinutes (1); set evaluationPeriodMinutes to at most 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"evaluationPeriodMinutes\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
-    ],
-    "stateDelta": {}
+    "stateDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/evaluation_period_minutes": 1,
+        "/type_definition/analytics_threshold/timeframe_minutes": 1
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "timeframe_minutes 1440",
@@ -568,8 +576,7 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 1440,
-          "/status": 200
+          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 1440
         }
       }
     ],
@@ -660,15 +667,16 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 9,
-          "/status": 400
+          "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 9
         }
       }
     ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"evaluationPeriodMinutes is omitted, so the alert keeps its current value (10), which exceeds the new timeframeMinutes (9); set evaluationPeriodMinutes to at most 9\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"evaluationPeriodMinutes\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
-    ],
-    "stateDelta": {}
+    "stateDelta": {
+      "set": {
+        "/type_definition/analytics_threshold/timeframe_minutes": 9
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "create with timeframe_minutes 9 on a new alert",
@@ -680,6 +688,7 @@
         "/id": "(unknown)",
         "/incidents_settings": "(unknown)",
         "/priority": "(unknown)",
+        "/type_definition/analytics_threshold/evaluation_period_minutes": "(unknown)",
         "/type_definition/analytics_threshold/no_data_policy": "(unknown)"
       }
     },
@@ -693,8 +702,8 @@
     ],
     "stateDelta": {
       "set": {
-        "/id": "00000000-0000-4000-8000-000000000012",
-        "/type_definition/analytics_threshold/timeframe_minutes": 9
+        "/id": "00000000-0000-4000-8000-000000000014",
+        "/type_definition/analytics_threshold/evaluation_period_minutes": 9
       }
     },
     "replanEmpty": true
@@ -721,7 +730,8 @@
     ],
     "stateDelta": {
       "set": {
-        "/id": "00000000-0000-4000-8000-000000000014",
+        "/id": "00000000-0000-4000-8000-000000000016",
+        "/type_definition/analytics_threshold/evaluation_period_minutes": 1,
         "/type_definition/analytics_threshold/timeframe_minutes": 1
       }
     },

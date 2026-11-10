@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview). It sets how often the alert is evaluated, from 1 to 15 minutes and not above `timeframe_minutes`. When omitted on create the API sets the smaller of 10 and `timeframe_minutes`, and an update that omits it keeps the stored value, or plans that default when a lowered `timeframe_minutes` would leave it too large. Removing the line therefore does not reset the value; set it explicitly to change it.
+
+#### data-source/coralogix_alert
+- FEAT: Add `evaluation_period_minutes` to the analytics alert types.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.

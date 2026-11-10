@@ -261,7 +261,7 @@ func (f *alertFake) write(in map[string]any, update bool) (int, any) {
 			}
 		}
 		for _, keep := range alertKeepRules {
-			keep(oldProps, newProps)
+			keep(oldProps, newProps, props)
 		}
 		if alertDefinitionChanged(oldProps, newProps) {
 			stored["alertVersionId"] = f.uuidLike()
@@ -513,9 +513,9 @@ func alertDirectVia(l *alertLive, method, path string, body any) (int, any) {
 
 // alertKeepRules keep what the real API keeps on Replace when the request does not send it. Each
 // file of scenarios adds the rules of its alert types from init.
-var alertKeepRules []func(oldProps, newProps map[string]any)
+var alertKeepRules []func(oldProps, newProps, request map[string]any)
 
-func addAlertKeepRule(keep func(oldProps, newProps map[string]any)) {
+func addAlertKeepRule(keep func(oldProps, newProps, request map[string]any)) {
 	alertKeepRules = append(alertKeepRules, keep)
 }
 

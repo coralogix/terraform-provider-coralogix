@@ -476,6 +476,16 @@ func extractDataSources(ctx context.Context, dataSources types.List) ([]alerts.A
 	return extractedDataSources, nil
 }
 
+// extractKnownInt32 sends a value only when the plan holds one. An unknown Computed
+// value must not reach the request: ValueInt32Pointer would turn it into a pointer to
+// zero.
+func extractKnownInt32(value types.Int32) *int32 {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	return value.ValueInt32Pointer()
+}
+
 func extractCustomEvaluationDelay(delay types.Int32) *int32 {
 	if delay.IsNull() || delay.IsUnknown() {
 		return nil
@@ -3053,11 +3063,12 @@ func expandAnalyticsImmediateTypeDefinition(ctx context.Context, properties *ale
 	}
 
 	properties.AnalyticsImmediate = &alerts.AnalyticsImmediateType{
-		DataprimeQuery:        dataprimeQuery,
-		NoDataPolicy:          noDataPolicy,
-		UseRowsAsPermutations: immediateModel.UseRowsAsPermutations.ValueBoolPointer(),
-		TimeframeMinutes:      immediateModel.TimeframeMinutes.ValueInt32Pointer(),
-		EvaluationDelayMs:     extractCustomEvaluationDelay(immediateModel.CustomEvaluationDelay),
+		DataprimeQuery:          dataprimeQuery,
+		NoDataPolicy:            noDataPolicy,
+		UseRowsAsPermutations:   immediateModel.UseRowsAsPermutations.ValueBoolPointer(),
+		TimeframeMinutes:        immediateModel.TimeframeMinutes.ValueInt32Pointer(),
+		EvaluationPeriodMinutes: extractKnownInt32(immediateModel.EvaluationPeriodMinutes),
+		EvaluationDelayMs:       extractCustomEvaluationDelay(immediateModel.CustomEvaluationDelay),
 	}
 	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE.Ptr()
 	return properties, nil
@@ -3114,14 +3125,15 @@ func expandAnalyticsThresholdTypeDefinition(ctx context.Context, properties *ale
 	}
 
 	properties.AnalyticsThreshold = &alerts.AnalyticsThresholdType{
-		DataprimeQuery:        dataprimeQuery,
-		Rules:                 rules,
-		Operator:              extractAnalyticsThresholdOperator(thresholdModel.Operator),
-		TargetColumn:          thresholdModel.TargetColumn.ValueStringPointer(),
-		NoDataPolicy:          noDataPolicy,
-		UseRowsAsPermutations: thresholdModel.UseRowsAsPermutations.ValueBoolPointer(),
-		TimeframeMinutes:      thresholdModel.TimeframeMinutes.ValueInt32Pointer(),
-		EvaluationDelayMs:     extractCustomEvaluationDelay(thresholdModel.CustomEvaluationDelay),
+		DataprimeQuery:          dataprimeQuery,
+		Rules:                   rules,
+		Operator:                extractAnalyticsThresholdOperator(thresholdModel.Operator),
+		TargetColumn:            thresholdModel.TargetColumn.ValueStringPointer(),
+		NoDataPolicy:            noDataPolicy,
+		UseRowsAsPermutations:   thresholdModel.UseRowsAsPermutations.ValueBoolPointer(),
+		TimeframeMinutes:        thresholdModel.TimeframeMinutes.ValueInt32Pointer(),
+		EvaluationPeriodMinutes: extractKnownInt32(thresholdModel.EvaluationPeriodMinutes),
+		EvaluationDelayMs:       extractCustomEvaluationDelay(thresholdModel.CustomEvaluationDelay),
 	}
 	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_ANALYTICS_THRESHOLD.Ptr()
 	return properties, nil
@@ -4251,11 +4263,12 @@ func flattenAnalyticsImmediate(ctx context.Context, immediate *alerts.AnalyticsI
 	}
 
 	return types.ObjectValueFrom(ctx, alertschema.AnalyticsImmediateAttr(), alerttypes.AnalyticsImmediateModel{
-		DataprimeQuery:        dataprimeQuery,
-		NoDataPolicy:          noDataPolicy,
-		UseRowsAsPermutations: types.BoolPointerValue(immediate.UseRowsAsPermutations),
-		TimeframeMinutes:      types.Int32PointerValue(immediate.TimeframeMinutes),
-		CustomEvaluationDelay: types.Int32PointerValue(immediate.EvaluationDelayMs),
+		DataprimeQuery:          dataprimeQuery,
+		NoDataPolicy:            noDataPolicy,
+		UseRowsAsPermutations:   types.BoolPointerValue(immediate.UseRowsAsPermutations),
+		TimeframeMinutes:        types.Int32PointerValue(immediate.TimeframeMinutes),
+		EvaluationPeriodMinutes: types.Int32PointerValue(immediate.EvaluationPeriodMinutes),
+		CustomEvaluationDelay:   types.Int32PointerValue(immediate.EvaluationDelayMs),
 	})
 }
 
@@ -4287,14 +4300,15 @@ func flattenAnalyticsThreshold(ctx context.Context, threshold *alerts.AnalyticsT
 	}
 
 	return types.ObjectValueFrom(ctx, alertschema.AnalyticsThresholdAttr(), alerttypes.AnalyticsThresholdModel{
-		DataprimeQuery:        dataprimeQuery,
-		Rules:                 rules,
-		Operator:              types.StringValue(alerttypes.AnalyticsThresholdOperatorProtoToSchemaMap[operator]),
-		TargetColumn:          types.StringPointerValue(threshold.TargetColumn),
-		NoDataPolicy:          noDataPolicy,
-		UseRowsAsPermutations: types.BoolPointerValue(threshold.UseRowsAsPermutations),
-		TimeframeMinutes:      types.Int32PointerValue(threshold.TimeframeMinutes),
-		CustomEvaluationDelay: types.Int32PointerValue(threshold.EvaluationDelayMs),
+		DataprimeQuery:          dataprimeQuery,
+		Rules:                   rules,
+		Operator:                types.StringValue(alerttypes.AnalyticsThresholdOperatorProtoToSchemaMap[operator]),
+		TargetColumn:            types.StringPointerValue(threshold.TargetColumn),
+		NoDataPolicy:            noDataPolicy,
+		UseRowsAsPermutations:   types.BoolPointerValue(threshold.UseRowsAsPermutations),
+		TimeframeMinutes:        types.Int32PointerValue(threshold.TimeframeMinutes),
+		EvaluationPeriodMinutes: types.Int32PointerValue(threshold.EvaluationPeriodMinutes),
+		CustomEvaluationDelay:   types.Int32PointerValue(threshold.EvaluationDelayMs),
 	})
 }
 

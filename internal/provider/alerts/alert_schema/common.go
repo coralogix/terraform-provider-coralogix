@@ -745,6 +745,96 @@ func analyticsTimeframeMinutesSchema() schema.Int32Attribute {
 	}
 }
 
+// analyticsEvaluationPeriodMinutesSchema is Optional+Computed. The API fills in
+// min(10, timeframe_minutes) on create when the field is omitted and always returns
+// it. A live probe showed that a replace which omits the field keeps the stored
+// value, and answers 400 when that value exceeds the new timeframe_minutes, so a
+// plain UseStateForUnknown would fail a change that only lowers timeframe_minutes.
+// keepEvaluationPeriodUnlessInvalid plans the prior value when it is still valid and
+// the default otherwise, and the request sends that planned value.
+func analyticsEvaluationPeriodMinutesSchema() schema.Int32Attribute {
+	return schema.Int32Attribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.Int32{
+			keepEvaluationPeriodUnlessInvalid{},
+		},
+		Validators: []validator.Int32{
+			int32validator.Between(1, 15),
+			evaluationPeriodNotAboveTimeframe{},
+		},
+		MarkdownDescription: "How often the alert is evaluated, in minutes, between 1 and 15 and not greater than " +
+			"`timeframe_minutes`. Each evaluation runs the DataPrime query over the last `timeframe_minutes`. " +
+			"When omitted on create, the API sets it to the smaller of 10 and `timeframe_minutes`, and the provider reads it back. " +
+			"When omitted later, the current value stays, except that it falls back to that default if it would exceed a lowered `timeframe_minutes`. " +
+			"Removing the line from the configuration therefore does not reset the value; set it explicitly to change it.",
+	}
+}
+
+// keepEvaluationPeriodUnlessInvalid plans a value for an evaluation period that the
+// configuration omits and that would otherwise be unknown because the alert changes.
+// It keeps the prior value while that value is not above the planned
+// timeframe_minutes, and falls back to the API default min(10, timeframe_minutes)
+// otherwise. On create, with no prior value, or when the timeframe is unknown, it
+// leaves the value unknown for the API to fill in.
+type keepEvaluationPeriodUnlessInvalid struct{}
+
+func (keepEvaluationPeriodUnlessInvalid) Description(context.Context) string {
+	return "Keeps the current evaluation period unless it exceeds a lowered timeframe_minutes, then plans the default."
+}
+
+func (m keepEvaluationPeriodUnlessInvalid) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (keepEvaluationPeriodUnlessInvalid) PlanModifyInt32(ctx context.Context, req planmodifier.Int32Request, resp *planmodifier.Int32Response) {
+	if !req.ConfigValue.IsNull() || !req.PlanValue.IsUnknown() {
+		return
+	}
+	if req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	var timeframe types.Int32
+	if diags := req.Plan.GetAttribute(ctx, req.Path.ParentPath().AtName("timeframe_minutes"), &timeframe); diags.HasError() ||
+		timeframe.IsNull() || timeframe.IsUnknown() {
+		return
+	}
+	if req.StateValue.ValueInt32() <= timeframe.ValueInt32() {
+		resp.PlanValue = req.StateValue
+		return
+	}
+	resp.PlanValue = types.Int32Value(min(int32(10), timeframe.ValueInt32()))
+}
+
+// evaluationPeriodNotAboveTimeframe rejects an evaluation period longer than the
+// timeframe of the same analytics block, which the API answers with INVALID_ARGUMENT.
+// It checks only when both values are known.
+type evaluationPeriodNotAboveTimeframe struct{}
+
+func (evaluationPeriodNotAboveTimeframe) Description(context.Context) string {
+	return "must not be greater than timeframe_minutes"
+}
+
+func (v evaluationPeriodNotAboveTimeframe) MarkdownDescription(ctx context.Context) string {
+	return "must not be greater than `timeframe_minutes`"
+}
+
+func (evaluationPeriodNotAboveTimeframe) ValidateInt32(ctx context.Context, req validator.Int32Request, resp *validator.Int32Response) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	var timeframe types.Int32
+	diags := req.Config.GetAttribute(ctx, req.Path.ParentPath().AtName("timeframe_minutes"), &timeframe)
+	if diags.HasError() || timeframe.IsNull() || timeframe.IsUnknown() {
+		return
+	}
+	if req.ConfigValue.ValueInt32() > timeframe.ValueInt32() {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid evaluation_period_minutes",
+			fmt.Sprintf("evaluation_period_minutes (%d) must not be greater than timeframe_minutes (%d).",
+				req.ConfigValue.ValueInt32(), timeframe.ValueInt32()))
+	}
+}
+
 func analyticsUseRowsAsPermutationsSchema() schema.BoolAttribute {
 	return schema.BoolAttribute{
 		Optional: true,
@@ -829,24 +919,26 @@ func AlertTypeDefinitionAttr() map[string]attr.Type {
 
 func AnalyticsImmediateAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"dataprime_query":          types.ObjectType{AttrTypes: DataprimeQueryAttr()},
-		"no_data_policy":           types.ObjectType{AttrTypes: NoDataPolicyAttr()},
-		"use_rows_as_permutations": types.BoolType,
-		"timeframe_minutes":        types.Int32Type,
-		"custom_evaluation_delay":  types.Int32Type,
+		"dataprime_query":           types.ObjectType{AttrTypes: DataprimeQueryAttr()},
+		"no_data_policy":            types.ObjectType{AttrTypes: NoDataPolicyAttr()},
+		"use_rows_as_permutations":  types.BoolType,
+		"timeframe_minutes":         types.Int32Type,
+		"evaluation_period_minutes": types.Int32Type,
+		"custom_evaluation_delay":   types.Int32Type,
 	}
 }
 
 func AnalyticsThresholdAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"dataprime_query":          types.ObjectType{AttrTypes: DataprimeQueryAttr()},
-		"rules":                    types.ListType{ElemType: types.ObjectType{AttrTypes: AnalyticsThresholdRuleAttr()}},
-		"operator":                 types.StringType,
-		"target_column":            types.StringType,
-		"no_data_policy":           types.ObjectType{AttrTypes: NoDataPolicyAttr()},
-		"use_rows_as_permutations": types.BoolType,
-		"timeframe_minutes":        types.Int32Type,
-		"custom_evaluation_delay":  types.Int32Type,
+		"dataprime_query":           types.ObjectType{AttrTypes: DataprimeQueryAttr()},
+		"rules":                     types.ListType{ElemType: types.ObjectType{AttrTypes: AnalyticsThresholdRuleAttr()}},
+		"operator":                  types.StringType,
+		"target_column":             types.StringType,
+		"no_data_policy":            types.ObjectType{AttrTypes: NoDataPolicyAttr()},
+		"use_rows_as_permutations":  types.BoolType,
+		"timeframe_minutes":         types.Int32Type,
+		"evaluation_period_minutes": types.Int32Type,
+		"custom_evaluation_delay":   types.Int32Type,
 	}
 }
 

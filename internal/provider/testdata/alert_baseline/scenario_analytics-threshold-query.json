@@ -52,6 +52,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "operator": "MORE_THAN",
           "rules": [
@@ -154,6 +155,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [
@@ -207,6 +209,7 @@
         },
         "/priority": "P5",
         "/type_definition/analytics_threshold/dataprime_query/query": "source logs\n| filter $d.msg == \"a 'b'\"\n| count as c",
+        "/type_definition/analytics_threshold/evaluation_period_minutes": 10,
         "/type_definition/analytics_threshold/no_data_policy": null
       }
     },
@@ -218,6 +221,7 @@
               "dataprimeQuery": {
                 "query": "source logs\n| filter $d.msg == \"a 'b'\"\n| count as c"
               },
+              "evaluationPeriodMinutes": 10,
               "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
               "rules": [
                 {
