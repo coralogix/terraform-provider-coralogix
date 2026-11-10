@@ -19,9 +19,10 @@ import (
 type convData struct {
 	// IDGuard is the model field of the resource id when flatten must check that the response
 	// has it, or "".
-	IDGuard string
-	SDKPkg  string // import path of the SDK package
-	SDKName string // package name
+	IDGuard  string
+	IDString bool   // a string id must also be non-empty
+	SDKPkg   string // import path of the SDK package
+	SDKName  string // package name
 	// The root objects: the Create body and the Update body (expand), and
 	// the resource (flatten).
 	Create, Update, Resource *convObject
@@ -295,7 +296,8 @@ const (
 	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
 	// convInt32AsInt64 and convInts32AsInt64 keep the released Int64 type of an int32 field
 	// (terraformType: Int64).
-	convInt32AsInt64 = "int32asint64" // types.Int64 ↔ *int32
+	convIntegerAsString = "integerasstring" // computed integer → released string
+	convInt32AsInt64    = "int32asint64"    // types.Int64 ↔ *int32
 	// convInt64AsString keeps the released String type of an int64 resource id (terraformType:
 	// String): the decimal text of the id.
 	convInt64AsString = "int64asstring" // types.String ↔ *int64
@@ -695,6 +697,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	out.IDGuard = idGuard(r)
+	if out.IDGuard != "" {
+		out.IDString = r.IDType.Kind == model.String
+	}
 	for _, f := range r.Fields {
 		if r.Policy.DefaultArm(r.Name, f.Name) {
 			return nil, fmt.Errorf("%s: defaultArm is supported on an arm of a nested object only", f.Name)
@@ -1457,9 +1462,8 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 }
 
-// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64. A
-// uint64 that the API sends as a string is an Int64 already.
-func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+// applyTerraformType keeps released integer or computed string representations.
+func (b *convBuilder) applyTerraformType(cf *convField, component, name string, computed bool) error {
 	var line overrides.Field
 	if b.file != nil {
 		line = b.file.Types[component].Fields[name]
@@ -1471,10 +1475,19 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string) 
 		cf.Conv = convFloat64AsFloat32
 	}
 	if line.TerraformType == "String" {
-		if cf.Conv != convInt64 {
-			return fmt.Errorf("%s: terraformType String needs an int64 field", cf.TFName)
+		if cf.Conv != convInt32 && cf.Conv != convInt64 {
+			return fmt.Errorf("%s: terraformType String needs an integer field", cf.TFName)
 		}
-		cf.Conv = convInt64AsString
+		switch {
+		case component == b.resource.Name && name == b.resource.ID():
+			cf.Conv = convInt64AsString
+		case cf.Conv == convInt64 && !computed:
+			// A value that a request sends, such as the team id of an owner: the state holds the
+			// decimal text and the request holds the number.
+			cf.Conv = convInt64AsString
+		default:
+			cf.Conv = convIntegerAsString
+		}
 		return nil
 	}
 	if terraformType(b.resource.Policy, component, name) == "" {
@@ -1609,7 +1622,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err := b.applyValueNames(cf, component, name); err != nil {
 		return nil, err
 	}
-	if err := b.applyTerraformType(cf, component, name); err != nil {
+	if err := b.applyTerraformType(cf, component, name, computed); err != nil {
 		return nil, err
 	}
 	if b.resource.Policy.AsBool(component, name) {
@@ -2455,7 +2468,8 @@ var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
-	convInt64AsString: "types.StringType", convFloat64AsFloat32: "types.Float64Type",
+	convIntegerAsString: "types.StringType",
+	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
@@ -2937,11 +2951,11 @@ func (d *convData) UsesEquality(kind ...string) bool {
 // HasPrior reports whether flatten takes the prior model of the resource.
 func (d *convData) HasPrior() bool { return d.Resource != nil && d.Resource.NeedsPrior }
 
-// idGuard returns the model field of the id when flatten must check it, else "". The contract
-// may not require the id in the response (a proto3 optional field, or a schema that a released
-// API shares with the request). Without the id, Read, Update, and Delete would have no identity.
+// idGuard returns the model field of the id when flatten must check it, else "". A required
+// string id can still decode as empty. An optional id can be absent. Either leaves later
+// lifecycle calls without an identity.
 func idGuard(r *model.Resource) string {
-	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
+	if r.Singleton || r.IDType.Kind != model.String && !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
 	return camelize(r.ID())

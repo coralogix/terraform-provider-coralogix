@@ -71,6 +71,9 @@ func flatten(ctx context.Context, v *folders_for_views_service.ViewFolder) (*Vie
 		return nil, diags
 	}
 	out := flattenViewFolder(ctx, path.Empty(), v, &diags)
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
 	return out, diags
 }
 

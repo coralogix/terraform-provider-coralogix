@@ -32,6 +32,7 @@ type LegacyLabels struct {
 }
 
 type LegacyThing struct {
+	TeamId     *int32
 	Id         *string
 	Name       *string
 	CreateTime *time.Time
@@ -52,23 +53,31 @@ type CreateLegacyThingResponse struct {
 }
 
 type GetLegacyThingResponse struct {
-	Thing *LegacyThing
+	Things []LegacyThing
+	Thing  *LegacyThing
 }
 
 type ReplaceLegacyThingResponse struct {
 	Thing *LegacyThing
 }
 
-type LegacyThingsServiceAPIService struct{}
+type LegacyThingsServiceAPIService struct {
+	CreateResponse *CreateLegacyThingResponse
+	CreateCalls    int
+	BatchResponse  *GetLegacyThingResponse
+	BatchIDs       []string
+}
 
-type ApiLegacyThingsServiceCreateLegacyThingRequest struct{}
+type ApiLegacyThingsServiceCreateLegacyThingRequest struct {
+	client *LegacyThingsServiceAPIService
+}
 type ApiLegacyThingsServiceGetLegacyThingRequest struct{}
 type ApiLegacyThingsServiceReplaceLegacyThingRequest struct{}
 type ApiLegacyThingsServiceDeleteLegacyThingRequest struct{}
 
-func (*LegacyThingsServiceAPIService) LegacyThingsServiceCreateLegacyThing(ctx context.Context) ApiLegacyThingsServiceCreateLegacyThingRequest {
+func (c *LegacyThingsServiceAPIService) LegacyThingsServiceCreateLegacyThing(ctx context.Context) ApiLegacyThingsServiceCreateLegacyThingRequest {
 	_ = ctx
-	return ApiLegacyThingsServiceCreateLegacyThingRequest{}
+	return ApiLegacyThingsServiceCreateLegacyThingRequest{client: c}
 }
 
 func (*LegacyThingsServiceAPIService) LegacyThingsServiceGetLegacyThing(ctx context.Context, id string) ApiLegacyThingsServiceGetLegacyThingRequest {
@@ -96,8 +105,9 @@ func (r ApiLegacyThingsServiceReplaceLegacyThingRequest) ReplaceLegacyThingReque
 	return r
 }
 
-func (ApiLegacyThingsServiceCreateLegacyThingRequest) Execute() (*CreateLegacyThingResponse, *http.Response, error) {
-	return nil, nil, nil
+func (r ApiLegacyThingsServiceCreateLegacyThingRequest) Execute() (*CreateLegacyThingResponse, *http.Response, error) {
+	r.client.CreateCalls++
+	return r.client.CreateResponse, nil, nil
 }
 
 func (ApiLegacyThingsServiceGetLegacyThingRequest) Execute() (*GetLegacyThingResponse, *http.Response, error) {
@@ -110,4 +120,20 @@ func (ApiLegacyThingsServiceReplaceLegacyThingRequest) Execute() (*ReplaceLegacy
 
 func (ApiLegacyThingsServiceDeleteLegacyThingRequest) Execute() (map[string]interface{}, *http.Response, error) {
 	return nil, nil, nil
+}
+
+// Batch read used by the existing-resource fixture.
+type ApiLegacyThingsServiceGetLegacyThingsByIdsRequest struct {
+	client *LegacyThingsServiceAPIService
+}
+
+func (c *LegacyThingsServiceAPIService) LegacyThingsServiceGetLegacyThingsByIds(ctx context.Context) ApiLegacyThingsServiceGetLegacyThingsByIdsRequest {
+	return ApiLegacyThingsServiceGetLegacyThingsByIdsRequest{client: c}
+}
+func (r ApiLegacyThingsServiceGetLegacyThingsByIdsRequest) Ids(ids []string) ApiLegacyThingsServiceGetLegacyThingsByIdsRequest {
+	r.client.BatchIDs = ids
+	return r
+}
+func (r ApiLegacyThingsServiceGetLegacyThingsByIdsRequest) Execute() (*GetLegacyThingResponse, *http.Response, error) {
+	return r.client.BatchResponse, nil, nil
 }

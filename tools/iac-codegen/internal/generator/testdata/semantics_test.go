@@ -24,6 +24,23 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 )
 
+func TestRequiredStringIDRejectsEmpty(t *testing.T) {
+	for _, id := range []string{"", "usable-id"} {
+		t.Run(id, func(t *testing.T) {
+			got, diags := flatten(context.Background(), &things_service.Thing{Id: &id})
+			if id == "" {
+				if len(diags.Errors()) != 1 || diags.Errors()[0].Summary() != "Missing id" {
+					t.Fatalf("empty response id diagnostics = %v, want Missing id", diags)
+				}
+				return
+			}
+			if diags.HasError() || got.Id.ValueString() != id {
+				t.Fatalf("usable response id = %v, diagnostics = %v", got, diags)
+			}
+		})
+	}
+}
+
 func TestScalarPresence(t *testing.T) {
 	if expandBool(types.BoolNull()) != nil || expandBool(types.BoolUnknown()) != nil {
 		t.Fatal("null and unknown bool values must be omitted")

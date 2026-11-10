@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"example.com/iac-test-sdk/go/openapi/cxsdk"
+	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
@@ -37,6 +38,11 @@ type DataSource struct {
 // It has no prior plan or state, so it does not run AfterRead.
 func NewDataSource(hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{hooks: hooks}}
+}
+
+// NewDataSourceWithClient returns a data source with an injected API client.
+func NewDataSourceWithClient(client *shared_things_service.SharedThingsServiceAPIService, hooks Hooks) datasource.DataSource {
+	return &DataSource{resource: Resource{client: client, hooks: hooks}}
 }
 
 func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {

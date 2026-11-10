@@ -342,7 +342,7 @@ func apiID(v *integration_service.DeployedIntegrationInformation) (string, bool)
 	if v == nil {
 		return "", false
 	}
-	return v.Id, true
+	return v.Id, v.Id != ""
 }
 
 // setAPIID sets the id that v holds.

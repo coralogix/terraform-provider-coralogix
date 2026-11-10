@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
@@ -34,6 +35,11 @@ type DataSource struct {
 // AfterRead.
 func NewDataSource(hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{hooks: hooks}}
+}
+
+// NewDataSourceWithClient returns a data source with an injected API client.
+func NewDataSourceWithClient(client *teams_service.TeamsServiceAPIService, hooks Hooks) datasource.DataSource {
+	return &DataSource{resource: Resource{client: client, hooks: hooks}}
 }
 
 func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
