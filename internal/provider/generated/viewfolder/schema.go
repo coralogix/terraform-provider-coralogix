@@ -31,6 +31,13 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "Display name of the view folder. Between 1 and 100 characters - the backend silently truncates a longer name, so the provider rejects it instead. Folder names must currently be unique within the team.",
 			},
+			"description": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(200),
+				},
+				MarkdownDescription: "Folder description. Test field for the provider regeneration pipeline.",
+			},
 		},
 		MarkdownDescription: "Coralogix View Folder. Folders group saved views in the Explore screen. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/explore-screen/custom-views/.",
 	}

@@ -29,6 +29,7 @@ var createFields = []struct {
 	serverDefault bool
 }{
 	{attr: "name", serverDefault: false},
+	{attr: "description", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -235,6 +236,7 @@ func expandCreateViewFolderRequest(ctx context.Context, p path.Path, m *ViewFold
 	}
 	out := &folders_for_views_service.CreateViewFolderRequest{}
 	out.Name = valueOf(expandString(m.Name))
+	out.Description = expandString(m.Description)
 	return out
 }
 
@@ -245,6 +247,7 @@ func expandViewFolder1(ctx context.Context, p path.Path, m *ViewFolderModel, dia
 	out := &folders_for_views_service.ViewFolder1{}
 	out.Id = valueOf(expandString(m.Id))
 	out.Name = valueOf(expandString(m.Name))
+	out.Description = expandString(m.Description)
 	return out
 }
 
@@ -255,6 +258,7 @@ func flattenViewFolder(ctx context.Context, p path.Path, v *folders_for_views_se
 	out := &ViewFolderModel{}
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
+	out.Description = types.StringPointerValue(v.Description)
 	return out
 }
 
