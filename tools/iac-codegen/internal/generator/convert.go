@@ -206,6 +206,9 @@ type convObject struct {
 	FlattenParents []convParent
 	// Carry is set when Terraform shows the object as the arms of its oneOf field (carrySiblings).
 	Carry *convCarry
+	// Typed is set when Terraform shows the oneOf as a type attribute plus the merged fields of
+	// its arms (typedArms). Fields then holds the type and the merged fields, all Carried.
+	Typed *convTyped
 }
 
 // convCarry is an object that Terraform shows as the arms of its oneOf field: each arm attribute
@@ -1948,7 +1951,11 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 			return nil, fmt.Errorf("request component %s holds both %s and %s", t.Schema, obj.Model, modelName)
 		}
 		// In existing mode, a request that shares the component leaves out its read-only
-		// fields. The object serves both, so it gets the fields of either walk.
+		// fields. The object serves both, so it gets the fields of either walk. A typedArms
+		// object holds the merged fields, not the arms, so it has nothing to add.
+		if obj.Typed != nil {
+			return obj, nil
+		}
 		if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
 			return nil, err
 		}
@@ -1978,6 +1985,10 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	}
 	obj.DefaultArms = arms
 	if obj.Unsupported, err = b.unsupportedArms(t, ref.Path); err != nil {
+		return nil, err
+	}
+	// Last: the steps above read the arms as the fields of the oneOf.
+	if err := b.typed(obj, t); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -2278,6 +2289,16 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		obj.Expand = true
 	} else {
 		obj.Flatten = true
+	}
+	if obj.Typed != nil {
+		// The merged fields are copies. The arm objects convert each arm.
+		for _, arm := range obj.Typed.Arms {
+			if arm.Object != nil {
+				if err := b.mark(arm.Object, expand); err != nil {
+					return fmt.Errorf("%s: %w", arm.Value, err)
+				}
+			}
+		}
 	}
 	for _, f := range obj.Fields {
 		switch {

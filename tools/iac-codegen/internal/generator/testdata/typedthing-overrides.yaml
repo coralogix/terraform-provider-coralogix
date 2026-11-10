@@ -1,0 +1,35 @@
+# A released resource that shows oneOf fields as a type attribute plus the merged fields of the
+# arms, as the aggregations and span fields of a dashboard widget are.
+resource: TypedThing
+mode: existing
+typeName: typed_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: TypedThingsService_CreateTypedThing
+    get: TypedThingsService_GetTypedThing
+    update: TypedThingsService_ReplaceTypedThing
+    delete: TypedThingsService_DeleteTypedThing
+  idProperty: id
+  serverSetID: true
+
+types:
+  TypedThing:
+    fields:
+      id: {readOnly: true}
+  TypedAggregation:
+    typedArms:
+      # The released spelling of an arm that is not its name: average is avg.
+      names: {average: avg}
+  TypedSpanField:
+    typedArms:
+      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
+
+enums:
+  TypedMetadataField:
+    zero: unspecified
+    trimPrefix: METADATA_FIELD_
+    values: [METADATA_FIELD_SERVICE_NAME, METADATA_FIELD_APPLICATION_NAME]

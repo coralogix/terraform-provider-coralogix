@@ -3,11 +3,14 @@
 package {{.Package}}
 
 import (
-{{- if or .HasServerDefaults .RequestReplaceKinds}}
+{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms}}
 	"context"
 {{- end}}
+{{- if .HasTypedArms}}
+	"fmt"
+{{- end}}
 	"regexp"
-{{- if .SetServerDefaults}}
+{{- if or .SetServerDefaults .HasTypedArms}}
 	"slices"
 {{- end}}
 
@@ -340,5 +343,63 @@ map[string]schema.Attribute{
 {{- range .}}
 	{{printf "%q" .Name}}: {{template "attribute" .}},
 {{- end}}
+}
+{{- end}}
+
+{{- if .HasTypedArms}}
+
+// typedArmValidator checks an object that shows a oneOf as a type attribute and the merged fields
+// of its arms. It runs on the type attribute. A field that the arm named by the type does not have
+// must be unset, and the checks of a scalar arm run on the value that the arm holds.
+type typedArmValidator struct {
+	// Names are the merged attributes, in schema order.
+	Names []string
+	// Fields are the attributes that each arm has, by value of the type.
+	Fields map[string][]string
+	// Values are the checks of a scalar arm, by value of the type and attribute.
+	Values map[string]map[string][]validator.String
+}
+
+func (v typedArmValidator) Description(context.Context) string {
+	return "A field that the chosen type does not have must be unset."
+}
+
+func (v typedArmValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v typedArmValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	kind := req.ConfigValue.ValueString()
+	allowed, ok := v.Fields[kind]
+	if !ok {
+		return // the OneOf validator of the type reports it
+	}
+	for _, name := range v.Names {
+		at := req.Path.ParentPath().AtName(name)
+		var value attr.Value
+		if diags := req.Config.GetAttribute(ctx, at, &value); diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			continue
+		}
+		if value == nil || value.IsNull() || value.IsUnknown() {
+			continue
+		}
+		if !slices.Contains(allowed, name) {
+			resp.Diagnostics.AddAttributeError(at, "Invalid attribute combination", fmt.Sprintf("When the type is %q, %s must not be set.", kind, name))
+			continue
+		}
+		text, isText := value.(types.String)
+		for _, check := range v.Values[kind][name] {
+			if !isText {
+				continue
+			}
+			out := &validator.StringResponse{}
+			check.ValidateString(ctx, validator.StringRequest{Path: at, PathExpression: at.Expression(), Config: req.Config, ConfigValue: text}, out)
+			resp.Diagnostics.Append(out.Diagnostics...)
+		}
+	}
 }
 {{- end}}

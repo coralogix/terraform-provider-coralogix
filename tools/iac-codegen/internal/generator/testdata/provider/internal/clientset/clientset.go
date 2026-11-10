@@ -21,6 +21,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/storage_service"
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/typed_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrapped_things_service"
@@ -48,6 +49,7 @@ type ClientSet struct {
 	Rename         *rename_things_service.RenameThingsServiceAPIService
 	Parse          *parse_things_service.ParseThingsServiceAPIService
 	Filter         *filter_things_service.FilterThingsServiceAPIService
+	Typed          *typed_things_service.TypedThingsServiceAPIService
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
 	Retag          *retag_things_service.RetagThingsServiceAPIService
 }
@@ -112,6 +114,10 @@ func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPI
 
 func (c *ClientSet) ActionThings() *action_things_service.ActionThingsServiceAPIService {
 	return c.ActionThing
+}
+
+func (c *ClientSet) TypedThings() *typed_things_service.TypedThingsServiceAPIService {
+	return c.Typed
 }
 
 func (c *ClientSet) FilterThings() *filter_things_service.FilterThingsServiceAPIService {

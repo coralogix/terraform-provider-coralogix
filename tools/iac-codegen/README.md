@@ -96,6 +96,8 @@ A further small golden contract, `storagething`, is an existing singleton like t
 
 A small golden contract, `filterthing`, is an existing resource whose list items are each one arm of a oneOf, as the filters of a dashboard widget are: an arm with a nested object, an object, a string, and an empty object shown as a bool (`asBool`). Each item is a nested object with one attribute per arm, and the arms exclude each other (`ConflictsWith`), as for a oneOf that is a single field. A list or set of oneOf items that has no `splitArms` line works this way.
 
+A small golden contract, `typedthing`, is an existing resource that shows oneOf fields with `typedArms`: an arm without fields, two arms that share a field, an arm with a nested object, and scalar arms (a string and an enum) that share one `value`, in a single field and in a list.
+
 A small golden contract, `retagthing`, is a collection resource whose write renames the items by id: the write takes the list under another name (`requestAs`), returns the resource (`writeReturnsResource`), and needs the server id of each item, which a test hook fills for Create.
 
 A further small golden contract, `overwritething`, is a collection resource whose write replaces the things of kind A and whose Get lists every kind. Its behavior-overrides file has `api.overwrite` with a `getQuery`, a `requestWrapper` and a negated `requestAs` line on the item, an `inline` line on the rules arm of kind A and a `skip` line on the arm of kind B, a `split` line with element validators on an inlined field, and a data source.
@@ -232,6 +234,26 @@ types:
 ```
 
 `requestValues` leaves a sibling out of an arm and sends the API value there instead. `fold` shows an arm as another arm with the same fields, chosen by a bool flag that is true, its default, for the arm `into` and false for the folded arm. Two arms of a fold need the same fields and the same `requestValues`. A name that is no arm or no sibling is an error. A `requestValues` entry must name a sibling that the requests send, not the field that holds the oneOf, and an enum value must be an accepted value of the enum. An arm takes one fold, a folded arm cannot be a fold target, and the two arms need fields of the same names and SDK types.
+
+`types.<Type>.typedArms` on a oneOf component shows the oneOf as one object: a required `type` attribute that names the arm, and the fields of all arms, merged by name, all optional. The API spelling `{"aggregation": {"percentile": {"field": "duration", "percent": 95}}}` is `aggregation = {type = "percentile", field = "duration", percent = 95}` in Terraform. One line serves every field that uses the component, in a single field and in the items of a list.
+
+```yaml
+types:
+  LogsAggregation:
+    typedArms:
+      field: type                                # the Terraform name of the arm attribute (default: type)
+      names: {average: avg}                      # arm -> released value; an arm without a name takes its Terraform name
+  SpanField:
+    typedArms:
+      value: value                               # the attribute of the scalar arms (default: value)
+      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
+```
+
+An arm is an object, an object without fields, or a scalar (a string, a number, a bool, or an enum). The fields of an object arm keep their own lines. Scalar arms share the `value` attribute, so their types must be the same Go type. Two arms with a same-name field must give it one Terraform type (`field` in `average` and in `percentile` is one attribute). The generator reports a `names` key that is no arm, two arms with one value, a `field` that an arm also has, and a field with two types. It needs an Update that replaces the resource, because an update mask names API fields.
+
+Create and Update send the arm that `type` names, filled from the merged fields. Read sets `type` from the arm that the response has, and the fields of the other arms are null. A response with no arm fails the read. A `type` that is not a value is an error at plan (a `OneOf` validator) and at apply.
+
+The `type` attribute also has a `typedArmValidator`, which the schema file defines. It rejects a field that the chosen arm does not have (`type = "count"` with a `field`). For a scalar arm that is a mapped enum, it checks the value against the Terraform values of its `enums` line (without the zero value), only when `type` names that arm, because the attribute is shared. The checks of a scalar arm are not on the attribute itself. The limits of the contract that the file keeps with `validators.inferred: true` follow the same rule. An object arm keeps its own checks.
 
 `enums.<Enum>.caseInsensitive: true` accepts a Terraform value in any case: the `enum: true` validator is `OneOfCaseInsensitive`, expand matches the value in any case, and flatten keeps the spelling of the plan or the state when the API value differs only in case. A scalar field of the enum only. Two values of the enum may not differ only in case.
 

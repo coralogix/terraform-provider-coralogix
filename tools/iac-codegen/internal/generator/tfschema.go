@@ -291,9 +291,27 @@ func defaultPackages(attrs []*tfAttr) []string {
 	return packages
 }
 
+// HasTypedArms reports whether an attribute has the typedArmValidator of a typedArms object, which
+// the schema file then defines.
+func (r *tfResource) HasTypedArms() bool {
+	var uses func(attrs []*tfAttr) bool
+	uses = func(attrs []*tfAttr) bool {
+		for _, a := range attrs {
+			if slices.ContainsFunc(a.Validators, func(v string) bool { return strings.HasPrefix(v, typedArmValidatorName+"{") }) || uses(a.Attributes) {
+				return true
+			}
+		}
+		return false
+	}
+	return uses(r.Attributes)
+}
+
 // UsesAttr reports whether a static default of an attribute is an empty list or set, whose Go
-// expression names attr.Value.
+// expression names attr.Value. The typedArmValidator also names it.
 func (r *tfResource) UsesAttr() bool {
+	if r.HasTypedArms() {
+		return true
+	}
 	var uses func(attrs []*tfAttr) bool
 	uses = func(attrs []*tfAttr) bool {
 		for _, a := range attrs {
@@ -1301,6 +1319,12 @@ func applyValueNames(a *tfAttr, l overrides.Field) error {
 func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, error) {
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
+	}
+	if line := b.file.TypedArmsOf(t.Schema); line != nil {
+		if t.Kind != model.OneOf {
+			return nil, fmt.Errorf("%s: typedArms needs a oneOf, not a %s", t.Schema, t.Kind)
+		}
+		return b.typedAttributes(p, t, line)
 	}
 	if carry := carryField(b.file, t); carry != nil {
 		return b.carryAttributes(p, t, carry)
