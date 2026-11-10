@@ -43,6 +43,7 @@ type TypedSpanField struct {
 
 type TypedList struct {
 	Values []string
+	Note   *string
 }
 
 // A oneOf: All has no fields, List has the values.

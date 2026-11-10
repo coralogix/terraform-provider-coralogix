@@ -413,3 +413,45 @@ func nullableString(s *string) tftypes.Value {
 	}
 	return str(*s)
 }
+
+// A text that the user set to "" stays "" when it is in an arm: the read of the arm needs the prior
+// value, because the line reads an empty text as null when the user left it out.
+func TestPriorValuesReachTheSelectedArm(t *testing.T) {
+	root := thingRoot(t)
+
+	// An object arm of a single field.
+	resp, _, _ := create(t, map[string]tftypes.Value{"type": str("avg"), "field": str("")})
+	var state map[string]tftypes.Value
+	if err := resp.State.Raw.As(&state); err != nil {
+		t.Fatal(err)
+	}
+	want := objectValue(aggregationType(root), map[string]tftypes.Value{"type": str("avg"), "field": str("")})
+	if !state["aggregation"].Equal(want) {
+		t.Fatalf("aggregation = %v, want the configured empty field to stay", state["aggregation"])
+	}
+
+	// An arm of a typedArms object that is in another typedArms object: the operator.
+	withNote := func(kind string, selectionType *string) tftypes.Value {
+		return objectValue(root.AttributeTypes["operator"], map[string]tftypes.Value{
+			"type": str(kind), "selection_type": nullableString(selectionType), "selected_values": stringList("a"), "note": str(""),
+		})
+	}
+	for name, plan := range map[string]tftypes.Value{
+		"selection": objectValue(root.AttributeTypes["selection"], map[string]tftypes.Value{
+			"selection_type": str("list"), "selected_values": stringList("a"), "note": str(""),
+		}),
+		"operator": withNote("equals", ptr("list")),
+	} {
+		resp, _, _ := createWith(t, map[string]tftypes.Value{name: plan}, nil)
+		if err := resp.State.Raw.As(&state); err != nil {
+			t.Fatal(err)
+		}
+		var attrs map[string]tftypes.Value
+		if err := state[name].As(&attrs); err != nil {
+			t.Fatal(err)
+		}
+		if !attrs["note"].Equal(str("")) {
+			t.Fatalf("%s note = %v, want the configured empty text to stay", name, attrs["note"])
+		}
+	}
+}

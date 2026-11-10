@@ -2466,13 +2466,37 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 		out.{{$type.Model}} = types.StringValue({{printf "%q" .Value}})
 {{- if .Inline}}
 {{- $arm := .}}
-		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}nil, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
+{{- if and $obj.NeedsPrior .Object.NeedsPrior}}
+		// The prior of the arm is the prior object, when it had this type.
+		var priorArm *{{.Object.Model}}
+		if prior != nil && prior.{{$type.Model}}.ValueString() == {{printf "%q" .Value}} {
+			priorArm = &{{.Object.Model}}{
+				{{.Inline.Model}}: &{{.Inner.Model}}{
+{{- range .Inner.Fields}}
+					{{.Model}}: prior.{{.Model}},
+{{- end}}
+				},
+			}
+		}
+{{- end}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
 {{- range .Inner.Fields}}
 			out.{{.Model}} = arm.{{$arm.Inline.Model}}.{{.Model}}
 {{- end}}
 		}
 {{- else if .Object}}
-		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}nil, {{end}}diags); arm != nil {
+{{- if and $obj.NeedsPrior .Object.NeedsPrior}}
+		// The prior of the arm is the prior object, when it had this type.
+		var priorArm *{{.Object.Model}}
+		if prior != nil && prior.{{$type.Model}}.ValueString() == {{printf "%q" .Value}} {
+			priorArm = &{{.Object.Model}}{
+{{- range .Object.Fields}}{{if not .Carried}}
+				{{.Model}}: prior.{{.Model}},
+{{- end}}{{end}}
+			}
+		}
+{{- end}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil {
 {{- range .Object.Fields}}{{if not .Carried}}
 			out.{{.Model}} = arm.{{.Model}}
 {{- end}}{{end}}

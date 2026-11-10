@@ -36,9 +36,15 @@ types:
   TypedNotList:
     fields:
       values: {name: selected_values, computed: true, default: []}
+  # An empty text that the user set stays "" instead of reading as null: flatten needs the prior
+  # value, also when the field is in an arm of a typedArms object.
   TypedList:
     fields:
       values: {name: selected_values, computed: true, default: []}
+      note: {readEmptyAs: "null"}
+  TypedAverage:
+    fields:
+      field: {readEmptyAs: "null"}
   TypedSpanField:
     typedArms:
       names: {metadataField: metadata, tagField: tag, processTagField: process_tag}

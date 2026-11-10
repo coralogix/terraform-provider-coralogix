@@ -74,10 +74,10 @@ func Schema() schema.Schema {
 						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("all", "list"),
-							typedArmValidator{Names: []string{"selected_values"}, Fields: map[string][]string{"all": {}, "list": {"selected_values"}}},
+							typedArmValidator{Names: []string{"selected_values", "note"}, Fields: map[string][]string{"all": {}, "list": {"selected_values", "note"}}},
 						},
 						PlanModifiers: []planmodifier.String{
-							typedArmInferred{Arms: []typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values"}}}},
+							typedArmInferred{Arms: []typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values", "note"}}}},
 						},
 						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"all\", \"list\". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.",
 					},
@@ -86,6 +86,10 @@ func Schema() schema.Schema {
 						Computed:            true,
 						ElementType:         types.StringType,
 						Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+						MarkdownDescription: "",
+					},
+					"note": schema.StringAttribute{
+						Optional:            true,
 						MarkdownDescription: "",
 					},
 				},
@@ -98,7 +102,7 @@ func Schema() schema.Schema {
 						Required: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("equals", "not_equals"),
-							typedArmValidator{Names: []string{"selection_type", "selected_values"}, Fields: map[string][]string{"equals": {"selection_type", "selected_values"}, "not_equals": {"selection_type", "selected_values"}}, Values: map[string]map[string][]validator.String{"equals": {"selection_type": {stringvalidator.OneOf("all", "list")}}, "not_equals": {"selection_type": {stringvalidator.OneOf("list")}}}},
+							typedArmValidator{Names: []string{"selection_type", "selected_values", "note"}, Fields: map[string][]string{"equals": {"selection_type", "selected_values", "note"}, "not_equals": {"selection_type", "selected_values"}}, Values: map[string]map[string][]validator.String{"equals": {"selection_type": {stringvalidator.OneOf("all", "list")}}, "not_equals": {"selection_type": {stringvalidator.OneOf("list")}}}},
 						},
 						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"equals\", \"not_equals\".",
 					},
@@ -107,10 +111,10 @@ func Schema() schema.Schema {
 						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("all", "list"),
-							typedArmValidator{Names: []string{"selected_values"}, Fields: map[string][]string{"all": {}, "list": {"selected_values"}}},
+							typedArmValidator{Names: []string{"selected_values", "note"}, Fields: map[string][]string{"all": {}, "list": {"selected_values", "note"}}},
 						},
 						PlanModifiers: []planmodifier.String{
-							typedArmInferred{Arms: []typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values"}}}},
+							typedArmInferred{Arms: []typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values", "note"}}}},
 						},
 						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"all\", \"list\". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.",
 					},
@@ -119,6 +123,10 @@ func Schema() schema.Schema {
 						Computed:            true,
 						ElementType:         types.StringType,
 						Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+						MarkdownDescription: "",
+					},
+					"note": schema.StringAttribute{
+						Optional:            true,
 						MarkdownDescription: "",
 					},
 				},

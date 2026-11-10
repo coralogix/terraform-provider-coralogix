@@ -38,12 +38,14 @@ type TypedAggregationModel struct {
 }
 
 type TypedListModel struct {
-	Values types.List `tfsdk:"selected_values"`
+	Values types.List   `tfsdk:"selected_values"`
+	Note   types.String `tfsdk:"note"`
 }
 
 type TypedSelectionModel struct {
 	SelectionType types.String `tfsdk:"selection_type"`
 	Values        types.List   `tfsdk:"selected_values"`
+	Note          types.String `tfsdk:"note"`
 }
 
 type TypedEqualsModel struct {
@@ -67,6 +69,7 @@ type TypedOperatorModel struct {
 	Type          types.String `tfsdk:"type"`
 	SelectionType types.String `tfsdk:"selection_type"`
 	Values        types.List   `tfsdk:"selected_values"`
+	Note          types.String `tfsdk:"note"`
 }
 
 type TypedSpanFieldModel struct {
