@@ -1337,11 +1337,43 @@ func TestRequiredLineOnAResponseOnlyComponent(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := overrides.Line{Kind: overrides.KindField, Component: "Item", Field: "priority", Required: true}
-	if problem := fieldLineProblem(schema, line, true, true); problem != nil {
+	if problem := fieldLineProblem(schema, line, true, true, nil); problem != nil {
 		t.Fatalf("problem = %v, want none for a component that no request reaches", problem)
 	}
-	if problem := fieldLineProblem(schema, line, true, false); problem == nil || !slices.Contains(problem.stale, "required") {
+	if problem := fieldLineProblem(schema, line, true, false, nil); problem == nil || !slices.Contains(problem.stale, "required") {
 		t.Fatalf("problem = %v, want a stale required key for a shared component", problem)
+	}
+}
+
+// A required line on a resource with a Create body of its own is not stale for a field that Create
+// leaves optional without a default: only the line makes it required in Terraform. A field that
+// Create requires, or gives a default, keeps the line stale.
+func TestCreateOptionalFieldsOfAResourceWithItsOwnCreateBody(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "keything.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := model.Load(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesText, err := os.ReadFile(filepath.Join("testdata", "keything-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, string(overridesText))
+	got := createOptionalFields(doc, "KeyThing", model.OperationIDs{}, file)
+	if got == nil {
+		t.Fatal("createOptionalFields returned nil for a readable Create body")
+	}
+	if !got["presets"] || !got["permissions"] {
+		t.Fatalf("createOptionalFields = %v, want both lists optional: the Create body leaves them out", got)
+	}
+	if got["name"] {
+		t.Fatalf("createOptionalFields = %v: name is required by the Create body", got)
+	}
+	if got["hashed"] {
+		t.Fatalf("createOptionalFields = %v: hashed has a default in the Create body", got)
 	}
 }
 

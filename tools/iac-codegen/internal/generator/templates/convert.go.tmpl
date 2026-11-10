@@ -707,6 +707,23 @@ func unwrap{{.Func}}(w []{{.Item}}) *{{.Local}} {
 	return out
 }
 {{- end}}
+{{- range .Conv.ItemProjections}}
+
+// {{.Func}} takes the {{.Field}} out of each item that the API holds as an object.
+func {{.Func}}(items []{{.Item}}) []string {
+	out := make([]string, 0, len(items))
+	for i := range items {
+		{{- if .Pointer}}
+		if items[i].{{.Field}} != nil {
+			out = append(out, *items[i].{{.Field}})
+		}
+		{{- else}}
+		out = append(out, items[i].{{.Field}})
+		{{- end}}
+	}
+	return out
+}
+{{- end}}
 {{- range .Conv.WrapHelpers}}
 {{- if .Item}}
 // wrap{{.Func}} puts each item in its API wrapper objects.
@@ -1777,6 +1794,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		// The released resource sent an unknown value as its zero value, which the API stores.
 		{{.Dst}} = {{$l}}new({{.ZeroType}}){{$r}}
 	} else {
+{{- else if .UnknownValue}}
+	if m.{{.Model}}.IsUnknown() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as the
+		// value that a new resource has.
+		unknown := {{.ZeroType}}({{.UnknownValue}})
+		{{.Dst}} = {{$l}}&unknown{{$r}}
+	} else {
 {{- end}}
 {{- if and (eq .Conv "string") .SendNullAsEmpty}}
 	if m.{{.Model}}.IsNull() {
@@ -1981,7 +2005,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 {{- end}}
-{{- if .SendUnknownAsZero}}
+{{- if or .SendUnknownAsZero .UnknownValue}}
 	}
 {{- end}}
 {{- end}}
@@ -2015,6 +2039,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})
 {{- else if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
+	{{- if .ReadNullAsEmpty}}
+	if out.{{.Model}}.IsNull() {
+		out.{{.Model}} = types.StringValue("")
+	}
+	{{- end}}
 	{{- template "readZeroAsNull" .}}
 	{{- if .Equality}}
 	if prior != nil {
@@ -2204,6 +2233,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenEnumsMapped{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{.EnumMap.Name}}FromAPI, diags)
 	{{- else if .Enum}}
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
+	{{- else if .Projection}}
+	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Projection.Func}}({{.Src}}), diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)
 	{{- end}}

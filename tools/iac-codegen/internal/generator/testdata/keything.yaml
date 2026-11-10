@@ -1,0 +1,152 @@
+# A resource that users already have, whose Update names and shapes its values differently from
+# Create and Get: Create takes `name`, Update takes `newName`; Get holds `enabled`, which Create
+# cannot set and Update takes as `isEnabled` (a new thing is enabled, and the contract does not
+# declare it as a default, because omitting it in Update keeps the stored value); Create and Get hold the permissions in
+# `keyPermissions`, Update holds each list in a one-property wrapper at the top level; Get holds
+# each preset as an object with a name, while Create and Update send the names.
+openapi: 3.1.0
+info: {title: keything, version: 1.0.0}
+paths:
+  /key/v1/things:
+    post:
+      tags: [Key Things Service]
+      operationId: KeyThingsService_CreateKeyThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Key Thing Request
+              type: object
+              required: [name, owner, keyPermissions]
+              properties:
+                name: {type: string, minLength: 1}
+                owner: {$ref: '#/components/schemas/KeyOwner'}
+                hashed: {type: boolean, default: false}
+                keyPermissions: {$ref: '#/components/schemas/CreateKeyThingRequest.KeyPermissions'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateKeyThingResponse'}
+  /key/v1/things/{key_id}:
+    get:
+      tags: [Key Things Service]
+      operationId: KeyThingsService_GetKeyThing
+      parameters:
+        - {name: key_id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetKeyThingResponse'}
+    put:
+      tags: [Key Things Service]
+      operationId: KeyThingsService_UpdateKeyThing
+      parameters:
+        - {name: key_id, in: path, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Update Key Thing Request
+              type: object
+              properties:
+                newName: {type: string, minLength: 1, x-coralogix-presence: true}
+                isEnabled: {type: boolean, x-coralogix-presence: true}
+                presets: {$ref: '#/components/schemas/KeyThingPresets'}
+                permissions: {$ref: '#/components/schemas/KeyThingPermissions'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UpdateKeyThingResponse'}
+    delete:
+      tags: [Key Things Service]
+      operationId: KeyThingsService_DeleteKeyThing
+      parameters:
+        - {name: key_id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteKeyThingResponse'}
+components:
+  schemas:
+    CreateKeyThingRequest.KeyPermissions:
+      type: object
+      properties:
+        presets: {type: array, items: {type: string, minLength: 1}}
+        permissions: {type: array, items: {type: string, minLength: 1}}
+    CreateKeyThingResponse:
+      type: object
+      required: [keyId]
+      properties:
+        keyId: {type: string, minLength: 1}
+    GetKeyThingResponse:
+      type: object
+      required: [keyInfo]
+      properties:
+        keyInfo: {$ref: '#/components/schemas/KeyThing'}
+    KeyThing:
+      type: object
+      required: [id, name, owner, enabled, hashed, keyPermissions]
+      properties:
+        id: {type: string, minLength: 1}
+        name: {type: string, minLength: 1}
+        owner: {$ref: '#/components/schemas/KeyOwner'}
+        enabled: {type: boolean}
+        hashed: {type: boolean}
+        value: {type: string, x-coralogix-presence: true}
+        keyPermissions: {$ref: '#/components/schemas/KeyThing.KeyPermissions'}
+    KeyOwner:
+      type: object
+      oneOf:
+        - required: [userId]
+          type: object
+        - required: [teamId]
+          type: object
+        - required: [organisationId]
+          type: object
+        - type: object
+          not:
+            anyOf:
+              - required: [userId]
+                type: object
+              - required: [teamId]
+                type: object
+              - required: [organisationId]
+                type: object
+      properties:
+        organisationId: {type: string, minLength: 0}
+        teamId: {type: integer, minimum: 0, format: int64}
+        userId: {type: string, minLength: 0}
+    KeyThing.KeyPermissions:
+      type: object
+      required: [presets, permissions]
+      properties:
+        presets: {type: array, items: {$ref: '#/components/schemas/PresetThing'}}
+        permissions: {type: array, items: {type: string, minLength: 1}}
+    PresetThing:
+      type: object
+      required: [name, permissions]
+      properties:
+        name: {type: string, minLength: 1}
+        permissions: {type: array, items: {type: string, minLength: 1}}
+    KeyThingPresets:
+      type: object
+      properties:
+        presets: {type: array, items: {type: string, minLength: 1}}
+    KeyThingPermissions:
+      type: object
+      properties:
+        permissions: {type: array, items: {type: string, minLength: 1}}
+    UpdateKeyThingResponse:
+      type: object
+    DeleteKeyThingResponse:
+      type: object

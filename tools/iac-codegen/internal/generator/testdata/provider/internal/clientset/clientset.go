@@ -11,6 +11,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/filter_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/key_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
@@ -56,6 +57,7 @@ type ClientSet struct {
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
 	Retag          *retag_things_service.RetagThingsServiceAPIService
 	Default        *default_things_service.DefaultThingsServiceAPIService
+	Key            *key_things_service.KeyThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -114,6 +116,10 @@ func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPI
 
 func (c *ClientSet) WrappedThings() *wrapped_things_service.WrappedThingsServiceAPIService {
 	return c.WrappedID
+}
+
+func (c *ClientSet) KeyThings() *key_things_service.KeyThingsServiceAPIService {
+	return c.Key
 }
 
 func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPIService {

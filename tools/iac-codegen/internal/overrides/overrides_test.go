@@ -55,6 +55,33 @@ func TestParseAndPolicy(t *testing.T) {
 	}
 }
 
+// updateAs and itemName are field lines of their own: a line that holds only one of them sets
+// something, and both reach the policy of the iac module.
+func TestUpdateAsAndItemNameAreFieldLines(t *testing.T) {
+	data := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      name: {updateAs: newName}\n      presets: {itemName: name, computed: false}\n"
+	f, err := Parse([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if want := map[string]string{"Thing.name": "newName"}; !reflect.DeepEqual(p.UpdateNames, want) {
+		t.Errorf("UpdateNames = %v, want %v", p.UpdateNames, want)
+	}
+	if want := map[string]string{"Thing.presets": "name"}; !reflect.DeepEqual(p.ItemNames, want) {
+		t.Errorf("ItemNames = %v, want %v", p.ItemNames, want)
+	}
+	var lines []string
+	for _, l := range f.Lines() {
+		lines = append(lines, l.String())
+	}
+	if got := strings.Join(lines, ","); !strings.Contains(got, "types.Thing.fields.name") || !strings.Contains(got, "types.Thing.fields.presets") {
+		t.Errorf("lines = %s, want both field lines", got)
+	}
+	if _, err := Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      name: {updateAs: \"a..b\"}\n")); err == nil || !strings.Contains(err.Error(), "updateAs") {
+		t.Errorf("a bad updateAs path: err = %v, want an updateAs error", err)
+	}
+}
+
 func TestPolicyCopiesBodyMask(t *testing.T) {
 	text := `
 resource: Thing
