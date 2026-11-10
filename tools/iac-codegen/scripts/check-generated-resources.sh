@@ -2,6 +2,7 @@
 # Require every committed generated resource to match the current generator output.
 set -euo pipefail
 
+scripts=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
@@ -18,8 +19,7 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-sed -nE 's#^//go:generate make -C \.\./\.\. codegen RESOURCE=([^ ]+) OUT=([^ ]+)$#\1 \2#p' \
-  internal/provider/codegen.go >"$work/resources"
+"$scripts/codegen-list.sh" >"$work/resources"
 if [[ ! -s "$work/resources" ]]; then
   printf '%s\n' 'No generated resources are listed in internal/provider/codegen.go.' >&2
   exit 1

@@ -45,6 +45,8 @@ type dataSourceBaseline struct {
 
 var dataSourceBaselines = map[string]dataSourceBaseline{
 	"scope":               {scopeGoldenDir, newScopeHarness, scopeDataSourceScenarios},
+	"dashboard":           {dashboardGoldenDir, newDashboardHarness, dashboardDataSourceScenarios},
+	"team":                {teamGoldenDir, newTeamHarness, teamDataSourceScenarios},
 	"configuration_group": {cgGoldenDir, newCGHarness, cgDataSourceScenarios},
 	"alerts_scheduler": {asGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, asTypeName, newASFake(t))
@@ -61,6 +63,9 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"archive_metrics": {amGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, amTypeName, newAMFake(t))
 	}, amDataSourceScenarios},
+	"archive_retentions": {arGoldenDir, func(t *testing.T) *grHarness {
+		return newProtocolHarness(t, arTypeName, newARFake(t))
+	}, arDataSourceScenarios},
 	"quota_allocation_rule_set":  {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
 	"action":                     {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
 	"integration":                {integrationGoldenDir, newIntegrationHarness, integrationDataSourceScenarios},
@@ -96,7 +101,7 @@ func TestDataSourceBaselineScenarios(t *testing.T) {
 			t.Run(name+"/"+scenario, func(t *testing.T) {
 				h := baseline.harness(t)
 				run(h)
-				checkGoldenAt(t, baseline.dir, "datasource_"+scenario+".json", marshalGolden(t, h.steps))
+				checkGoldenAt(t, baseline.dir, "datasource_"+scenario+".json", marshalDataSourceGolden(t, name, h.steps))
 			})
 		}
 	}

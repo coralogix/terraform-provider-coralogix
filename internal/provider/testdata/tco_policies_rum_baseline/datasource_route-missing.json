@@ -10,8 +10,11 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_tco_policies_rum is in state, but no longer exists in Coralogix backend | coralogix_tco_policies_rum will be recreated when you apply"
+      "error: Unable to read coralogix_tco_policies_rum | id tco-policies-rum: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
-    "state": null
+    "state": {
+      "id": null,
+      "policies": null
+    }
   }
 ]

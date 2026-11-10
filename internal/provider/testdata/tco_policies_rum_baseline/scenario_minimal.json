@@ -13,7 +13,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -55,10 +55,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -90,7 +95,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,

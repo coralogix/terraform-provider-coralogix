@@ -1,0 +1,164 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "platform"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "(unknown)",
+      "name": "platform",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "platform"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "platform",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "platform",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "platform-renamed"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "platform-renamed",
+      "retention": 1
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "platform-renamed"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "platform-renamed",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change quota",
+    "config": {
+      "daily_quota": 0.25,
+      "name": "platform-renamed"
+    },
+    "plan": {
+      "daily_quota": 0.25,
+      "id": "1001",
+      "name": "platform-renamed",
+      "retention": 1
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "body": {
+          "dailyQuota": 0.25,
+          "teamName": "platform-renamed"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "daily_quota"
+    ],
+    "state": {
+      "daily_quota": 0.26,
+      "id": "1001",
+      "name": "platform-renamed",
+      "retention": 1
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"daily_quota\")"
+    ]
+  },
+  {
+    "step": "refresh and replan after update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.26,
+      "id": "1001",
+      "name": "platform-renamed",
+      "retention": 1
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"daily_quota\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

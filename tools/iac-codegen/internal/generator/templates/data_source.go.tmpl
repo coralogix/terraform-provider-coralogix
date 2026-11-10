@@ -5,6 +5,9 @@ package {{.Package}}
 import (
 	"context"
 	"fmt"
+{{- if .CRUD.IDAsString}}
+	"strconv"
+{{- end}}
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -202,12 +205,25 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .IDAsString}}
+	// The id attribute holds the decimal text of the id. A lookup by name leaves it null.
+	var id {{.IDGoType}}
+	if !configured.IsNull() {
+		parsed, parseErr := strconv.ParseInt(configured.ValueString(), 10, {{.IDBits}})
+		if parseErr != nil {
+			resp.Diagnostics.AddAttributeError(path.Root({{printf "%q" .IDAttr}}), "Invalid id", fmt.Sprintf("The id %q is not a valid {{.IDGoType}}.", configured.ValueString()))
+			return
+		}
+		id = parsed
+	}
+{{- else}}
 	id := configured.Value{{.IDTFType}}()
 {{- if .Get.IDs}}
 	if configured.IsUnknown() || id == "" {
 		resp.Diagnostics.AddError("Unable to read coralogix_"+TypeName, fmt.Sprintf("id must be set to a non-empty %s id.", TypeName))
 		return
 	}
+{{- end}}
 {{- end}}
 {{- if $name}}
 	if !name.IsNull() {
@@ -312,7 +328,11 @@ func (d *DataSource) idByName(ctx context.Context, name string) ({{.IDGoType}}, 
 {{- end}}
 				continue
 			}
-{{- if $name.IDValue}}
+{{- if $name.IDWrap}}
+			if id := unwrap{{$name.IDWrap}}({{if $name.IDValue}}&{{end}}item.{{$name.ItemID}}); id != nil {
+				ids = append(ids, *id)
+			}
+{{- else if $name.IDValue}}
 			ids = append(ids, item.{{$name.ItemID}})
 {{- else}}
 			if item.{{$name.ItemID}} != nil {

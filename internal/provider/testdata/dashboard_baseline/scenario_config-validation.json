@@ -1,0 +1,494 @@
+[
+  {
+    "step": "no layout and no content_json",
+    "config": {
+      "name": "x"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [] | No attribute was configured in this one-of group. Configure exactly one value."
+    ],
+    "state": null
+  },
+  {
+    "step": "layout and content_json together",
+    "config": {
+      "content_json": "{}",
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "t"
+                      }
+                    },
+                    "title": "n"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | Attribute \"layout\" cannot be specified when \"content_json\" is specified",
+      "error: Invalid Attribute Combination [] | Only one of these attributes can be configured: `content_json`, `layout`.",
+      "error: content_json validation failed | json content is not matching layout schema. got an err while unmarshalling - unmarshal normalized dashboard JSON: no value given for required property layout"
+    ],
+    "state": null
+  },
+  {
+    "step": "content_json with name",
+    "config": {
+      "content_json": "{}",
+      "name": "x"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | Attribute \"name\" cannot be specified when \"content_json\" is specified",
+      "error: content_json validation failed | json content is not matching layout schema. got an err while unmarshalling - unmarshal normalized dashboard JSON: no value given for required property layout"
+    ],
+    "state": null
+  },
+  {
+    "step": "content_json with description",
+    "config": {
+      "content_json": "{}",
+      "description": "x"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | Attribute \"description\" cannot be specified when \"content_json\" is specified",
+      "error: content_json validation failed | json content is not matching layout schema. got an err while unmarshalling - unmarshal normalized dashboard JSON: no value given for required property layout"
+    ],
+    "state": null
+  },
+  {
+    "step": "content_json with filters",
+    "config": {
+      "content_json": "{}",
+      "filters": [
+        {
+          "source": {
+            "metrics": {
+              "metric_name": "m",
+              "operator": {
+                "type": "equals"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | Attribute \"filters\" cannot be specified when \"content_json\" is specified",
+      "error: content_json validation failed | json content is not matching layout schema. got an err while unmarshalling - unmarshal normalized dashboard JSON: no value given for required property layout"
+    ],
+    "state": null
+  },
+  {
+    "step": "folder with id and path",
+    "config": {
+      "folder": {
+        "id": "a",
+        "path": "b"
+      },
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"folder\")] | Only one of these attributes can be configured: `id`, `path`."
+    ],
+    "state": null
+  },
+  {
+    "step": "folder with neither",
+    "config": {
+      "folder": {},
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"folder\")] | No attribute was configured in this one-of group. Configure exactly one value."
+    ],
+    "state": null
+  },
+  {
+    "step": "time_frame with both",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": {
+        "absolute": {
+          "end": "b",
+          "start": "a"
+        },
+        "relative": {
+          "duration": "seconds:1"
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"time_frame\")] | Only one of these attributes can be configured: `absolute`, `relative`."
+    ],
+    "state": null
+  },
+  {
+    "step": "time_frame with neither",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": {}
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"time_frame\")] | No attribute was configured in this one-of group. Configure exactly one value."
+    ],
+    "state": null
+  },
+  {
+    "step": "auto_refresh with an unknown type",
+    "config": {
+      "auto_refresh": {
+        "type": "hourly"
+      },
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"auto_refresh\").AttributeName(\"type\")] | Attribute auto_refresh.type value must be one of: [\"off\" \"one_minute\" \"two_minutes\" \"five_minutes\" \"fifteen_minutes\"], got: \"hourly\""
+    ],
+    "state": null
+  },
+  {
+    "step": "empty filters list",
+    "config": {
+      "filters": [],
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"filters\")] | Attribute filters list must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "row height below 1",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 0
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"height\")] | Attribute layout.sections[0].rows[0].height value must be at least 1, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "widget with no definition and no reference",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "title": "x"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0)] | No attribute was configured in this one-of group. Configure exactly one value."
+    ],
+    "state": null
+  },
+  {
+    "step": "widget with definition and reference",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "t"
+                      }
+                    },
+                    "reference": {
+                      "dashboard_id": "d",
+                      "widget_id": "w"
+                    },
+                    "title": "x"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0)] | Only one of these attributes can be configured: `definition`, `reference`."
+    ],
+    "state": null
+  },
+  {
+    "step": "definition with two widget kinds",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "dynamic": {},
+                      "markdown": {
+                        "markdown_text": "t"
+                      }
+                    },
+                    "title": "x"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\")] | Only one of these attributes can be configured: `markdown`, `dynamic`."
+    ],
+    "state": null
+  },
+  {
+    "step": "definition with no widget kind",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {},
+                    "title": "x"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\")] | No attribute was configured in this one-of group. Configure exactly one value."
+    ],
+    "state": null
+  },
+  {
+    "step": "widget reference without widget_id",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "reference": {
+                      "dashboard_id": "d"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"reference\").AttributeName(\"widget_id\")] | Must set a configuration value for the layout.sections[0].rows[0].widgets[0].reference.widget_id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "a valid config",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "state": null
+  }
+]

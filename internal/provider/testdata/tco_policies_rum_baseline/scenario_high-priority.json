@@ -13,7 +13,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -58,7 +58,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_rum | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: RUM policies do not support HIGH priority; use MEDIUM or lower.\"}\noperation - Create"
+      "error: Unable to create tco_policies_rum | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: RUM policies do not support HIGH priority; use MEDIUM or lower.\"}"
     ],
     "state": null
   }

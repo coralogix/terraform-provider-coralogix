@@ -53,6 +53,44 @@ jobs:
       - name: Run unit tests
         run: make test
 
+  test-dashboard-baseline:
+    # The dashboard baseline tests run here, next to the unit tests, with a longer limit.
+    name: Dashboard baseline tests
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        with:
+          go-version: 1.26.x
+      - name: Run dashboard baseline tests
+        run: make test-dashboard-baseline
+
+  test-dashboard-walk:
+    # The schema walk of all 46 bases, in four jobs of about the same run time.
+    name: Dashboard walk (shard ${{ matrix.shard }} of 4)
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [ 1, 2, 3, 4 ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        with:
+          go-version: 1.26.x
+      - name: Walk the shard
+        run: make test-dashboard-walk SHARD=${{ matrix.shard }}
+
   iac-codegen:
     name: IaC generator
     permissions:
@@ -86,6 +124,16 @@ jobs:
         run: bash tools/iac-codegen/scripts/check-version-change_test.sh
       - name: Test generated resources check
         run: bash tools/iac-codegen/scripts/check-generated-resources_test.sh
+      - name: Test changelog entry script
+        run: bash tools/iac-codegen/scripts/add-changelog-entry_test.sh
+      - name: Test auto-regenerate list check
+        run: bash tools/iac-codegen/scripts/check-auto-regenerate-list_test.sh
+      - name: Test SDK ref resolution
+        run: bash tools/iac-codegen/scripts/resolve-sdk-ref_test.sh
+      - name: Test schema change classification
+        run: bash tools/iac-codegen/scripts/schema-changes_test.sh
+      - name: Require generated resources in the auto-regenerate list
+        run: tools/iac-codegen/scripts/check-auto-regenerate-list.sh > /dev/null
       - name: Require generator version change
         if: github.event_name == 'pull_request'
         run: tools/iac-codegen/scripts/check-version-change.sh '${{ github.event.pull_request.base.sha }}'

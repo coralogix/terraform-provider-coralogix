@@ -769,8 +769,8 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		})
 	}
 	_, err = validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", providerModulePath, lineOf("{required: true}"))
-	if !reportHas(requireReport(t, err), "OVERRIDE_UNUSED", "behavior-overrides.yaml:types.ArchivedThing.fields.priority") {
-		t.Fatalf("required line: err = %v, want OVERRIDE_UNUSED", err)
+	if !reportHas(requireReport(t, err), "RENDERER_SHAPE_UNSUPPORTED", "renderer.schema") || !strings.Contains(err.Error(), "required and computed") {
+		t.Fatalf("required line: err = %v, want the required/computed conflict", err)
 	}
 }
 

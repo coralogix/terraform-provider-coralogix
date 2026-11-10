@@ -13,6 +13,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rename_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/retag_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
@@ -21,12 +22,14 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/wrapped_things_service"
 )
 
 type ClientSet struct {
 	Overwrite      *overwrite_things_service.OverwriteThingsServiceAPIService
 	ActionThing    *action_things_service.ActionThingsServiceAPIService
 	Folder         *folder_things_service.FolderThingsServiceAPIService
+	WrappedID      *wrapped_things_service.WrappedThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
 	SettingsClient *settings_service.SettingsServiceAPIService
 	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
@@ -44,6 +47,7 @@ type ClientSet struct {
 	Rename         *rename_things_service.RenameThingsServiceAPIService
 	Parse          *parse_things_service.ParseThingsServiceAPIService
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
+	Retag          *retag_things_service.RetagThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -96,6 +100,10 @@ func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPI
 	return c.Folder
 }
 
+func (c *ClientSet) WrappedThings() *wrapped_things_service.WrappedThingsServiceAPIService {
+	return c.WrappedID
+}
+
 func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPIService {
 	return c.Rename
 }
@@ -114,4 +122,8 @@ func (c *ClientSet) GroupSetThings() *group_set_things_service.GroupSetThingsSer
 
 func (c *ClientSet) OverwriteThings() *overwrite_things_service.OverwriteThingsServiceAPIService {
 	return c.Overwrite
+}
+
+func (c *ClientSet) RetagThings() *retag_things_service.RetagThingsServiceAPIService {
+	return c.Retag
 }

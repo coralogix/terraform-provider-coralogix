@@ -1,0 +1,1229 @@
+[
+  {
+    "step": "create variant 0",
+    "request": {
+      "dashboard": {
+        "actions": [
+          {
+            "dataSource": "ACTION_DATA_SOURCE_TYPE_DATAPRIME",
+            "definition": {
+              "customAction": {
+                "url": "value-url"
+              }
+            },
+            "id": "<id-1>",
+            "name": "value-name",
+            "shouldOpenInNewWindow": true,
+            "widgetId": "<id-1>"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "id": {
+                "value": "<id-1>"
+              },
+              "options": {
+                "internal": {}
+              },
+              "rows": [
+                {
+                  "appearance": {
+                    "height": 1
+                  },
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "widgets": [
+                    {
+                      "appearance": {
+                        "width": 1
+                      },
+                      "definition": {
+                        "lineChart": {
+                          "connectNulls": true,
+                          "legend": {
+                            "columns": [
+                              "LEGEND_COLUMN_AVG"
+                            ],
+                            "groupByQuery": true,
+                            "isVisible": true,
+                            "placement": "LEGEND_PLACEMENT_AUTO"
+                          },
+                          "queryDefinitions": [
+                            {
+                              "colorScheme": "classic",
+                              "customUnit": "value-custom_unit",
+                              "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+                              "decimal": 1,
+                              "decimalPrecision": true,
+                              "hashColors": true,
+                              "id": "<id-2>",
+                              "intervalResolution": {
+                                "auto": {
+                                  "maximumDataPoints": 1,
+                                  "minimumInterval": "900s"
+                                },
+                                "useAdvancedLimit": true
+                              },
+                              "isVisible": true,
+                              "name": "value-name",
+                              "query": {
+                                "spans": {
+                                  "aggregations": [
+                                    {
+                                      "metricAggregation": {}
+                                    }
+                                  ],
+                                  "filters": [
+                                    {
+                                      "field": {
+                                        "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                      },
+                                      "observationField": {
+                                        "keypath": [
+                                          "value-keypath"
+                                        ],
+                                        "relationType": "SPAN_RELATION_TYPE_OTHER",
+                                        "scope": "DATASET_SCOPE_LABEL"
+                                      },
+                                      "operator": {
+                                        "equals": {
+                                          "selection": {
+                                            "all": {}
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "groupBy": [
+                                    {
+                                      "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                    }
+                                  ],
+                                  "groupBys": [
+                                    {
+                                      "keypath": [
+                                        "value-keypath"
+                                      ],
+                                      "relationType": "SPAN_RELATION_TYPE_OTHER",
+                                      "scope": "DATASET_SCOPE_LABEL"
+                                    }
+                                  ],
+                                  "luceneQuery": {
+                                    "value": "value-lucene_query"
+                                  },
+                                  "timeFrame": {
+                                    "absoluteTimeFrame": {
+                                      "from": "2024-01-01T00:00:00Z",
+                                      "to": "2024-01-01T00:00:00Z"
+                                    }
+                                  }
+                                }
+                              },
+                              "resolution": {
+                                "bucketsPresented": 1
+                              },
+                              "scaleType": "SCALE_TYPE_LINEAR",
+                              "seriesCountLimit": "1",
+                              "seriesNameTemplate": "value-series_name_template",
+                              "unit": "UNIT_BYTES",
+                              "yAxisMax": 1,
+                              "yAxisMin": 1
+                            }
+                          ],
+                          "stackedLine": "STACKED_LINE_ABSOLUTE",
+                          "tooltip": {
+                            "showLabels": true,
+                            "type": "TOOLTIP_TYPE_ALL"
+                          },
+                          "useDataTimeRange": true,
+                          "xAxisTimeFormat": "X_AXIS_TIME_FORMAT_AUTO"
+                        }
+                      },
+                      "description": "value-description",
+                      "highlighted": true,
+                      "id": {
+                        "value": "<id-1>"
+                      },
+                      "title": "value-title"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "walk line_chart_spans"
+      }
+    },
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": {
+                        "connect_nulls": true,
+                        "legend": {
+                          "columns": [
+                            "avg"
+                          ],
+                          "group_by_query": true,
+                          "is_visible": true,
+                          "placement": "auto"
+                        },
+                        "query_definitions": [
+                          {
+                            "color_scheme": "classic",
+                            "custom_unit": "value-custom_unit",
+                            "data_mode_type": "archive",
+                            "decimal": 1,
+                            "decimal_precision": true,
+                            "hash_colors": true,
+                            "id": "<id-2>",
+                            "interval_resolution": {
+                              "auto": {
+                                "maximum_data_points": 1,
+                                "minimum_interval": "900s"
+                              },
+                              "manual": null,
+                              "use_advanced_limit": true
+                            },
+                            "is_visible": true,
+                            "name": "value-name",
+                            "query": {
+                              "data_prime": null,
+                              "logs": null,
+                              "metrics": null,
+                              "spans": {
+                                "aggregations": [
+                                  {
+                                    "aggregation_type": "unspecified",
+                                    "field": "unspecified",
+                                    "type": "metric"
+                                  }
+                                ],
+                                "filters": [
+                                  {
+                                    "field": {
+                                      "type": "metadata",
+                                      "value": "service_name"
+                                    },
+                                    "observation_field": {
+                                      "keypath": [
+                                        "value-keypath"
+                                      ],
+                                      "relation_type": "other",
+                                      "scope": "label"
+                                    },
+                                    "operator": {
+                                      "selected_values": [],
+                                      "selection_type": "all",
+                                      "type": "equals"
+                                    }
+                                  }
+                                ],
+                                "group_by": [
+                                  {
+                                    "type": "metadata",
+                                    "value": "service_name"
+                                  }
+                                ],
+                                "group_bys": [
+                                  {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "relation_type": "other",
+                                    "scope": "label"
+                                  }
+                                ],
+                                "lucene_query": "value-lucene_query",
+                                "time_frame": {
+                                  "absolute": {
+                                    "end": "2024-01-01T00:00:00Z",
+                                    "start": "2024-01-01T00:00:00Z"
+                                  },
+                                  "relative": null
+                                }
+                              }
+                            },
+                            "resolution": {
+                              "buckets_presented": 1,
+                              "interval": null
+                            },
+                            "scale_type": "linear",
+                            "series_count_limit": 1,
+                            "series_name_template": "value-series_name_template",
+                            "unit": "bytes",
+                            "y_axis_max": 1,
+                            "y_axis_min": 1
+                          }
+                        ],
+                        "stacked_line": "absolute",
+                        "tooltip": {
+                          "show_labels": true,
+                          "type": "all"
+                        },
+                        "use_data_time_range": true,
+                        "x_axis_time_format": "auto"
+                      },
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk line_chart_spans",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "update variant 0 with another name",
+    "request": {
+      "dashboard": {
+        "actions": [
+          {
+            "dataSource": "ACTION_DATA_SOURCE_TYPE_DATAPRIME",
+            "definition": {
+              "customAction": {
+                "url": "value-url"
+              }
+            },
+            "id": "<id-1>",
+            "name": "value-name",
+            "shouldOpenInNewWindow": true,
+            "widgetId": "<id-1>"
+          }
+        ],
+        "id": "fakeboard000000000001",
+        "layout": {
+          "sections": [
+            {
+              "id": {
+                "value": "<id-1>"
+              },
+              "options": {
+                "internal": {}
+              },
+              "rows": [
+                {
+                  "appearance": {
+                    "height": 1
+                  },
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "widgets": [
+                    {
+                      "appearance": {
+                        "width": 1
+                      },
+                      "definition": {
+                        "lineChart": {
+                          "connectNulls": true,
+                          "legend": {
+                            "columns": [
+                              "LEGEND_COLUMN_AVG"
+                            ],
+                            "groupByQuery": true,
+                            "isVisible": true,
+                            "placement": "LEGEND_PLACEMENT_AUTO"
+                          },
+                          "queryDefinitions": [
+                            {
+                              "colorScheme": "classic",
+                              "customUnit": "value-custom_unit",
+                              "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+                              "decimal": 1,
+                              "decimalPrecision": true,
+                              "hashColors": true,
+                              "id": "<id-2>",
+                              "intervalResolution": {
+                                "auto": {
+                                  "maximumDataPoints": 1,
+                                  "minimumInterval": "900s"
+                                },
+                                "useAdvancedLimit": true
+                              },
+                              "isVisible": true,
+                              "name": "value-name",
+                              "query": {
+                                "spans": {
+                                  "aggregations": [
+                                    {
+                                      "metricAggregation": {}
+                                    }
+                                  ],
+                                  "filters": [
+                                    {
+                                      "field": {
+                                        "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                      },
+                                      "observationField": {
+                                        "keypath": [
+                                          "value-keypath"
+                                        ],
+                                        "relationType": "SPAN_RELATION_TYPE_OTHER",
+                                        "scope": "DATASET_SCOPE_LABEL"
+                                      },
+                                      "operator": {
+                                        "equals": {
+                                          "selection": {
+                                            "all": {}
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "groupBy": [
+                                    {
+                                      "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                    }
+                                  ],
+                                  "groupBys": [
+                                    {
+                                      "keypath": [
+                                        "value-keypath"
+                                      ],
+                                      "relationType": "SPAN_RELATION_TYPE_OTHER",
+                                      "scope": "DATASET_SCOPE_LABEL"
+                                    }
+                                  ],
+                                  "luceneQuery": {
+                                    "value": "value-lucene_query"
+                                  },
+                                  "timeFrame": {
+                                    "absoluteTimeFrame": {
+                                      "from": "2024-01-01T00:00:00Z",
+                                      "to": "2024-01-01T00:00:00Z"
+                                    }
+                                  }
+                                }
+                              },
+                              "resolution": {
+                                "bucketsPresented": 1
+                              },
+                              "scaleType": "SCALE_TYPE_LINEAR",
+                              "seriesCountLimit": "1",
+                              "seriesNameTemplate": "value-series_name_template",
+                              "unit": "UNIT_BYTES",
+                              "yAxisMax": 1,
+                              "yAxisMin": 1
+                            }
+                          ],
+                          "stackedLine": "STACKED_LINE_ABSOLUTE",
+                          "tooltip": {
+                            "showLabels": true,
+                            "type": "TOOLTIP_TYPE_ALL"
+                          },
+                          "useDataTimeRange": true,
+                          "xAxisTimeFormat": "X_AXIS_TIME_FORMAT_AUTO"
+                        }
+                      },
+                      "description": "value-description",
+                      "highlighted": true,
+                      "id": {
+                        "value": "<id-1>"
+                      },
+                      "title": "value-title"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "walk line_chart_spans updated"
+      }
+    },
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": {
+                        "connect_nulls": true,
+                        "legend": {
+                          "columns": [
+                            "avg"
+                          ],
+                          "group_by_query": true,
+                          "is_visible": true,
+                          "placement": "auto"
+                        },
+                        "query_definitions": [
+                          {
+                            "color_scheme": "classic",
+                            "custom_unit": "value-custom_unit",
+                            "data_mode_type": "archive",
+                            "decimal": 1,
+                            "decimal_precision": true,
+                            "hash_colors": true,
+                            "id": "<id-2>",
+                            "interval_resolution": {
+                              "auto": {
+                                "maximum_data_points": 1,
+                                "minimum_interval": "900s"
+                              },
+                              "manual": null,
+                              "use_advanced_limit": true
+                            },
+                            "is_visible": true,
+                            "name": "value-name",
+                            "query": {
+                              "data_prime": null,
+                              "logs": null,
+                              "metrics": null,
+                              "spans": {
+                                "aggregations": [
+                                  {
+                                    "aggregation_type": "unspecified",
+                                    "field": "unspecified",
+                                    "type": "metric"
+                                  }
+                                ],
+                                "filters": [
+                                  {
+                                    "field": {
+                                      "type": "metadata",
+                                      "value": "service_name"
+                                    },
+                                    "observation_field": {
+                                      "keypath": [
+                                        "value-keypath"
+                                      ],
+                                      "relation_type": "other",
+                                      "scope": "label"
+                                    },
+                                    "operator": {
+                                      "selected_values": [],
+                                      "selection_type": "all",
+                                      "type": "equals"
+                                    }
+                                  }
+                                ],
+                                "group_by": [
+                                  {
+                                    "type": "metadata",
+                                    "value": "service_name"
+                                  }
+                                ],
+                                "group_bys": [
+                                  {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "relation_type": "other",
+                                    "scope": "label"
+                                  }
+                                ],
+                                "lucene_query": "value-lucene_query",
+                                "time_frame": {
+                                  "absolute": {
+                                    "end": "2024-01-01T00:00:00Z",
+                                    "start": "2024-01-01T00:00:00Z"
+                                  },
+                                  "relative": null
+                                }
+                              }
+                            },
+                            "resolution": {
+                              "buckets_presented": 1,
+                              "interval": null
+                            },
+                            "scale_type": "linear",
+                            "series_count_limit": 1,
+                            "series_name_template": "value-series_name_template",
+                            "unit": "bytes",
+                            "y_axis_max": 1,
+                            "y_axis_min": 1
+                          }
+                        ],
+                        "stacked_line": "absolute",
+                        "tooltip": {
+                          "show_labels": true,
+                          "type": "all"
+                        },
+                        "use_data_time_range": true,
+                        "x_axis_time_format": "auto"
+                      },
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk line_chart_spans updated",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "refresh and plan variant 0",
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
+    ]
+  },
+  {
+    "step": "remove optional values (39)",
+    "changes": [
+      "remove layout.sections[].id",
+      "remove layout.sections[].rows[].id",
+      "remove layout.sections[].rows[].widgets[].custom_actions[].id",
+      "remove layout.sections[].rows[].widgets[].custom_actions[].should_open_in_new_window",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.connect_nulls",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.legend.columns",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.legend.group_by_query",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.legend.is_visible",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.legend.placement",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].color_scheme",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].custom_unit",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].data_mode_type",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].decimal",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].decimal_precision",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].hash_colors",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.auto.maximum_data_points",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.auto.minimum_interval",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.use_advanced_limit",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].is_visible",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].name",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].observation_field.relation_type",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selection_type",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys[].relation_type",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.lucene_query",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].scale_type",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].series_count_limit",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].series_name_template",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].unit",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].y_axis_max",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].y_axis_min",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.stacked_line",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.tooltip.show_labels",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.tooltip.type",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.use_data_time_range",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.x_axis_time_format",
+      "remove layout.sections[].rows[].widgets[].description",
+      "remove layout.sections[].rows[].widgets[].highlighted",
+      "remove layout.sections[].rows[].widgets[].id",
+      "remove layout.sections[].rows[].widgets[].width"
+    ],
+    "requestDiff": [
+      "- .dashboard.actions[0].shouldOpenInNewWindow",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.connectNulls",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.columns[0]",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.groupByQuery: true → false",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].colorScheme",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].customUnit",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].decimal",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].decimalPrecision",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].hashColors",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].intervalResolution.auto.maximumDataPoints",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].intervalResolution.auto.minimumInterval",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].intervalResolution.useAdvancedLimit",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].name",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].observationField.relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_NONE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBys[0].relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_NONE_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.luceneQuery",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].scaleType: \"SCALE_TYPE_LINEAR\" → \"SCALE_TYPE_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].seriesCountLimit",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].seriesNameTemplate",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].unit: \"UNIT_BYTES\" → \"UNIT_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].yAxisMax",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].yAxisMin",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.stackedLine: \"STACKED_LINE_ABSOLUTE\" → \"STACKED_LINE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.tooltip.showLabels: true → false",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.tooltip.type",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.useDataTimeRange",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].description"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].should_open_in_new_window: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.connect_nulls: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.columns: [\"avg\"] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.group_by_query: true → false",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].color_scheme: \"classic\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].custom_unit: \"value-custom_unit\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].data_mode_type: \"archive\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].decimal: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].decimal_precision: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].hash_colors: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution.auto.maximum_data_points: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution.auto.minimum_interval: \"900s\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution.use_advanced_limit: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].name: \"value-name\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].observation_field.relation_type: \"other\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys[0].relation_type: \"other\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.lucene_query: \"value-lucene_query\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].scale_type: \"linear\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].series_count_limit: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].series_name_template: \"value-series_name_template\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].unit: \"bytes\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].y_axis_max: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].y_axis_min: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.stacked_line: \"absolute\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.show_labels: true → false",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type: \"all\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.use_data_time_range: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"tooltip\").AttributeName(\"type\")"
+    ]
+  },
+  {
+    "step": "remove layout.sections",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections"
+    ],
+    "stateDiff": [
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d3a1eb85] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 2 (2)",
+    "changes": [
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:99576696] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:950f502c] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 4 (10)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].custom_actions",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.legend",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_by",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.time_frame",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].resolution",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.tooltip"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].intervalResolution",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.aggregations",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBy",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBys",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.timeFrame",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].resolution",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.tooltip"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution: {\"auto\":{\"maximum_data_points\":1,\"minimum_interval\":\"900s\"},\"manual\":null,\"use_advanced_limit\":true} → null",
+      "- .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0]",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters: [{\"field\":{\"type\":\"metadata\",\"value\":\"service_name\"},\"observation_field\":{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"},\"operator\":{\"sele…[sha256:1cefcaac] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys: [{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].resolution: {\"buckets_presented\":1,\"interval\":null} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip: {\"show_labels\":true,\"type\":\"all\"} → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\")"
+    ]
+  },
+  {
+    "step": "remove optional objects, round 5 (2)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].field",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].observation_field"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].field",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].observationField"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].field: {\"type\":\"metadata\",\"value\":\"service_name\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"} → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections"
+    ],
+    "stateDiff": [
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d3a1eb85] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (6)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.legend.columns",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_by",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.columns list must contain at least ",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].w",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_bys\")] | Attribute layout.sections[0].rows[0]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (3)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.legend.columns",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.columns list must contain at least ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.legend.columns",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.columns list must contain at least ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.legend.columns",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.columns list must contain at least ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.aggregations"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0]"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty optional lists, round 4 (3)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_by",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].w",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_bys\")] | Attribute layout.sections[0].rows[0]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].w",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_by",
+      "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_bys\")] | Attribute layout.sections[0].rows[0]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_by",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBy"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_bys\")] | Attribute layout.sections[0].rows[0]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set enums to unspecified (11)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].definition.line_chart.legend.placement = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].data_mode_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].observation_field.relation_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].observation_field.scope = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys[].relation_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys[].scope = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].scale_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].unit = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.stacked_line = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.tooltip.type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.x_axis_time_format = unspecified"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.placement: \"LEGEND_PLACEMENT_AUTO\" → \"LEGEND_PLACEMENT_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].observationField.relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_NONE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBys[0].relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_NONE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBys[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].scaleType: \"SCALE_TYPE_LINEAR\" → \"SCALE_TYPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].unit: \"UNIT_BYTES\" → \"UNIT_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.stackedLine: \"STACKED_LINE_ABSOLUTE\" → \"STACKED_LINE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.tooltip.type: \"TOOLTIP_TYPE_ALL\" → \"TOOLTIP_TYPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.xAxisTimeFormat: \"X_AXIS_TIME_FORMAT_AUTO\" → \"X_AXIS_TIME_FORMAT_UNSPECIFIED\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.placement: \"auto\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].data_mode_type: \"archive\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].observation_field.relation_type: \"other\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].observation_field.scope: \"label\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys[0].relation_type: \"other\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys[0].scope: \"label\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].scale_type: \"linear\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].unit: \"bytes\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.stacked_line: \"absolute\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type: \"all\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.x_axis_time_format: \"auto\" → \"unspecified\""
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
+    ]
+  },
+  {
+    "step": "set enums to their last value (7)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].custom_actions[].data_source = spans",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].color_scheme = blue",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].field.type = process_tag",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].observation_field.scope = user_data",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_by[].type = process_tag",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys[].scope = user_data",
+      "set layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].unit = usd_cents"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_SPANS\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].colorScheme: \"classic\" → \"blue\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].field.metadataField",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].field.processTagField: \"service_name\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBy[0].metadataField",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBy[0].processTagField: \"service_name\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBys[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].unit: \"UNIT_BYTES\" → \"UNIT_USD_CENTS\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].color_scheme: \"classic\" → \"blue\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].field.type: \"metadata\" → \"process_tag\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].observation_field.scope: \"label\" → \"user_data\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by[0].type: \"metadata\" → \"process_tag\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys[0].scope: \"label\" → \"user_data\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].unit: \"bytes\" → \"usd_cents\""
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
+    ]
+  },
+  {
+    "step": "apply variant 1",
+    "diagnostics": [
+      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove optional values (3)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.maximum_data_points",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.minimum_interval",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values"
+    ],
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.maximum_data_points",
+    "diagnostics": [
+      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove optional values (2)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.minimum_interval",
+      "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values"
+    ],
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.minimum_interval",
+    "diagnostics": [
+      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values",
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values",
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set layout.sections[].options.color = orange",
+    "diagnostics": [
+      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  }
+]

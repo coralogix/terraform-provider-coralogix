@@ -113,7 +113,7 @@ func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequ
 		resp.Diagnostics.AddError("Invalid import ID", fmt.Sprintf("The import ID %q is not a valid int32.", req.ID))
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int32(id))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idStateValue(int32(id)))...)
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -151,10 +151,10 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		// the state, so Terraform marks the resource as tainted.
 		resp.Diagnostics.Append(r.applyUpdateOnly(ctx, req.Config, req.Plan, &resp.State)...)
 	}
-	if diags.HasError() && v != nil {
+	if id, ok := apiID(v); diags.HasError() && ok {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idStateValue(id))...)
 	}
 }
 
@@ -409,4 +409,17 @@ func stateID(ctx context.Context, state tfsdk.State) (int32, diag.Diagnostics) {
 	var id types.Int32
 	diags := state.GetAttribute(ctx, path.Root("id"), &id)
 	return id.ValueInt32(), diags
+}
+
+// apiID returns the id that v holds, and false when v holds none.
+func apiID(v *views_service.View) (int32, bool) {
+	if v == nil {
+		return 0, false
+	}
+	return v.Id, true
+}
+
+// idStateValue returns the value of the id attribute for id.
+func idStateValue(id int32) int32 {
+	return id
 }

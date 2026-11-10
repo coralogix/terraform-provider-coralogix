@@ -1,0 +1,35 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.23.0
+attributes:
+    id: {type: String}
+    policies: {type: ListNested, required: true}
+    policies[].applications: {type: SingleNested}
+    policies[].applications.names: {type: Set(String), required: true}
+    policies[].applications.rule_type: {type: String}
+    policies[].archive_retention_id: {type: String}
+    policies[].description: {type: String}
+    policies[].dpxl_expression: {type: String}
+    policies[].enabled: {type: Bool}
+    policies[].id: {type: String}
+    policies[].name: {type: String, required: true}
+    policies[].order: {type: Int64}
+    policies[].priority: {type: String}
+    policies[].quota_based_priority_override: {type: SingleNested}
+    policies[].quota_based_priority_override.usage_tiers: {type: ListNested, required: true}
+    policies[].quota_based_priority_override.usage_tiers[].daily_quota_percentage: {type: Float64, required: true}
+    policies[].quota_based_priority_override.usage_tiers[].priority: {type: String, required: true}
+    policies[].severities: {type: Set(String)}
+    policies[].subsystems: {type: SingleNested}
+    policies[].subsystems.names: {type: Set(String), required: true}
+    policies[].subsystems.rule_type: {type: String}
+    policies[].targets: {type: ListNested}
+    policies[].targets[].archive_retention_id: {type: String}
+    policies[].targets[].dataset: {type: String, required: true}
+    policies[].targets[].dataspace: {type: String}
+    policies[].targets[].priority: {type: String, required: true}
+    policies[].targets[].priority_override: {type: SingleNested}
+    policies[].targets[].priority_override.usage_tiers: {type: ListNested, required: true}
+    policies[].targets[].priority_override.usage_tiers[].daily_quota_percentage: {type: Float64, required: true}
+    policies[].targets[].priority_override.usage_tiers[].priority: {type: String, required: true}

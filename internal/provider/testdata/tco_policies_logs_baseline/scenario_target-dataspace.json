@@ -19,7 +19,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -64,7 +64,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "logs",
@@ -77,10 +76,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -121,7 +125,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -172,7 +176,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -217,7 +221,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "logs",
@@ -233,10 +236,10 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: Dataspace must be \\\"default\\\"\"}\noperation - Replace"
+      "error: Unable to update tco_policies_logs | id tco-policies-logs: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: Dataspace must be \\\"default\\\"\"}"
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -276,7 +279,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -307,7 +310,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"dataspace\")"
@@ -332,7 +334,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -377,7 +379,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "logs",
@@ -390,10 +391,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -434,7 +440,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,

@@ -1,0 +1,977 @@
+[
+  {
+    "step": "create variant 0",
+    "request": {
+      "dashboard": {
+        "actions": [
+          {
+            "dataSource": "ACTION_DATA_SOURCE_TYPE_DATAPRIME",
+            "definition": {
+              "customAction": {
+                "url": "value-url"
+              }
+            },
+            "id": "<id-1>",
+            "name": "value-name",
+            "shouldOpenInNewWindow": true,
+            "widgetId": "<id-1>"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "id": {
+                "value": "<id-1>"
+              },
+              "options": {
+                "internal": {}
+              },
+              "rows": [
+                {
+                  "appearance": {
+                    "height": 1
+                  },
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "widgets": [
+                    {
+                      "appearance": {
+                        "width": 1
+                      },
+                      "definition": {
+                        "dataTable": {
+                          "columns": [
+                            {
+                              "field": "value-field",
+                              "width": 1
+                            }
+                          ],
+                          "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+                          "orderBy": {
+                            "field": "value-field",
+                            "orderDirection": "ORDER_DIRECTION_ASC"
+                          },
+                          "query": {
+                            "spans": {
+                              "filters": [
+                                {
+                                  "field": {
+                                    "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                  },
+                                  "observationField": {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "relationType": "SPAN_RELATION_TYPE_OTHER",
+                                    "scope": "DATASET_SCOPE_LABEL"
+                                  },
+                                  "operator": {
+                                    "equals": {
+                                      "selection": {
+                                        "all": {}
+                                      }
+                                    }
+                                  }
+                                }
+                              ],
+                              "grouping": {
+                                "aggregations": [
+                                  {
+                                    "aggregation": {
+                                      "metricAggregation": {}
+                                    },
+                                    "isVisible": true,
+                                    "name": "value-name"
+                                  }
+                                ],
+                                "groupBy": [
+                                  {
+                                    "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                  }
+                                ]
+                              },
+                              "luceneQuery": {
+                                "value": "value-lucene_query"
+                              },
+                              "timeFrame": {
+                                "absoluteTimeFrame": {
+                                  "from": "2024-01-01T00:00:00Z",
+                                  "to": "2024-01-01T00:00:00Z"
+                                }
+                              }
+                            }
+                          },
+                          "resultsPerPage": 1,
+                          "rowStyle": "ROW_STYLE_CONDENSED"
+                        }
+                      },
+                      "description": "value-description",
+                      "highlighted": true,
+                      "id": {
+                        "value": "<id-1>"
+                      },
+                      "title": "value-title"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "walk data_table_spans"
+      }
+    },
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": {
+                        "columns": [
+                          {
+                            "field": "value-field",
+                            "width": 1
+                          }
+                        ],
+                        "data_mode_type": "archive",
+                        "order_by": {
+                          "field": "value-field",
+                          "order_direction": "asc"
+                        },
+                        "query": {
+                          "data_prime": null,
+                          "logs": null,
+                          "metrics": null,
+                          "spans": {
+                            "filters": [
+                              {
+                                "field": {
+                                  "type": "metadata",
+                                  "value": "service_name"
+                                },
+                                "observation_field": {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "relation_type": "other",
+                                  "scope": "label"
+                                },
+                                "operator": {
+                                  "selected_values": [],
+                                  "selection_type": "all",
+                                  "type": "equals"
+                                }
+                              }
+                            ],
+                            "grouping": {
+                              "aggregations": [
+                                {
+                                  "aggregation": {
+                                    "aggregation_type": "unspecified",
+                                    "field": "unspecified",
+                                    "type": "metric"
+                                  },
+                                  "id": null,
+                                  "is_visible": true,
+                                  "name": "value-name"
+                                }
+                              ],
+                              "group_by": [
+                                {
+                                  "type": "metadata",
+                                  "value": "service_name"
+                                }
+                              ]
+                            },
+                            "lucene_query": "value-lucene_query",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          }
+                        },
+                        "results_per_page": 1,
+                        "row_style": "condensed"
+                      },
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk data_table_spans",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "update variant 0 with another name",
+    "request": {
+      "dashboard": {
+        "actions": [
+          {
+            "dataSource": "ACTION_DATA_SOURCE_TYPE_DATAPRIME",
+            "definition": {
+              "customAction": {
+                "url": "value-url"
+              }
+            },
+            "id": "<id-1>",
+            "name": "value-name",
+            "shouldOpenInNewWindow": true,
+            "widgetId": "<id-1>"
+          }
+        ],
+        "id": "fakeboard000000000001",
+        "layout": {
+          "sections": [
+            {
+              "id": {
+                "value": "<id-1>"
+              },
+              "options": {
+                "internal": {}
+              },
+              "rows": [
+                {
+                  "appearance": {
+                    "height": 1
+                  },
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "widgets": [
+                    {
+                      "appearance": {
+                        "width": 1
+                      },
+                      "definition": {
+                        "dataTable": {
+                          "columns": [
+                            {
+                              "field": "value-field",
+                              "width": 1
+                            }
+                          ],
+                          "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+                          "orderBy": {
+                            "field": "value-field",
+                            "orderDirection": "ORDER_DIRECTION_ASC"
+                          },
+                          "query": {
+                            "spans": {
+                              "filters": [
+                                {
+                                  "field": {
+                                    "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                  },
+                                  "observationField": {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "relationType": "SPAN_RELATION_TYPE_OTHER",
+                                    "scope": "DATASET_SCOPE_LABEL"
+                                  },
+                                  "operator": {
+                                    "equals": {
+                                      "selection": {
+                                        "all": {}
+                                      }
+                                    }
+                                  }
+                                }
+                              ],
+                              "grouping": {
+                                "aggregations": [
+                                  {
+                                    "aggregation": {
+                                      "metricAggregation": {}
+                                    },
+                                    "isVisible": true,
+                                    "name": "value-name"
+                                  }
+                                ],
+                                "groupBy": [
+                                  {
+                                    "metadataField": "METADATA_FIELD_SERVICE_NAME"
+                                  }
+                                ]
+                              },
+                              "luceneQuery": {
+                                "value": "value-lucene_query"
+                              },
+                              "timeFrame": {
+                                "absoluteTimeFrame": {
+                                  "from": "2024-01-01T00:00:00Z",
+                                  "to": "2024-01-01T00:00:00Z"
+                                }
+                              }
+                            }
+                          },
+                          "resultsPerPage": 1,
+                          "rowStyle": "ROW_STYLE_CONDENSED"
+                        }
+                      },
+                      "description": "value-description",
+                      "highlighted": true,
+                      "id": {
+                        "value": "<id-1>"
+                      },
+                      "title": "value-title"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "walk data_table_spans updated"
+      }
+    },
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": {
+                        "columns": [
+                          {
+                            "field": "value-field",
+                            "width": 1
+                          }
+                        ],
+                        "data_mode_type": "archive",
+                        "order_by": {
+                          "field": "value-field",
+                          "order_direction": "asc"
+                        },
+                        "query": {
+                          "data_prime": null,
+                          "logs": null,
+                          "metrics": null,
+                          "spans": {
+                            "filters": [
+                              {
+                                "field": {
+                                  "type": "metadata",
+                                  "value": "service_name"
+                                },
+                                "observation_field": {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "relation_type": "other",
+                                  "scope": "label"
+                                },
+                                "operator": {
+                                  "selected_values": [],
+                                  "selection_type": "all",
+                                  "type": "equals"
+                                }
+                              }
+                            ],
+                            "grouping": {
+                              "aggregations": [
+                                {
+                                  "aggregation": {
+                                    "aggregation_type": "unspecified",
+                                    "field": "unspecified",
+                                    "type": "metric"
+                                  },
+                                  "id": null,
+                                  "is_visible": true,
+                                  "name": "value-name"
+                                }
+                              ],
+                              "group_by": [
+                                {
+                                  "type": "metadata",
+                                  "value": "service_name"
+                                }
+                              ]
+                            },
+                            "lucene_query": "value-lucene_query",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          }
+                        },
+                        "results_per_page": 1,
+                        "row_style": "condensed"
+                      },
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk data_table_spans updated",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "refresh and plan variant 0",
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "remove optional values (17)",
+    "changes": [
+      "remove layout.sections[].id",
+      "remove layout.sections[].rows[].id",
+      "remove layout.sections[].rows[].widgets[].custom_actions[].id",
+      "remove layout.sections[].rows[].widgets[].custom_actions[].should_open_in_new_window",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.columns[].width",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.data_mode_type",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.order_by.field",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.order_by.order_direction",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].observation_field.relation_type",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].operator.selection_type",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations[].is_visible",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations[].name",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.lucene_query",
+      "remove layout.sections[].rows[].widgets[].description",
+      "remove layout.sections[].rows[].widgets[].highlighted",
+      "remove layout.sections[].rows[].widgets[].id",
+      "remove layout.sections[].rows[].widgets[].width"
+    ],
+    "requestDiff": [
+      "- .dashboard.actions[0].shouldOpenInNewWindow",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.orderBy.field",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.orderBy.orderDirection: \"ORDER_DIRECTION_ASC\" → \"ORDER_DIRECTION_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField.relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_NONE_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.aggregations[0].name",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.luceneQuery",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].description"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].should_open_in_new_window: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.data_mode_type: \"archive\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.order_by.field: \"value-field\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.order_by.order_direction: \"asc\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field.relation_type: \"other\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].name: \"value-name\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.lucene_query: \"value-lucene_query\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "remove layout.sections",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections"
+    ],
+    "stateDiff": [
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:272ba595] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 2 (2)",
+    "changes": [
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:2b7e610f] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:6aa9f89d] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 4 (6)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].custom_actions",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.columns",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.order_by",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.time_frame"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.columns",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.orderBy",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.timeFrame"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.columns: [{\"field\":\"value-field\",\"width\":1}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.order_by: {\"field\":\"value-field\",\"order_direction\":\"asc\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters: [{\"field\":{\"type\":\"metadata\",\"value\":\"service_name\"},\"observation_field\":{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"},\"operator\":{\"sele…[sha256:1cefcaac] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping: {\"aggregations\":[{\"aggregation\":{\"aggregation_type\":\"unspecified\",\"field\":\"unspecified\",\"type\":\"metric\"},\"id\":null,\"is_visible\":true,\"name\":\"value-name\"}],\"grou…[sha256:d4b67a61] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 5 (4)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].field",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].observation_field",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations",
+      "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.group_by"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].field",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.aggregations",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.groupBy"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].field: {\"type\":\"metadata\",\"value\":\"service_name\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations: [{\"aggregation\":{\"aggregation_type\":\"unspecified\",\"field\":\"unspecified\",\"type\":\"metric\"},\"id\":null,\"is_visible\":true,\"name\":\"value-name\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations[].aggregation",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.aggregations[0].aggregation"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation: {\"aggregation_type\":\"unspecified\",\"field\":\"unspecified\",\"type\":\"metric\"} → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty layout.sections",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections"
+    ],
+    "stateDiff": [
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:272ba595] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (5)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.columns",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.group_by"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.data_table.columns list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.columns"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.data_table.columns list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.data_table.columns",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.data_table.columns list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (3)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.group_by"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.aggregations",
+      "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.group_by"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.aggregations",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.groupBy"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations: [{\"aggregation\":{\"aggregation_type\":\"unspecified\",\"field\":\"unspecified\",\"type\":\"metric\"},\"id\":null,\"is_visible\":true,\"name\":\"value-name\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations",
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.group_by"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"group_by\")"
+    ]
+  },
+  {
+    "step": "set enums to unspecified (5)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].definition.data_table.data_mode_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.data_table.order_by.order_direction = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].observation_field.relation_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].observation_field.scope = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.data_table.row_style = unspecified"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.orderBy.orderDirection: \"ORDER_DIRECTION_ASC\" → \"ORDER_DIRECTION_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField.relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_NONE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.rowStyle: \"ROW_STYLE_CONDENSED\" → \"ROW_STYLE_UNSPECIFIED\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.data_mode_type: \"archive\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.order_by.order_direction: \"asc\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field.relation_type: \"other\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field.scope: \"label\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.row_style: \"condensed\" → \"unspecified\""
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "set enums to their last value (4)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].custom_actions[].data_source = spans",
+      "set layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].field.type = process_tag",
+      "set layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].observation_field.scope = user_data",
+      "set layout.sections[].rows[].widgets[].definition.data_table.query.spans.grouping.group_by[].type = process_tag"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_SPANS\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].field.metadataField",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].field.processTagField: \"service_name\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.groupBy[0].metadataField",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.groupBy[0].processTagField: \"service_name\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].field.type: \"metadata\" → \"process_tag\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field.scope: \"label\" → \"user_data\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.group_by[0].type: \"metadata\" → \"process_tag\""
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.aggregation_type",
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "apply variant 1",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
+      "- .dashboard.layout.sections[0].options.internal",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.orderBy.orderDirection: \"ORDER_DIRECTION_ASC\" → \"ORDER_DIRECTION_DESC\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].field.metadataField",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].field.tagField: \"value-value\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField.relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_PARENT\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].operator.equals",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.filters[0].operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.aggregations[0].aggregation.dimensionAggregation: {\"aggregationType\":\"DIMENSION_AGGREGATION_TYPE_ERROR_COUNT\"}",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.aggregations[0].aggregation.metricAggregation",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.groupBy[0].metadataField",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.grouping.groupBy[0].tagField: \"value-value\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.timeFrame.absoluteTimeFrame",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.spans.timeFrame.relativeTimeFrame: \"900s\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.rowStyle: \"ROW_STYLE_CONDENSED\" → \"ROW_STYLE_JSON\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options.collapsed: null → true",
+      "~ .layout.sections[0].options.color: null → \"green\"",
+      "~ .layout.sections[0].options.description: null → \"value-description\"",
+      "~ .layout.sections[0].options.internal: {} → null",
+      "~ .layout.sections[0].options.name: null → \"value-name\"",
+      "~ .layout.sections[0].options.repetitive_var: null → {\"name\":\"value-name\"}",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"logs\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.order_by.order_direction: \"asc\" → \"desc\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].field.type: \"metadata\" → \"tag\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].field.value: \"service_name\" → \"value-value\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field.relation_type: \"other\" → \"parent\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].observation_field.scope: \"label\" → \"metadata\"",
+      "+ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].operator.selected_values[0]: \"value-selected_values\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].operator.selection_type: \"all\" → \"list\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.filters[0].operator.type: \"equals\" → \"not_equals\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.aggregation_type: \"unspecified\" → \"error_count\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.type: \"metric\" → \"dimension\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.group_by[0].type: \"metadata\" → \"tag\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.group_by[0].value: \"service_name\" → \"value-value\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.time_frame.relative: null → {\"duration\":\"seconds:900\"}",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.row_style: \"condensed\" → \"json\""
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].operator.selected_values",
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.data_table.query.spans.filters[].operator.selected_values",
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set layout.sections[].options.color = orange",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].options.custom.color.predefined: \"SECTION_PREDEFINED_COLOR_GREEN\" → \"SECTION_PREDEFINED_COLOR_ORANGE\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options.color: \"green\" → \"orange\""
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.spans.grouping.aggregations[0].aggregation.field"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeName(\"field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"id\")"
+    ]
+  }
+]

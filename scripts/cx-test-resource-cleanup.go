@@ -147,7 +147,7 @@ func main() {
 		log.Println("Deleting all parsing rules")
 		groupIds := make([]string, 0)
 		for _, recordingRulesGroupsSet := range recordingRulesGroupsSets.RuleGroups {
-			groupIds = append(groupIds, *recordingRulesGroupsSet.Id)
+			groupIds = append(groupIds, recordingRulesGroupsSet.Id)
 		}
 		_, _, err = recordingRulesGroupsSetClient.RuleGroupsServiceBulkDeleteRuleGroup(ctx).GroupIds(groupIds).Execute()
 		if err != nil {

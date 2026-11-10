@@ -1,0 +1,49 @@
+# Where coralogix_team differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: GetTeamResponse
+mode: existing
+typeName: team
+
+markdownDescription: "Coralogix Team. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-and-manage-teams/."
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+# Create returns only {"teamId": {"id": N}}, and Update returns {}: both read the team with Get.
+api:
+  operations:
+    create: TeamService_CreateTeamInOrg
+    get: TeamService_GetTeam
+    update: TeamService_UpdateTeam
+    delete: TeamService_DeleteTeam
+  idProperty: teamId
+  createResponseOnlyIDProperty: teamId
+
+# The id is the int64 inside teamId.
+unwrap: [v2.TeamId]
+
+dataSource: {}
+
+types:
+  GetTeamResponse:
+    fields:
+      # The released id is the decimal text of the team id.
+      teamId: {name: id, readOnly: true, terraformType: String, markdownDescription: "Team ID."}
+      teamName: {name: name, markdownDescription: "Team name."}
+      retention: {useStateForUnknown: true, terraformType: Int64, markdownDescription: "Team retention."}
+      # Create ignores an omitted quota, or 0.01 or less, and stores the minimum quota. The
+      # released attribute is optional and computed and keeps the state value when the
+      # configuration leaves it out; Update then sends that value. The API stores the quota as a
+      # float32.
+      dailyQuota:
+        storedAs: float32
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "Team quota. Optional, Default daily quota is 0.01 units/day."
+      # The released resource never sent the admins of a new team.
+      teamAdminsEmail: {skip: true}

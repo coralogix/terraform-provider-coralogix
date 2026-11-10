@@ -1,0 +1,152 @@
+# Where coralogix_tco_policies_rum differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: GetCompanyPoliciesResponse
+mode: existing
+typeName: tco_policies_rum
+
+markdownDescription: "Coralogix RUM TCO-Policies-List. Behaves like `coralogix_tco_policies_logs` minus dataset routing (`targets`). For more information - https://coralogix.com/docs/tco-optimizer-api."
+
+validators:
+  inferred: false
+
+singletonID: {fixed: tco-policies-rum}
+
+api:
+  # One PUT replaces every RUM policy of the company, and GET lists the policies of each source type.
+  overwrite:
+    getQuery: {source_type: SOURCE_TYPE_RUM}
+  operations:
+    create: PoliciesService_AtomicOverwriteRumPolicies
+    get: PoliciesService_GetCompanyPolicies
+    update: PoliciesService_AtomicOverwriteRumPolicies
+    delete: PoliciesService_AtomicOverwriteRumPolicies
+
+# The released data source reads every RUM policy. It takes no input.
+dataSource: {}
+
+unwrap: [ArchiveRetention, PriorityOverride]
+
+types:
+  GetCompanyPoliciesResponse:
+    fields:
+      policies:
+        markdownDescription: ""
+  Policy:
+    # A written policy holds these fields in "policy", next to its rumRules.
+    requestWrapper: policy
+    fields:
+      companyId: {skip: true}
+      deleted: {skip: true}
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+      priorityOverrideStatus: {skip: true}
+      id:
+        markdownDescription: "tco-policy ID."
+      name:
+        markdownDescription: "tco-policy name."
+        validators:
+          - lengthAtLeast: 1
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "The policy description"
+      enabled:
+        requestAs: disabled
+        negate: true
+        computed: true
+        default: true
+        markdownDescription: "Determines weather the policy will be enabled. True by default."
+      priority:
+        required: true
+        markdownDescription: "The policy priority. Can be one of [\"block\" \"high\" \"low\" \"medium\"]. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`)."
+        validators:
+          - enumExceptZero: true
+      order:
+        terraformType: Int64
+        markdownDescription: "The policy's order between the other policies."
+      archiveRetention:
+        name: archive_retention_id
+        description: "Allowing RUM events with a specific retention to be tagged."
+        validators:
+          - lengthAtLeast: 1
+      applicationRule:
+        name: applications
+        markdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default."
+      subsystemRule:
+        name: subsystems
+        markdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default."
+      priorityOverride:
+        name: quota_based_priority_override
+        markdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier."
+      # The released policy has no targets: RUM policies have none.
+      targets: {skip: true}
+      # The released attributes of the rumRules are policy attributes. A RUM policy never has the rules of another source type.
+      rumRules: {inline: true}
+      logRules: {skip: true}
+      spanRules: {skip: true}
+      severities:
+        computed: true
+        readEmptyAs: "null" # a policy with a dpxl_expression has an empty list
+        markdownDescription: "The severities to apply the policy on. Valid severities are [\"critical\" \"debug\" \"error\" \"info\" \"verbose\" \"warning\"]. Mutually exclusive with `dpxl_expression` — set exactly one."
+        validators:
+          - sizeAtLeast: 1
+          - enumExceptZero: true
+      dpxlExpression:
+        markdownDescription: "DataPrime expression to match RUM events for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix and reference the canonical `$d.*` schema (not `$d.cx_rum.*`), e.g. `<v1> $d.severity == 'Error'`."
+        validators:
+          - lengthAtLeast: 1
+          - conflictsWith: [severities, applications, subsystems]
+  quota.v1.Rule:
+    fields:
+      name:
+        split: ","
+        name: names
+        required: true
+        markdownDescription: ""
+        validators:
+          - sizeAtLeast: 1
+          - regexMatches: {pattern: "^[^A-Z,]*$", message: "must not contain uppercase letters or commas; the backend lowercases these names, and commas are used as the multi-value separator"}
+      ruleTypeId:
+        name: rule_type
+        computed: true
+        default: is
+        markdownDescription: "The rule type. Can be one of [\"includes\" \"is\" \"is_not\" \"starts_with\" \"unspecified\"]."
+        validators:
+          - enum: true
+  QuotaBased:
+    fields:
+      usageTiers:
+        required: true
+        markdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached."
+        validators:
+          - sizeAtLeast: 1
+  UsageTier:
+    fields:
+      dailyQuotaPercentage:
+        required: true
+        markdownDescription: "Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100."
+        validators:
+          - between: [0, 100]
+      priority:
+        required: true
+        markdownDescription: "The priority to apply when this tier is active. Can be one of [\"high\" \"low\" \"medium\"] (`block` is not valid for a tier)."
+        validators:
+          - oneOf: [high, low, medium] # block is not a tier priority
+
+enums:
+  # The API returns PRIORITY_TYPE_UNSPECIFIED for a policy whose priority is on its targets.
+  quota.v1.Priority:
+    zeroNull: true
+    trimPrefix: PRIORITY_TYPE_
+    values: [PRIORITY_TYPE_BLOCK, PRIORITY_TYPE_LOW, PRIORITY_TYPE_MEDIUM, PRIORITY_TYPE_HIGH]
+  RuleTypeId:
+    zero: unspecified
+    trimPrefix: RULE_TYPE_ID_
+    names: {RULE_TYPE_ID_START_WITH: starts_with}
+    values: [RULE_TYPE_ID_IS, RULE_TYPE_ID_IS_NOT, RULE_TYPE_ID_START_WITH, RULE_TYPE_ID_INCLUDES]
+  quota.v1.Severity:
+    zero: unspecified
+    trimPrefix: SEVERITY_
+    values: [SEVERITY_DEBUG, SEVERITY_VERBOSE, SEVERITY_INFO, SEVERITY_WARNING, SEVERITY_ERROR, SEVERITY_CRITICAL]

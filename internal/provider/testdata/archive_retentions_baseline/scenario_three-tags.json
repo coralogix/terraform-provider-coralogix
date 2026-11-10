@@ -1,0 +1,59 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": "short_term"
+        },
+        {
+          "name": "mid_term"
+        },
+        {
+          "name": "long_term"
+        }
+      ]
+    },
+    "plan": {
+      "id": "archive-retention-settings",
+      "retentions": [
+        {
+          "editable": "(unknown)",
+          "id": "(unknown)",
+          "name": "(unknown)",
+          "order": "(unknown)"
+        },
+        {
+          "editable": "(unknown)",
+          "id": "(unknown)",
+          "name": "short_term",
+          "order": "(unknown)"
+        },
+        {
+          "editable": "(unknown)",
+          "id": "(unknown)",
+          "name": "mid_term",
+          "order": "(unknown)"
+        },
+        {
+          "editable": "(unknown)",
+          "id": "(unknown)",
+          "name": "long_term",
+          "order": "(unknown)"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataengine/retention-tags/v1",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_archive_retentions | the Coralogix backend returned 3 archive retentions, but the configuration defines 4; archive retentions are created by Coralogix and can only be renamed, so the configuration cannot declare more retentions than the backend has"
+    ],
+    "state": null
+  }
+]

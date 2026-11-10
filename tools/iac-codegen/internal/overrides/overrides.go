@@ -420,8 +420,12 @@ type Field struct {
 	// as true; one without it reads as null.
 	AsBool bool `yaml:"asBool"`
 	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
-	// int32: Int64. String keeps a computed-only integer as decimal text.
+	// int32: Int64. String keeps a computed integer as decimal text, including a released int64 resource id.
 	TerraformType string `yaml:"terraformType"`
+	// StoredAs: float32 on a double field says that the API stores the value as a float32 and
+	// returns the float64 of that float32 (0.3 reads back as 0.30000001192092896). Flatten reads
+	// the shortest decimal of the float32, so 0.3 reads back as 0.3.
+	StoredAs string `yaml:"storedAs"`
 	// DefaultArm: when the configuration sets no arm of the oneOf group of this arm, Create and
 	// Update send this arm empty. The group then allows no arm in Terraform, for an API that
 	// requires an arm and reads an empty one as "all", for example alertUniqueIds: {}. The arm
@@ -962,6 +966,7 @@ func (l Field) keys() []string {
 	add(len(l.ValueNames) != 0, "valueNames")
 	add(l.AsBool, "asBool")
 	add(l.TerraformType != "", "terraformType")
+	add(l.StoredAs != "", "storedAs")
 	add(l.DefaultArm, "defaultArm")
 	add(l.Description != nil, "description")
 	add(l.MarkdownDescription != nil, "markdownDescription")
@@ -1116,7 +1121,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 
@@ -1151,8 +1156,10 @@ func (l Field) check() error {
 	if l.Required && l.Optional {
 		return errors.New("set required or optional, not both")
 	}
-	if l.SchemaOptional && (l.Required || l.Optional || l.Computed != nil) {
-		return errors.New("schemaOptional cannot be combined with required, optional, or computed")
+	// With computed: true, a schemaOptional attribute is Optional+Computed and can retain values
+	// returned by the API. The request field remains required.
+	if l.SchemaOptional && (l.Required || l.Optional || l.Computed != nil && !*l.Computed) {
+		return errors.New("schemaOptional cannot be combined with required, optional, or computed: false")
 	}
 	if l.RequiresReplace && l.Computed != nil && *l.Computed {
 		// Optional+Computed with RequiresReplace: when the field is omitted, any other change
@@ -1173,6 +1180,9 @@ func (l Field) check() error {
 	}
 	if l.TerraformType != "" && l.TerraformType != "Int64" && l.TerraformType != "String" {
 		return fmt.Errorf("terraformType is %q, want \"Int64\" or \"String\"", l.TerraformType)
+	}
+	if l.StoredAs != "" && l.StoredAs != "float32" {
+		return fmt.Errorf("storedAs is %q, want \"float32\"", l.StoredAs)
 	}
 	if l.RequestValue != "" && l.Name != "" {
 		return errors.New("a requestValue field is no Terraform attribute, so name changes nothing")
@@ -1330,7 +1340,7 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm ||
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.StoredAs != "" || l.DefaultArm ||
 		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != ""
 }
 
@@ -1409,7 +1419,7 @@ func (f *File) Policy() model.Policy {
 		for _, field := range sortedKeys(t.Fields) {
 			line := t.Fields[field]
 			if line.Required {
-				p.Required = append(p.Required, name+"."+field)
+				p.ClientRequired = append(p.ClientRequired, name+"."+field)
 			}
 			if line.Fixed() {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)

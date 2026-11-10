@@ -283,7 +283,13 @@ const (
 	// (terraformType: Int64).
 	convIntegerAsString = "integerasstring" // computed integer → released string
 	convInt32AsInt64    = "int32asint64"    // types.Int64 ↔ *int32
-	convInts32AsInt64   = "ints32asint64"   // types.List/Set of types.Int64Type ↔ []int32
+	// convInt64AsString keeps the released String type of an int64 resource id (terraformType:
+	// String): the decimal text of the id.
+	convInt64AsString = "int64asstring" // types.String ↔ *int64
+	// convFloat64AsFloat32 reads a double that the API stores as a float32 (storedAs: float32) as
+	// the shortest decimal of the float32.
+	convFloat64AsFloat32 = "float64asfloat32" // types.Float64 ↔ *float64
+	convInts32AsInt64    = "ints32asint64"    // types.List/Set of types.Int64Type ↔ []int32
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -1073,8 +1079,10 @@ func (f *convField) ValueKind() string {
 		return "Int32"
 	case convFloat32:
 		return "Float32"
-	case convFloat64:
+	case convFloat64, convFloat64AsFloat32:
 		return "Float64"
+	case convInt64AsString:
+		return "String"
 	}
 	return "Int64" // int64, uint64
 }
@@ -1424,11 +1432,24 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 
 // applyTerraformType keeps released integer or computed string representations.
 func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
-	if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
+	var line overrides.Field
+	if b.file != nil {
+		line = b.file.Types[component].Fields[name]
+	}
+	if line.StoredAs != "" {
+		if cf.Conv != convFloat64 {
+			return fmt.Errorf("%s: storedAs float32 needs a double field", cf.TFName)
+		}
+		cf.Conv = convFloat64AsFloat32
+	}
+	if line.TerraformType == "String" {
 		if cf.Conv != convInt32 && cf.Conv != convInt64 {
 			return fmt.Errorf("terraformType String needs an integer")
 		}
 		cf.Conv = convIntegerAsString
+		if component == b.resource.Name && name == b.resource.ID() {
+			cf.Conv = convInt64AsString
+		}
 		return nil
 	}
 	if terraformType(b.resource.Policy, component, name) == "" {
@@ -1667,7 +1688,7 @@ func (b *convBuilder) applyReleasedKeys(cf *convField) error {
 // zeroTypes are the Go types of the scalar conversions that sendUnknownAsZero supports.
 var zeroTypes = map[string]string{
 	convString: "string", convBool: "bool", convInt32: "int32", convInt64: "int64",
-	convFloat32: "float32", convFloat64: "float64", convInt32AsInt64: "int32",
+	convFloat32: "float32", convFloat64: "float64", convInt32AsInt64: "int32", convFloat64AsFloat32: "float64",
 }
 
 // applySendUnknownAsZero sets the Go type of the zero value that expand sends for an unknown plan.
@@ -2332,7 +2353,8 @@ var scalarAttrTypes = map[string]string{
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convIntegerAsString: "types.StringType",
-	convEmpty:           "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
+	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type",
+	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.
@@ -2556,10 +2578,10 @@ func (ix *refIndex) schemaRef(schema string) (sdkcheck.Ref, error) {
 }
 
 // markPrior sets NeedsPrior on every object with a KeepPriorOrder field, a string that reads
-// an empty value as null, or an Equality field, and on every object that holds such an
-// object. Only these flatten functions take the prior model. It also marks the objects that
-// a list keeping the prior order holds, and their nested objects: the package compares their
-// SDK values.
+// an empty value as null, an Equality field, or a double stored as a float32, and on every
+// object that holds such an object. Only these flatten functions take the prior model. It also
+// marks the objects that a list keeping the prior order holds, and their nested objects: the
+// package compares their SDK values.
 func markPrior(d *convData) error {
 	if err := markPriorFields(d); err != nil {
 		return err
@@ -2592,6 +2614,10 @@ func markPriorFields(d *convData) error {
 				if f.Conv != convString {
 					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
 				}
+				obj.NeedsPrior = true
+			}
+			// A double that the API stores as a float32 keeps the prior value of the same float32.
+			if f.Conv == convFloat64AsFloat32 {
 				obj.NeedsPrior = true
 			}
 			// An enum read in any case keeps the spelling of the prior value.
@@ -2710,7 +2736,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convNotBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}

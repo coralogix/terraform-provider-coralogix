@@ -1,7 +1,7 @@
 (data source schema)
     description: Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 id  tftypes.String computed
-    description: This field can be ignored
+    description: The fixed id of this singleton: there is one per company.
 policies  nested LIST computed
 policies.actions  nested SINGLE computed
     description: The actions to apply the policy on. Applies the policy on all the actions by default.
@@ -30,7 +30,7 @@ policies.priority  tftypes.String computed
 policies.quota_based_priority_override  nested SINGLE computed
     description: Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. Omit the attribute to clear it.
 policies.quota_based_priority_override.usage_tiers  nested LIST computed
-    description: Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time.
+    description: Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time.
 policies.quota_based_priority_override.usage_tiers.daily_quota_percentage  tftypes.Number computed
     description: Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
 policies.quota_based_priority_override.usage_tiers.priority  tftypes.String computed

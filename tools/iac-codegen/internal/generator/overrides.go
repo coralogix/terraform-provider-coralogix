@@ -185,8 +185,8 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		responseOnly := nested && !requested[line.Component]
 		if !nested && root != nil {
 			for _, field := range root.Fields {
-				if field.Name == line.Field && field.Create != nil && field.Update != nil && !field.Create.Required && field.Update.Required {
-					// The released requirement makes this asymmetric request contract safe.
+				if field.Name == line.Field && field.Create != nil && !field.Create.Required {
+					// A response requirement does not make the field required in Create.
 					responseOnly = true
 				}
 			}

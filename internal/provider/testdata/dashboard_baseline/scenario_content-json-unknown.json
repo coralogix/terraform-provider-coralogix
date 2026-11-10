@@ -1,0 +1,24 @@
+[
+  {
+    "step": "plan with an unknown content_json",
+    "config": {
+      "content_json": "(unknown)"
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": "(unknown)",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "(unknown)",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "state": null
+  }
+]

@@ -1,0 +1,34 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.23.0
+attributes:
+    id: {type: String}
+    policies: {type: ListNested, required: true}
+    policies[].actions: {type: SingleNested}
+    policies[].actions.names: {type: Set(String), required: true}
+    policies[].actions.rule_type: {type: String}
+    policies[].applications: {type: SingleNested}
+    policies[].applications.names: {type: Set(String), required: true}
+    policies[].applications.rule_type: {type: String}
+    policies[].archive_retention_id: {type: String}
+    policies[].description: {type: String}
+    policies[].dpxl_expression: {type: String}
+    policies[].enabled: {type: Bool}
+    policies[].id: {type: String}
+    policies[].name: {type: String, required: true}
+    policies[].order: {type: Int64}
+    policies[].priority: {type: String, required: true}
+    policies[].quota_based_priority_override: {type: SingleNested}
+    policies[].quota_based_priority_override.usage_tiers: {type: ListNested, required: true}
+    policies[].quota_based_priority_override.usage_tiers[].daily_quota_percentage: {type: Float64, required: true}
+    policies[].quota_based_priority_override.usage_tiers[].priority: {type: String, required: true}
+    policies[].services: {type: SingleNested}
+    policies[].services.names: {type: Set(String), required: true}
+    policies[].services.rule_type: {type: String}
+    policies[].subsystems: {type: SingleNested}
+    policies[].subsystems.names: {type: Set(String), required: true}
+    policies[].subsystems.rule_type: {type: String}
+    policies[].tags: {type: MapNested}
+    policies[].tags.names: {type: Set(String), required: true}
+    policies[].tags.rule_type: {type: String}

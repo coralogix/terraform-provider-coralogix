@@ -15,6 +15,7 @@
 set -euo pipefail
 
 base=${1:?usage: check-version-change.sh <base-commit>}
+scripts=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
@@ -89,7 +90,7 @@ generate() {
 while read -r resource out; do
   generate old "$old" "$resource" "$out"
   generate new "$new" "$resource" "$out"
-done < <(sed -nE 's#^//go:generate make -C \.\./\.\. codegen RESOURCE=([^ ]+) OUT=([^ ]+)$#\1 \2#p' internal/provider/codegen.go)
+done < <("$scripts/codegen-list.sh")
 
 check() {
   local side=$1 binary=$2 file=$3

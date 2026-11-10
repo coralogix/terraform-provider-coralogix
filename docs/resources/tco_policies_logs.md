@@ -141,7 +141,7 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
 
 ### Read-Only
 
-- `id` (String) This field can be ignored
+- `id` (String) The fixed id of this singleton: there is one per company.
 
 <a id="nestedatt--policies"></a>
 ### Nested Schema for `policies`
@@ -185,7 +185,7 @@ Optional:
 
 Required:
 
-- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
 
 <a id="nestedatt--policies--quota_based_priority_override--usage_tiers"></a>
 ### Nested Schema for `policies.quota_based_priority_override.usage_tiers`
@@ -206,7 +206,7 @@ Required:
 
 Optional:
 
-- `rule_type` (String)
+- `rule_type` (String) The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].
 
 
 <a id="nestedatt--policies--targets"></a>
@@ -228,7 +228,7 @@ Optional:
 
 Required:
 
-- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the target's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--targets--priority_override--usage_tiers))
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--targets--priority_override--usage_tiers))
 
 <a id="nestedatt--policies--targets--priority_override--usage_tiers"></a>
 ### Nested Schema for `policies.targets.priority_override.usage_tiers`

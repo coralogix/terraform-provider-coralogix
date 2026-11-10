@@ -1,0 +1,279 @@
+[
+  {
+    "step": "create with an access policy",
+    "config": {
+      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "plan": {
+      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "(unknown)",
+      "layout": {
+        "sections": [
+          {
+            "id": "(unknown)",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "(unknown)",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": "(unknown)",
+                    "id": "(unknown)",
+                    "reference": null,
+                    "title": "note",
+                    "width": "(unknown)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+          "dashboard": {
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 10
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "appearance": {},
+                          "definition": {
+                            "markdown": {
+                              "markdownText": "hello"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "title": "note"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "baseline dashboard"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": false,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
+  },
+  {
+    "step": "refresh and plan after the policy changed outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": false,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "drift": [
+      "AttributeName(\"access_policy\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

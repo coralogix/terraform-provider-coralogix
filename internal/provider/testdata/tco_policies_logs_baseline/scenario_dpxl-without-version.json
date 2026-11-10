@@ -11,7 +11,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -38,8 +38,7 @@
           "policies": [
             {
               "logRules": {
-                "dpxlExpression": "$d.severity == 'INFO'",
-                "severities": null
+                "dpxlExpression": "$d.severity == 'INFO'"
               },
               "policy": {
                 "description": "",
@@ -54,7 +53,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DPXL compile failed for policy first, id:00000000-0000-4000-8000-000000000001, error: DPXL compilation errors:\\n - expected version tag. e.g. \\\"\\u003cv1\\u003e foo == 'bar'\\\" at [0:0-0:20]: $d.severity == 'INFO\"}\noperation - Create"
+      "error: Unable to create tco_policies_logs | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DPXL compile failed for policy first, id:00000000-0000-4000-8000-000000000001, error: DPXL compilation errors:\\n - expected version tag. e.g. \\\"\\u003cv1\\u003e foo == 'bar'\\\" at [0:0-0:20]: $d.severity == 'INFO\"}"
     ],
     "state": null
   }

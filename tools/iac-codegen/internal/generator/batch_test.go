@@ -151,52 +151,75 @@ func TestStringTerraformTypeRejectsManagedInteger(t *testing.T) {
 	}
 }
 
-// A released required field can be optional in Create and required in Update:
+// A released required field can be optional in Create, with either Update requiredness:
 // Terraform still supplies it on every write.
 func TestRequiredOverrideSupportsOptionalCreate(t *testing.T) {
-	input, loadDir := copiedSyntheticInput(t)
-	original := input.OpenAPI
-	spec := strings.Replace(string(input.OpenAPI), "required: [name, kind, config]", "required: [kind, config]", 1)
-	spec = strings.Replace(spec, "title: UpdateThingRequest\n              type: object\n              required: []", "title: UpdateThingRequest\n              type: object\n              required: [name]", 1)
-	input.OpenAPI = []byte(spec)
-	sdkFile := filepath.Join(input.SDKDir, "go", "openapi", "gen", "things_service", "things.go")
-	sdk := mustRead(t, sdkFile)
-	text := strings.Replace(string(sdk), "type CreateThingRequest struct {\n\tName         string", "type CreateThingRequest struct {\n\tName         *string", 1)
-	if err := os.WriteFile(sdkFile, []byte(text), 0o644); err != nil {
-		t.Fatal(err)
+	for name, requiredUpdate := range map[string]bool{"optional-update": false, "required-update": true} {
+		t.Run(name, func(t *testing.T) {
+			input, loadDir := copiedSyntheticInput(t)
+			original := input.OpenAPI
+			spec := strings.Replace(string(input.OpenAPI), "required: [name, kind, config]", "required: [kind, config]", 1)
+			if requiredUpdate {
+				spec = strings.Replace(spec, "title: UpdateThingRequest\n              type: object\n              required: []", "title: UpdateThingRequest\n              type: object\n              required: [name]", 1)
+			}
+			input.OpenAPI = []byte(spec)
+			sdkFile := filepath.Join(input.SDKDir, "go", "openapi", "gen", "things_service", "things.go")
+			sdk := mustRead(t, sdkFile)
+			text := strings.Replace(string(sdk), "type CreateThingRequest struct {\n\tName         string", "type CreateThingRequest struct {\n\tName         *string", 1)
+			if err := os.WriteFile(sdkFile, []byte(text), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte("resource: Thing\nmode: existing\nvalidators: {inferred: false}\ntypes: {Thing: {fields: {name: {required: true}}}}\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			file, err := readOverrides(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := validateOpenAPIWith(original, "Thing", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") {
+				t.Fatalf("an already-required Create must still reject the redundant override: %v", err)
+			}
+			without := filepath.Join(t.TempDir(), "without-required.yaml")
+			if err := os.WriteFile(without, []byte("resource: Thing\nmode: existing\nvalidators: {inferred: false}\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			noRequired, err := readOverrides(without)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantCode := "FIELD_SERVER_DEFAULT_UNDECLARED"
+			if requiredUpdate {
+				wantCode = "FIELD_REQUIREDNESS_UNSUPPORTED"
+			}
+			if _, err := validateOpenAPIWith(input.OpenAPI, "Thing", Options{}.OperationIDs, input.SDKModule, input.Module, noRequired); err == nil || !strings.Contains(err.Error(), wantCode) {
+				t.Fatalf("optional Create needs the released required override: %v", err)
+			}
+			out := filepath.Join(t.TempDir(), "requiredthing")
+			if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+				t.Fatal(err)
+			}
+			golden := filepath.Join("testdata", "golden", "requiredthing", "schema.go")
+			schema := mustRead(t, filepath.Join(out, "schema.go"))
+			if *updateGolden {
+				if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(golden, schema, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if string(mustRead(t, golden)) != string(schema) {
+				t.Fatal("required schema golden differs; run with -update")
+			}
+			if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), []byte(`package requiredthing
+		import "testing"
+		func TestNameRemainsRequired(t *testing.T) {
+		 if !Schema().Attributes["name"].IsRequired() { t.Fatal("released required name became optional") }
+		}`), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			compileGenerated(t, out, input)
+		})
 	}
-	path := filepath.Join(t.TempDir(), "overrides.yaml")
-	if err := os.WriteFile(path, []byte("resource: Thing\nmode: existing\nvalidators: {inferred: false}\ntypes: {Thing: {fields: {name: {required: true}}}}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	file, err := readOverrides(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := validateOpenAPIWith(original, "Thing", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") {
-		t.Fatalf("an already-required Create must still reject the redundant override: %v", err)
-	}
-	without := filepath.Join(t.TempDir(), "without-required.yaml")
-	if err := os.WriteFile(without, []byte("resource: Thing\nmode: existing\nvalidators: {inferred: false}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	noRequired, err := readOverrides(without)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := validateOpenAPIWith(input.OpenAPI, "Thing", Options{}.OperationIDs, input.SDKModule, input.Module, noRequired); err == nil || !strings.Contains(err.Error(), "FIELD_REQUIREDNESS_UNSUPPORTED") {
-		t.Fatalf("optional Create/required Update needs the released required override: %v", err)
-	}
-	out := filepath.Join(t.TempDir(), "requiredthing")
-	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), []byte(`package requiredthing
-import "testing"
-func TestNameRemainsRequired(t *testing.T) {
- if !Schema().Attributes["name"].IsRequired() { t.Fatal("released required name became optional") }
-}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	compileGenerated(t, out, input)
 }

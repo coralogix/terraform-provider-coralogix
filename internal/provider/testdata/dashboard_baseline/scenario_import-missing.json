@@ -1,0 +1,27 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "applyDiagnostics": [
+      "error: Error reading Dashboard | error - dashboardId must have at least 21 elements\noperation - Get"
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "missing-dashboard-1",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  }
+]

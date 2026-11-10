@@ -1,0 +1,35 @@
+# A released collection resource like the archive retention tags: one POST renames the tags by id
+# and returns them, so Create and Update take the state from it. The POST takes the list as
+# tagUpdates, and each item sends the id that the state holds.
+resource: TagList
+mode: existing
+typeName: retag_thing
+
+validators:
+  inferred: false
+
+singletonID: {fixed: retag-things}
+
+api:
+  overwrite:
+    writeReturnsResource: true
+  operations:
+    create: RetagThingsService_RenameTags
+    get: RetagThingsService_ListTags
+    update: RetagThingsService_RenameTags
+    delete: RetagThingsService_RenameTags
+
+types:
+  TagList:
+    fields:
+      tags: {requestAs: tagUpdates}
+  Tag:
+    fields:
+      # The rename names each tag by the id that only the server sets. Update sends the id of the
+      # state; a BeforeWrite hook fills it for Create.
+      id: {computed: true, useStateForUnknown: true}
+      # The released name is optional and computed: the configuration can leave it out, and the
+      # state keeps the name that the API returns. The rename still requires it.
+      name: {schemaOptional: true, computed: true}
+
+dataSource: {}

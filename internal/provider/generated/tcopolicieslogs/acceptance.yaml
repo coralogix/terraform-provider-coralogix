@@ -1,0 +1,24 @@
+# What the generated acceptance test needs for coralogix_tco_policies_logs, besides the schema.
+# The API takes a priority on the policy or on its targets, never both, and DPXL instead of the
+# structured matchers, so the full config uses a policy-level priority and the matchers. A tier
+# must be above the base priority. An archive retention id must exist on the tenant.
+resource: GetCompanyPoliciesResponse
+
+values:
+  policies[].priority: '"low"'
+  policies[].severities: '["info", "error"]'
+  policies[].applications.names: '["@{run}-app"]'
+  policies[].subsystems.names: '["@{run}-sub"]'
+  policies[].quota_based_priority_override.usage_tiers[].daily_quota_percentage: "50"
+  policies[].quota_based_priority_override.usage_tiers[].priority: '"high"'
+
+updatedValues:
+  policies[].severities: '["warning"]'
+
+skip: ["policies[].dpxl_expression", "policies[].targets", "policies[].archive_retention_id"]
+
+minimal: ["policies[].priority", "policies[].severities"]
+
+upgradeMinimal: ["policies[].priority", "policies[].severities"]
+
+upgradeFrom: "3.23.0"

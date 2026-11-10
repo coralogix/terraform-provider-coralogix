@@ -26,7 +26,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -78,7 +78,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "audit",
@@ -101,10 +100,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -152,7 +156,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -217,7 +221,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -269,7 +273,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "audit",
@@ -292,10 +295,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -352,7 +360,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -397,7 +405,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "audit",
@@ -410,10 +417,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -454,7 +466,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,

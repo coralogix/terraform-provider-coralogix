@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_parsing_rules | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}\noperation - Read"
+      "error: Unable to read coralogix_parsing_rules | id 00000000-0000-4000-9000-000000000003: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}"
     ],
     "state": {
       "active": null,

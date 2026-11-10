@@ -1006,13 +1006,13 @@ func expandBool(v types.Bool) *bool {
 	return &b
 }
 
-// negateBool returns the opposite of b, and nil for nil.
-func negateBool(b *bool) *bool {
-	if b == nil {
+// negateBool returns the opposite of a bool, and nil for nil.
+func negateBool(v *bool) *bool {
+	if v == nil {
 		return nil
 	}
-	n := !*b
-	return &n
+	b := !*v
+	return &b
 }
 
 func expandFloat64(v types.Float64) *float64 {

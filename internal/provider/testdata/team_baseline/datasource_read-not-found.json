@@ -1,0 +1,24 @@
+[
+  {
+    "step": "Get answers 404",
+    "config": {
+      "id": "1009"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1009",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_team not found | The API did not find coralogix_team with id 1009: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Could not find team in database: 1009\"}"
+    ],
+    "state": {
+      "daily_quota": null,
+      "id": "1009",
+      "name": null,
+      "retention": null
+    }
+  }
+]

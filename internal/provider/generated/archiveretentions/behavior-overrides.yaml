@@ -1,0 +1,59 @@
+# Where coralogix_archive_retentions differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: GetRetentionsResponse
+mode: existing
+typeName: archive_retentions
+
+markdownDescription: "Coralogix archive-retention. For more info please review - https://coralogix.com/docs/archive-setup-grpc-api/."
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+# The released id of the one list of retention tags of the company.
+singletonID: {fixed: archive-retention-settings}
+
+api:
+  # The company has a fixed number of retention tags. One POST renames them by id and returns the
+  # tags that it renamed; GET lists them. The API cannot remove a tag.
+  overwrite:
+    writeReturnsResource: true
+  operations:
+    create: RetentionsService_UpdateRetentions
+    get: RetentionsService_GetRetentions
+    update: RetentionsService_UpdateRetentions
+    delete: RetentionsService_UpdateRetentions
+
+# The released data source reads the retention tags. It takes no input.
+dataSource: {}
+
+types:
+  GetRetentionsResponse:
+    fields:
+      retentions:
+        requestAs: retentionUpdateElements
+        markdownDescription: "List of 4 retentions. The first retention is the default retention and can't be renamed."
+  archive.v1.Retention:
+    fields:
+      # The rename names each tag by the id that only the server sets. Update sends the id of the
+      # state; the Create hook reads the tags and sends their ids by position.
+      id:
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "The retention id."
+      # A name that the configuration leaves out is sent as "", and the BeforeWrite hook replaces it
+      # with the current name of the tag.
+      name:
+        schemaOptional: true
+        computed: true
+        sendUnknownAsZero: true
+        markdownDescription: "The retention name. If not set, the retention keeps its current name."
+      order:
+        terraformType: Int64
+        markdownDescription: "The retention order. Computed by the order of the retention in the retentions list definition."
+      editable:
+        markdownDescription: "Is the retention editable."

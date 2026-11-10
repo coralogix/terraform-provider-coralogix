@@ -1,0 +1,24 @@
+# What the generated acceptance test needs for coralogix_tco_policies_rum, besides the schema.
+# The API takes DPXL instead of the structured matchers, so the full config uses the matchers, and
+# it refuses HIGH for a RUM policy. A tier must be above the base priority. An archive retention
+# id must exist on the tenant.
+resource: GetCompanyPoliciesResponse
+
+values:
+  policies[].priority: '"low"'
+  policies[].severities: '["info", "error"]'
+  policies[].applications.names: '["@{run}-app"]'
+  policies[].subsystems.names: '["@{run}-sub"]'
+  policies[].quota_based_priority_override.usage_tiers[].daily_quota_percentage: "50"
+  policies[].quota_based_priority_override.usage_tiers[].priority: '"medium"'
+
+updatedValues:
+  policies[].severities: '["warning"]'
+
+skip: ["policies[].dpxl_expression", "policies[].archive_retention_id"]
+
+minimal: ["policies[].severities"]
+
+upgradeMinimal: ["policies[].severities"]
+
+upgradeFrom: "3.23.0"

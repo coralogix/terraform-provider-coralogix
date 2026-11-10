@@ -294,8 +294,7 @@ var tcoLogsScenarios = map[string]func(h *grHarness, f *tcoFake){
 		}})))
 	},
 
-	// The API lowercases rule names. The validator refuses only names without any other
-	// character than capitals.
+	// The API lowercases rule names. The validator refuses a name with any capital.
 	"mixed-case-names": func(h *grHarness, _ *tcoFake) {
 		s := h.Apply("create: a mixed-case application name", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{
 			"applications": tcoRule("", "App-A"),
@@ -476,7 +475,7 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.RefreshPlan("refresh: the API returns the tag rules in another order", s)
 	},
 
-	// The API lowercases service and action names. Services have no validator for capitals.
+	// The API lowercases service and action names. The validator refuses a name with any capital.
 	"mixed-case-names": func(h *grHarness, _ *tcoFake) {
 		s := h.Apply("create: a mixed-case service name", h.null(), tcoPolicies(tcoPolicy("first", "high", j{"services": tcoRule("", "Checkout")})))
 		h.RefreshPlan("refresh", s)

@@ -1,0 +1,21 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "1001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.3,
+      "id": "1001",
+      "name": "seeded",
+      "retention": 1
+    }
+  }
+]
