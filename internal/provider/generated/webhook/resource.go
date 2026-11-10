@@ -342,7 +342,7 @@ func apiID(v *outgoing_webhooks_service.OutgoingWebhook) (string, bool) {
 	if v == nil {
 		return "", false
 	}
-	return v.Id, true
+	return v.Id, v.Id != ""
 }
 
 // setAPIID sets the id that v holds.

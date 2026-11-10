@@ -90,7 +90,7 @@ func flatten(ctx context.Context, v *suppressed_things_service.SuppressedThing) 
 		return nil, diags
 	}
 	out := flattenSuppressedThing(ctx, path.Empty(), v, &diags)
-	if out.UniqueIdentifier.IsNull() {
+	if out.UniqueIdentifier.IsNull() || out.UniqueIdentifier.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
 	return out, diags

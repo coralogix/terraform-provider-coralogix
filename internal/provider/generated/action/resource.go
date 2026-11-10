@@ -425,7 +425,7 @@ func apiID(v *actions_service.V2Action) (string, bool) {
 	if v == nil || v.Id == nil {
 		return "", false
 	}
-	return *v.Id, true
+	return *v.Id, *v.Id != ""
 }
 
 // idStateValue returns the value of the id attribute for id.

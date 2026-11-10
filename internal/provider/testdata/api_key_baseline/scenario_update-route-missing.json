@@ -1,0 +1,132 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "keeps",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "(unknown)",
+      "name": "keeps",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3",
+        "body": {
+          "hashed": false,
+          "keyPermissions": {
+            "permissions": [
+              "livetail:Read"
+            ],
+            "presets": [
+              "APM"
+            ]
+          },
+          "name": "keeps",
+          "owner": {
+            "teamId": 4000001
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "keeps",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the gateway has no such route",
+    "config": {
+      "name": "keeps-renamed",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "keeps-renamed",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "body": {
+          "newName": "keeps-renamed"
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_api_key \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+    ],
+    "state": null
+  }
+]

@@ -233,6 +233,9 @@ func flatten(ctx context.Context, v *rule_groups_service.RuleGroup, prior *RuleG
 		return nil, diags
 	}
 	out := flattenRuleGroup(ctx, path.Empty(), v, prior, &diags)
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
 	return out, diags
 }
 

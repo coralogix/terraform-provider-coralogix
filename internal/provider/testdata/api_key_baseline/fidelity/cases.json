@@ -1,0 +1,1001 @@
+{
+ "comment": "Live API requests used to validate the API keys fake. Every key that a case creates has a name that starts with the run name, and the recorder deletes the keys it created. {{TEAM}} is the id of the team that owns the recording key. {{A}} and the other capitals are the key ids that an earlier Create returned.",
+ "cases": [
+  {
+   "name": "lifecycle",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-a",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "A"
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {}
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "isActive": false
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "isActive": true
+     }
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-a2"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "presets": {
+       "presets": []
+      }
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "permissions": {
+       "permissions": []
+      }
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "presets": {
+       "presets": [
+        "APM"
+       ]
+      },
+      "permissions": {
+       "permissions": [
+        "livetail:Read",
+        "serverless:Read"
+       ]
+      }
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "presets": {}
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-gone"
+     }
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    }
+   ]
+  },
+  {
+   "name": "create-validation",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {},
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [],
+       "permissions": []
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "NoSuchPreset"
+       ],
+       "permissions": []
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [],
+       "permissions": [
+        "no:Such"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [],
+       "permissions": [
+        "livetail:Read",
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM",
+        "APM"
+       ],
+       "permissions": []
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "userId": "11111111-1111-4111-8111-111111111111"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "organisationId": "11111111-1111-4111-8111-111111111111"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": 1
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-v",
+      "owner": {
+       "teamId": 0
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "names",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-same",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "A"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-same",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "B"
+    },
+    {
+     "method": "GET",
+     "path": "/{{B}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": ""
+     }
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{B}}"
+    }
+   ]
+  },
+  {
+   "name": "presets-and-permissions",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-lower",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "apm"
+       ],
+       "permissions": []
+      },
+      "hashed": false
+     },
+     "capture": "A"
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-overlap",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "serverless:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "B"
+    },
+    {
+     "method": "GET",
+     "path": "/{{B}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-perms-only",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "C"
+    },
+    {
+     "method": "GET",
+     "path": "/{{C}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{C}}",
+     "body": {
+      "presets": {
+       "presets": [
+        "NoSuchPreset"
+       ]
+      }
+     }
+    },
+    {
+     "method": "PUT",
+     "path": "/{{C}}",
+     "body": {
+      "permissions": {
+       "permissions": [
+        "no:Such"
+       ]
+      }
+     }
+    },
+    {
+     "method": "PUT",
+     "path": "/{{C}}",
+     "body": {
+      "presets": {
+       "presets": []
+      },
+      "permissions": {
+       "permissions": []
+      }
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{C}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{B}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{C}}"
+    }
+   ]
+  },
+  {
+   "name": "access-policy",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-none",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "A"
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-empty-string",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": ""
+     },
+     "capture": "B"
+    },
+    {
+     "method": "GET",
+     "path": "/{{B}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-example",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-not-json",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "not json"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-wrong-shape",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "{\"a\": 1}"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-array",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "[]"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-empty-doc",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{}},\"rules\":[]}"
+     },
+     "capture": "C"
+    },
+    {
+     "method": "GET",
+     "path": "/{{C}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-spaced",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "{ \"rules\": [], \"default\": { \"permissions\": { } }, \"version\": \"2025-01-01\" }"
+     },
+     "capture": "D"
+    },
+    {
+     "method": "GET",
+     "path": "/{{D}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-one",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:Manage\":\"deny\"}},\"rules\":[]}"
+     },
+     "capture": "E"
+    },
+    {
+     "method": "GET",
+     "path": "/{{E}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-full",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false,
+      "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:ReadConfig\":\"grant\",\"team-custom-api-keys:Manage\":\"deny\",\"team-custom-api-keys:ReadAccessPolicy\":\"grant\",\"team-custom-api-keys:UpdateAccessPolicy\":\"deny\"}},\"rules\":[]}"
+     },
+     "capture": "F"
+    },
+    {
+     "method": "GET",
+     "path": "/{{F}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:ReadConfig\":\"grant\",\"team-custom-api-keys:Manage\":\"deny\",\"team-custom-api-keys:ReadAccessPolicy\":\"grant\",\"team-custom-api-keys:UpdateAccessPolicy\":\"deny\"}},\"rules\":[]}"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-none2"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "accessPolicy": "not json"
+     }
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }"
+     }
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "accessPolicy": ""
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{B}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{C}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{D}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{E}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{F}}"
+    }
+   ]
+  },
+  {
+   "name": "hashed",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-hashed",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": true
+     },
+     "capture": "A"
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "isActive": false
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-default-hash",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      }
+     },
+     "capture": "B"
+    },
+    {
+     "method": "GET",
+     "path": "/{{B}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{B}}"
+    }
+   ]
+  },
+  {
+   "name": "invalid-ids",
+   "steps": [
+    {
+     "method": "GET",
+     "path": "/00000000-0000-4000-8000-000000000000"
+    },
+    {
+     "method": "PUT",
+     "path": "/00000000-0000-4000-8000-000000000000",
+     "body": {
+      "newName": "{{NAME}}-x"
+     }
+    },
+    {
+     "method": "DELETE",
+     "path": "/00000000-0000-4000-8000-000000000000"
+    },
+    {
+     "method": "GET",
+     "path": "/abc"
+    },
+    {
+     "method": "PUT",
+     "path": "/abc",
+     "body": {
+      "newName": "{{NAME}}-x"
+     }
+    },
+    {
+     "method": "DELETE",
+     "path": "/abc"
+    }
+   ]
+  }
+ ]
+}

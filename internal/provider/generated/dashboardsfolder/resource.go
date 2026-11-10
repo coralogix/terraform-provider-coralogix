@@ -334,7 +334,7 @@ func apiID(v *dashboard_folders_service.DashboardFolder) (string, bool) {
 	if v == nil || v.Id == nil {
 		return "", false
 	}
-	return *v.Id, true
+	return *v.Id, *v.Id != ""
 }
 
 // setAPIID sets the id that v holds.

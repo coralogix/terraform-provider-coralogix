@@ -1,0 +1,23 @@
+[
+  {
+    "step": "upgrade",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "owner": {
+        "team_id": "1",
+        "user_id": null
+      },
+      "active": true,
+      "hashed": false,
+      "value": "v",
+      "roles": [
+        "No Such Role"
+      ]
+    },
+    "applyDiagnostics": [
+      "error: Invalid role | Unable to translate role '\"No Such Role\"' into permissions"
+    ],
+    "state": null
+  }
+]

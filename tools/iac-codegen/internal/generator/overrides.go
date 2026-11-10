@@ -103,11 +103,12 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 		requestOnly = nil // the model reports the operations that it cannot resolve
 	}
 	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
+	root, _ := model.BuildWithPolicy(doc, component, ids, policy) // Model issues are reported by the contract check.
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
 			continue
 		}
-		if problem := lineProblem(doc, line, component, file, requested); problem != nil {
+		if problem := lineProblem(doc, line, component, file, requested, root); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -154,7 +155,7 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 
 // lineProblem checks one line. resource is the component of the resource response. requested are
 // the components that a request body reaches.
-func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool) *lineIssue {
+func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool, root *model.Resource) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -181,7 +182,16 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		nested := line.Component != resource
 		// A nested component that only a response reaches binds no request: the request holds its
 		// own component in that place, such as an input object next to its output object.
-		return fieldLineProblem(schema, line, nested, nested && !requested[line.Component])
+		responseOnly := nested && !requested[line.Component]
+		if !nested && root != nil {
+			for _, field := range root.Fields {
+				if field.Name == line.Field && field.Create != nil && !field.Create.Required {
+					// A response requirement does not make the field required in Create.
+					responseOnly = true
+				}
+			}
+		}
+		return fieldLineProblem(schema, line, nested, responseOnly)
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
