@@ -1,0 +1,133 @@
+[
+  {
+    "step": "import a key of an organisation",
+    "state": null
+  },
+  {
+    "step": "import a key of an organisation (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "imported",
+      "owner": {
+        "organisation_id": "22222222-2222-4222-8222-222222222222",
+        "team_id": null,
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "drift": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"active\")",
+      "AttributeName(\"hashed\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"owner\")",
+      "AttributeName(\"owner\").AttributeName(\"organisation_id\")",
+      "AttributeName(\"owner\").AttributeName(\"team_id\")",
+      "AttributeName(\"owner\").AttributeName(\"user_id\")",
+      "AttributeName(\"permissions\")",
+      "AttributeName(\"permissions\").ElementKeyValue(tftypes.String<\"livetail:Read\">)",
+      "AttributeName(\"presets\")",
+      "AttributeName(\"presets\").ElementKeyValue(tftypes.String<\"APM\">)",
+      "AttributeName(\"value\")"
+    ]
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "imported",
+      "owner": {
+        "organisation_id": "22222222-2222-4222-8222-222222222222",
+        "team_id": null,
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    }
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "name": "imported",
+      "owner": {
+        "organisation_id": "22222222-2222-4222-8222-222222222222"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "imported",
+      "owner": {
+        "organisation_id": "22222222-2222-4222-8222-222222222222",
+        "team_id": null,
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "noChange": true,
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "imported",
+      "owner": {
+        "organisation_id": "22222222-2222-4222-8222-222222222222",
+        "team_id": null,
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    }
+  }
+]
