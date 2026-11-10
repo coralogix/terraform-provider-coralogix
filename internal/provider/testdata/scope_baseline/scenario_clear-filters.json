@@ -78,26 +78,21 @@
         "body": {
           "defaultExpression": "\u003cv1\u003etrue",
           "displayName": "example",
+          "filters": [],
           "id": "00000000-0000-4000-8000-000000000001"
         },
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "filters"
-    ],
     "state": {
       "default_expression": "<v1>true",
       "description": null,
       "display_name": "example",
-      "filters": null,
+      "filters": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"filters\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and plan cleared filters",
@@ -112,14 +107,11 @@
       "default_expression": "<v1>true",
       "description": null,
       "display_name": "example",
-      "filters": null,
+      "filters": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"filters\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "read cleared filters",

@@ -16,6 +16,7 @@ parsingrules: v0.1.0-beta.75
 preset: v0.1.0-beta.75
 quotaallocationruleset: v0.1.0-beta.75
 recordingrulesgroupsset: v0.1.0-beta.75
+scope: v0.1.0-beta.75
 slov2: v0.1.0-beta.75
 tcopolicieslogs: v0.1.0-beta.75
 tcopoliciesrum: v0.1.0-beta.75

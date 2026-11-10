@@ -19,7 +19,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -54,6 +56,39 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "filters.0.expression", "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceScopeEmptyValues(t *testing.T) {
+	name := "tf-scope-empty-" + uuid.NewString()
+	config := func(description, filters string) string {
+		return fmt.Sprintf(`resource "coralogix_scope" "test" {
+  display_name = %q
+  default_expression = "<v1>true"
+  description = %q
+  filters = %s
+}`, name, description, filters)
+	}
+	emptyChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr("coralogix_scope.test", "description", ""),
+		resource.TestCheckResourceAttr("coralogix_scope.test", "filters.#", "0"),
+	)
+	inPlaceUpdate := resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{
+		plancheck.ExpectResourceAction("coralogix_scope.test", plancheck.ResourceActionUpdate),
+	}}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckScopeDestroy,
+		Steps: []resource.TestStep{
+			{Config: config("", "[]"), Check: emptyChecks},
+			{
+				Config:           config("populated", `[{entity_type = "logs", expression = "<v1>true"}]`),
+				ConfigPlanChecks: inPlaceUpdate,
+				Check:            resource.TestCheckResourceAttr("coralogix_scope.test", "description", "populated"),
+			},
+			{Config: config("", "[]"), ConfigPlanChecks: inPlaceUpdate, Check: emptyChecks},
 		},
 	})
 }

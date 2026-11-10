@@ -42,7 +42,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_scope | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Incoming entity type is unspecified\"}\noperation - Create"
+      "error: Unable to create scope | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Incoming entity type is unspecified\"}"
     ],
     "state": null
   }

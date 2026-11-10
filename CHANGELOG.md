@@ -6,6 +6,16 @@
 #### tools/iac-codegen
 - FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
 
+#### resource/coralogix_scope
+- CHORE: Generate the resource from the API contract. Keep the schema, state version, string `team_id`, ordered filters, import by id, and API-key permissions.
+- FIX: An explicitly empty `description` stays empty after apply and refresh, instead of becoming null and causing an inconsistent result or a recurring plan.
+- FIX: Empty `filters` stay an empty list after apply and refresh, instead of becoming null and causing an inconsistent result or a recurring plan.
+- FIX: A Delete that gets a 404 for a missing API route returns an error and keeps state. A confirmed missing scope still counts as deleted.
+- CHORE: Use generated CRUD diagnostics. Successful configurations keep their behavior; API errors and missing-resource warnings use the generator's message wording.
+
+#### data-source/coralogix_scope
+- CHORE: Generate the data source with the resource. Keep lookup by id, the shared schema, and the same scopes API call.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.

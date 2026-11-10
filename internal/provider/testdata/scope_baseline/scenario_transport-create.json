@@ -25,7 +25,7 @@
       "team_id": "(unknown)"
     },
     "applyDiagnostics": [
-      "error: Error creating coralogix_scope | error - Post \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1\": scope transport unavailable\noperation - Create"
+      "error: Unable to create scope | Post \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1\": scope transport unavailable"
     ],
     "state": null
   },
