@@ -1,0 +1,128 @@
+# A released resource whose list items are each one arm of a oneOf, as the filters of a
+# dashboard widget are. The arms are an object with a nested object, an object, a string, and an
+# object with no fields. A string arm is an attribute of the item, and the empty arm is a bool.
+openapi: 3.1.0
+info: {title: filter, version: 1.0.0}
+paths:
+  /filter/v1/things:
+    post:
+      tags: [Filter Things Service]
+      operationId: FilterThingsService_CreateFilterThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateFilterThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                filters:
+                  type: array
+                  items: {$ref: '#/components/schemas/Filter'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateFilterThingResponse'}
+  /filter/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Filter Things Service]
+      operationId: FilterThingsService_GetFilterThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetFilterThingResponse'}
+    put:
+      tags: [Filter Things Service]
+      operationId: FilterThingsService_ReplaceFilterThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceFilterThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                filters:
+                  type: array
+                  items: {$ref: '#/components/schemas/Filter'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceFilterThingResponse'}
+    delete:
+      tags: [Filter Things Service]
+      operationId: FilterThingsService_DeleteFilterThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteFilterThingResponse'}
+components:
+  schemas:
+    CreateFilterThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/FilterThing'}
+    ReplaceFilterThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/FilterThing'}
+    GetFilterThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/FilterThing'}
+    DeleteFilterThingResponse:
+      type: object
+    FilterThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        filters:
+          type: array
+          items: {$ref: '#/components/schemas/Filter'}
+    Filter:
+      type: object
+      oneOf:
+        - {required: [logs], type: object}
+        - {required: [metrics], type: object}
+        - {required: [label], type: object}
+        - {required: [everything], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [logs], type: object}
+              - {required: [metrics], type: object}
+              - {required: [label], type: object}
+              - {required: [everything], type: object}
+      properties:
+        logs: {$ref: '#/components/schemas/FilterLogs'}
+        metrics: {$ref: '#/components/schemas/FilterMetrics'}
+        label: {type: string, x-coralogix-presence: true}
+        everything: {$ref: '#/components/schemas/FilterEverything'}
+    FilterLogs:
+      type: object
+      properties:
+        field: {type: string, x-coralogix-presence: true}
+        operator: {$ref: '#/components/schemas/FilterOperator'}
+    FilterOperator:
+      type: object
+      properties:
+        value: {type: string, x-coralogix-presence: true}
+    FilterMetrics:
+      type: object
+      properties:
+        metric: {type: string, x-coralogix-presence: true}
+    FilterEverything:
+      type: object

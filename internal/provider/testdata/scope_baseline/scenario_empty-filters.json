@@ -20,8 +20,7 @@
         "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
         "body": {
           "defaultExpression": "\u003cv1\u003etrue",
-          "displayName": "example",
-          "filters": null
+          "displayName": "example"
         },
         "status": 200
       }
@@ -113,7 +112,6 @@
         "body": {
           "defaultExpression": "\u003cv1\u003etrue",
           "displayName": "example",
-          "filters": null,
           "id": "00000000-0000-4000-8000-000000000001"
         },
         "status": 200

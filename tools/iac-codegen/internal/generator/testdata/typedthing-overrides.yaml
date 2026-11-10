@@ -1,0 +1,67 @@
+# A released resource that shows oneOf fields as a type attribute plus the merged fields of the
+# arms, as the aggregations and span fields of a dashboard widget are.
+resource: TypedThing
+mode: existing
+typeName: typed_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: TypedThingsService_CreateTypedThing
+    get: TypedThingsService_GetTypedThing
+    update: TypedThingsService_ReplaceTypedThing
+    delete: TypedThingsService_DeleteTypedThing
+  idProperty: id
+  serverSetID: true
+
+types:
+  TypedThing:
+    fields:
+      id: {readOnly: true}
+  TypedAggregation:
+    typedArms:
+      # The released spelling of an arm that is not its name: average is avg.
+      names: {average: avg}
+  # The released resource lets the user leave out selection_type: no values select all.
+  TypedSelection:
+    typedArms: {field: selection_type, infer: true}
+  # An operator is one object: equals and not_equals, each with a selection of its own. The selection
+  # of an arm is shown as the attributes of the operator.
+  TypedOperator:
+    typedArms: {names: {notEquals: not_equals}}
+  TypedNotSelection:
+    typedArms: {field: selection_type, infer: true}
+  TypedNotList:
+    fields:
+      values: {name: selected_values, computed: true, default: []}
+  # An empty text that the user set stays "" instead of reading as null: flatten needs the prior
+  # value, also when the field is in an arm of a typedArms object.
+  TypedList:
+    fields:
+      values: {name: selected_values, computed: true, default: []}
+      note: {readEmptyAs: "null"}
+  # Only the second arm needs the prior value, for a field that both arms share. The merged field
+  # is a copy of the first arm's, so it has no trace of that need.
+  TypedPercentile:
+    fields:
+      field: {readEmptyAs: "null"}
+  # The last scalar arm needs the prior value for the value that all scalar arms share.
+  TypedSpanField:
+    fields:
+      processTagField: {readEmptyAs: "null"}
+    typedArms:
+      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
+
+enums:
+  # The enum of the first arm and the free text of the second arm share one attribute, mode. The
+  # enum is checked only when the type names the arm that has it.
+  TypedMode:
+    zero: unspecified
+    trimPrefix: MODE_
+    values: [MODE_FAST, MODE_EXACT]
+  TypedMetadataField:
+    zero: unspecified
+    trimPrefix: METADATA_FIELD_
+    values: [METADATA_FIELD_SERVICE_NAME, METADATA_FIELD_APPLICATION_NAME]

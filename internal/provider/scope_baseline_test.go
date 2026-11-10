@@ -139,9 +139,11 @@ func TestScopeBaselinePartialSuccess(t *testing.T) {
 		name     string
 		response map[string]any
 	}{
+		// The SDK needs id, teamId, displayName, filters and defaultExpression in a scope, so a scope that has it is the one that
+		// reaches the provider with no id. A null scope never reaches the provider: the SDK stops it.
 		{"null-scope", j{"scope": nil}},
-		{"missing-id", j{"scope": j{}}},
-		{"empty-id", j{"scope": j{"id": ""}}},
+		{"missing-id", j{"scope": j{"displayName": "example", "filters": []any{}, "teamId": 1, "defaultExpression": "<v1>true"}}},
+		{"empty-id", j{"scope": j{"id": "", "displayName": "example", "filters": []any{}, "teamId": 1, "defaultExpression": "<v1>true"}}},
 	} {
 		t.Run("create-"+tc.name, func(t *testing.T) {
 			h := newScopeHarness(t)
@@ -172,8 +174,8 @@ func TestScopeBaselineReadResponses(t *testing.T) {
 	}{
 		{"empty-scopes", j{"scopes": []any{}}},
 		{"null-scopes", j{"scopes": nil}},
-		{"missing-id", j{"scopes": []any{j{}}}},
-		{"empty-id", j{"scopes": []any{j{"id": ""}}}},
+		{"missing-id", j{"scopes": []any{j{"displayName": "example", "filters": []any{}, "teamId": 1, "defaultExpression": "<v1>true"}}}},
+		{"empty-id", j{"scopes": []any{j{"id": "", "displayName": "example", "filters": []any{}, "teamId": 1, "defaultExpression": "<v1>true"}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h := newScopeHarness(t)

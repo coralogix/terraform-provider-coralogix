@@ -1,0 +1,215 @@
+# A released resource that shows oneOf fields as a type attribute plus the merged fields of the arms
+# (typedArms), as the aggregations of a dashboard widget are: an arm with no fields, two arms that
+# share a field, an arm with a nested object, and scalar arms (a string and an enum) that share one
+# value attribute. It is used by a single field and by the items of a list.
+openapi: 3.1.0
+info: {title: typed, version: 1.0.0}
+paths:
+  /typed/v1/things:
+    post:
+      tags: [Typed Things Service]
+      operationId: TypedThingsService_CreateTypedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateTypedThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                aggregation: {$ref: '#/components/schemas/TypedAggregation'}
+                selection: {$ref: '#/components/schemas/TypedSelection'}
+                operator: {$ref: '#/components/schemas/TypedOperator'}
+                fields:
+                  type: array
+                  items: {$ref: '#/components/schemas/TypedSpanField'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateTypedThingResponse'}
+  /typed/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Typed Things Service]
+      operationId: TypedThingsService_GetTypedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetTypedThingResponse'}
+    put:
+      tags: [Typed Things Service]
+      operationId: TypedThingsService_ReplaceTypedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceTypedThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                aggregation: {$ref: '#/components/schemas/TypedAggregation'}
+                selection: {$ref: '#/components/schemas/TypedSelection'}
+                operator: {$ref: '#/components/schemas/TypedOperator'}
+                fields:
+                  type: array
+                  items: {$ref: '#/components/schemas/TypedSpanField'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceTypedThingResponse'}
+    delete:
+      tags: [Typed Things Service]
+      operationId: TypedThingsService_DeleteTypedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteTypedThingResponse'}
+components:
+  schemas:
+    CreateTypedThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/TypedThing'}
+    ReplaceTypedThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/TypedThing'}
+    GetTypedThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/TypedThing'}
+    DeleteTypedThingResponse:
+      type: object
+    TypedThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        aggregation: {$ref: '#/components/schemas/TypedAggregation'}
+        selection: {$ref: '#/components/schemas/TypedSelection'}
+        operator: {$ref: '#/components/schemas/TypedOperator'}
+        fields:
+          type: array
+          items: {$ref: '#/components/schemas/TypedSpanField'}
+    TypedAggregation:
+      type: object
+      oneOf:
+        - {required: [count], type: object}
+        - {required: [average], type: object}
+        - {required: [percentile], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [count], type: object}
+              - {required: [average], type: object}
+              - {required: [percentile], type: object}
+      properties:
+        count: {$ref: '#/components/schemas/TypedCount'}
+        average: {$ref: '#/components/schemas/TypedAverage'}
+        percentile: {$ref: '#/components/schemas/TypedPercentile'}
+    TypedCount:
+      type: object
+    TypedAverage:
+      type: object
+      properties:
+        field: {type: string, x-coralogix-presence: true}
+        mode: {$ref: '#/components/schemas/TypedMode'}
+        weight: {type: number, format: double, x-coralogix-presence: true}
+    TypedPercentile:
+      type: object
+      properties:
+        field: {type: string, x-coralogix-presence: true}
+        mode: {type: string, x-coralogix-presence: true}
+        weight: {type: number, format: double, x-coralogix-presence: true}
+        percent: {type: number, format: double, x-coralogix-presence: true}
+        bucket: {$ref: '#/components/schemas/TypedBucket'}
+    TypedBucket:
+      type: object
+      properties:
+        size: {type: string, x-coralogix-presence: true}
+    TypedSpanField:
+      type: object
+      oneOf:
+        - {required: [metadataField], type: object}
+        - {required: [tagField], type: object}
+        - {required: [processTagField], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [metadataField], type: object}
+              - {required: [tagField], type: object}
+              - {required: [processTagField], type: object}
+      properties:
+        metadataField: {$ref: '#/components/schemas/TypedMetadataField'}
+        tagField: {type: string, x-coralogix-presence: true}
+        processTagField: {type: string, x-coralogix-presence: true}
+    TypedMetadataField:
+      type: string
+      enum: [METADATA_FIELD_UNSPECIFIED, METADATA_FIELD_SERVICE_NAME, METADATA_FIELD_APPLICATION_NAME]
+    TypedSelection:
+      type: object
+      oneOf:
+        - {required: [all], type: object}
+        - {required: [list], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [all], type: object}
+              - {required: [list], type: object}
+      properties:
+        all: {$ref: '#/components/schemas/TypedAll'}
+        list: {$ref: '#/components/schemas/TypedList'}
+    TypedAll:
+      type: object
+    TypedList:
+      type: object
+      properties:
+        values:
+          type: array
+          items: {type: string}
+        note: {type: string, x-coralogix-presence: true}
+    TypedOperator:
+      type: object
+      oneOf:
+        - {required: [equals], type: object}
+        - {required: [notEquals], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [equals], type: object}
+              - {required: [notEquals], type: object}
+      properties:
+        equals: {$ref: '#/components/schemas/TypedEquals'}
+        notEquals: {$ref: '#/components/schemas/TypedNotEquals'}
+    TypedEquals:
+      type: object
+      properties:
+        selection: {$ref: '#/components/schemas/TypedSelection'}
+    TypedNotEquals:
+      type: object
+      properties:
+        selection: {$ref: '#/components/schemas/TypedNotSelection'}
+    TypedNotSelection:
+      type: object
+      properties:
+        list: {$ref: '#/components/schemas/TypedNotList'}
+    TypedNotList:
+      type: object
+      properties:
+        values:
+          type: array
+          items: {type: string}
+    TypedMode:
+      type: string
+      enum: [MODE_UNSPECIFIED, MODE_FAST, MODE_EXACT]

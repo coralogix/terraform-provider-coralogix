@@ -200,16 +200,17 @@ func extractCreateScope(plan *ScopeResourceModel) (*scopess.CreateScopeRequest, 
 		}
 
 		filters = append(filters, scopess.ScopesV1Filter{
-			Expression: filter.Expression.ValueStringPointer(),
-			EntityType: et,
+			Expression: filter.Expression.ValueString(),
+			EntityType: *et,
 		})
 	}
 
+	displayName := plan.DisplayName.ValueString()
 	return &scopess.CreateScopeRequest{
-		DisplayName:       plan.DisplayName.ValueString(),
+		DisplayName:       &displayName,
 		Description:       plan.Description.ValueStringPointer(),
 		Filters:           filters,
-		DefaultExpression: plan.DefaultExpression.ValueStringPointer(),
+		DefaultExpression: plan.DefaultExpression.ValueString(),
 	}, nil
 }
 
@@ -348,14 +349,15 @@ func extractUpdateScope(plan *ScopeResourceModel) (*scopess.UpdateScopeRequest, 
 		}
 
 		filters = append(filters, scopess.ScopesV1Filter{
-			Expression: filter.Expression.ValueStringPointer(),
-			EntityType: et,
+			Expression: filter.Expression.ValueString(),
+			EntityType: *et,
 		})
 	}
 
+	displayName := plan.DisplayName.ValueString()
 	return &scopess.UpdateScopeRequest{
 		Id:                plan.ID.ValueString(),
-		DisplayName:       plan.DisplayName.ValueString(),
+		DisplayName:       &displayName,
 		Description:       plan.Description.ValueStringPointer(),
 		Filters:           filters,
 		DefaultExpression: plan.DefaultExpression.ValueString(),

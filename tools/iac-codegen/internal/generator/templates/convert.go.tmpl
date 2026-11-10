@@ -514,6 +514,8 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- template "expandField" .}}
 {{- end}}
 }
+{{else if and .Expand .Typed}}
+{{- template "typedExpand" .}}
 {{else if and .Expand .Carry}}
 {{- template "carryExpand" .}}
 {{else if .Expand}}
@@ -544,7 +546,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	return out
 }
 {{end}}
-{{- if and .Flatten .Carry}}
+{{- if and .Flatten .Typed}}
+{{- template "typedFlatten" .}}
+{{else if and .Flatten .Carry}}
 {{- template "carryFlatten" .}}
 {{else if .Flatten}}
 func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
@@ -2370,6 +2374,147 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 		out.{{.Model}} = arm
 	}
 {{- end}}
+	return out
+}
+{{- end}}
+
+{{- define "typedExpand"}}
+{{- $typed := .Typed}}
+{{- $type := .Typed.TypeField}}
+// expand{{.Func}} sends the arm that the type attribute names, with the merged fields that the arm
+// holds in the API.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$typed.Pkg}}.{{.SDK}} {
+	if m == nil {
+		return nil
+	}
+	out := &{{$typed.Pkg}}.{{.SDK}}{}
+	kind := m.{{$type.Model}}.ValueString()
+{{- if $typed.Infer}}
+	if m.{{$type.Model}}.IsNull() || m.{{$type.Model}}.IsUnknown() {
+		// The configuration leaves the type out, so it comes from the fields that are set.
+		var unknown bool
+		kind, unknown = inferTypedKind({{$typed.InferArms}}, map[string]attr.Value{
+{{- range $typed.InferFields}}
+			{{printf "%q" .TFName}}: m.{{.Model}},
+{{- end}}
+		})
+		if unknown {
+			diags.AddAttributeError(p.AtName({{printf "%q" $type.TFName}}), "Cannot choose the {{$type.TFName}}", "A field that decides the {{$type.TFName}} is unknown.")
+			return nil
+		}
+	}
+{{- end}}
+	switch kind {
+{{- range $typed.Arms}}
+	case {{printf "%q" .Value}}:
+{{- if .Inline}}
+		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
+			{{.Inline.Model}}: &{{.Inner.Model}}{
+{{- range .Inner.Fields}}
+				{{.Model}}: m.{{.Model}},
+{{- end}}
+			},
+		}, diags)
+{{- else if .Object}}
+		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
+{{- range .Object.Fields}}{{if not .Carried}}
+			{{.Model}}: m.{{.Model}},
+{{- end}}{{end}}
+		}, diags)
+{{- else if .Empty}}
+		out.{{.SDK}} = map[string]interface{}{}
+{{- else}}
+{{- template "expandField" .Scalar}}
+{{- end}}
+{{- end}}
+	default:
+		diags.AddAttributeError(p.AtName({{printf "%q" $type.TFName}}), "Unknown {{$type.TFName}}", fmt.Sprintf({{printf "%q" (print "The " $type.TFName " %q is not one of " $typed.Allowed ".")}}, m.{{$type.Model}}.ValueString()))
+	}
+	return out
+}
+{{- end}}
+
+{{- define "typedFlatten"}}
+{{- $typed := .Typed}}
+{{- $type := .Typed.TypeField}}
+// flatten{{.Func}} reads the arm of {{.SDK}} as the type attribute and the merged fields.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
+	if v == nil {
+		return nil
+	}
+	out := &{{.Model}}{}
+{{- $obj := .}}
+{{- range $typed.Arms}}
+{{- range .Inits}}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flatten{{.Object.Func}}(ctx, p, &{{$typed.Pkg}}.{{.Object.SDK}}{}, {{if .Object.NeedsPrior}}nil, {{end}}diags); empty != nil {
+{{- range .Fields}}
+		out.{{.}} = empty.{{.}}
+{{- end}}
+	}
+{{- end}}
+{{- if .InitScalar}}
+	{
+		v := &{{$typed.Pkg}}.{{$obj.SDK}}{}
+{{- template "flattenField" .Scalar}}
+	}
+{{- end}}
+{{- end}}
+	switch {
+{{- range $typed.Arms}}
+	case v.{{.SDK}} != nil:
+		out.{{$type.Model}} = types.StringValue({{printf "%q" .Value}})
+{{- if .Inline}}
+{{- $arm := .}}
+{{- if and $obj.NeedsPrior .Object.NeedsPrior}}
+		// The prior of the arm is the prior object, when it had this type.
+		var priorArm *{{.Object.Model}}
+		if prior != nil && prior.{{$type.Model}}.ValueString() == {{printf "%q" .Value}} {
+			priorArm = &{{.Object.Model}}{
+				{{.Inline.Model}}: &{{.Inner.Model}}{
+{{- range .Inner.Fields}}
+					{{.Model}}: prior.{{.Model}},
+{{- end}}
+				},
+			}
+		}
+{{- end}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
+{{- range .Inner.Fields}}
+			out.{{.Model}} = arm.{{$arm.Inline.Model}}.{{.Model}}
+{{- end}}
+		}
+{{- else if .Object}}
+{{- if and $obj.NeedsPrior .Object.NeedsPrior}}
+		// The prior of the arm is the prior object, when it had this type.
+		var priorArm *{{.Object.Model}}
+		if prior != nil && prior.{{$type.Model}}.ValueString() == {{printf "%q" .Value}} {
+			priorArm = &{{.Object.Model}}{
+{{- range .Object.Fields}}{{if not .Carried}}
+				{{.Model}}: prior.{{.Model}},
+{{- end}}{{end}}
+			}
+		}
+{{- end}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil {
+{{- range .Object.Fields}}{{if not .Carried}}
+			out.{{.Model}} = arm.{{.Model}}
+{{- end}}{{end}}
+		}
+{{- else if .Scalar}}
+{{- template "flattenField" .Scalar}}
+{{- end}}
+{{- end}}
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of{{range $typed.Arms}} {{.SDK}}{{end}}; it must have one.")
+	}
+{{- range .Fields}}{{if .EmptyDefault}}
+	if out.{{.Model}}.IsNull() {
+		// An arm that lacks the field, or an answer without values, reads as the default. An import
+		// has no prior value to restore the empty collection from.
+		out.{{.Model}} = {{.EmptyDefault}}
+	}
+{{- end}}{{end}}
 	return out
 }
 {{- end}}
