@@ -108,7 +108,7 @@ jobs:
             git diff -U0 -- CHANGELOG.md | sed -nE 's/^\+([^+].*)$/\1/p'
             echo '```'
             echo
-            echo "Review the schema change in \`docs/resources/\` and \`docs/data-sources/\`, and the generated acceptance tests, before merging."
+            echo "Review the schema change in \`docs/resources/\` and \`docs/data-sources/\`, the protocol baseline golden files in \`internal/provider/testdata/\`, and the generated acceptance tests, before merging."
             echo
             echo "Opened by [Regenerate generated resources](${RUN_URL})."
           } > "$RUNNER_TEMP/regenerated/pr-body.md"
@@ -191,6 +191,7 @@ jobs:
             go.sum
             CHANGELOG.md
             internal/provider/generated/**
+            internal/provider/testdata/**
             docs/**
             examples/**
           commit-message: "chore: regenerate generated resources from Management SDK ${{ needs.build.outputs.sdk_short_sha }}"
