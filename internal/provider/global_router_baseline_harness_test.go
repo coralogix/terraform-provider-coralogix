@@ -458,27 +458,7 @@ func (h *grHarness) Import(name, id string) tftypes.Value {
 // UpgradeV0 upgrades a raw state that was written by schema version 0.
 func (h *grHarness) UpgradeV0(name, rawJSON string) tftypes.Value {
 	h.t.Helper()
-	return h.UpgradeFrom(0, name, rawJSON)
-}
-
-// UpgradeFrom upgrades a raw state that was written by the given schema version.
-func (h *grHarness) UpgradeFrom(version int64, name, rawJSON string) tftypes.Value {
-	h.t.Helper()
-	step := grStep{Step: name, Config: json.RawMessage(rawJSON)}
-	resp, err := h.server.UpgradeResourceState(h.ctx, &tfprotov6.UpgradeResourceStateRequest{
-		TypeName: h.typeName, Version: version, RawState: &tfprotov6.RawState{JSON: []byte(rawJSON)},
-	})
-	h.must(err)
-	step.Requests = h.api.takeRequests()
-	step.ApplyDiags = diagStrings(resp.Diagnostics)
-	if hasError(resp.Diagnostics) {
-		h.record(step)
-		return h.null()
-	}
-	state := h.decode(resp.UpgradedState)
-	step.State = toJSON(state)
-	h.record(step)
-	return state
+	return h.UpgradeFrom(name, 0, rawJSON)
 }
 
 // ReadDataSource validates the config of the data source with the type name of the harness, and

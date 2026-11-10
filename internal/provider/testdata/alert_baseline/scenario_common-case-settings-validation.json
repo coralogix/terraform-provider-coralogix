@@ -17,7 +17,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"case_settings\").AttributeName(\"auto_resolve_mode\")] | Attribute case_settings.auto_resolve_mode value must be one of: [\"enabled\" \"disabled\"], got: \"auto\""
+      "error: Invalid Attribute Value Match [AttributeName(\"case_settings\").AttributeName(\"auto_resolve_mode\")] | Attribute case_settings.auto_resolve_mode value must be one of: [\"disabled\" \"enabled\"], got: \"auto\""
     ],
     "state": null
   },

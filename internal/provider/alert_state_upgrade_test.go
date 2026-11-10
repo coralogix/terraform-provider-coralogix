@@ -67,7 +67,7 @@ func TestAlertStateUpgrade(t *testing.T) {
 			id := alertID(t, created)
 			refreshed := h.Refresh("refresh", created)
 
-			upgraded := h.UpgradeFrom(version, "upgrade", alertOldState(version, id))
+			upgraded := h.UpgradeFrom("upgrade", version, alertOldState(version, id))
 			if upgraded.IsNull() {
 				t.Fatalf("the upgrade of version %d failed: %v", version, h.steps[len(h.steps)-1].ApplyDiags)
 			}
@@ -87,7 +87,7 @@ func TestAlertStateUpgrade(t *testing.T) {
 
 	t.Run("an alert that does not exist", func(t *testing.T) {
 		h := newAlertHarness(t)
-		h.UpgradeFrom(2, "upgrade", alertOldState(2, "00000000-0000-4000-8000-0000000000ff"))
+		h.UpgradeFrom("upgrade", 2, alertOldState(2, "00000000-0000-4000-8000-0000000000ff"))
 		diags := h.steps[len(h.steps)-1].ApplyDiags
 		if len(diags) == 0 {
 			t.Fatal("the upgrade of a missing alert reported no error")
@@ -103,7 +103,7 @@ func TestAlertStateWithStringIntegrationID(t *testing.T) {
 	created := h.Apply("create", h.null(), alertLogsImmediate("tfupgrade", nil))
 	raw := `{"id": "` + alertID(t, created) + `", "name": "tfupgrade", "notification_group": {"webhooks_settings": [` +
 		`{"integration_id": "123", "notify_on": "Triggered Only", "retriggering_period": {"minutes": 10}}]}}`
-	state := h.UpgradeFrom(3, "same version", raw)
+	state := h.UpgradeFrom("same version", 3, raw)
 	if state.IsNull() {
 		t.Fatalf("the state did not load: %v", h.steps[len(h.steps)-1].ApplyDiags)
 	}
