@@ -19,16 +19,15 @@
 # check-ci.sh runs again right before the merge, so a check re-run after the CI step holds the
 # merge: master requires only "Acceptance tests result".
 #
-# It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
-# finishes (to approve once the last check passes). Both triggers run this file and release.py
-# as they are on master, never a copy that the PR changed. The PR's files are only read.
+# It runs whenever a PR workflow on a release branch finishes (to approve once the last check
+# passes), and runs this file and release.py as they are on master, never a copy that the PR
+# changed. The PR's files are only read. A push to the PR dismisses every approval through the
+# master ruleset (dismiss stale reviews on push), and the next run here re-checks the new commit.
+# Not pull_request_target: GitHub blocks that event in public repositories from 2026-12-02 unless
+# an Actions event policy allows it.
 name: approve-release
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - master
   workflow_run:
     workflows: ["Acceptance Tests", "build", "release", "changelog-check", "tfsec"]
     # completed only: the job approves and merges in one go and withdraws the approval if the
@@ -49,15 +48,11 @@ jobs:
     name: "Release PR: approve"
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'pull_request_target' &&
-       startsWith(github.head_ref, 'release-') &&
-       github.event.pull_request.head.repo.full_name == github.repository) ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.event == 'pull_request' &&
-       startsWith(github.event.workflow_run.head_branch, 'release-') &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'release-') &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     concurrency:
-      group: approve-release-${{ github.head_ref || github.event.workflow_run.head_branch }}
+      group: approve-release-${{ github.event.workflow_run.head_branch }}
       # Never cancel a running job: one cancelled between merging the PR and starting
       # release-provider.yml would leave the version merged but not released. A newer event
       # replaces only a pending run, and the job doesn't wait for CI, so runs stay short.
@@ -69,7 +64,7 @@ jobs:
       actions: write
     env:
       GH_TOKEN: ${{ github.token }}
-      HEAD_REF: ${{ github.head_ref || github.event.workflow_run.head_branch }}
+      HEAD_REF: ${{ github.event.workflow_run.head_branch }}
     steps:
       - uses: actions/checkout@v4
         with:

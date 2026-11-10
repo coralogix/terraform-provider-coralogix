@@ -6,8 +6,12 @@ name: link-issue-on-merge
 # the issue stays clean during the PR's life and is closed only here, at merge. PRs
 # without the marker (human PRs, non-GitHub-sourced fixes) are a no-op.
 
+# pull_request, not pull_request_target: GitHub blocks pull_request_target in public repositories
+# from 2026-12-02 unless an Actions event policy allows it. The triage bot opens its PRs from
+# branches of this repository, which get the write token below. A fork PR gets a read-only one,
+# and the job returns before any write for every author but the bot.
 on:
-  pull_request_target:
+  pull_request:
     types: [closed]
 
 permissions:
