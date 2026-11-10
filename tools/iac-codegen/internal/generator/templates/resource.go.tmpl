@@ -923,8 +923,10 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 		var kept {{.Type}}
 		if !{{$keptFrom}}.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
 {{- if .AttrType}}
-			// A value of another shape, or one with an unknown value inside, cannot enter state.
-			if value, err := kept.ToTerraformValue(ctx); err == nil && value.IsFullyKnown() && kept.Type(ctx).Equal({{.AttrType}}) {
+			// A value of another shape cannot enter state. One with an unknown value inside, such
+			// as an Optional and Computed child that the configuration leaves out, is kept for
+			// AfterFlatten to fill in; it is checked below, after the hook has run.
+			if _, err := kept.ToTerraformValue(ctx); err == nil && kept.Type(ctx).Equal({{.AttrType}}) {
 				m.{{.Model}} = kept
 			}
 {{- else}}
@@ -941,6 +943,14 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 		}
 	}
 {{- end}}
+{{- range .KeptExtras}}{{if .AttrType}}
+	// State cannot hold an unknown value. A value that the plan left unknown inside the object
+	// must have been set by AfterFlatten.
+	if value, err := m.{{.Model}}.ToTerraformValue(ctx); err == nil && !value.IsFullyKnown() {
+		diags.AddError("Unable to write the state of "+TypeName, fmt.Sprintf("the attribute %q has a value inside it that is still unknown after the API response was read; the AfterFlatten hook must set it", {{printf "%q" .TFName}}))
+		return diags
+	}
+{{- end}}{{end}}
 {{- if and .Singleton .SingletonID}}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id

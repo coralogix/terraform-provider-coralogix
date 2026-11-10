@@ -911,26 +911,56 @@ func scheduleOf(objectType tftypes.Object, daysOfWeek []string, start, offset tf
 	return tftypes.NewValue(scheduleType, map[string]tftypes.Value{"active_on": tftypes.NewValue(activeOn, window)})
 }
 
-// The state keeps the object of the plan, so a hook finds it there, unless a value inside it is
-// unknown: that cannot enter state. A new read starts it as null.
-func TestExtraObjectKeepsAKnownPlanValue(t *testing.T) {
+// The state keeps the object of the plan, so a hook finds it there. A value inside it that the plan
+// left unknown cannot enter state: AfterFlatten must set it, and without that the write is an
+// error. A new read starts the object as null.
+func TestExtraObjectKeepsTheObjectOfThePlan(t *testing.T) {
 	ctx := context.Background()
 	var schemaResp frameworkresource.SchemaResponse
 	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
 	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
-	r := NewResource(Hooks{}).(*Resource)
+	scheduleType := objectType.AttributeTypes["schedule"]
 	known := scheduleOf(objectType, []string{"Monday"}, str("07:30"), str("+0000"))
 	unknownOffset := scheduleOf(objectType, []string{"Monday"}, str("07:30"), tftypes.NewValue(tftypes.String, tftypes.UnknownValue))
-	tests := map[string]struct{ plan, want tftypes.Value }{
-		"known":              {known, known},
-		"unknown inside":     {unknownOffset, tftypes.NewValue(objectType.AttributeTypes["schedule"], nil)},
-		"null in the plan":   {tftypes.NewValue(objectType.AttributeTypes["schedule"], nil), tftypes.NewValue(objectType.AttributeTypes["schedule"], nil)},
-		"unknown in general": {tftypes.NewValue(objectType.AttributeTypes["schedule"], tftypes.UnknownValue), tftypes.NewValue(objectType.AttributeTypes["schedule"], nil)},
+	// fillOffset is a hook that sets the offset that the plan left unknown, and keeps the rest.
+	fillOffset := func(ctx context.Context, m *ConfigThingModel, _ *config_things_service.ConfigThing) diag.Diagnostics {
+		var diags diag.Diagnostics
+		attrs := m.Schedule.Attributes()
+		activeOn, _ := attrs["active_on"].(types.Object)
+		window := activeOn.Attributes()
+		window["utc_offset"] = types.StringValue("+0200")
+		newActive, d := types.ObjectValue(activeOn.AttributeTypes(ctx), window)
+		diags.Append(d...)
+		attrs["active_on"] = newActive
+		filled, d := types.ObjectValue(m.Schedule.AttributeTypes(ctx), attrs)
+		diags.Append(d...)
+		m.Schedule = filled
+		return diags
+	}
+	tests := map[string]struct {
+		plan    tftypes.Value
+		hooks   Hooks
+		want    tftypes.Value
+		wantErr bool
+	}{
+		"known":                      {plan: known, want: known},
+		"unknown inside, no hook":    {plan: unknownOffset, wantErr: true},
+		"unknown inside, hook fills": {plan: unknownOffset, hooks: Hooks{AfterFlatten: fillOffset}, want: scheduleOf(objectType, []string{"Monday"}, str("07:30"), str("+0200"))},
+		"null in the plan":           {plan: tftypes.NewValue(scheduleType, nil), want: tftypes.NewValue(scheduleType, nil)},
+		"unknown in general":         {plan: tftypes.NewValue(scheduleType, tftypes.UnknownValue), want: tftypes.NewValue(scheduleType, nil)},
 	}
 	for name, test := range tests {
+		r := NewResource(test.hooks).(*Resource)
 		prior := withNulls(objectType, map[string]tftypes.Value{"schedule": test.plan})
 		state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(objectType, nil)}
-		if diags := r.setState(ctx, apiThing(compactJSON, inlineYAML), &tfsdk.Plan{Schema: schemaResp.Schema, Raw: prior}, &state); diags.HasError() {
+		diags := r.setState(ctx, apiThing(compactJSON, inlineYAML), &tfsdk.Plan{Schema: schemaResp.Schema, Raw: prior}, &state)
+		if test.wantErr {
+			if !diags.HasError() {
+				t.Errorf("%s: want an error for the unknown value inside the object", name)
+			}
+			continue
+		}
+		if diags.HasError() {
 			t.Fatalf("%s: %v", name, diags)
 		}
 		if got := at(t, state.Raw, "schedule"); !got.Equal(test.want) {

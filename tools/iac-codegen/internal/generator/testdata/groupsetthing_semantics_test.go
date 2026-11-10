@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
@@ -783,4 +784,17 @@ func TestOptionalGroupIsNullWhenTheResponseHasNoField(t *testing.T) {
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
+}
+
+// With real Terraform, the same JSON document in another format plans no change, also when the
+// items of a set hold a computed value that the configuration leaves out.
+func TestEquivalentDocumentPlansNoChangeWithRealTerraform(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	config := func(document string) string {
+		return "resource \"test_group_set_thing\" \"s\" {\n  document = " + strconv.Quote(document) + "\n  groups = [{ name = \"a\", items = [{ key = \"k\" }] }]\n}\n"
+	}
+	resource.UnitTest(t, resource.TestCase{ProtoV6ProviderFactories: factories, Steps: []resource.TestStep{
+		{Config: config("{\"a\":1}")},
+		{Config: config("{ \"a\": 1 }"), ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
+	}})
 }

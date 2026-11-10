@@ -3,6 +3,8 @@ resource: ConfigThing
 mode: existing
 # A hook that runs after the equality steps of the plan.
 modifyPlan: true
+# A hook that sets the values of the extra attributes that the API does not hold.
+afterFlatten: true
 
 validators:
   inferred: false
