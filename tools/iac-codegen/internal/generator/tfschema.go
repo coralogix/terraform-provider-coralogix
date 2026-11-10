@@ -113,7 +113,9 @@ type tfAttr struct {
 	// PlainDescription: the docs text is Description, not MarkdownDescription.
 	PlainDescription   bool
 	DeprecationMessage string
-	Default            string // Go expression of a static default, or ""
+	// Sensitive: Terraform hides the value (a sensitive line).
+	Sensitive bool
+	Default   string // Go expression of a static default, or ""
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
@@ -568,6 +570,7 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Description, a.PlainDescription = *l.MarkdownDescription, false
 	}
 	a.DeprecationMessage = l.Deprecation
+	a.Sensitive = l.Sensitive
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
@@ -1249,14 +1252,31 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 // of int32: Int64. The validators follow the type. On a uint64 that the API sends as a string, the
 // attribute is Int64 already: the line states that the released resource showed it as Int64, so a
 // contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
-// String keeps a computed-only integer as decimal text.
+// String keeps an integer as decimal text.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
 	}
 	if l.TerraformType == "String" {
-		if (a.Kind != "Int32" && a.Kind != "Int64") || !a.Computed || a.Optional || a.Required {
-			return fmt.Errorf("terraformType String needs a computed-only integer attribute")
+		// The released attribute is the decimal text of an integer, such as the id or a team id. An
+		// int32 is shown this way only when the server sets it.
+		if a.Kind != "Int32" && a.Kind != "Int64" {
+			return fmt.Errorf("terraformType String needs an integer attribute, not a %s", a.Kind)
+		}
+		if a.Kind == "Int32" && (!a.Computed || a.Optional || a.Required) {
+			return fmt.Errorf("terraformType String needs a computed-only integer attribute for an int32")
+		}
+		// A validator over other attributes has the same arguments for every type. A validator over the
+		// value (AtLeast, OneOf, ...) has no string counterpart with the same meaning.
+		for i, v := range a.Validators {
+			rest, ok := strings.CutPrefix(v, "int64validator.")
+			if !ok {
+				continue
+			}
+			if !strings.HasPrefix(rest, "ConflictsWith(") && !strings.HasPrefix(rest, "ExactlyOneOf(") && !strings.HasPrefix(rest, "AlsoRequires(") && !strings.HasPrefix(rest, "AtLeastOneOf(") {
+				return fmt.Errorf("terraformType String cannot keep the validator %s of the contract: remove the limit with validators.inferred: false, or state it as a validators line", v)
+			}
+			a.Validators[i] = "stringvalidator." + rest
 		}
 		prefix := strings.ToLower(a.Kind) + "planmodifier."
 		for i, m := range a.Modifiers {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
@@ -57,6 +58,8 @@ type convData struct {
 	EnumMaps []*enumMap
 	// WrapHelpers are the functions that put a value in its API wrapper objects and take it out.
 	WrapHelpers []*wrapHelper
+	// ItemProjections are the functions that take the strings out of the items of a response list.
+	ItemProjections []*itemProjection
 	// KeyedObjects are the local structs of keyedBy objects, with the functions that turn them
 	// into the API list and back.
 	KeyedObjects []*keyedObject
@@ -89,6 +92,15 @@ type convParent struct {
 	// DropEmpty: the object is optional in the request, so expand leaves it out when no field in
 	// it is set, instead of sending an empty object that an API can read as a value.
 	DropEmpty bool
+}
+
+// itemProjection is the generated function that takes the strings out of the objects that the
+// response holds for a list that the resource shows as the strings of one property.
+type itemProjection struct {
+	Func    string // the function name
+	Item    string // qualified SDK type of one item
+	Field   string // the Go field of the item that holds the string
+	Pointer bool   // the field is a pointer
 }
 
 // wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
@@ -343,7 +355,13 @@ type convField struct {
 	// contract sends the scalar without presence, and a configuration cannot hold zero.
 	ReadZeroAsNull bool
 	Zero           string // the zero value that ReadZeroAsNull compares, as model.Type.Zero
-	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
+	// Projection: the response holds each item as an object, and flatten reads the strings from one
+	// property of each item (an itemName line). Expand sends the strings.
+	Projection *itemProjection
+	// refPath is the SDK ref path of the field, for the refs of the items of a projection.
+	refPath string
+	// ReadNullAsEmpty: flatten reads a missing string as "", and a missing list or set of objects
+	// as an empty collection.
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
@@ -365,6 +383,9 @@ type convField struct {
 	// (sendUnknownAsZero). ZeroType is its Go type.
 	SendUnknownAsZero bool
 	ZeroType          string
+	// UnknownValue: expand sends this Go literal, as a ZeroType, when the plan is unknown
+	// (updateDefault). Update omits nothing: the API keeps the stored value of an omitted field.
+	UnknownValue string
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	// FixedValue is its Go expression: an enum cast, a quoted string, or a bool.
 	RequestValue string
@@ -729,6 +750,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	out.OneOfArms = oneOfArmPaths(r, b.file)
 	out.EnumMaps = b.enumMaps
 	out.WrapHelpers = b.wraps
+	out.ItemProjections = b.projections
 	out.KeyedObjects = b.keyedObjects
 	if err := markPrior(out); err != nil {
 		return nil, err
@@ -887,7 +909,9 @@ func (b *convBuilder) requestComponent(path string) string {
 // through, for example "IntegrationParameters.". An object that the SDK holds in a pointer is set
 // by expand before the fields that it holds, so they are always sent.
 func (b *convBuilder) requestObjects(obj *convObject, root convRoot, f *model.ResourceField) (string, error) {
-	segments := strings.Split(f.RequestPath, ".")
+	update := root.path == "update.body"
+	requestPath := f.RequestPathOf(update)
+	segments := strings.Split(requestPath, ".")
 	prefix := ""
 	for _, segment := range segments[:len(segments)-1] {
 		via := root.path + "." + f.Name + ".via." + segment
@@ -906,7 +930,7 @@ func (b *convBuilder) requestObjects(obj *convObject, root convRoot, f *model.Re
 			if attrs := requestAttrs(root, f); attrs != nil && !attrs.Required {
 				// expand allocates the object before it reads the field, so a null value would
 				// send an empty object, which the API can read as a value.
-				return "", fmt.Errorf("the request path %q goes through the optional object %s, which expand would send empty for a null %s: make the object required in the contract, or set the field in a hook", f.RequestPath, ref.SDKName(), f.Name)
+				return "", fmt.Errorf("the request path %q goes through the optional object %s, which expand would send empty for a null %s: make the object required in the contract, or set the field in a hook", requestPath, ref.SDKName(), f.Name)
 			}
 			if at := strings.TrimSuffix(prefix, "."); !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == at }) {
 				obj.Parents = append(obj.Parents, convParent{SDK: at, Type: b.qualify(typ.Name)})
@@ -965,7 +989,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
-		if root.expand && fieldsPath == root.path && f.RequestPath != "" {
+		if root.expand && fieldsPath == root.path && f.RequestPathOf(root.path == "update.body") != "" {
 			// The request holds the field deeper than the wrapper, so the Go expression goes through the objects.
 			prefix, err := b.requestObjects(obj, root, f)
 			if err != nil {
@@ -1297,6 +1321,7 @@ type convBuilder struct {
 	sent         sentSet // component fields that a request sends in some place
 	enumMaps     []*enumMap
 	wraps        []*wrapHelper
+	projections  []*itemProjection
 	keyedObjects []*keyedObject
 }
 
@@ -1438,7 +1463,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 }
 
 // applyTerraformType keeps released integer or computed string representations.
-func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+func (b *convBuilder) applyTerraformType(cf *convField, component, name string, computed bool) error {
 	var line overrides.Field
 	if b.file != nil {
 		line = b.file.Types[component].Fields[name]
@@ -1451,11 +1476,17 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string) 
 	}
 	if line.TerraformType == "String" {
 		if cf.Conv != convInt32 && cf.Conv != convInt64 {
-			return fmt.Errorf("terraformType String needs an integer")
+			return fmt.Errorf("%s: terraformType String needs an integer field", cf.TFName)
 		}
-		cf.Conv = convIntegerAsString
-		if component == b.resource.Name && name == b.resource.ID() {
+		switch {
+		case component == b.resource.Name && name == b.resource.ID():
 			cf.Conv = convInt64AsString
+		case cf.Conv == convInt64 && !computed:
+			// A value that a request sends, such as the team id of an owner: the state holds the
+			// decimal text and the request holds the number.
+			cf.Conv = convInt64AsString
+		default:
+			cf.Conv = convIntegerAsString
 		}
 		return nil
 	}
@@ -1569,7 +1600,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err != nil {
 		return nil, err
 	}
-	cf := &convField{TFName: terraformName(b.resource.Policy, component, name), Model: camelize(name), SDK: ref.Name}
+	cf := &convField{TFName: terraformName(b.resource.Policy, component, name), Model: camelize(name), SDK: ref.Name, refPath: refPath}
 	b.applyFieldLine(cf, component, name)
 	cf.ReadZeroAsNull, cf.Zero = t.ReadZeroAsNull, t.Zero
 	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
@@ -1591,7 +1622,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err := b.applyValueNames(cf, component, name); err != nil {
 		return nil, err
 	}
-	if err := b.applyTerraformType(cf, component, name); err != nil {
+	if err := b.applyTerraformType(cf, component, name, computed); err != nil {
 		return nil, err
 	}
 	if b.resource.Policy.AsBool(component, name) {
@@ -1601,6 +1632,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		cf.Conv, cf.Object = convEmptyBool, nil
 	}
 	if err := b.applyReleasedKeys(cf); err != nil {
+		return nil, err
+	}
+	if err := b.applyUpdateDefault(cf, component, name); err != nil {
 		return nil, err
 	}
 	b.applyMissingEnum(cf, component, name, presence)
@@ -1711,13 +1745,45 @@ func applySendUnknownAsZero(cf *convField) error {
 	return nil
 }
 
+// applyUpdateDefault makes expand send the value of an updateDefault line when the plan of the field
+// is unknown. The field has a server default, so the plan is unknown after a removal of a value that
+// differs from it, and the API keeps the stored value of a field that the request omits: sending the
+// value that a new resource has is what resets it.
+func (b *convBuilder) applyUpdateDefault(cf *convField, component, name string) error {
+	value, ok := b.resource.Policy.UpdateDefaults[component+"."+name]
+	if !ok {
+		return nil
+	}
+	goType, supported := zeroTypes[cf.Conv]
+	if !supported || cf.Wrap != nil {
+		return fmt.Errorf("%s: updateDefault needs a string, bool, or number field without wrappers, not a %s field", cf.TFName, cf.Conv)
+	}
+	switch cf.Conv {
+	case convString:
+		cf.UnknownValue = strconv.Quote(value)
+	case convBool:
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("%s: updateDefault %q is not a boolean", cf.TFName, value)
+		}
+		cf.UnknownValue = strconv.FormatBool(parsed)
+	default:
+		if _, err := strconv.ParseFloat(value, 64); err != nil {
+			return fmt.Errorf("%s: updateDefault %q is not a number", cf.TFName, value)
+		}
+		cf.UnknownValue = value
+	}
+	cf.ZeroType = goType
+	return nil
+}
+
 // checkReadAs checks the readEmptyAs and readNullAs keys of the line of cf.
 func checkReadAs(cf *convField) error {
 	if err := checkReadEmptyAs(cf); err != nil {
 		return err
 	}
-	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
-		return fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
+	if cf.ReadNullAsEmpty && cf.Conv != convObjects && cf.Conv != convString {
+		return fmt.Errorf("%s: readNullAs: empty needs a string, or a list or set of objects", cf.TFName)
 	}
 	return nil
 }
@@ -1903,6 +1969,9 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 	if t.Kind == model.List {
 		cf.Collection = "List"
 	}
+	if t.Projected != nil {
+		return b.projectedConv(cf, t)
+	}
 	switch t.Elem.Kind {
 	case model.String:
 		if isTime(t.Elem) {
@@ -1938,6 +2007,29 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		return "[]" + obj.SDK, nil
 	}
 	return "", fmt.Errorf("%s of %s is not supported", t.Kind, t.Elem.Kind)
+}
+
+// projectedConv sets the conversion of a list that the resource shows as the strings of one
+// property of its items: the response holds the items as objects, so flatten takes the strings
+// out of them. It returns the SDK Go type of the response field.
+func (b *convBuilder) projectedConv(cf *convField, t *model.Type) (string, error) {
+	item, err := b.ix.schemaRef(t.Projected.Schema)
+	if err != nil {
+		return "", err
+	}
+	property, err := b.ix.fieldRef(cf.refPath + "." + t.Projected.Property)
+	if err != nil {
+		return "", err
+	}
+	p := &itemProjection{
+		Func: lowerFirst(item.Name) + property.Name + "s", Item: b.qualify(item.Name), Field: property.Name,
+		Pointer: strings.HasPrefix(property.Want, "*"),
+	}
+	if !slices.ContainsFunc(b.projections, func(o *itemProjection) bool { return o.Func == p.Func }) {
+		b.projections = append(b.projections, p)
+	}
+	cf.Conv, cf.SDKType, cf.Projection = convStrings, "string", p
+	return "[]" + item.Name, nil
 }
 
 // nested returns the convObject of an object or a oneOf, and fills its
