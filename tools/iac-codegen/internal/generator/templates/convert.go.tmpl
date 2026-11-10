@@ -1764,6 +1764,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		// The released resource sent an unknown value as its zero value, which the API stores.
 		{{.Dst}} = {{$l}}new({{.ZeroType}}){{$r}}
 	} else {
+{{- else if .UnknownValue}}
+	if m.{{.Model}}.IsUnknown() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as the
+		// value that a new resource has.
+		unknown := {{.ZeroType}}({{.UnknownValue}})
+		{{.Dst}} = {{$l}}&unknown{{$r}}
+	} else {
 {{- end}}
 {{- if and (eq .Conv "string") .SendNullAsEmpty}}
 	if m.{{.Model}}.IsNull() {
@@ -1946,7 +1953,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 {{- end}}
-{{- if .SendUnknownAsZero}}
+{{- if or .SendUnknownAsZero .UnknownValue}}
 	}
 {{- end}}
 {{- end}}

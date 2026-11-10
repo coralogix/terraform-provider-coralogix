@@ -282,7 +282,14 @@ func expandUpdateKeyThingRequest(ctx context.Context, p path.Path, m *KeyThingMo
 	}
 	out := &key_things_service.UpdateKeyThingRequest{}
 	out.NewName = expandString(m.Name)
-	out.IsEnabled = expandBool(m.Enabled)
+	if m.Enabled.IsUnknown() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as the
+		// value that a new resource has.
+		unknown := bool(true)
+		out.IsEnabled = &unknown
+	} else {
+		out.IsEnabled = expandBool(m.Enabled)
+	}
 	{
 		var inner []string
 		inner = expandStringsSet[string](ctx, p.AtName("presets"), m.Presets, diags)
