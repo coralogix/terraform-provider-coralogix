@@ -2388,10 +2388,34 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{$typed.Pkg}}.{{.SDK}}{}
-	switch m.{{$type.Model}}.ValueString() {
+	kind := m.{{$type.Model}}.ValueString()
+{{- if $typed.Infer}}
+	if m.{{$type.Model}}.IsNull() || m.{{$type.Model}}.IsUnknown() {
+		// The configuration leaves the type out, so it comes from the fields that are set.
+		var unknown bool
+		kind, unknown = inferTypedKind({{$typed.InferArms}}, map[string]attr.Value{
+{{- range $typed.InferFields}}
+			{{printf "%q" .TFName}}: m.{{.Model}},
+{{- end}}
+		})
+		if unknown {
+			diags.AddAttributeError(p.AtName({{printf "%q" $type.TFName}}), "Cannot choose the {{$type.TFName}}", "A field that decides the {{$type.TFName}} is unknown.")
+			return nil
+		}
+	}
+{{- end}}
+	switch kind {
 {{- range $typed.Arms}}
 	case {{printf "%q" .Value}}:
-{{- if .Object}}
+{{- if .Inline}}
+		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
+			{{.Inline.Model}}: &{{.Inner.Model}}{
+{{- range .Inner.Fields}}
+				{{.Model}}: m.{{.Model}},
+{{- end}}
+			},
+		}, diags)
+{{- else if .Object}}
 		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
 {{- range .Object.Fields}}{{if not .Carried}}
 			{{.Model}}: m.{{.Model}},
@@ -2419,11 +2443,35 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 		return nil
 	}
 	out := &{{.Model}}{}
+{{- $obj := .}}
+{{- range $typed.Arms}}
+{{- range .Inits}}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flatten{{.Object.Func}}(ctx, p, &{{$typed.Pkg}}.{{.Object.SDK}}{}, {{if .Object.NeedsPrior}}nil, {{end}}diags); empty != nil {
+{{- range .Fields}}
+		out.{{.}} = empty.{{.}}
+{{- end}}
+	}
+{{- end}}
+{{- if .InitScalar}}
+	{
+		v := &{{$typed.Pkg}}.{{$obj.SDK}}{}
+{{- template "flattenField" .Scalar}}
+	}
+{{- end}}
+{{- end}}
 	switch {
 {{- range $typed.Arms}}
 	case v.{{.SDK}} != nil:
 		out.{{$type.Model}} = types.StringValue({{printf "%q" .Value}})
-{{- if .Object}}
+{{- if .Inline}}
+{{- $arm := .}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}nil, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
+{{- range .Inner.Fields}}
+			out.{{.Model}} = arm.{{$arm.Inline.Model}}.{{.Model}}
+{{- end}}
+		}
+{{- else if .Object}}
 		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}nil, {{end}}diags); arm != nil {
 {{- range .Object.Fields}}{{if not .Carried}}
 			out.{{.Model}} = arm.{{.Model}}

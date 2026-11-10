@@ -41,22 +41,61 @@ type TypedSpanField struct {
 	ProcessTagField *string
 }
 
+type TypedList struct {
+	Values []string
+}
+
+// A oneOf: All has no fields, List has the values.
+type TypedSelection struct {
+	All  map[string]interface{}
+	List *TypedList
+}
+
+type TypedNotList struct {
+	Values []string
+}
+
+// A object with one field, as the selection of a notEquals operator is: only a list.
+type TypedNotSelection struct {
+	List *TypedNotList
+}
+
+type TypedEquals struct {
+	Selection *TypedSelection
+}
+
+type TypedNotEquals struct {
+	Selection *TypedNotSelection
+}
+
+// A oneOf of two objects that each hold one selection.
+type TypedOperator struct {
+	Equals    *TypedEquals
+	NotEquals *TypedNotEquals
+}
+
 type TypedThing struct {
 	Id          *string
 	Name        *string
 	Aggregation *TypedAggregation
+	Selection   *TypedSelection
+	Operator    *TypedOperator
 	Fields      []TypedSpanField
 }
 
 type CreateTypedThingBody struct {
 	Name        *string
 	Aggregation *TypedAggregation
+	Selection   *TypedSelection
+	Operator    *TypedOperator
 	Fields      []TypedSpanField
 }
 
 type ReplaceTypedThingBody struct {
 	Name        *string
 	Aggregation *TypedAggregation
+	Selection   *TypedSelection
+	Operator    *TypedOperator
 	Fields      []TypedSpanField
 }
 
@@ -124,16 +163,16 @@ func (r ApiTypedThingsServiceReplaceTypedThingRequest) ReplaceTypedThingBody(rep
 	return r
 }
 
-func store(name *string, aggregation *TypedAggregation, fields []TypedSpanField) *TypedThing {
+func store(name *string, aggregation *TypedAggregation, selection *TypedSelection, operator *TypedOperator, fields []TypedSpanField) *TypedThing {
 	id := "thing-1"
-	Stored = TypedThing{Id: &id, Name: name, Aggregation: aggregation, Fields: fields}
+	Stored = TypedThing{Id: &id, Name: name, Aggregation: aggregation, Selection: selection, Operator: operator, Fields: fields}
 	stored := Stored
 	return &stored
 }
 
 func (r ApiTypedThingsServiceCreateTypedThingRequest) Execute() (*CreateTypedThingResponse, *http.Response, error) {
 	Created = append(Created, r.body)
-	return &CreateTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Fields)}, nil, nil
+	return &CreateTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Selection, r.body.Operator, r.body.Fields)}, nil, nil
 }
 
 func (r ApiTypedThingsServiceGetTypedThingRequest) Execute() (*GetTypedThingResponse, *http.Response, error) {
@@ -143,7 +182,7 @@ func (r ApiTypedThingsServiceGetTypedThingRequest) Execute() (*GetTypedThingResp
 
 func (r ApiTypedThingsServiceReplaceTypedThingRequest) Execute() (*ReplaceTypedThingResponse, *http.Response, error) {
 	Replaced = append(Replaced, r.body)
-	return &ReplaceTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Fields)}, nil, nil
+	return &ReplaceTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Selection, r.body.Operator, r.body.Fields)}, nil, nil
 }
 
 func (ApiTypedThingsServiceDeleteTypedThingRequest) Execute() (map[string]interface{}, *http.Response, error) {

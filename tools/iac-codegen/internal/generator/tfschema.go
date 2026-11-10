@@ -1321,8 +1321,8 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
 	if line := b.file.TypedArmsOf(t.Schema); line != nil {
-		if t.Kind != model.OneOf {
-			return nil, fmt.Errorf("%s: typedArms needs a oneOf, not a %s", t.Schema, t.Kind)
+		if t.Kind != model.OneOf && t.Kind != model.Object {
+			return nil, fmt.Errorf("%s: typedArms needs a oneOf or an object, not a %s", t.Schema, t.Kind)
 		}
 		return b.typedAttributes(p, t, line)
 	}

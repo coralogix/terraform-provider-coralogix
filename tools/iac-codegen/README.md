@@ -253,7 +253,32 @@ An arm is an object, an object without fields, or a scalar (a string, a number, 
 
 Create and Update send the arm that `type` names, filled from the merged fields. Read sets `type` from the arm that the response has, and the fields of the other arms are null. A response with no arm fails the read. A `type` that is not a value is an error at plan (a `OneOf` validator) and at apply.
 
-The `type` attribute also has a `typedArmValidator`, which the schema file defines. It rejects a field that the chosen arm does not have (`type = "count"` with a `field`). For a scalar arm that is a mapped enum, it checks the value against the Terraform values of its `enums` line (without the zero value), only when `type` names that arm, because the attribute is shared. The checks of a scalar arm are not on the attribute itself. The limits of the contract that the file keeps with `validators.inferred: true` follow the same rule. An object arm keeps its own checks.
+The `type` attribute also has a `typedArmValidator`, which the schema file defines. It rejects a field that the chosen arm does not have (`type = "count"` with a `field`). An empty list, set, or map counts as no value, because the default and the API give it. For a scalar arm that is a mapped enum, it checks the value against the Terraform values of its `enums` line (without the zero value), only when `type` names that arm, because the attribute is shared. The checks of a scalar arm are not on the attribute itself. The limits of the contract that the file keeps with `validators.inferred: true` follow the same rule. An object arm keeps its own checks.
+
+`typedArms.infer: true` makes the `type` attribute optional and computed, for a released resource whose users leave it out. The plan picks the first arm that has a field that the configuration sets (a list counts as set when it is not empty), and else the arm without fields. Expand uses the same rule when the type is unknown at apply, and reports an error when a deciding field is unknown. For a oneOf of `all` (no fields) and `list` (`values`), no values mean `all`, and values mean `list`, and a configured `selection_type = "list"` with an empty list stays a list.
+
+A `typedArms` line also works on an object whose fields are all arms, such as `{list: {values}}` with no oneOf in the contract.
+
+An arm that is an object with one field whose type has a `typedArms` line is shown as the attributes of that inner object. The two levels of a filter operator become one object (`equals` or `not_equals`, each with its own selection):
+
+```yaml
+types:
+  Filter.Operator:
+    typedArms: {names: {notEquals: not_equals}}   # the arms are Filter.Equals and Filter.NotEquals, which hold one selection each
+  Equals.Selection:                                # all (no fields) or list
+    typedArms: {field: selection_type, infer: true}
+  NotEquals.Selection:                             # list only
+    typedArms: {field: selection_type, infer: true}
+  Equals.Selection.ListSelection:
+    fields:
+      values: {name: selected_values, computed: true, default: []}
+```
+
+```hcl
+operator = { type = "equals", selection_type = "list", selected_values = ["a"] }
+```
+
+The attributes of the inner object join the merged attributes. The first inner object gives the checks of a shared attribute (here `selection_type` allows `all` and `list`, and `all` has no values). The outer `type` attribute also limits the values of the inner type for each arm (`not_equals` allows only `list`). An inner object with scalar arms or another typed object inside it is not supported.
 
 `enums.<Enum>.caseInsensitive: true` accepts a Terraform value in any case: the `enum: true` validator is `OneOfCaseInsensitive`, expand matches the value in any case, and flatten keeps the spelling of the plan or the state when the API value differs only in case. A scalar field of the enum only. Two values of the enum may not differ only in case.
 

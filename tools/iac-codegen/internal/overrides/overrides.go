@@ -374,6 +374,11 @@ type TypedArms struct {
 	// Value is the Terraform name of the attribute that holds an arm that is a scalar, such as a
 	// string or an enum. The default is "value". Two scalar arms share it, so they have one type.
 	Value string `yaml:"value"`
+	// Infer makes the type attribute optional and computed, for a released resource whose users
+	// leave it out. The plan then picks the first arm that has a field the configuration sets (a
+	// list counts as set when it is not empty), and else the arm without fields. For a oneOf of
+	// `all` (no fields) and `list` (values), no values mean `all`, and some values mean `list`.
+	Infer bool `yaml:"infer"`
 }
 
 // check checks the names of a typedArms line and that no two arms have one value.

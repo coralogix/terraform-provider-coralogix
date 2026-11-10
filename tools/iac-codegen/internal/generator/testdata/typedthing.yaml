@@ -19,6 +19,8 @@ paths:
               properties:
                 name: {type: string, x-coralogix-presence: true}
                 aggregation: {$ref: '#/components/schemas/TypedAggregation'}
+                selection: {$ref: '#/components/schemas/TypedSelection'}
+                operator: {$ref: '#/components/schemas/TypedOperator'}
                 fields:
                   type: array
                   items: {$ref: '#/components/schemas/TypedSpanField'}
@@ -53,6 +55,8 @@ paths:
               properties:
                 name: {type: string, x-coralogix-presence: true}
                 aggregation: {$ref: '#/components/schemas/TypedAggregation'}
+                selection: {$ref: '#/components/schemas/TypedSelection'}
+                operator: {$ref: '#/components/schemas/TypedOperator'}
                 fields:
                   type: array
                   items: {$ref: '#/components/schemas/TypedSpanField'}
@@ -93,6 +97,8 @@ components:
         id: {type: string, x-coralogix-presence: true}
         name: {type: string, x-coralogix-presence: true}
         aggregation: {$ref: '#/components/schemas/TypedAggregation'}
+        selection: {$ref: '#/components/schemas/TypedSelection'}
+        operator: {$ref: '#/components/schemas/TypedOperator'}
         fields:
           type: array
           items: {$ref: '#/components/schemas/TypedSpanField'}
@@ -147,3 +153,55 @@ components:
     TypedMetadataField:
       type: string
       enum: [METADATA_FIELD_UNSPECIFIED, METADATA_FIELD_SERVICE_NAME, METADATA_FIELD_APPLICATION_NAME]
+    TypedSelection:
+      type: object
+      oneOf:
+        - {required: [all], type: object}
+        - {required: [list], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [all], type: object}
+              - {required: [list], type: object}
+      properties:
+        all: {$ref: '#/components/schemas/TypedAll'}
+        list: {$ref: '#/components/schemas/TypedList'}
+    TypedAll:
+      type: object
+    TypedList:
+      type: object
+      properties:
+        values:
+          type: array
+          items: {type: string}
+    TypedOperator:
+      type: object
+      oneOf:
+        - {required: [equals], type: object}
+        - {required: [notEquals], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [equals], type: object}
+              - {required: [notEquals], type: object}
+      properties:
+        equals: {$ref: '#/components/schemas/TypedEquals'}
+        notEquals: {$ref: '#/components/schemas/TypedNotEquals'}
+    TypedEquals:
+      type: object
+      properties:
+        selection: {$ref: '#/components/schemas/TypedSelection'}
+    TypedNotEquals:
+      type: object
+      properties:
+        selection: {$ref: '#/components/schemas/TypedNotSelection'}
+    TypedNotSelection:
+      type: object
+      properties:
+        list: {$ref: '#/components/schemas/TypedNotList'}
+    TypedNotList:
+      type: object
+      properties:
+        values:
+          type: array
+          items: {type: string}

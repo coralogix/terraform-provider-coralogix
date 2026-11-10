@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -53,9 +54,18 @@ func fieldsValue(root tftypes.Object, items ...map[string]tftypes.Value) tftypes
 
 func create(t *testing.T, aggregation map[string]tftypes.Value, fields ...map[string]tftypes.Value) (*frameworkresource.CreateResponse, tftypes.Object, tftypes.Value) {
 	t.Helper()
+	return createWith(t, nil, aggregation, fields...)
+}
+
+// createWith runs Create with extra attributes of the thing in the plan, for example the selection.
+func createWith(t *testing.T, extra map[string]tftypes.Value, aggregation map[string]tftypes.Value, fields ...map[string]tftypes.Value) (*frameworkresource.CreateResponse, tftypes.Object, tftypes.Value) {
+	t.Helper()
 	typed_things_service.Created = nil
 	r, schemaResp, root := thingSchema(t)
 	set := map[string]tftypes.Value{"name": str("a"), "fields": fieldsValue(root, fields...)}
+	for k, v := range extra {
+		set[k] = v
+	}
 	if aggregation != nil {
 		set["aggregation"] = objectValue(aggregationType(root), aggregation)
 	}
@@ -216,4 +226,190 @@ func thingRoot(t *testing.T) tftypes.Object {
 	t.Helper()
 	_, _, root := thingSchema(t)
 	return root
+}
+
+func stringList(values ...string) tftypes.Value {
+	items := []tftypes.Value{}
+	for _, v := range values {
+		items = append(items, str(v))
+	}
+	return tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, items)
+}
+
+// selection makes the selection object of a plan. A nil type is the type that the plan modifier
+// has not filled in yet: unknown, as it is when Create runs.
+func selection(root tftypes.Object, kind *string, values tftypes.Value) tftypes.Value {
+	typeValue := tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+	if kind != nil {
+		typeValue = str(*kind)
+	}
+	return objectValue(root.AttributeTypes["selection"], map[string]tftypes.Value{"selection_type": typeValue, "selected_values": values})
+}
+
+func ptr(s string) *string { return &s }
+
+// A type that the configuration leaves out is picked from the fields that are set: values select
+// a list, and no values select all. A type that is set stays, also a list with no values.
+func TestOmittedTypeIsInferredFromTheFields(t *testing.T) {
+	root := thingRoot(t)
+	cases := []struct {
+		name   string
+		kind   *string
+		values tftypes.Value
+		all    bool
+		list   []string
+		state  string
+	}{
+		{"values select a list", nil, stringList("a", "b"), false, []string{"a", "b"}, "list"},
+		{"no values select all", nil, stringList(), true, nil, "all"},
+		{"an empty list on purpose", ptr("list"), stringList(), false, []string{}, "list"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			resp, _, _ := createWith(t, map[string]tftypes.Value{"selection": selection(root, c.kind, c.values)}, nil)
+			got := typed_things_service.Created[0].Selection
+			if got == nil || (got.All != nil) != c.all || (got.List != nil) == c.all {
+				t.Fatalf("selection = %+v, want all = %v", got, c.all)
+			}
+			if !c.all && len(got.List.Values) != len(c.list) {
+				t.Fatalf("values = %v, want %v", got.List.Values, c.list)
+			}
+			var state map[string]tftypes.Value
+			if err := resp.State.Raw.As(&state); err != nil {
+				t.Fatal(err)
+			}
+			want := selection(root, ptr(c.state), stringList(c.list...))
+			if !state["selection"].Equal(want) {
+				t.Fatalf("state selection = %v, want %v", state["selection"], want)
+			}
+		})
+	}
+}
+
+// The plan modifier fills the type from the planned values, and keeps a configured type.
+func TestPlanModifierInfersTheType(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	attr := schemaResp.Schema.Attributes["selection"].(schema.SingleNestedAttribute).Attributes["selection_type"].(schema.StringAttribute)
+	if len(attr.PlanModifiers) != 1 || !attr.Computed || !attr.Optional {
+		t.Fatalf("selection_type = %+v, want optional and computed with one plan modifier", attr)
+	}
+	plan := func(kind *string, values tftypes.Value) types.String {
+		set := map[string]tftypes.Value{"name": str("a"), "selection": selection(root, kind, values)}
+		raw := objectValue(root, set)
+		config := objectValue(root, map[string]tftypes.Value{"name": str("a"), "selection": selection(root, kind, values)})
+		at := path.Root("selection").AtName("selection_type")
+		resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
+		attr.PlanModifiers[0].PlanModifyString(context.Background(), planmodifier.StringRequest{
+			Path: at, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}, Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: raw},
+			ConfigValue: types.StringNull(), PlanValue: types.StringUnknown(),
+		}, resp)
+		return resp.PlanValue
+	}
+	if got := plan(nil, stringList("a")); got.ValueString() != "list" {
+		t.Fatalf("values: type = %v, want list", got)
+	}
+	if got := plan(nil, stringList()); got.ValueString() != "all" {
+		t.Fatalf("no values: type = %v, want all", got)
+	}
+	if got := plan(nil, tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, tftypes.UnknownValue)); !got.IsUnknown() {
+		t.Fatalf("unknown values: type = %v, want unknown", got)
+	}
+}
+
+// operator makes the operator object of a plan. A nil selection type is unknown, as it is when
+// Create runs and the configuration leaves it out.
+func operator(root tftypes.Object, kind string, selectionType *string, values tftypes.Value) tftypes.Value {
+	selection := tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+	if selectionType != nil {
+		selection = str(*selectionType)
+	}
+	return objectValue(root.AttributeTypes["operator"], map[string]tftypes.Value{"type": str(kind), "selection_type": selection, "selected_values": values})
+}
+
+// An operator is one object in Terraform and two levels in the API: equals or notEquals, and then a
+// selection. Each combination is sent in its own place and read back from there.
+func TestOperatorIsFlatInTerraformAndNestedInTheAPI(t *testing.T) {
+	root := thingRoot(t)
+	cases := []struct {
+		name          string
+		kind          string
+		selectionType *string
+		values        tftypes.Value
+		check         func(*typed_things_service.TypedOperator) bool
+		state         string
+		stateValues   []string
+	}{
+		{"equals with values", "equals", nil, stringList("a"), func(o *typed_things_service.TypedOperator) bool {
+			return o.Equals != nil && o.Equals.Selection.List != nil && o.Equals.Selection.List.Values[0] == "a"
+		}, "list", []string{"a"}},
+		{"equals without values selects all", "equals", nil, stringList(), func(o *typed_things_service.TypedOperator) bool {
+			return o.Equals != nil && o.Equals.Selection.All != nil
+		}, "all", nil},
+		{"equals with an empty list on purpose", "equals", ptr("list"), stringList(), func(o *typed_things_service.TypedOperator) bool {
+			return o.Equals != nil && o.Equals.Selection.List != nil && len(o.Equals.Selection.List.Values) == 0
+		}, "list", nil},
+		{"not_equals with values", "not_equals", nil, stringList("a"), func(o *typed_things_service.TypedOperator) bool {
+			return o.NotEquals != nil && o.NotEquals.Selection.List != nil && o.NotEquals.Selection.List.Values[0] == "a"
+		}, "list", []string{"a"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			resp, _, _ := createWith(t, map[string]tftypes.Value{"operator": operator(root, c.kind, c.selectionType, c.values)}, nil)
+			got := typed_things_service.Created[0].Operator
+			if got == nil || !c.check(got) {
+				t.Fatalf("operator = %+v", got)
+			}
+			var state map[string]tftypes.Value
+			if err := resp.State.Raw.As(&state); err != nil {
+				t.Fatal(err)
+			}
+			want := operator(root, c.kind, ptr(c.state), stringList(c.stateValues...))
+			if !state["operator"].Equal(want) {
+				t.Fatalf("state operator = %v, want %v", state["operator"], want)
+			}
+		})
+	}
+}
+
+// The checks on the operator: not_equals has no all selection, and all has no values.
+func TestOperatorValidatorsRejectTheImpossibleCombinations(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	attrs := schemaResp.Schema.Attributes["operator"].(schema.SingleNestedAttribute).Attributes
+	validate := func(kind string, selectionType *string, values tftypes.Value) bool {
+		t.Helper()
+		config := tfsdk.Config{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{
+			"name": str("a"),
+			"operator": objectValue(root.AttributeTypes["operator"], map[string]tftypes.Value{
+				"type": str(kind), "selection_type": nullableString(selectionType), "selected_values": values,
+			}),
+		})}
+		resp := &validator.StringResponse{}
+		typeAt := path.Root("operator").AtName("type")
+		for _, v := range attrs["type"].(schema.StringAttribute).Validators {
+			v.ValidateString(context.Background(), validator.StringRequest{Path: typeAt, PathExpression: typeAt.Expression(), Config: config, ConfigValue: types.StringValue(kind)}, resp)
+		}
+		if selectionType != nil {
+			selectionAt := path.Root("operator").AtName("selection_type")
+			for _, v := range attrs["selection_type"].(schema.StringAttribute).Validators {
+				v.ValidateString(context.Background(), validator.StringRequest{Path: selectionAt, PathExpression: selectionAt.Expression(), Config: config, ConfigValue: types.StringValue(*selectionType)}, resp)
+			}
+		}
+		return !resp.Diagnostics.HasError()
+	}
+	if !validate("equals", ptr("all"), stringList()) || !validate("equals", ptr("list"), stringList("a")) || !validate("not_equals", ptr("list"), stringList("a")) {
+		t.Fatal("equals with all, equals with a list, and not_equals with a list are valid")
+	}
+	if validate("not_equals", ptr("all"), stringList()) {
+		t.Fatal("not_equals with all must be rejected")
+	}
+	if validate("equals", ptr("all"), stringList("a")) {
+		t.Fatal("all with values must be rejected")
+	}
+}
+
+func nullableString(s *string) tftypes.Value {
+	if s == nil {
+		return tftypes.NewValue(tftypes.String, nil)
+	}
+	return str(*s)
 }

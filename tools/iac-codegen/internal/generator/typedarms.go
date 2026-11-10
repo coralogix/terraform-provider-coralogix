@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -82,13 +83,13 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	has := map[string][]string{}
 	checked := map[string]map[string][]string{}
 	for _, arm := range arms {
-		armAttrs, armFields, checks, err := b.typedArm(p, t, arm, line)
+		armAttrs, armFields, armChecks, err := b.typedArm(p, t, arm, line)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", arm.Name, err)
 		}
 		has[values[arm.Name]] = []string{}
-		if len(checks) > 0 {
-			checked[values[arm.Name]] = map[string][]string{armAttrs[0].Name: checks}
+		if len(armChecks) > 0 {
+			checked[values[arm.Name]] = armChecks
 		}
 		for _, a := range armAttrs {
 			has[values[arm.Name]] = append(has[values[arm.Name]], a.Name)
@@ -110,6 +111,9 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 			fields = append(fields, armFields[k])
 		}
 	}
+	if line.Infer {
+		inferTypeAttribute(attrs[0], arms, values, has)
+	}
 	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, checked))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
 	name := typeModelName(t)
@@ -125,7 +129,7 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 
 // typedArm returns the attributes of one arm, and their model fields: the fields of an object arm,
 // one attribute (the line's value) for a scalar arm, and none for an arm without fields.
-func (b *tfBuilder) typedArm(p attrPath, t *model.Type, arm *model.Field, line *overrides.TypedArms) ([]*tfAttr, []tfModelField, []string, error) {
+func (b *tfBuilder) typedArm(p attrPath, t *model.Type, arm *model.Field, line *overrides.TypedArms) ([]*tfAttr, []tfModelField, map[string][]string, error) {
 	switch arm.Type.Kind {
 	case model.Object:
 		if len(arm.Type.Fields) == 0 {
@@ -134,6 +138,12 @@ func (b *tfBuilder) typedArm(p attrPath, t *model.Type, arm *model.Field, line *
 		attrs, err := b.objectAttributes(p, arm.Type)
 		if err != nil {
 			return nil, nil, nil, err
+		}
+		if inner := inlinedTypedField(b.file, arm.Type); inner != nil {
+			// The arm holds one typedArms object: its attributes are the attributes of this one, and
+			// this arm allows only the values of its type.
+			held := attrs[0].Attributes
+			return held, b.modelFieldsOf(typeModelName(inner.Type)), map[string][]string{held[0].Name: {held[0].GroupValidators[0]}}, nil
 		}
 		return attrs, b.modelFieldsOf(typeModelName(arm.Type)), nil, nil
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
@@ -149,7 +159,10 @@ func (b *tfBuilder) typedArm(p attrPath, t *model.Type, arm *model.Field, line *
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		return []*tfAttr{a}, []tfModelField{field}, checks, nil
+		if len(checks) == 0 {
+			return []*tfAttr{a}, []tfModelField{field}, nil, nil
+		}
+		return []*tfAttr{a}, []tfModelField{field}, map[string][]string{a.Name: checks}, nil
 	}
 	return nil, nil, nil, fmt.Errorf("typedArms needs arms that are objects or scalars, not a %s", arm.Type.Kind)
 }
@@ -189,6 +202,17 @@ type convTyped struct {
 	TypeField *convField
 	Arms      []*typedArm
 	Allowed   string // the values of the type attribute, for an error text
+	// Infer: an omitted type is picked from the fields that are set (typedArms infer).
+	// InferArms is the Go literal of the arms, and InferFields the merged fields, by Terraform name.
+	Infer       bool
+	InferArms   string
+	InferFields []*convField
+}
+
+// typedInit reads the Fields of Object from an empty value of its SDK type.
+type typedInit struct {
+	Object *convObject
+	Fields []string
 }
 
 // typedArm is one arm of a typedArms oneOf.
@@ -198,6 +222,17 @@ type typedArm struct {
 	Object *convObject // an object arm; its model holds the fields of the arm
 	Empty  bool        // an arm without fields
 	Scalar *convField  // a scalar arm: the conversion of the value attribute
+	// Inits are the merged fields that no earlier arm has: flatten reads them from an empty arm
+	// first, so a field that the selected arm lacks reads as an absent value, with its default.
+	Inits []typedInit
+	// Inline is the field of an arm that holds one typedArms object, which this arm shows as its
+	// own attributes. Inner is that object.
+	Inline *convField
+	Inner  *convObject
+	// InitScalar: this arm is the first with the scalar value attribute.
+	InitScalar bool
+	// Fields are the Terraform names of the fields that the arm has, in order.
+	Fields []string
 }
 
 // typed turns the oneOf obj into a typedArms object: the type attribute and the merged fields
@@ -225,15 +260,28 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 			return fmt.Errorf("%s: no conversion of the arm %s", t.Schema, arm.Name)
 		}
 		a, fields := typedArmOf(cf, values[arm.Name], line)
+		var fresh []string
 		for _, f := range fields {
+			isNew := !slices.ContainsFunc(merged, func(o *convField) bool { return o.Model == f.Model })
 			if merged, err = b.mergeTyped(obj, merged, f); err != nil {
 				return fmt.Errorf("%s: %w", arm.Name, err)
 			}
+			a.Fields = append(a.Fields, f.TFName)
+			if isNew {
+				fresh = append(fresh, f.Model)
+			}
+		}
+		if err := typedInits(a, fresh); err != nil {
+			return fmt.Errorf("%s: %w", arm.Name, err)
 		}
 		typed.Arms = append(typed.Arms, a)
 		allowed = append(allowed, a.Value)
 	}
 	typed.Allowed = strings.Join(allowed, ", ")
+	if line.Infer {
+		typed.Infer, typed.InferFields = true, merged[1:]
+		typed.InferArms = inferArmsLiteral(typed.Arms)
+	}
 	obj.Fields, obj.Typed = merged, typed
 	return nil
 }
@@ -244,6 +292,15 @@ func typedArmOf(cf *convField, value string, line *overrides.TypedArms) (*typedA
 	switch {
 	case cf.Conv == convObj && cf.Object != nil:
 		a.Object = cf.Object
+		if len(cf.Object.Fields) == 1 && cf.Object.Fields[0].Object != nil && cf.Object.Fields[0].Object.Typed != nil {
+			// The arm holds one typedArms object. The merged fields are the fields of that object.
+			a.Inline, a.Inner = cf.Object.Fields[0], cf.Object.Fields[0].Object
+			var fields []*convField
+			for _, f := range a.Inner.Fields {
+				fields = append(fields, f)
+			}
+			return a, fields
+		}
 		var fields []*convField
 		for _, f := range cf.Object.Fields {
 			if !f.Carried {
@@ -311,4 +368,83 @@ func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]stri
 		out += ", Values: map[string]map[string][]validator.String{" + strings.Join(vals, ", ") + "}"
 	}
 	return out + "}"
+}
+
+// inferTypeAttribute makes the type attribute optional and computed. Its plan modifier picks the
+// type of an omitted value from the fields that the configuration sets (typedArms infer).
+func inferTypeAttribute(a *tfAttr, arms []*model.Field, values map[string]string, has map[string][]string) {
+	a.Required, a.Optional, a.Computed = false, true, true
+	var inferArms []string
+	for _, arm := range arms {
+		v := values[arm.Name]
+		inferArm := fmt.Sprintf("{Value: %q", v)
+		if len(has[v]) > 0 {
+			quoted := make([]string, 0, len(has[v]))
+			for _, n := range has[v] {
+				quoted = append(quoted, fmt.Sprintf("%q", n))
+			}
+			inferArm += ", Fields: []string{" + strings.Join(quoted, ", ") + "}"
+		}
+		inferArms = append(inferArms, inferArm+"}")
+	}
+	a.Modifiers = append(a.Modifiers, "typedArmInferred{Arms: []typedInferArm{"+strings.Join(inferArms, ", ")+"}}")
+	a.Description += " If it is left out, it is the first arm that has a field that is set, and else the arm without fields."
+}
+
+// inferArmsLiteral is the Go literal of the arms for inferTypedKind.
+func inferArmsLiteral(arms []*typedArm) string {
+	var out []string
+	for _, a := range arms {
+		item := fmt.Sprintf("{Value: %q", a.Value)
+		if len(a.Fields) > 0 {
+			quoted := make([]string, 0, len(a.Fields))
+			for _, n := range a.Fields {
+				quoted = append(quoted, fmt.Sprintf("%q", n))
+			}
+			item += ", Fields: []string{" + strings.Join(quoted, ", ") + "}"
+		}
+		out = append(out, item+"}")
+	}
+	return "[]typedInferArm{" + strings.Join(out, ", ") + "}"
+}
+
+// inlinedTypedField returns the only field of the object t when its type has a typedArms line, or
+// nil. A typedArms arm like that is shown as the attributes of the inner object: the arm {selection:
+// <oneOf>} of an operator is the type and the fields of the selection.
+func inlinedTypedField(file *overrides.File, t *model.Type) *model.Field {
+	if len(t.Fields) != 1 || file.TypedArmsOf(t.Fields[0].Type.Schema) == nil {
+		return nil
+	}
+	return t.Fields[0]
+}
+
+// typedInits sets how flatten reads the fresh fields (the merged fields that no earlier arm has) of
+// the arm from an empty value, so a field that the selected arm lacks reads as an absent value.
+func typedInits(a *typedArm, fresh []string) error {
+	switch {
+	case a.Scalar != nil:
+		if len(fresh) > 0 {
+			a.InitScalar = true
+		}
+	case a.Inner != nil:
+		for _, ia := range a.Inner.Typed.Arms {
+			if ia.Scalar != nil || ia.Inner != nil {
+				return errors.New("typedArms: an arm that holds a typedArms object with scalar or nested arms is not supported")
+			}
+			var fields []string
+			for _, init := range ia.Inits {
+				for _, f := range init.Fields {
+					if slices.Contains(fresh, f) {
+						fields = append(fields, f)
+					}
+				}
+			}
+			if len(fields) > 0 {
+				a.Inits = append(a.Inits, typedInit{Object: ia.Object, Fields: fields})
+			}
+		}
+	case len(fresh) > 0 && a.Object != nil:
+		a.Inits = append(a.Inits, typedInit{Object: a.Object, Fields: fresh})
+	}
+	return nil
 }

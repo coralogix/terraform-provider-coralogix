@@ -11,6 +11,8 @@ type TypedThingModel struct {
 	Id          types.String           `tfsdk:"id"`
 	Name        types.String           `tfsdk:"name"`
 	Aggregation *TypedAggregationModel `tfsdk:"aggregation"`
+	Selection   *TypedSelectionModel   `tfsdk:"selection"`
+	Operator    *TypedOperatorModel    `tfsdk:"operator"`
 	Fields      types.List             `tfsdk:"fields"`
 }
 
@@ -33,6 +35,38 @@ type TypedAggregationModel struct {
 	Field   types.String      `tfsdk:"field"`
 	Percent types.Float64     `tfsdk:"percent"`
 	Bucket  *TypedBucketModel `tfsdk:"bucket"`
+}
+
+type TypedListModel struct {
+	Values types.List `tfsdk:"selected_values"`
+}
+
+type TypedSelectionModel struct {
+	SelectionType types.String `tfsdk:"selection_type"`
+	Values        types.List   `tfsdk:"selected_values"`
+}
+
+type TypedEqualsModel struct {
+	Selection *TypedSelectionModel `tfsdk:"selection"`
+}
+
+type TypedNotListModel struct {
+	Values types.List `tfsdk:"selected_values"`
+}
+
+type TypedNotSelectionModel struct {
+	SelectionType types.String `tfsdk:"selection_type"`
+	Values        types.List   `tfsdk:"selected_values"`
+}
+
+type TypedNotEqualsModel struct {
+	Selection *TypedNotSelectionModel `tfsdk:"selection"`
+}
+
+type TypedOperatorModel struct {
+	Type          types.String `tfsdk:"type"`
+	SelectionType types.String `tfsdk:"selection_type"`
+	Values        types.List   `tfsdk:"selected_values"`
 }
 
 type TypedSpanFieldModel struct {

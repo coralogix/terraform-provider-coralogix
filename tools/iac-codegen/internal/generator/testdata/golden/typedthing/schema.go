@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -65,6 +66,64 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"selection": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"selection_type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("all", "list"),
+							typedArmValidator{Names: []string{"selected_values"}, Fields: map[string][]string{"all": {}, "list": {"selected_values"}}},
+						},
+						PlanModifiers: []planmodifier.String{
+							typedArmInferred{Arms: []typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values"}}}},
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"all\", \"list\". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.",
+					},
+					"selected_values": schema.ListAttribute{
+						Optional:            true,
+						Computed:            true,
+						ElementType:         types.StringType,
+						Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"operator": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"type": schema.StringAttribute{
+						Required: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("equals", "not_equals"),
+							typedArmValidator{Names: []string{"selection_type", "selected_values"}, Fields: map[string][]string{"equals": {"selection_type", "selected_values"}, "not_equals": {"selection_type", "selected_values"}}, Values: map[string]map[string][]validator.String{"equals": {"selection_type": {stringvalidator.OneOf("all", "list")}}, "not_equals": {"selection_type": {stringvalidator.OneOf("list")}}}},
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"equals\", \"not_equals\".",
+					},
+					"selection_type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("all", "list"),
+							typedArmValidator{Names: []string{"selected_values"}, Fields: map[string][]string{"all": {}, "list": {"selected_values"}}},
+						},
+						PlanModifiers: []planmodifier.String{
+							typedArmInferred{Arms: []typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values"}}}},
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"all\", \"list\". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.",
+					},
+					"selected_values": schema.ListAttribute{
+						Optional:            true,
+						Computed:            true,
+						ElementType:         types.StringType,
+						Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
 			"fields": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
@@ -92,6 +151,89 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// typedInferArm is an arm of a typedArms object whose type can be left out, with the fields that it has.
+type typedInferArm struct {
+	Value  string
+	Fields []string
+}
+
+// inferTypedKind returns the type for an omitted type attribute: the first arm that has a field
+// that is set (a collection is set when it is not empty), and else the arm without fields. unknown
+// is true when a field of an arm is unknown, because the type then depends on it.
+func inferTypedKind(arms []typedInferArm, fields map[string]attr.Value) (kind string, unknown bool) {
+	fallback := ""
+	for _, arm := range arms {
+		if len(arm.Fields) == 0 {
+			if fallback == "" {
+				fallback = arm.Value
+			}
+			continue
+		}
+		for _, name := range arm.Fields {
+			v := fields[name]
+			if v == nil || v.IsNull() {
+				continue
+			}
+			if v.IsUnknown() {
+				return "", true
+			}
+			if !typedCollectionEmpty(v) {
+				return arm.Value, false
+			}
+		}
+	}
+	return fallback, false
+}
+
+func typedCollectionEmpty(v attr.Value) bool {
+	switch c := v.(type) {
+	case types.List:
+		return len(c.Elements()) == 0
+	case types.Set:
+		return len(c.Elements()) == 0
+	case types.Map:
+		return len(c.Elements()) == 0
+	}
+	return false
+}
+
+// typedArmInferred plans the type of an omitted type attribute from the fields of the plan.
+type typedArmInferred struct {
+	Arms []typedInferArm
+}
+
+func (m typedArmInferred) Description(context.Context) string {
+	return "When the type is omitted, it is the first arm that has a field that is set, and else the arm without fields."
+}
+
+func (m typedArmInferred) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m typedArmInferred) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsUnknown() || !req.ConfigValue.IsNull() {
+		return
+	}
+	fields := map[string]attr.Value{}
+	for _, arm := range m.Arms {
+		for _, name := range arm.Fields {
+			var v attr.Value
+			if diags := req.Plan.GetAttribute(ctx, req.Path.ParentPath().AtName(name), &v); diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
+			fields[name] = v
+		}
+	}
+	kind, unknown := inferTypedKind(m.Arms, fields)
+	switch {
+	case unknown:
+		resp.PlanValue = types.StringUnknown()
+	case kind != "":
+		resp.PlanValue = types.StringValue(kind)
+	}
 }
 
 // typedArmValidator checks an object that shows a oneOf as a type attribute and the merged fields
@@ -130,8 +272,8 @@ func (v typedArmValidator) ValidateString(ctx context.Context, req validator.Str
 			resp.Diagnostics.Append(diags...)
 			continue
 		}
-		if value == nil || value.IsNull() || value.IsUnknown() {
-			continue
+		if value == nil || value.IsNull() || value.IsUnknown() || typedCollectionEmpty(value) {
+			continue // an empty collection is no value: it is what the default and the API give
 		}
 		if !slices.Contains(allowed, name) {
 			resp.Diagnostics.AddAttributeError(at, "Invalid attribute combination", fmt.Sprintf("When the type is %q, %s must not be set.", kind, name))

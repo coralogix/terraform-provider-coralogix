@@ -44,6 +44,8 @@ var createFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "aggregation", serverDefault: false},
+	{attr: "selection", serverDefault: false},
+	{attr: "operator", serverDefault: false},
 	{attr: "fields", serverDefault: false},
 }
 
@@ -97,23 +99,34 @@ func flatten(ctx context.Context, v *typed_things_service.TypedThing) (*TypedThi
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
-	"aggregation.count":        true,
-	"aggregation.average":      true,
-	"aggregation.percentile":   true,
-	"fields.metadata_field":    true,
-	"fields.tag_field":         true,
-	"fields.process_tag_field": true,
+	"aggregation.count":              true,
+	"aggregation.average":            true,
+	"aggregation.percentile":         true,
+	"selection.all":                  true,
+	"selection.list":                 true,
+	"operator.equals":                true,
+	"operator.equals.selection.all":  true,
+	"operator.equals.selection.list": true,
+	"operator.not_equals":            true,
+	"fields.metadata_field":          true,
+	"fields.tag_field":               true,
+	"fields.process_tag_field":       true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id": true,
+	"id":                        true,
+	"selection.selection_type":  true,
+	"selection.selected_values": true,
+	"operator.selection_type":   true,
+	"operator.selected_values":  true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
 	"aggregation.type": true,
+	"operator.type":    true,
 	"fields.type":      true,
 }
 
@@ -263,6 +276,8 @@ func expandCreateTypedThingBody(ctx context.Context, p path.Path, m *TypedThingM
 	out := &typed_things_service.CreateTypedThingBody{}
 	out.Name = expandString(m.Name)
 	out.Aggregation = expandTypedAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
+	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	out.Operator = expandTypedOperator(ctx, p.AtName("operator"), m.Operator, diags)
 	if items := expandElements[TypedSpanFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]typed_things_service.TypedSpanField, 0, len(items))
 		for i := range items {
@@ -279,7 +294,8 @@ func expandTypedAggregation(ctx context.Context, p path.Path, m *TypedAggregatio
 		return nil
 	}
 	out := &typed_things_service.TypedAggregation{}
-	switch m.Type.ValueString() {
+	kind := m.Type.ValueString()
+	switch kind {
 	case "count":
 		out.Count = map[string]interface{}{}
 	case "avg":
@@ -304,6 +320,15 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		return nil
 	}
 	out := &TypedAggregationModel{}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flattenTypedAverage(ctx, p, &typed_things_service.TypedAverage{}, diags); empty != nil {
+		out.Field = empty.Field
+	}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flattenTypedPercentile(ctx, p, &typed_things_service.TypedPercentile{}, diags); empty != nil {
+		out.Percent = empty.Percent
+		out.Bucket = empty.Bucket
+	}
 	switch {
 	case v.Count != nil:
 		out.Type = types.StringValue("count")
@@ -383,6 +408,244 @@ func flattenTypedBucket(ctx context.Context, p path.Path, v *typed_things_servic
 	return out
 }
 
+// expandTypedSelection sends the arm that the type attribute names, with the merged fields that the arm
+// holds in the API.
+func expandTypedSelection(ctx context.Context, p path.Path, m *TypedSelectionModel, diags *diag.Diagnostics) *typed_things_service.TypedSelection {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedSelection{}
+	kind := m.SelectionType.ValueString()
+	if m.SelectionType.IsNull() || m.SelectionType.IsUnknown() {
+		// The configuration leaves the type out, so it comes from the fields that are set.
+		var unknown bool
+		kind, unknown = inferTypedKind([]typedInferArm{{Value: "all"}, {Value: "list", Fields: []string{"selected_values"}}}, map[string]attr.Value{
+			"selected_values": m.Values,
+		})
+		if unknown {
+			diags.AddAttributeError(p.AtName("selection_type"), "Cannot choose the selection_type", "A field that decides the selection_type is unknown.")
+			return nil
+		}
+	}
+	switch kind {
+	case "all":
+		out.All = map[string]interface{}{}
+	case "list":
+		out.List = expandTypedList(ctx, p, &TypedListModel{
+			Values: m.Values,
+		}, diags)
+	default:
+		diags.AddAttributeError(p.AtName("selection_type"), "Unknown selection_type", fmt.Sprintf("The selection_type %q is not one of all, list.", m.SelectionType.ValueString()))
+	}
+	return out
+}
+
+// flattenTypedSelection reads the arm of TypedSelection as the type attribute and the merged fields.
+func flattenTypedSelection(ctx context.Context, p path.Path, v *typed_things_service.TypedSelection, diags *diag.Diagnostics) *TypedSelectionModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedSelectionModel{}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flattenTypedList(ctx, p, &typed_things_service.TypedList{}, diags); empty != nil {
+		out.Values = empty.Values
+	}
+	switch {
+	case v.All != nil:
+		out.SelectionType = types.StringValue("all")
+	case v.List != nil:
+		out.SelectionType = types.StringValue("list")
+		if arm := flattenTypedList(ctx, p, v.List, diags); arm != nil {
+			out.Values = arm.Values
+		}
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of All List; it must have one.")
+	}
+	return out
+}
+
+func expandTypedList(ctx context.Context, p path.Path, m *TypedListModel, diags *diag.Diagnostics) *typed_things_service.TypedList {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedList{}
+	out.Values = expandStrings[string](ctx, p.AtName("selected_values"), m.Values, diags)
+	return out
+}
+
+func flattenTypedList(ctx context.Context, p path.Path, v *typed_things_service.TypedList, diags *diag.Diagnostics) *TypedListModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedListModel{}
+	out.Values = flattenStringsList(ctx, v.Values, diags)
+	return out
+}
+
+// expandTypedOperator sends the arm that the type attribute names, with the merged fields that the arm
+// holds in the API.
+func expandTypedOperator(ctx context.Context, p path.Path, m *TypedOperatorModel, diags *diag.Diagnostics) *typed_things_service.TypedOperator {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedOperator{}
+	kind := m.Type.ValueString()
+	switch kind {
+	case "equals":
+		out.Equals = expandTypedEquals(ctx, p, &TypedEqualsModel{
+			Selection: &TypedSelectionModel{
+				SelectionType: m.SelectionType,
+				Values:        m.Values,
+			},
+		}, diags)
+	case "not_equals":
+		out.NotEquals = expandTypedNotEquals(ctx, p, &TypedNotEqualsModel{
+			Selection: &TypedNotSelectionModel{
+				SelectionType: m.SelectionType,
+				Values:        m.Values,
+			},
+		}, diags)
+	default:
+		diags.AddAttributeError(p.AtName("type"), "Unknown type", fmt.Sprintf("The type %q is not one of equals, not_equals.", m.Type.ValueString()))
+	}
+	return out
+}
+
+// flattenTypedOperator reads the arm of TypedOperator as the type attribute and the merged fields.
+func flattenTypedOperator(ctx context.Context, p path.Path, v *typed_things_service.TypedOperator, diags *diag.Diagnostics) *TypedOperatorModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedOperatorModel{}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flattenTypedList(ctx, p, &typed_things_service.TypedList{}, diags); empty != nil {
+		out.Values = empty.Values
+	}
+	switch {
+	case v.Equals != nil:
+		out.Type = types.StringValue("equals")
+		if arm := flattenTypedEquals(ctx, p, v.Equals, diags); arm != nil && arm.Selection != nil {
+			out.SelectionType = arm.Selection.SelectionType
+			out.Values = arm.Selection.Values
+		}
+	case v.NotEquals != nil:
+		out.Type = types.StringValue("not_equals")
+		if arm := flattenTypedNotEquals(ctx, p, v.NotEquals, diags); arm != nil && arm.Selection != nil {
+			out.SelectionType = arm.Selection.SelectionType
+			out.Values = arm.Selection.Values
+		}
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of Equals NotEquals; it must have one.")
+	}
+	return out
+}
+
+func expandTypedEquals(ctx context.Context, p path.Path, m *TypedEqualsModel, diags *diag.Diagnostics) *typed_things_service.TypedEquals {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedEquals{}
+	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	return out
+}
+
+func flattenTypedEquals(ctx context.Context, p path.Path, v *typed_things_service.TypedEquals, diags *diag.Diagnostics) *TypedEqualsModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedEqualsModel{}
+	out.Selection = flattenTypedSelection(ctx, p.AtName("selection"), v.Selection, diags)
+	return out
+}
+
+func expandTypedNotEquals(ctx context.Context, p path.Path, m *TypedNotEqualsModel, diags *diag.Diagnostics) *typed_things_service.TypedNotEquals {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedNotEquals{}
+	out.Selection = expandTypedNotSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	return out
+}
+
+func flattenTypedNotEquals(ctx context.Context, p path.Path, v *typed_things_service.TypedNotEquals, diags *diag.Diagnostics) *TypedNotEqualsModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedNotEqualsModel{}
+	out.Selection = flattenTypedNotSelection(ctx, p.AtName("selection"), v.Selection, diags)
+	return out
+}
+
+// expandTypedNotSelection sends the arm that the type attribute names, with the merged fields that the arm
+// holds in the API.
+func expandTypedNotSelection(ctx context.Context, p path.Path, m *TypedNotSelectionModel, diags *diag.Diagnostics) *typed_things_service.TypedNotSelection {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedNotSelection{}
+	kind := m.SelectionType.ValueString()
+	if m.SelectionType.IsNull() || m.SelectionType.IsUnknown() {
+		// The configuration leaves the type out, so it comes from the fields that are set.
+		var unknown bool
+		kind, unknown = inferTypedKind([]typedInferArm{{Value: "list", Fields: []string{"selected_values"}}}, map[string]attr.Value{
+			"selected_values": m.Values,
+		})
+		if unknown {
+			diags.AddAttributeError(p.AtName("selection_type"), "Cannot choose the selection_type", "A field that decides the selection_type is unknown.")
+			return nil
+		}
+	}
+	switch kind {
+	case "list":
+		out.List = expandTypedNotList(ctx, p, &TypedNotListModel{
+			Values: m.Values,
+		}, diags)
+	default:
+		diags.AddAttributeError(p.AtName("selection_type"), "Unknown selection_type", fmt.Sprintf("The selection_type %q is not one of list.", m.SelectionType.ValueString()))
+	}
+	return out
+}
+
+// flattenTypedNotSelection reads the arm of TypedNotSelection as the type attribute and the merged fields.
+func flattenTypedNotSelection(ctx context.Context, p path.Path, v *typed_things_service.TypedNotSelection, diags *diag.Diagnostics) *TypedNotSelectionModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedNotSelectionModel{}
+	// A field that the selected arm does not have reads as an absent value.
+	if empty := flattenTypedNotList(ctx, p, &typed_things_service.TypedNotList{}, diags); empty != nil {
+		out.Values = empty.Values
+	}
+	switch {
+	case v.List != nil:
+		out.SelectionType = types.StringValue("list")
+		if arm := flattenTypedNotList(ctx, p, v.List, diags); arm != nil {
+			out.Values = arm.Values
+		}
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of List; it must have one.")
+	}
+	return out
+}
+
+func expandTypedNotList(ctx context.Context, p path.Path, m *TypedNotListModel, diags *diag.Diagnostics) *typed_things_service.TypedNotList {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedNotList{}
+	out.Values = expandStrings[string](ctx, p.AtName("selected_values"), m.Values, diags)
+	return out
+}
+
+func flattenTypedNotList(ctx context.Context, p path.Path, v *typed_things_service.TypedNotList, diags *diag.Diagnostics) *TypedNotListModel {
+	if v == nil {
+		return nil
+	}
+	out := &TypedNotListModel{}
+	out.Values = flattenStringsList(ctx, v.Values, diags)
+	return out
+}
+
 // expandTypedSpanField sends the arm that the type attribute names, with the merged fields that the arm
 // holds in the API.
 func expandTypedSpanField(ctx context.Context, p path.Path, m *TypedSpanFieldModel, diags *diag.Diagnostics) *typed_things_service.TypedSpanField {
@@ -390,7 +653,8 @@ func expandTypedSpanField(ctx context.Context, p path.Path, m *TypedSpanFieldMod
 		return nil
 	}
 	out := &typed_things_service.TypedSpanField{}
-	switch m.Type.ValueString() {
+	kind := m.Type.ValueString()
+	switch kind {
 	case "metadata":
 		out.MetadataField = expandEnumMapped(p.AtName("value"), m.Value, typedMetadataFieldToAPI, diags)
 	case "tag":
@@ -409,6 +673,10 @@ func flattenTypedSpanField(ctx context.Context, p path.Path, v *typed_things_ser
 		return nil
 	}
 	out := &TypedSpanFieldModel{}
+	{
+		v := &typed_things_service.TypedSpanField{}
+		out.Value = flattenEnumMapped(p.AtName("value"), v.MetadataField, typedMetadataFieldFromAPI, diags)
+	}
 	switch {
 	case v.MetadataField != nil:
 		out.Type = types.StringValue("metadata")
@@ -439,6 +707,8 @@ func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThing
 	out := &typed_things_service.ReplaceTypedThingBody{}
 	out.Name = expandString(m.Name)
 	out.Aggregation = expandTypedAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
+	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	out.Operator = expandTypedOperator(ctx, p.AtName("operator"), m.Operator, diags)
 	if items := expandElements[TypedSpanFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]typed_things_service.TypedSpanField, 0, len(items))
 		for i := range items {
@@ -456,6 +726,8 @@ func flattenTypedThing(ctx context.Context, p path.Path, v *typed_things_service
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(v.Name)
 	out.Aggregation = flattenTypedAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
+	out.Selection = flattenTypedSelection(ctx, p.AtName("selection"), v.Selection, diags)
+	out.Operator = flattenTypedOperator(ctx, p.AtName("operator"), v.Operator, diags)
 	out.Fields = types.ListNull(types.ObjectType{AttrTypes: typedSpanFieldAttrTypes()})
 	if v.Fields != nil {
 		items := make([]TypedSpanFieldModel, 0, len(v.Fields))

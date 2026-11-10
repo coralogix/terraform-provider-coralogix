@@ -27,6 +27,8 @@ var updateFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "aggregation", serverDefault: false},
+	{attr: "selection", serverDefault: false},
+	{attr: "operator", serverDefault: false},
 	{attr: "fields", serverDefault: false},
 }
 

@@ -71,8 +71,8 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 			"names: {average: avg}", "names: {average: avg, median: med}", "typedArms.names.median is no arm"},
 		"two arms with one value": {
 			"names: {average: avg}", "names: {average: count}", "both have the value"},
-		"a line on an object that is no oneOf": {
-			"  TypedSpanField:\n", "  TypedBucket:\n    typedArms: {}\n  TypedSpanField:\n", "typedArms needs a oneOf"},
+		"an arm that is a list": {
+			"  TypedList:\n", "  TypedList:\n    typedArms: {}\n", "typedArms needs arms that are objects or scalars"},
 		"a type field named like an arm field": {
 			"names: {average: avg}", "field: field\n      names: {average: avg}", "is also a field of the arm"},
 		"the same name for the type and the value": {

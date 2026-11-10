@@ -24,6 +24,21 @@ types:
     typedArms:
       # The released spelling of an arm that is not its name: average is avg.
       names: {average: avg}
+  # The released resource lets the user leave out selection_type: no values select all.
+  TypedSelection:
+    typedArms: {field: selection_type, infer: true}
+  # An operator is one object: equals and not_equals, each with a selection of its own. The selection
+  # of an arm is shown as the attributes of the operator.
+  TypedOperator:
+    typedArms: {names: {notEquals: not_equals}}
+  TypedNotSelection:
+    typedArms: {field: selection_type, infer: true}
+  TypedNotList:
+    fields:
+      values: {name: selected_values, computed: true, default: []}
+  TypedList:
+    fields:
+      values: {name: selected_values, computed: true, default: []}
   TypedSpanField:
     typedArms:
       names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
