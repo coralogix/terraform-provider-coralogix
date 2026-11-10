@@ -55,6 +55,12 @@ types:
       names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
 
 enums:
+  # The enum of the first arm and the free text of the second arm share one attribute, mode. The
+  # enum is checked only when the type names the arm that has it.
+  TypedMode:
+    zero: unspecified
+    trimPrefix: MODE_
+    values: [MODE_FAST, MODE_EXACT]
   TypedMetadataField:
     zero: unspecified
     trimPrefix: METADATA_FIELD_

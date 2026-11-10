@@ -212,6 +212,17 @@ func TestTypeValidatorChecksTheArm(t *testing.T) {
 	if !validate("fields", map[string]tftypes.Value{"type": str("metadata"), "value": str("service_name")}, nil) {
 		t.Fatal("service_name is a metadata value")
 	}
+	// The two arms share the mode attribute: an enum in one arm and free text in the other. Each
+	// arm gets its own check, so the free text is not held to the enum.
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("fast")}) {
+		t.Fatal("fast is a mode of avg")
+	}
+	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("slow")}) {
+		t.Fatal("slow is no mode of avg")
+	}
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "mode": str("slow")}) {
+		t.Fatal("the mode of percentile is free text")
+	}
 	// A scalar arm is chosen by its value, so the type alone selects no arm.
 	if validate("fields", map[string]tftypes.Value{"type": str("tag")}, nil) {
 		t.Fatal("a tag without a value must be rejected")
@@ -499,5 +510,18 @@ func TestPriorValuesReachTheSelectedArm(t *testing.T) {
 		if !attrs["note"].Equal(str("")) {
 			t.Fatalf("%s note = %v, want the configured empty text to stay", name, attrs["note"])
 		}
+	}
+}
+
+// A shared field is converted by the arm that the type names: the enum of one arm is sent as its
+// API value, and the free text of the other arm as it is.
+func TestSharedFieldIsConvertedByTheSelectedArm(t *testing.T) {
+	create(t, map[string]tftypes.Value{"type": str("avg"), "mode": str("fast")})
+	if got := typed_things_service.Created[0].Aggregation.Average; got == nil || got.Mode == nil || *got.Mode != typed_things_service.TYPEDMODE_MODE_FAST {
+		t.Fatalf("average = %+v, want the enum value", got)
+	}
+	create(t, map[string]tftypes.Value{"type": str("percentile"), "mode": str("slow")})
+	if got := typed_things_service.Created[0].Aggregation.Percentile; got == nil || got.Mode == nil || *got.Mode != "slow" {
+		t.Fatalf("percentile = %+v, want the free text", got)
 	}
 }

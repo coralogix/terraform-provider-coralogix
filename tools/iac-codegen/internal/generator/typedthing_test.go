@@ -79,6 +79,26 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 			"names: {metadataField: metadata, tagField: tag, processTagField: process_tag}",
 			"field: value\n      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}", "field and value are both"},
 	}
+	// A shared field that is not text has one attribute, so its checks must be the same in every arm.
+	t.Run("a shared number with other limits", func(t *testing.T) {
+		limited := strings.Replace(string(spec), "        weight: {type: number, format: double, x-coralogix-presence: true}\n", "        weight: {type: number, format: double, minimum: 0, x-coralogix-presence: true}\n", 1)
+		limited = strings.Replace(limited, "        weight: {type: number, format: double, x-coralogix-presence: true}\n", "        weight: {type: number, format: double, maximum: 5, x-coralogix-presence: true}\n", 1)
+		kept := strings.Replace(string(base), "  inferred: false", "  inferred: true", 1)
+		if limited == string(spec) || kept == string(base) {
+			t.Fatal("the contract or the overrides did not change: update the replaced text")
+		}
+		dir := t.TempDir()
+		overrides := filepath.Join(dir, "typedthing-overrides.yaml")
+		if err := os.WriteFile(overrides, []byte(kept), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		input, loadDir := syntheticInput(t)
+		input.OpenAPI = []byte(limited)
+		err := generateFromInput(Options{Resource: "TypedThing", OutputDir: filepath.Join(dir, "typedthing"), OverridesPath: overrides}, input, loadDir)
+		if err == nil || !strings.Contains(err.Error(), "only a text field gets checks for each arm") {
+			t.Fatalf("error = %v, want it to say that only a text field gets checks for each arm", err)
+		}
+	})
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			changed := strings.Replace(string(base), c.from, c.to, 1)

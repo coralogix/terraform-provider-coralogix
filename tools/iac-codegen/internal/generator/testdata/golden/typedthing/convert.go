@@ -20,6 +20,20 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/typed_things_service"
 )
 
+// typedModeToAPI maps the Terraform values of the enum to its API values.
+var typedModeToAPI = map[string]typed_things_service.TypedMode{
+	"unspecified": typed_things_service.TypedMode("MODE_UNSPECIFIED"),
+	"fast":        typed_things_service.TypedMode("MODE_FAST"),
+	"exact":       typed_things_service.TypedMode("MODE_EXACT"),
+}
+
+// typedModeFromAPI maps the API values of the enum to its Terraform values.
+var typedModeFromAPI = map[typed_things_service.TypedMode]string{
+	typed_things_service.TypedMode("MODE_UNSPECIFIED"): "unspecified",
+	typed_things_service.TypedMode("MODE_FAST"):        "fast",
+	typed_things_service.TypedMode("MODE_EXACT"):       "exact",
+}
+
 // typedMetadataFieldToAPI maps the Terraform values of the enum to its API values.
 var typedMetadataFieldToAPI = map[string]typed_things_service.TypedMetadataField{
 	"unspecified":      typed_things_service.TypedMetadataField("METADATA_FIELD_UNSPECIFIED"),
@@ -300,11 +314,15 @@ func expandTypedAggregation(ctx context.Context, p path.Path, m *TypedAggregatio
 		out.Count = map[string]interface{}{}
 	case "avg":
 		out.Average = expandTypedAverage(ctx, p, &TypedAverageModel{
-			Field: m.Field,
+			Field:  m.Field,
+			Mode:   m.Mode,
+			Weight: m.Weight,
 		}, diags)
 	case "percentile":
 		out.Percentile = expandTypedPercentile(ctx, p, &TypedPercentileModel{
 			Field:   m.Field,
+			Mode:    m.Mode,
+			Weight:  m.Weight,
 			Percent: m.Percent,
 			Bucket:  m.Bucket,
 		}, diags)
@@ -323,6 +341,8 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 	// A field that the selected arm does not have reads as an absent value.
 	if empty := flattenTypedAverage(ctx, p, &typed_things_service.TypedAverage{}, diags); empty != nil {
 		out.Field = empty.Field
+		out.Mode = empty.Mode
+		out.Weight = empty.Weight
 	}
 	// A field that the selected arm does not have reads as an absent value.
 	if empty := flattenTypedPercentile(ctx, p, &typed_things_service.TypedPercentile{}, nil, diags); empty != nil {
@@ -336,6 +356,8 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		out.Type = types.StringValue("avg")
 		if arm := flattenTypedAverage(ctx, p, v.Average, diags); arm != nil {
 			out.Field = arm.Field
+			out.Mode = arm.Mode
+			out.Weight = arm.Weight
 		}
 	case v.Percentile != nil:
 		out.Type = types.StringValue("percentile")
@@ -344,12 +366,16 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		if prior != nil && prior.Type.ValueString() == "percentile" {
 			priorArm = &TypedPercentileModel{
 				Field:   prior.Field,
+				Mode:    prior.Mode,
+				Weight:  prior.Weight,
 				Percent: prior.Percent,
 				Bucket:  prior.Bucket,
 			}
 		}
 		if arm := flattenTypedPercentile(ctx, p, v.Percentile, priorArm, diags); arm != nil {
 			out.Field = arm.Field
+			out.Mode = arm.Mode
+			out.Weight = arm.Weight
 			out.Percent = arm.Percent
 			out.Bucket = arm.Bucket
 		}
@@ -365,6 +391,8 @@ func expandTypedAverage(ctx context.Context, p path.Path, m *TypedAverageModel, 
 	}
 	out := &typed_things_service.TypedAverage{}
 	out.Field = expandString(m.Field)
+	out.Mode = expandEnumMapped(p.AtName("mode"), m.Mode, typedModeToAPI, diags)
+	out.Weight = expandFloat64(m.Weight)
 	return out
 }
 
@@ -374,6 +402,8 @@ func flattenTypedAverage(ctx context.Context, p path.Path, v *typed_things_servi
 	}
 	out := &TypedAverageModel{}
 	out.Field = types.StringPointerValue(v.Field)
+	out.Mode = flattenEnumMapped(p.AtName("mode"), v.Mode, typedModeFromAPI, diags)
+	out.Weight = types.Float64PointerValue(v.Weight)
 	return out
 }
 
@@ -383,6 +413,8 @@ func expandTypedPercentile(ctx context.Context, p path.Path, m *TypedPercentileM
 	}
 	out := &typed_things_service.TypedPercentile{}
 	out.Field = expandString(m.Field)
+	out.Mode = expandString(m.Mode)
+	out.Weight = expandFloat64(m.Weight)
 	out.Percent = expandFloat64(m.Percent)
 	out.Bucket = expandTypedBucket(ctx, p.AtName("bucket"), m.Bucket, diags)
 	return out
@@ -402,6 +434,8 @@ func flattenTypedPercentile(ctx context.Context, p path.Path, v *typed_things_se
 			out.Field = types.StringValue("")
 		}
 	}
+	out.Mode = types.StringPointerValue(v.Mode)
+	out.Weight = types.Float64PointerValue(v.Weight)
 	out.Percent = types.Float64PointerValue(v.Percent)
 	out.Bucket = flattenTypedBucket(ctx, p.AtName("bucket"), v.Bucket, diags)
 	return out

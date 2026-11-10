@@ -41,11 +41,19 @@ func Schema() schema.Schema {
 						Required: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("count", "avg", "percentile"),
-							typedArmValidator{Names: []string{"field", "percent", "bucket"}, Fields: map[string][]string{"count": {}, "avg": {"field"}, "percentile": {"field", "percent", "bucket"}}},
+							typedArmValidator{Names: []string{"field", "mode", "weight", "percent", "bucket"}, Fields: map[string][]string{"count": {}, "avg": {"field", "mode", "weight"}, "percentile": {"field", "mode", "weight", "percent", "bucket"}}, Values: map[string]map[string][]validator.String{"avg": {"mode": {stringvalidator.OneOf("exact", "fast")}}}},
 						},
 						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"count\", \"avg\", \"percentile\".",
 					},
 					"field": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+					"mode": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+					"weight": schema.Float64Attribute{
 						Optional:            true,
 						MarkdownDescription: "",
 					},

@@ -17,12 +17,25 @@ type TypedBucket struct {
 	Size *string
 }
 
+type TypedMode string
+
+const (
+	TYPEDMODE_MODE_UNSPECIFIED TypedMode = "MODE_UNSPECIFIED"
+	TYPEDMODE_MODE_FAST        TypedMode = "MODE_FAST"
+	TYPEDMODE_MODE_EXACT       TypedMode = "MODE_EXACT"
+)
+
+// Mode is an enum here and free text in TypedPercentile: the two arms share the attribute.
 type TypedAverage struct {
-	Field *string
+	Field  *string
+	Mode   *TypedMode
+	Weight *float64
 }
 
 type TypedPercentile struct {
 	Field   *string
+	Mode    *string
+	Weight  *float64
 	Percent *float64
 	Bucket  *TypedBucket
 }

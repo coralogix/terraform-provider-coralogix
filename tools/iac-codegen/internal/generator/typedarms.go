@@ -80,43 +80,25 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 		Description: "Which arm of the oneOf the object holds. One of " + strings.Join(quoted, ", ") + ".",
 	}}
 	fields := []tfModelField{{Name: camelize(typeName), Type: "types.String", TFName: typeName}}
-	has := map[string][]string{}
-	required := map[string][]string{}
-	checked := map[string]map[string][]string{}
+	parts := make([]*typedPart, 0, len(arms))
 	for _, arm := range arms {
 		armAttrs, armFields, armChecks, err := b.typedArm(p, t, arm, line)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", arm.Name, err)
 		}
-		has[values[arm.Name]] = []string{}
-		if len(armChecks) > 0 {
-			checked[values[arm.Name]] = armChecks
-		}
-		for _, a := range armAttrs {
-			has[values[arm.Name]] = append(has[values[arm.Name]], a.Name)
-			// A merged field is optional, because other arms do not have it. The arm that
-			// requires it (or that is the scalar itself) still needs it when the type names the arm.
-			if a.Required || arm.Type.Kind != model.Object {
-				required[values[arm.Name]] = append(required[values[arm.Name]], a.Name)
-			}
-			if a.Name == typeName {
-				return nil, fmt.Errorf("%s: typedArms.field %q is also a field of the arm %s", t.Schema, typeName, arm.Name)
-			}
-			a.Required, a.Optional = false, true
-			k := slices.IndexFunc(armFields, func(f tfModelField) bool { return f.TFName == a.Name })
-			if k < 0 {
-				return nil, fmt.Errorf("%s: the arm %s has no model field for the attribute %s", t.Schema, arm.Name, a.Name)
-			}
-			if j := slices.IndexFunc(fields, func(o tfModelField) bool { return o.TFName == a.Name }); j >= 0 {
-				if other := fields[j]; other.Type != armFields[k].Type {
-					return nil, fmt.Errorf("%s: typedArms: the field %s has the type %s in one arm and %s in another", t.Schema, a.Name, other.Type, armFields[k].Type)
-				}
-				continue
-			}
-			attrs = append(attrs, a)
-			fields = append(fields, armFields[k])
+		parts = append(parts, &typedPart{arm: arm, value: values[arm.Name], attrs: armAttrs, fields: armFields, checks: armChecks})
+	}
+	if err := b.shareArmChecks(t, parts); err != nil {
+		return nil, err
+	}
+	m := &typedMerge{attrs: attrs, fields: fields, has: map[string][]string{}, required: map[string][]string{}, checked: map[string]map[string][]string{}}
+	for _, part := range parts {
+		if err := m.add(t, typeName, part); err != nil {
+			return nil, err
 		}
 	}
+	attrs, fields = m.attrs, m.fields
+	has, required, checked := m.has, m.required, m.checked
 	if line.Infer {
 		inferTypeAttribute(attrs[0], arms, values, has)
 	}
@@ -131,6 +113,121 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
 	}
 	return attrs, nil
+}
+
+// typedMerge collects the merged attributes and model fields of a typedArms object, with what each
+// arm has, what it requires, and the checks that run for it.
+type typedMerge struct {
+	attrs    []*tfAttr
+	fields   []tfModelField
+	has      map[string][]string
+	required map[string][]string
+	checked  map[string]map[string][]string
+}
+
+// add merges the attributes of one arm. A merged field is optional, because other arms do not have
+// it. The arm that requires it, or that is the scalar itself, still needs it when the type names
+// the arm. A field that two arms share must have one Go type.
+func (m *typedMerge) add(t *model.Type, typeName string, part *typedPart) error {
+	m.has[part.value] = []string{}
+	if len(part.checks) > 0 {
+		m.checked[part.value] = part.checks
+	}
+	for _, a := range part.attrs {
+		m.has[part.value] = append(m.has[part.value], a.Name)
+		if a.Required || part.arm.Type.Kind != model.Object {
+			m.required[part.value] = append(m.required[part.value], a.Name)
+		}
+		if a.Name == typeName {
+			return fmt.Errorf("%s: typedArms.field %q is also a field of the arm %s", t.Schema, typeName, part.arm.Name)
+		}
+		a.Required, a.Optional = false, true
+		k := slices.IndexFunc(part.fields, func(f tfModelField) bool { return f.TFName == a.Name })
+		if k < 0 {
+			return fmt.Errorf("%s: the arm %s has no model field for the attribute %s", t.Schema, part.arm.Name, a.Name)
+		}
+		if j := slices.IndexFunc(m.fields, func(o tfModelField) bool { return o.TFName == a.Name }); j >= 0 {
+			if other := m.fields[j]; other.Type != part.fields[k].Type {
+				return fmt.Errorf("%s: typedArms: the field %s has the type %s in one arm and %s in another", t.Schema, a.Name, other.Type, part.fields[k].Type)
+			}
+			continue
+		}
+		m.attrs = append(m.attrs, a)
+		m.fields = append(m.fields, part.fields[k])
+	}
+	return nil
+}
+
+// typedPart is one arm of a typedArms object while its attributes are merged.
+type typedPart struct {
+	arm    *model.Field
+	value  string // the value of the type attribute
+	attrs  []*tfAttr
+	fields []tfModelField
+	checks map[string][]string // the checks that run only when the type names this arm
+}
+
+// shareArmChecks moves the checks of a field that two or more object arms share into the
+// typedArmValidator of each arm. The merged attribute is one copy, so it cannot hold the checks of
+// every arm: the enum of one arm would reject the free text of another. A shared text field gets
+// per-arm checks. Another kind of shared field must have the same checks in every arm.
+func (b *tfBuilder) shareArmChecks(t *model.Type, parts []*typedPart) error {
+	first, shared := sharedArmFields(parts)
+	for _, part := range parts {
+		for _, a := range part.attrs {
+			// The type attribute of an inlined typedArms object has structural checks (its values and
+			// its arm rules). They state the structure of the request, not a limit, so they stay.
+			if !shared[a.Name] || part.arm.Type.Kind != model.Object || len(a.GroupValidators) > 0 {
+				continue
+			}
+			if err := b.shareArmCheck(t, part, a, first[a.Name]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// sharedArmFields returns the first attribute of each field name of the object arms, and the names
+// that two or more object arms have.
+func sharedArmFields(parts []*typedPart) (first map[string]*tfAttr, shared map[string]bool) {
+	first, shared = map[string]*tfAttr{}, map[string]bool{}
+	for _, part := range parts {
+		if part.arm.Type.Kind != model.Object {
+			continue
+		}
+		for _, a := range part.attrs {
+			if _, ok := first[a.Name]; ok {
+				shared[a.Name] = true
+				continue
+			}
+			first[a.Name] = a
+		}
+	}
+	return first, shared
+}
+
+// shareArmCheck moves the checks of the shared field a of one arm into the validator of the arm, or
+// reports a shared field that is not text and has other checks than the first arm's.
+func (b *tfBuilder) shareArmCheck(t *model.Type, part *typedPart, a, first *tfAttr) error {
+	if a.ValueKind != "String" {
+		// With no inferred checks, every limit of the contract is dropped anyway.
+		if inferred := b.file.Validators.Inferred; (inferred == nil || *inferred) && !slices.Equal(a.Validators, first.Validators) {
+			return fmt.Errorf("%s: typedArms: the field %s has other checks in the arm %s than in another arm, and only a text field gets checks for each arm", t.Schema, a.Name, part.arm.Name)
+		}
+		return nil
+	}
+	checks, err := b.scalarArmChecks(a)
+	if err != nil {
+		return fmt.Errorf("%s: %w", part.arm.Name, err)
+	}
+	if len(checks) > 0 {
+		if part.checks == nil {
+			part.checks = map[string][]string{}
+		}
+		part.checks[a.Name] = checks
+	}
+	return nil
 }
 
 // typedArm returns the attributes of one arm, and their model fields: the fields of an object arm,
