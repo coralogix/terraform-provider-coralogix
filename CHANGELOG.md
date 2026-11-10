@@ -25,6 +25,12 @@
 #### data-source/coralogix_team
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
 
+#### resource/coralogix_scope
+- CHORE: Adapt to the Management SDK scope types. A scope with an empty `filters` list no longer sends `"filters": null`; it omits the field, which the API stores as an empty list as before. A create, update, or read response without `default_expression` fails with the SDK decode error instead of the provider's missing-id error; state is handled as before.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to `v1.9.4-0.20261109164433-cc939add503e`, so the automated regeneration of generated resources can build against SDK master again.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
 - FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.

@@ -256,7 +256,7 @@ func expandDashboardVariableV2(ctx context.Context, model DashboardVariableV2Mod
 	}
 
 	result := &dashboardservice.VariableV2{
-		Id:          *dashboardwidgets.ExpandDashboardUUID(model.ID),
+		Id:          dashboardwidgets.ExpandDashboardUUID(model.ID),
 		Name:        model.Name.ValueString(),
 		DisplayName: model.DisplayName.ValueString(),
 		DisplayType: requiredEnumValue(model.DisplayType, dashboardwidgets.DashboardSchemaToProtoDisplayTypeV2),
@@ -858,8 +858,8 @@ func flattenDashboardVariableV2(ctx context.Context, variable *dashboardservice.
 	return types.ObjectValueMust(elementType.AttrTypes, attrs), diags
 }
 
-func flattenVariableID(id dashboardservice.UUID) types.String {
-	if id.Value == nil {
+func flattenVariableID(id *dashboardservice.UUID) types.String {
+	if id == nil || id.Value == nil {
 		return types.StringNull()
 	}
 	return types.StringValue(*id.Value)
