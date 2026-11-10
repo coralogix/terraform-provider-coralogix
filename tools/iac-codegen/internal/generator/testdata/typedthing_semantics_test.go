@@ -455,15 +455,25 @@ func nullableString(s *string) tftypes.Value {
 func TestPriorValuesReachTheSelectedArm(t *testing.T) {
 	root := thingRoot(t)
 
-	// An object arm of a single field.
-	resp, _, _ := create(t, map[string]tftypes.Value{"type": str("avg"), "field": str("")})
+	// An object arm of a single field. Only the second arm needs the prior value, for the field
+	// that both arms share, which the merged field does not remember.
+	resp, _, _ := create(t, map[string]tftypes.Value{"type": str("percentile"), "field": str("")})
 	var state map[string]tftypes.Value
 	if err := resp.State.Raw.As(&state); err != nil {
 		t.Fatal(err)
 	}
-	want := objectValue(aggregationType(root), map[string]tftypes.Value{"type": str("avg"), "field": str("")})
+	want := objectValue(aggregationType(root), map[string]tftypes.Value{"type": str("percentile"), "field": str("")})
 	if !state["aggregation"].Equal(want) {
-		t.Fatalf("aggregation = %v, want the configured empty field to stay", state["aggregation"])
+		t.Fatalf("aggregation = %v, want %v: the configured empty text must stay", state["aggregation"], want)
+	}
+
+	// A scalar arm that comes last: the value that all scalar arms share.
+	resp, _, _ = create(t, nil, map[string]tftypes.Value{"type": str("process_tag"), "value": str("")})
+	if err := resp.State.Raw.As(&state); err != nil {
+		t.Fatal(err)
+	}
+	if want := fieldsValue(root, map[string]tftypes.Value{"type": str("process_tag"), "value": str("")}); !state["fields"].Equal(want) {
+		t.Fatalf("fields = %v, want %v: the configured empty text must stay", state["fields"], want)
 	}
 
 	// An arm of a typedArms object that is in another typedArms object: the operator.

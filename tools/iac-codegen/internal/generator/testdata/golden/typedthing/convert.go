@@ -321,11 +321,11 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 	}
 	out := &TypedAggregationModel{}
 	// A field that the selected arm does not have reads as an absent value.
-	if empty := flattenTypedAverage(ctx, p, &typed_things_service.TypedAverage{}, nil, diags); empty != nil {
+	if empty := flattenTypedAverage(ctx, p, &typed_things_service.TypedAverage{}, diags); empty != nil {
 		out.Field = empty.Field
 	}
 	// A field that the selected arm does not have reads as an absent value.
-	if empty := flattenTypedPercentile(ctx, p, &typed_things_service.TypedPercentile{}, diags); empty != nil {
+	if empty := flattenTypedPercentile(ctx, p, &typed_things_service.TypedPercentile{}, nil, diags); empty != nil {
 		out.Percent = empty.Percent
 		out.Bucket = empty.Bucket
 	}
@@ -334,19 +334,21 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		out.Type = types.StringValue("count")
 	case v.Average != nil:
 		out.Type = types.StringValue("avg")
-		// The prior of the arm is the prior object, when it had this type.
-		var priorArm *TypedAverageModel
-		if prior != nil && prior.Type.ValueString() == "avg" {
-			priorArm = &TypedAverageModel{
-				Field: prior.Field,
-			}
-		}
-		if arm := flattenTypedAverage(ctx, p, v.Average, priorArm, diags); arm != nil {
+		if arm := flattenTypedAverage(ctx, p, v.Average, diags); arm != nil {
 			out.Field = arm.Field
 		}
 	case v.Percentile != nil:
 		out.Type = types.StringValue("percentile")
-		if arm := flattenTypedPercentile(ctx, p, v.Percentile, diags); arm != nil {
+		// The prior of the arm is the prior object, when it had this type.
+		var priorArm *TypedPercentileModel
+		if prior != nil && prior.Type.ValueString() == "percentile" {
+			priorArm = &TypedPercentileModel{
+				Field:   prior.Field,
+				Percent: prior.Percent,
+				Bucket:  prior.Bucket,
+			}
+		}
+		if arm := flattenTypedPercentile(ctx, p, v.Percentile, priorArm, diags); arm != nil {
 			out.Field = arm.Field
 			out.Percent = arm.Percent
 			out.Bucket = arm.Bucket
@@ -366,20 +368,12 @@ func expandTypedAverage(ctx context.Context, p path.Path, m *TypedAverageModel, 
 	return out
 }
 
-func flattenTypedAverage(ctx context.Context, p path.Path, v *typed_things_service.TypedAverage, prior *TypedAverageModel, diags *diag.Diagnostics) *TypedAverageModel {
+func flattenTypedAverage(ctx context.Context, p path.Path, v *typed_things_service.TypedAverage, diags *diag.Diagnostics) *TypedAverageModel {
 	if v == nil {
 		return nil
 	}
 	out := &TypedAverageModel{}
 	out.Field = types.StringPointerValue(v.Field)
-	if out.Field.ValueString() == "" {
-		out.Field = types.StringNull()
-		// A configured "" and an omitted value both read back as "". The prior
-		// is the plan or the state, so a configured empty string stays "".
-		if prior != nil && !prior.Field.IsNull() && !prior.Field.IsUnknown() && prior.Field.ValueString() == "" {
-			out.Field = types.StringValue("")
-		}
-	}
 	return out
 }
 
@@ -394,12 +388,20 @@ func expandTypedPercentile(ctx context.Context, p path.Path, m *TypedPercentileM
 	return out
 }
 
-func flattenTypedPercentile(ctx context.Context, p path.Path, v *typed_things_service.TypedPercentile, diags *diag.Diagnostics) *TypedPercentileModel {
+func flattenTypedPercentile(ctx context.Context, p path.Path, v *typed_things_service.TypedPercentile, prior *TypedPercentileModel, diags *diag.Diagnostics) *TypedPercentileModel {
 	if v == nil {
 		return nil
 	}
 	out := &TypedPercentileModel{}
 	out.Field = types.StringPointerValue(v.Field)
+	if out.Field.ValueString() == "" {
+		out.Field = types.StringNull()
+		// A configured "" and an omitted value both read back as "". The prior
+		// is the plan or the state, so a configured empty string stays "".
+		if prior != nil && !prior.Field.IsNull() && !prior.Field.IsUnknown() && prior.Field.ValueString() == "" {
+			out.Field = types.StringValue("")
+		}
+	}
 	out.Percent = types.Float64PointerValue(v.Percent)
 	out.Bucket = flattenTypedBucket(ctx, p.AtName("bucket"), v.Bucket, diags)
 	return out
@@ -723,7 +725,7 @@ func expandTypedSpanField(ctx context.Context, p path.Path, m *TypedSpanFieldMod
 }
 
 // flattenTypedSpanField reads the arm of TypedSpanField as the type attribute and the merged fields.
-func flattenTypedSpanField(ctx context.Context, p path.Path, v *typed_things_service.TypedSpanField, diags *diag.Diagnostics) *TypedSpanFieldModel {
+func flattenTypedSpanField(ctx context.Context, p path.Path, v *typed_things_service.TypedSpanField, prior *TypedSpanFieldModel, diags *diag.Diagnostics) *TypedSpanFieldModel {
 	if v == nil {
 		return nil
 	}
@@ -742,6 +744,14 @@ func flattenTypedSpanField(ctx context.Context, p path.Path, v *typed_things_ser
 	case v.ProcessTagField != nil:
 		out.Type = types.StringValue("process_tag")
 		out.Value = types.StringPointerValue(v.ProcessTagField)
+		if out.Value.ValueString() == "" {
+			out.Value = types.StringNull()
+			// A configured "" and an omitted value both read back as "". The prior
+			// is the plan or the state, so a configured empty string stays "".
+			if prior != nil && !prior.Value.IsNull() && !prior.Value.IsUnknown() && prior.Value.ValueString() == "" {
+				out.Value = types.StringValue("")
+			}
+		}
 	default:
 		diags.AddAttributeError(p, "Invalid response from server", "The response has none of MetadataField TagField ProcessTagField; it must have one.")
 	}
@@ -798,8 +808,17 @@ func flattenTypedThing(ctx context.Context, p path.Path, v *typed_things_service
 	out.Fields = types.ListNull(types.ObjectType{AttrTypes: typedSpanFieldAttrTypes()})
 	if v.Fields != nil {
 		items := make([]TypedSpanFieldModel, 0, len(v.Fields))
+		var priorFields []TypedSpanFieldModel
+		if prior != nil {
+			priorFields = priorItems[TypedSpanFieldModel](ctx, prior.Fields)
+		}
 		for i := range v.Fields {
-			items = append(items, *flattenTypedSpanField(ctx, p.AtName("fields").AtListIndex(i), &v.Fields[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *TypedSpanFieldModel
+			if i < len(priorFields) {
+				priorItem = &priorFields[i]
+			}
+			items = append(items, *flattenTypedSpanField(ctx, p.AtName("fields").AtListIndex(i), &v.Fields[i], priorItem, diags))
 		}
 		out.Fields = flattenList(ctx, types.ObjectType{AttrTypes: typedSpanFieldAttrTypes()}, items, diags)
 	}
@@ -973,6 +992,17 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(string(*v))
+}
+
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
 }
 
 func flattenTime(v *time.Time) types.String {

@@ -463,3 +463,19 @@ func typedInits(a *typedArm, fresh []string) error {
 	}
 	return nil
 }
+
+// typedArmNeedsPrior reports whether an arm of a typedArms object needs the prior value to read. The
+// merged fields are copies of the first arm's, so they do not remember that a later arm needs it.
+func typedArmNeedsPrior(t *convTyped) bool {
+	for _, a := range t.Arms {
+		if a.Object != nil && a.Object.NeedsPrior || a.Scalar != nil && scalarNeedsPrior(a.Scalar) {
+			return true
+		}
+	}
+	return false
+}
+
+// scalarNeedsPrior reports whether the read of a scalar field needs the prior value (markPriorFields).
+func scalarNeedsPrior(f *convField) bool {
+	return f.Equality != "" || f.Conv == convFloat64AsFloat32 || f.CaseInsensitive || f.ReadEmptyAsNull && f.Conv == convString
+}

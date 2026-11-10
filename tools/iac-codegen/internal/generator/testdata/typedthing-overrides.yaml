@@ -42,10 +42,15 @@ types:
     fields:
       values: {name: selected_values, computed: true, default: []}
       note: {readEmptyAs: "null"}
-  TypedAverage:
+  # Only the second arm needs the prior value, for a field that both arms share. The merged field
+  # is a copy of the first arm's, so it has no trace of that need.
+  TypedPercentile:
     fields:
       field: {readEmptyAs: "null"}
+  # The last scalar arm needs the prior value for the value that all scalar arms share.
   TypedSpanField:
+    fields:
+      processTagField: {readEmptyAs: "null"}
     typedArms:
       names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
 

@@ -2717,6 +2717,9 @@ func propagatePrior(d *convData) {
 	for changed := true; changed; {
 		changed = false
 		for _, obj := range d.Objects {
+			if !obj.NeedsPrior && obj.Typed != nil && typedArmNeedsPrior(obj.Typed) {
+				obj.NeedsPrior, changed = true, true
+			}
 			for _, f := range obj.Fields {
 				if (f.Conv != convObj && f.Conv != convObjects && f.Conv != convGroup && f.Conv != convKeyedObjects) || f.Object == nil {
 					continue
