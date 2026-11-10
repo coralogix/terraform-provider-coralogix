@@ -104,6 +104,9 @@ func (n *alertNormalizer) value(v any) any {
 				continue
 			}
 			out[k] = n.value(item)
+			if k == "access" {
+				canonicalizeAlertPolicyText(out[k])
+			}
 		}
 		return out
 	case []any:
@@ -116,6 +119,30 @@ func (n *alertNormalizer) value(v any) any {
 		return n.text(x)
 	}
 	return v
+}
+
+// canonicalizeAlertPolicyText rewrites the access policy of an answer (the "access" block of a Get)
+// with sorted keys and no spaces. The API writes the keys of the policy in a different order in
+// every answer, and the order carries no meaning. A request keeps the text that the provider sent.
+func canonicalizeAlertPolicyText(access any) {
+	block, ok := access.(map[string]any)
+	if !ok {
+		return
+	}
+	text, ok := block["accessPolicy"].(string)
+	if !ok {
+		return
+	}
+	var parsed any
+	if json.Unmarshal([]byte(text), &parsed) != nil {
+		return
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if enc.Encode(parsed) == nil {
+		block["accessPolicy"] = strings.TrimSuffix(buf.String(), "\n")
+	}
 }
 
 func (n *alertNormalizer) exchange(e alertExchange) alertExchange {
@@ -196,7 +223,7 @@ func TestAlertFakeMatchesRecordedBackend(t *testing.T) {
 					continue
 				}
 				if !reflect.DeepEqual(got.Response, want.Response) {
-					t.Errorf("%s: the fake and the API differ at:\n  %s", label, strings.Join(jsonDiff("", got.Response, want.Response), "\n  "))
+					t.Errorf("%s: the fake and the API differ at:\n  %s", label, strings.Join(alertJSONDiff("", got.Response, want.Response), "\n  "))
 				}
 			}
 		})
@@ -359,8 +386,8 @@ func alertDirect(base, apiKey, method, path string, body any) (int, any) {
 	return resp.StatusCode, parsed
 }
 
-// jsonDiff lists the paths where two JSON values differ, with the fake value first.
-func jsonDiff(path string, fake, api any) []string {
+// alertJSONDiff lists the paths where two JSON values differ, with the fake value first.
+func alertJSONDiff(path string, fake, api any) []string {
 	switch a := fake.(type) {
 	case map[string]any:
 		b, ok := api.(map[string]any)
@@ -389,7 +416,7 @@ func jsonDiff(path string, fake, api any) []string {
 			case !bok:
 				out = append(out, fmt.Sprintf("%s.%s: the fake has %s, the API has none", path, k, compactJSON(av)))
 			default:
-				out = append(out, jsonDiff(path+"."+k, av, bv)...)
+				out = append(out, alertJSONDiff(path+"."+k, av, bv)...)
 			}
 		}
 		return out
@@ -400,7 +427,7 @@ func jsonDiff(path string, fake, api any) []string {
 		}
 		var out []string
 		for i := range a {
-			out = append(out, jsonDiff(fmt.Sprintf("%s[%d]", path, i), a[i], b[i])...)
+			out = append(out, alertJSONDiff(fmt.Sprintf("%s[%d]", path, i), a[i], b[i])...)
 		}
 		return out
 	}

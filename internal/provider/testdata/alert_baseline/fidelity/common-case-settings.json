@@ -1,0 +1,792 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "caseSettings": {
+          "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED",
+          "destinations": [],
+          "enrichmentQueries": [
+            {
+              "query": "source logs | limit 1",
+              "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+            }
+          ]
+        },
+        "enabled": true,
+        "groupByKeys": [],
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED",
+            "destinations": [],
+            "enrichmentQueries": [
+              {
+                "query": "source logs | limit 1",
+                "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+              }
+            ]
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED",
+            "destinations": [],
+            "enrichmentQueries": [
+              {
+                "query": "source logs | limit 1",
+                "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+              }
+            ]
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "caseSettings": {
+          "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+          "destinations": [],
+          "enrichmentQueries": [
+            {
+              "query": "source logs | limit 2",
+              "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+            }
+          ]
+        },
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+            "destinations": [],
+            "enrichmentQueries": [
+              {
+                "query": "source logs | limit 2",
+                "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+              }
+            ]
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "caseSettings": {
+          "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+          "destinations": [],
+          "enrichmentQueries": []
+        },
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+            "destinations": [],
+            "enrichmentQueries": []
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+            "destinations": [],
+            "enrichmentQueries": []
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "caseSettings": {
+          "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED",
+          "destinations": [],
+          "enrichmentQueries": []
+        },
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED",
+            "destinations": [],
+            "enrichmentQueries": []
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "caseSettings": {
+            "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED",
+            "destinations": [],
+            "enrichmentQueries": []
+          },
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsImmediate": {
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                },
+                "luceneQuery": "tfbaseline"
+              }
+            },
+            "notificationPayloadFilter": []
+          },
+          "name": "tfbaseline-common-case",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "caseSettings": {
+          "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+          "destinations": [],
+          "enrichmentQueries": [
+            {
+              "query": "source logs | limit 1",
+              "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+            },
+            {
+              "query": "source logs | limit 2",
+              "type": "ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME"
+            }
+          ]
+        },
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: [\n  {\n    \"code\": \"too_big\",\n    \"maximum\": 1,\n    \"type\": \"array\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"Array must contain at most 1 element(s)\",\n    \"path\": [\n      \"alertDefProperties\",\n      \"caseSettings\",\n      \"enrichmentQueries\"\n    ]\n  }\n]"
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "caseSettings": {
+          "autoResolveMode": "ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED",
+          "destinations": [
+            {
+              "condition": "true",
+              "connectorId": "does-not-exist"
+            }
+          ],
+          "enrichmentQueries": []
+        },
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsImmediate": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": "tfbaseline"
+            }
+          },
+          "notificationPayloadFilter": []
+        },
+        "name": "tfbaseline-common-case",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 400,
+    "response": {
+      "code": 400,
+      "message": "Bad Request: Invalid destinations: {\"reason\":\"Connector not found: does-not-exist\"}"
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e",
+    "status": 200,
+    "response": {}
+  }
+]

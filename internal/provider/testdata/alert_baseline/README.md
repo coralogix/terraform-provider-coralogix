@@ -16,11 +16,11 @@ The unit tests job leaves these tests out and the `alert-baseline` job of `build
 
 ## What is covered
 
-223 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).
+229 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).
 
 | Prefix | Alert type or topic |
 |---|---|
-| `common-` | attributes of every type: priority, incidents settings, schedule, notification group, validation, import, deletion outside Terraform, type switch |
+| `common-` | attributes of every type: priority, incidents settings, schedule, notification group, validation, import, deletion outside Terraform, type switch; `alert_baseline_shared_test.go` holds `common-case-settings`, `common-access-policy`, and `common-data-sources` (with their validation scenarios) |
 | `logs-immediate-`, `logs-threshold-`, `logs-ratio-` | `alert_baseline_logs_a_test.go` |
 | `logs-anomaly-`, `logs-new-value-`, `logs-unique-count-`, `logs-time-relative-` | `alert_baseline_logs_b_test.go` |
 | `metric-threshold-`, `metric-anomaly-`, `metric-type-`, `slo-threshold-` | `alert_baseline_metric_slo_test.go` (configuration, SLO ids that do not exist), `alert_baseline_slo_lifecycle_test.go` (the lifecycle against an SLO that exists) |
@@ -75,6 +75,9 @@ configuration and the ids that no SLO has (404 for a UUID, 500 for another text)
 | Replace keeps an omitted `description`. Only `""` clears it. It is cleared when the same Replace also changes the content of the type. | `scenario_common-top-level-attributes.json`, `scenario_tracing-immediate-description-removal.json` |
 | `alertVersionId` changes only when the type or the content of the type changes. A new name, priority, enabled flag, incident settings, or router keeps it. | fidelity recordings |
 | Labels (`entityLabels`) are written as sent and cleared when the request omits them. A team over its limit of entity labels refuses every alert with labels: 400 `Out of Range: Meta Labels Limit Reached`. | `scenario_common-labels.json`, `scenario_common-top-level-attributes.json` |
+| Case settings: `enrichment_queries` takes at most one query (400). A destination whose connector does not exist is 400 `Invalid destinations`. Replace without `caseSettings` clears them. | `scenario_common-case-settings.json` |
+| Data sources: a data space and data set that do not exist are 400 (`default`/`logs` exists on the recording tenant). Replace without `dataSources` clears them. | `scenario_common-data-sources.json` |
+| Access policy: Create takes the policy as a string, Replace as an action (`{"upsert": text}`, `{"delete": {}}`), and a Replace without the action keeps the policy. The API stores the policy with all 14 `alerts:*` permissions: the ones the request omits are `deny`. Get returns it only with `include_access_permissions=true`, with the keys in a different order each time (the recordings sort them). Text that is no JSON is 400. | `scenario_common-access-policy.json`, `scenario_common-access-policy-create.json` |
 | Notification: a webhook needs `notify_on` and `retriggering_period` together (400). A router `notify_on` must equal `incidents_settings.notify_on` (400). A connector that does not exist is 400. | `scenario_common-notification-group-*.json` |
 | Alerts with several rules refuse mixed condition families (more/less), the same priority on two rules, and rules in different time-window groups. `trigger_undetected_values` and an auto-retire timeframe other than `NEVER` need a less-than rule; an all-default `undetected_values_management` is dropped when there is none. | `scenario_logs-threshold-*`, `scenario_metric-threshold-*`, `scenario_logs-time-relative-*` |
 | Anomaly, new value, unique count, tracing threshold, and metric anomaly take exactly one rule. | `scenario_*-rules*.json` |
@@ -115,6 +118,18 @@ The goldens record these as they are. A change in a golden is a decision, never 
   `slo-threshold-change-slo`).
 - Update to an SLO that does not exist answers 404, and the provider reads it as a deleted alert:
   `Missing Resource State After Update` (`slo-threshold-change-slo`).
+
+- `access_policy` that omits permissions shows drift after every refresh and a replan that is not empty:
+  the API stores the omitted permissions as `deny`, and the provider keeps the stored text. A policy
+  that names all 14 permissions refreshes to an empty plan (`common-access-policy`,
+  `common-access-policy-create`).
+- `access_policy = ""` reads back as null, so the plan after the refresh is not empty, on Create and on
+  Update (`common-access-policy`, `common-access-policy-create`). Removing the attribute sends no
+  request and keeps the policy in state.
+
+Not covered: a destination of `case_settings` that exists. It needs a Notification Center connector, which
+this baseline cannot create, so the scenarios record the answer for a connector that does not exist.
+The handwritten acceptance test `TestAccCoralogixResourceAlert_caseSettings` covers real connectors.
 
 A failed Update followed by a refresh leaves a non-empty replan in some scenarios. That is the
 harness: it keeps the failed config as the applied one. It is no provider behaviour.

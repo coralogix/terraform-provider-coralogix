@@ -40,10 +40,14 @@ const alertBasePath = "/alerts/alerts/v3"
 //     The rules of alertDefaults say which messages the server fills in.
 //   - A deleted, unknown, or malformed id answers 404 "Not Found: The requested Alert was not
 //     found", on Get, Replace, and Delete.
-//   - With include_access_permissions=true, Get also answers the access permissions of the key.
+//   - With include_access_permissions=true, Get also answers the access permissions of the key, and
+//     the access policy of the alert when it has one. A Create takes the policy as a string, a Replace
+//     as an action ({"upsert": text} or {"delete": {}}). A Replace without the action keeps the policy.
+//     The API stores the policy with every permission it knows: the ones the request omits are "deny".
 type alertFake struct {
 	mu       sync.Mutex
 	alerts   map[string]map[string]any
+	policies map[string]string // alert id -> the stored access policy text
 	sloStore *sloFake
 	seq      int
 	requests []grRequest
@@ -161,6 +165,9 @@ func (f *alertFake) handle(method, path string, query url.Values, body any) (int
 			out["access"] = map[string]any{"permissions": map[string]any{
 				"canRead": true, "canManage": true, "canReadAccessPolicy": true, "canUpdateAccessPolicy": true,
 			}}
+			if policy, has := f.policies[id]; has {
+				out["access"].(map[string]any)["accessPolicy"] = policy
+			}
 		}
 		return http.StatusOK, out
 	case method == http.MethodDelete && id != "":
@@ -168,6 +175,7 @@ func (f *alertFake) handle(method, path string, query url.Values, body any) (int
 			return alertNotFound()
 		}
 		delete(f.alerts, id)
+		delete(f.policies, id)
 		return http.StatusOK, map[string]any{}
 	}
 	return grFail(http.StatusMethodNotAllowed, "unsupported "+method+" "+path)
@@ -184,6 +192,22 @@ func alertBadRequest(message string) (int, any) {
 func (f *alertFake) uuidLike() string {
 	f.seq++
 	return fmt.Sprintf("00000000-0000-4000-8000-%012d", f.seq)
+}
+
+// storePolicy applies the change that alertPolicyChange read from a request: nil leaves the policy,
+// a pointer to "" deletes it, and any other text replaces it.
+func (f *alertFake) storePolicy(id string, change *string) {
+	if change == nil {
+		return
+	}
+	if *change == "" {
+		delete(f.policies, id)
+		return
+	}
+	if f.policies == nil {
+		f.policies = map[string]string{}
+	}
+	f.policies[id] = *change
 }
 
 func (f *alertFake) write(in map[string]any, update bool) (int, any) {
@@ -204,9 +228,14 @@ func (f *alertFake) write(in map[string]any, update bool) (int, any) {
 	if msg := alertCheck(props); msg != "" {
 		return alertBadRequest(msg)
 	}
+	policy, msg := alertPolicyChange(in["accessPolicy"])
+	if msg != "" {
+		return alertBadRequest(msg)
+	}
 	if !update {
 		id = f.uuidLike()
 	}
+	f.storePolicy(id, policy)
 	stored := map[string]any{
 		"alertDefProperties": alertDefaults(props),
 		"id":                 id,
