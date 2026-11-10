@@ -95,6 +95,8 @@ type apiKeyRecord struct {
 	permissions  []string
 	accessPolicy string
 	value        string
+	// owner is the owner object of the Get answer. A key that Create made has the team of the fake.
+	owner map[string]any
 }
 
 func newAPIKeyFidelityFake() *apiKeyFake {
@@ -135,8 +137,11 @@ func (f *apiKeyFake) takeRequests() []grRequest {
 
 // apiKeySeed is a key that was made outside Terraform.
 type apiKeySeed struct {
-	name         string
-	hashed       bool
+	name   string
+	hashed bool
+	// owner is the owner object that Get shows: {"userId": ...}, {"organisationId": ...}, or
+	// {"teamId": ...}. Without it, the key belongs to the team of the fake.
+	owner        map[string]any
 	presets      []string
 	permissions  []string
 	accessPolicy string
@@ -149,6 +154,7 @@ func (f *apiKeyFake) seed(s apiKeySeed) string {
 	rec := f.newRecord(s.name, s.presets, s.permissions)
 	rec.hashed = s.hashed
 	rec.accessPolicy = s.accessPolicy
+	rec.owner = s.owner
 	return rec.id
 }
 
@@ -423,10 +429,14 @@ func (f *apiKeyFake) info(rec *apiKeyRecord) map[string]any {
 	for _, p := range rec.permissions {
 		permissions = append(permissions, p)
 	}
+	owner := rec.owner
+	if owner == nil {
+		owner = map[string]any{"teamId": apiKeyFakeTeamID}
+	}
 	info := map[string]any{
 		"id":     rec.id,
 		"name":   rec.name,
-		"owner":  map[string]any{"teamId": apiKeyFakeTeamID},
+		"owner":  owner,
 		"active": rec.active,
 		"hashed": rec.hashed,
 		"keyPermissions": map[string]any{

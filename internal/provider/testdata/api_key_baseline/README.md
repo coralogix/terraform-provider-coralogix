@@ -39,8 +39,11 @@ JSON it holds and sorts the permissions of a key, because the API returns both i
 ## Limits of the recording
 
 * The recording key belongs to a team, so a key for a user or an organisation was not created. The
-  fake answers 403 and 400 as the API did to the recording key, and no scenario shows the read of
-  such a key. The handwritten flatten reads the owner of a Get answer by the field that it has.
+  fake answers 403 and 400 as the API did to the recording key. The read of such a key is not
+  recorded either: `scenario_import-user-owner.json`, `scenario_import-organisation-owner.json`,
+  `datasource_read-user-owner.json`, and `datasource_read-organisation-owner.json` seed a key with
+  the owner object that the `Owner` message of the contract has (`userId` or `organisationId`), and
+  show how the handwritten resource and data source read it. They record the code, not the API.
 * A policy of a key that another kind of owner has, such as the `data-ingest-api-keys:*` policy
   of the docs example, could not be recorded.
 * The fake sorts nothing: it returns the lists in the order of the request, and the replay compares
@@ -55,7 +58,8 @@ migration, and the golden diff of the switch shows it.
   fails with "Missing Resource State After Update".
 * `scenario_update-read-fails.json`: a failed Get after Update returns no error and no state.
 * `scenario_create-read-fails.json`: a failed Get after Create keeps no state, so the key and its
-  secret are lost.
+  secret are lost. The next apply
+  creates a second key, and the first one stays: an import of its id reads it, with its value.
 * `scenario_read-route-missing.json`, `scenario_update-route-missing.json`,
   `scenario_delete-route-missing.json`: any 404 counts as "the key is gone", also the 404 of a
   gateway that has no such route. Read removes the key from state, Update does the same and the
