@@ -1252,14 +1252,19 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 // of int32: Int64. The validators follow the type. On a uint64 that the API sends as a string, the
 // attribute is Int64 already: the line states that the released resource showed it as Int64, so a
 // contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
+// String keeps an integer as decimal text.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
 	}
 	if l.TerraformType == "String" {
-		// The released attribute is the decimal text of an integer, such as the id or a team id.
-		if a.Kind != "Int64" {
-			return fmt.Errorf("terraformType String needs an int64 field, not a %s", a.Kind)
+		// The released attribute is the decimal text of an integer, such as the id or a team id. An
+		// int32 is shown this way only when the server sets it.
+		if a.Kind != "Int32" && a.Kind != "Int64" {
+			return fmt.Errorf("terraformType String needs an integer attribute, not a %s", a.Kind)
+		}
+		if a.Kind == "Int32" && (!a.Computed || a.Optional || a.Required) {
+			return fmt.Errorf("terraformType String needs a computed-only integer attribute for an int32")
 		}
 		// A validator over other attributes has the same arguments for every type. A validator over the
 		// value (AtLeast, OneOf, ...) has no string counterpart with the same meaning.
@@ -1962,6 +1967,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		} else {
 			goType = "*" + typeModelName(t)
 		}
+	}
+	if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
+		goType = "types.String"
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: terraformName(b.policy, component, name)}
 }

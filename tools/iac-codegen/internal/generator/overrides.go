@@ -103,12 +103,13 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 		requestOnly = nil // the model reports the operations that it cannot resolve
 	}
 	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
+	root, _ := model.BuildWithPolicy(doc, component, ids, policy) // Model issues are reported by the contract check.
 	createOptional := createOptionalFields(doc, component, ids, file)
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
 			continue
 		}
-		if problem := lineProblem(doc, line, component, file, requested, createOptional); problem != nil {
+		if problem := lineProblem(doc, line, component, file, requested, root, createOptional); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -155,7 +156,7 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 
 // lineProblem checks one line. resource is the component of the resource response. requested are
 // the components that a request body reaches.
-func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool, createOptional map[string]bool) *lineIssue {
+func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool, root *model.Resource, createOptional map[string]bool) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -182,17 +183,23 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		nested := line.Component != resource
 		// A nested component that only a response reaches binds no request: the request holds its
 		// own component in that place, such as an input object next to its output object.
-		if nested {
-			return fieldLineProblem(schema, line, nested, !requested[line.Component], nil)
+		responseOnly := nested && !requested[line.Component]
+		if !nested && root != nil {
+			for _, field := range root.Fields {
+				if field.Name == line.Field && field.Create != nil && !field.Create.Required {
+					// A response requirement does not make the field required in Create.
+					responseOnly = true
+				}
+			}
 		}
-		// The resource component can be one that only the response reaches too: Create has a body
-		// of its own. Then the required list of the response says nothing about a field that Create
+		// The resource component can be one that only the response reaches too: Create has a body of
+		// its own. Then the required list of the response says nothing about a field that Create
 		// leaves optional without a default, and the line is what makes it required in Terraform.
 		var byCreate map[string]bool
-		if !requested[line.Component] {
+		if !nested && !requested[line.Component] {
 			byCreate = createOptional
 		}
-		return fieldLineProblem(schema, line, nested, false, byCreate)
+		return fieldLineProblem(schema, line, nested, responseOnly, byCreate)
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {

@@ -195,6 +195,9 @@ func flatten(ctx context.Context, v *events2metrics_service.E2M, prior *E2MModel
 		return nil, diags
 	}
 	out := flattenE2M(ctx, path.Empty(), v, prior, &diags)
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
 	return out, diags
 }
 

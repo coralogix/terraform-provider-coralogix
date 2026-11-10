@@ -436,7 +436,7 @@ func apiID(v *key_things_service.KeyThing) (string, bool) {
 	if v == nil {
 		return "", false
 	}
-	return v.Id, true
+	return v.Id, v.Id != ""
 }
 
 // setAPIID sets the id that v holds.

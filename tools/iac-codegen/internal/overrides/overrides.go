@@ -482,9 +482,7 @@ type Field struct {
 	// as true; one without it reads as null.
 	AsBool bool `yaml:"asBool"`
 	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
-	// int32: Int64. Expand converts the value and reports one outside the int32 range. String on
-	// the int64 resource id keeps a released String id: the state holds the decimal text,
-	// and the calls parse it.
+	// int32: Int64. String keeps a computed integer as decimal text, including a released int64 resource id.
 	TerraformType string `yaml:"terraformType"`
 	// StoredAs: float32 on a double field says that the API stores the value as a float32 and
 	// returns the float64 of that float32 (0.3 reads back as 0.30000001192092896). Flatten reads
@@ -1495,6 +1493,9 @@ func (f *File) Policy() model.Policy {
 		t := f.Types[name]
 		for _, field := range sortedKeys(t.Fields) {
 			line := t.Fields[field]
+			if line.Required {
+				p.ClientRequired = append(p.ClientRequired, name+"."+field)
+			}
 			if line.Fixed() {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}

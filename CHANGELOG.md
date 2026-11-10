@@ -1,5 +1,11 @@
 # Unreleased
 
+#### provider
+- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
+
+#### tools/iac-codegen
+- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.
@@ -40,7 +46,7 @@
 - FEAT: `readNullAs: empty` also reads a missing string as `""`.
 - FIX: A `required` or `optional` line on a field of the resource component is no longer reported as stale when no request body reaches the component: the required list of the Get response says nothing about a Create body of its own.
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that has `updateAs`, `updateDefault`, the request-only wrapper, and `itemName`.
-- CHORE: Bump the generator to `v0.1.0-beta.74`. The generated packages are the same; only `versions.yaml` changes.
+- CHORE: Bump the generator to `v0.1.0-beta.76`. The generated packages are the same; only `versions.yaml` changes.
 
 # Release 3.24.0
 

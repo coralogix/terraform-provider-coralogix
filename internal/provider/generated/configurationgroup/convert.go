@@ -177,6 +177,9 @@ func flatten(ctx context.Context, v *fleet_manager_configuration_groups.Configur
 		return nil, diags
 	}
 	out := flattenConfigurationGroup(ctx, path.Empty(), v, prior, &diags)
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
 	return out, diags
 }
 
