@@ -73,7 +73,7 @@ func flatten(ctx context.Context, v *action_things_service.ActionThing, prior *A
 		return nil, diags
 	}
 	out := flattenActionThing(ctx, path.Empty(), v, prior, &diags)
-	if out.Id.IsNull() {
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
 	return out, diags

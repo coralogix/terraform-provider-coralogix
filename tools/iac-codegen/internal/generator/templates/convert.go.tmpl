@@ -293,7 +293,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 {{- end}}
 	out := flatten{{.Resource.Func}}(ctx, path.Empty(), v, {{if .HasPrior}}prior, {{end}}&diags)
 {{- if .IDGuard}}
-	if out.{{.IDGuard}}.IsNull() {
+	if out.{{.IDGuard}}.IsNull(){{if .IDString}} || out.{{.IDGuard}}.ValueString() == ""{{end}} {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
 {{- end}}
@@ -2039,6 +2039,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "float64"}}
 	out.{{.Model}} = types.Float64PointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "integerasstring"}}
+{{- if .DirectValue}}
+	out.{{.Model}} = types.StringValue(strconv.FormatInt(int64({{.Src}}), 10))
+{{- else}}
+	out.{{.Model}} = types.StringValue("0")
+	if {{$v}} != nil {
+		out.{{.Model}} = types.StringValue(strconv.FormatInt(int64(*{{$v}}), 10))
+	}
+{{- end}}
 {{- else if eq .Conv "float64asfloat32"}}
 	out.{{.Model}} = flattenFloat64AsFloat32({{$v}})
 	{{- template "readZeroAsNull" .}}

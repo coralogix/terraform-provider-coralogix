@@ -308,7 +308,7 @@ func apiID(v *union_wrap_things_service.UnionWrapThing) (string, bool) {
 	if v == nil || v.Id == nil {
 		return "", false
 	}
-	return *v.Id, true
+	return *v.Id, *v.Id != ""
 }
 
 // idStateValue returns the value of the id attribute for id.

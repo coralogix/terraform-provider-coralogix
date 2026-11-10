@@ -257,7 +257,8 @@ import (
 
 func TestComputedEmptyExtraFlatten(t *testing.T) {
 	ctx := context.Background()
-	value, diags := flatten(ctx, &eval_things_service.EvalThing{EmptyConfig: map[string]interface{}{}})
+	id := "example"
+	value, diags := flatten(ctx, &eval_things_service.EvalThing{Id: &id, EmptyConfig: map[string]interface{}{}})
 	if diags.HasError() || value.EmptyConfig.IsNull() {
 		t.Fatalf("present empty object: value=%v, diagnostics=%v", value.EmptyConfig, diags)
 	}
@@ -265,7 +266,7 @@ func TestComputedEmptyExtraFlatten(t *testing.T) {
 	if len(attrs) != 1 || !attrs["url"].IsNull() {
 		t.Fatalf("extra attributes = %v, want one null URL", attrs)
 	}
-	nullValue, diags := flatten(ctx, &eval_things_service.EvalThing{})
+	nullValue, diags := flatten(ctx, &eval_things_service.EvalThing{Id: &id})
 	if diags.HasError() || !nullValue.EmptyConfig.IsNull() || len(nullValue.EmptyConfig.AttributeTypes(ctx)) != 1 {
 		t.Fatalf("missing empty object: value=%v, diagnostics=%v", nullValue.EmptyConfig, diags)
 	}

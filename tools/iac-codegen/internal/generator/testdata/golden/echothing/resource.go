@@ -308,7 +308,7 @@ func apiID(v *echo_things_service.EchoThing) (string, bool) {
 	if v == nil {
 		return "", false
 	}
-	return v.Id, true
+	return v.Id, v.Id != ""
 }
 
 // idStateValue returns the value of the id attribute for id.

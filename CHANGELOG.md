@@ -1,5 +1,11 @@
 # Unreleased
 
+#### provider
+- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
+
+#### tools/iac-codegen
+- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.
@@ -31,7 +37,7 @@
 - FEAT: `terraformType: String` on an int64 resource id keeps a released String id: the state holds the decimal text, the calls parse it, and a non-integer import id is an error at the import. A data source lookup by name does not parse the id that it leaves null.
 - FEAT: `storedAs: float32` on a double field reads a value that the API stores as a float32 as its shortest decimal, so `0.3` reads back as `0.3` instead of `0.30000001192092896`. A plan or state value of the same float32 stays, so a configured `0.123456789` does not make the apply inconsistent.
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
-- CHORE: Bump the generator to `v0.1.0-beta.74`. The generated files of every resource are the same.
+- CHORE: Bump the generator to `v0.1.0-beta.76`. The generated files of every resource are the same.
 - FEAT: `inline` accepts an object that holds a `oneOf`. Its arms become top-level fields of the resource, and a `groups` line collects them as for any top-level `oneOf`. `required: true` on an `inline` line states that the API always has the object, for a contract that cannot write it (a message field of a request has no `required` list). Before, the generator stopped with `INLINE_UNSUPPORTED`.
 - FEAT: `modifyPlan: true` adds a `ModifyPlan` hook to an existing resource. It runs after the generated plan steps (enum aliases, plan equals state, equality), is skipped on destroy and when a generated step failed, and sees the final plan, so a rule that no attribute modifier expresses, such as a planned value inside a set of objects, can be set there.
 - FEAT: `extraAttributes` can be a `bool`, a `list`, or an `object` with nested `attributes`, and can be Optional+Computed (`optional: true` with `computed: true`) with a static `default`, `useStateForUnknown`, and, on a string, `equality: json` or `yaml`. They are Terraform-only: expand sends nothing, flatten starts them as a typed null, and a hook converts them. Before, an extra attribute was a plain optional string, set of strings, map, or dynamic value.

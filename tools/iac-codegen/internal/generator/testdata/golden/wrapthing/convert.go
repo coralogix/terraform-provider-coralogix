@@ -97,6 +97,9 @@ func flatten(ctx context.Context, v *wrap_things_service.WrapThing) (*WrapThingM
 		return nil, diags
 	}
 	out := flattenWrapThing(ctx, path.Empty(), v, &diags)
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
 	return out, diags
 }
 

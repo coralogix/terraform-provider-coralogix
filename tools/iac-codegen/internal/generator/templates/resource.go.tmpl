@@ -521,8 +521,15 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .Get.IDs}}
+	if id == "" {
+		resp.Diagnostics.AddWarning("Resource has no id", "The state has no resource id. Terraform removed it from state so it can be recreated.")
+		resp.State.RemoveResource(ctx)
+		return
+	}
+{{- end}}
 	v, err := r.get(ctx, id)
-	if {{$cx}}.{{.APINotFound}}(err){{if .Arms}} || err == nil && absent(v){{end}} {
+	if {{$cx}}.{{.APINotFound}}(err){{if .Get.IDs}} || err == nil && v == nil{{end}}{{if .Arms}} || err == nil && absent(v){{end}} {
 		resp.Diagnostics.AddWarning("Resource disappeared during read",
 			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -748,10 +755,10 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	if r.hooks.Get != nil {
 		out, httpResp, err = r.hooks.Get(ctx, r.client, id)
 	} else {
-		out, httpResp, err = r.client.{{.Get.Method}}(ctx, id){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.Execute()
+		out, httpResp, err = r.client.{{.Get.Method}}(ctx{{if and (not .Singleton) (not .Get.IDs)}}, id{{end}}){{if .Get.IDs}}.{{.Get.IDs}}([]string{id}){{end}}{{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.Execute()
 	}
 {{- else}}
-	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if not .Singleton}}, id{{end}}){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.Execute()
+	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if and (not .Singleton) (not .Get.IDs)}}, id{{end}}){{if .Get.IDs}}.{{.Get.IDs}}([]string{id}){{end}}{{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.Execute()
 {{- end}}
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -764,7 +771,12 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 		got.response = out
 	}
 {{- end}}
+{{- if .Get.IDs}}
+	if len(out.{{.Get.Response}}) == 0 { return nil, nil }
+	return &out.{{.Get.Response}}[0], nil
+{{- else}}
 	return {{if .Get.Response}}{{if .Get.ResponseValue}}&{{end}}out.{{.Get.Response}}{{else}}out{{end}}, nil
+{{- end}}
 }
 
 {{if and $.DataSource $.DataSource.QueryID}}
@@ -781,7 +793,12 @@ func (r *Resource) getWithQueryID(ctx context.Context, id *string) (*{{$sdk}}.{{
 	if out == nil {
 		return nil, nil
 	}
+{{- if .Get.IDs}}
+	if len(out.{{.Get.Response}}) == 0 { return nil, nil }
+	return &out.{{.Get.Response}}[0], nil
+{{- else}}
 	return {{if .Get.Response}}{{if .Get.ResponseValue}}&{{end}}out.{{.Get.Response}}{{else}}out{{end}}, nil
+{{- end}}
 }
 {{end}}
 
@@ -1009,7 +1026,7 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		return
 	}
 	v, err := r.get(ctx, id)
-	if {{$cx}}.{{.APINotFound}}(err){{if .Arms}} || err == nil && absent(v){{end}} {
+	if {{$cx}}.{{.APINotFound}}(err){{if .Get.IDs}} || err == nil && v == nil{{end}}{{if .Arms}} || err == nil && absent(v){{end}} {
 		// The framework does not allow a state upgrade to remove the resource from state,
 		// and a refresh runs the upgrade first, so only the user can remove it.
 		resp.Diagnostics.AddError("Resource no longer exists",
@@ -1062,12 +1079,12 @@ func apiID(v *{{$sdk}}.{{.Resource}}) ({{.IDGoType}}, bool) {
 	if id == nil {
 		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, false
 	}
-	return *id, true
+	return *id, {{if eq .IDGoType "string"}}*id != ""{{else}}true{{end}}
 {{- else}}
 	if v == nil{{if not .IDValue}} || v.{{.IDField}} == nil{{end}} {
 		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, false
 	}
-	return {{if not .IDValue}}*{{end}}v.{{.IDField}}, true
+	return {{if not .IDValue}}*{{end}}v.{{.IDField}}, {{if eq .IDGoType "string"}}{{if not .IDValue}}*{{end}}v.{{.IDField}} != ""{{else}}true{{end}}
 {{- end}}
 }
 

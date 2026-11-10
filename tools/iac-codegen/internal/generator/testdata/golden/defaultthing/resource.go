@@ -306,7 +306,7 @@ func apiID(v *default_things_service.DefaultThing) (string, bool) {
 	if v == nil {
 		return "", false
 	}
-	return v.Id, true
+	return v.Id, v.Id != ""
 }
 
 // idStateValue returns the value of the id attribute for id.

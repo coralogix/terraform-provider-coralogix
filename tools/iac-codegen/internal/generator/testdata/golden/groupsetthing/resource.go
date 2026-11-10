@@ -407,7 +407,7 @@ func apiID(v *group_set_things_service.GroupSetThing) (string, bool) {
 	if v == nil {
 		return "", false
 	}
-	return v.Id, true
+	return v.Id, v.Id != ""
 }
 
 // setAPIID sets the id that v holds.

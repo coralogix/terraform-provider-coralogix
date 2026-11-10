@@ -25,7 +25,7 @@ import (
 	"{{.CRUD.ProviderPkg}}"
 	"{{.CRUD.CXPkg}}"
 	"{{.DataSource.UtilsPkg}}"
-{{- if $.DataSource.Show}}
+{{- if or $.DataSource.Show .CRUD.Existing}}
 	"{{.Conv.SDKPkg}}"
 {{- end}}
 )
@@ -73,6 +73,11 @@ type DataSource struct {
 {{- end}}
 func NewDataSource(hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{hooks: hooks}}
+}
+
+// NewDataSourceWithClient returns a data source with an injected API client.
+func NewDataSourceWithClient(client *{{$.Conv.SDKName}}.{{.Client}}, hooks Hooks) datasource.DataSource {
+	return &DataSource{resource: Resource{client: client, hooks: hooks}}
 }
 {{- else}}
 
@@ -222,6 +227,12 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- else}}
 	id := configured.Value{{.IDTFType}}()
+{{- if .Get.IDs}}
+	if configured.IsUnknown() || id == "" {
+		resp.Diagnostics.AddError("Unable to read coralogix_"+TypeName, fmt.Sprintf("id must be set to a non-empty %s id.", TypeName))
+		return
+	}
+{{- end}}
 {{- end}}
 {{- if $name}}
 	if !name.IsNull() {
