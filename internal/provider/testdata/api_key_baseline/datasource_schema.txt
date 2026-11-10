@@ -1,0 +1,23 @@
+(data source schema)
+    description: Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.
+access_policy  tftypes.String computed
+    description: Api Key Access Policy
+active  tftypes.Bool computed
+    description: Api Key Is Active.
+hashed  tftypes.Bool computed
+    description: Api Key Is Hashed.
+id  tftypes.String required
+    description: ApiKey ID.
+name  tftypes.String computed
+    description: Api Key name.
+owner  nested SINGLE computed
+    description: Api Key Owner. It can either be a team_id, organisation_id, or a user_id 
+owner.organisation_id  tftypes.String computed
+owner.team_id  tftypes.String computed
+owner.user_id  tftypes.String computed
+permissions  tftypes.Set[tftypes.String] computed
+    description: Api Key Permissions
+presets  tftypes.Set[tftypes.String] computed
+    description: Api Key Presets
+value  tftypes.String computed
+    description: The API key's secret value. The Coralogix backend returns this only when the key is first created; the Terraform provider captures it then and preserves it in resource state. Imported resources and data-source lookups cannot recover the value and will surface it as null.

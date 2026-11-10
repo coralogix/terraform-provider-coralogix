@@ -1,0 +1,94 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "(unknown)",
+      "name": "gone",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3",
+        "body": {
+          "hashed": false,
+          "keyPermissions": {
+            "permissions": [
+              "livetail:Read"
+            ],
+            "presets": [
+              "APM"
+            ]
+          },
+          "name": "gone",
+          "owner": {
+            "teamId": 4000001
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API answers 404",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "state": null
+  }
+]

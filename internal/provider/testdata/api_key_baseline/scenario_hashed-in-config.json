@@ -1,0 +1,22 @@
+[
+  {
+    "step": "validate a config that sets hashed",
+    "config": {
+      "hashed": true,
+      "name": "hash",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"hashed\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  }
+]

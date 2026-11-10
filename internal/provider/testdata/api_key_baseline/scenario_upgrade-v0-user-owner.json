@@ -1,0 +1,36 @@
+[
+  {
+    "step": "upgrade",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "owner": {
+        "team_id": null,
+        "user_id": "u-1"
+      },
+      "active": false,
+      "hashed": true,
+      "value": null,
+      "roles": [
+        "Rum Ingress"
+      ]
+    },
+    "state": {
+      "access_policy": null,
+      "active": false,
+      "hashed": true,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "owner": {
+        "organisation_id": null,
+        "team_id": null,
+        "user_id": "u-1"
+      },
+      "permissions": [
+        "rum-ingress:SendData"
+      ],
+      "presets": null,
+      "value": null
+    }
+  }
+]
