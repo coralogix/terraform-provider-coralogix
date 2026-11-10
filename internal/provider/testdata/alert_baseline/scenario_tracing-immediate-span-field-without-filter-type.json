@@ -76,8 +76,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -101,6 +99,8 @@
             "type": "ALERT_DEF_TYPE_TRACING_IMMEDIATE"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],

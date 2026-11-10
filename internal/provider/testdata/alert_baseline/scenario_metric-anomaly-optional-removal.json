@@ -90,8 +90,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "metric anomaly baseline",
@@ -128,6 +126,8 @@
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -198,102 +198,27 @@
   },
   {
     "step": "update: remove percentage_of_deviation",
-    "config": {
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "name": "tfbaseline-ma-removal",
-      "priority": "P2",
-      "type_definition": {
-        "metric_anomaly": {
-          "custom_evaluation_delay": 1000,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/metric_anomaly/percentage_of_deviation": null
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": 1000,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
         },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        "/type_definition/metric_anomaly/percentage_of_deviation": null
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "metric anomaly baseline",
@@ -332,70 +257,14 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": 1000,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/metric_anomaly/percentage_of_deviation": null
       }
     },
     "replanEmpty": true
@@ -409,270 +278,32 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": 1000,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "update: remove custom_evaluation_delay",
-    "config": {
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "name": "tfbaseline-ma-removal",
-      "priority": "P2",
-      "type_definition": {
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/metric_anomaly/custom_evaluation_delay": null
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/metric_anomaly/custom_evaluation_delay": null
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "metric anomaly baseline",
-            "enabled": false,
-            "groupByKeys": [
-              "pod"
-            ],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "metricAnomaly": {
-              "metricFilter": {
-                "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-              },
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL",
-                    "forOverPct": 80,
-                    "minNonNullValuesPct": 40,
-                    "ofTheLast": {
-                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_HOUR_1"
-                    },
-                    "threshold": 20
-                  }
-                }
-              ]
-            },
-            "name": "tfbaseline-ma-removal",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P2",
-            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "remove": [
+          "/body/alertDefProperties/metricAnomaly/evaluationDelayMs"
+        ]
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/metric_anomaly/custom_evaluation_delay": null
       }
     },
     "replanEmpty": true
@@ -681,500 +312,57 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "update: remove group_by",
-    "config": {
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "name": "tfbaseline-ma-removal",
-      "priority": "P2",
-      "type_definition": {
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "remove": [
+        "/group_by"
+      ]
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "planDelta": {},
     "noChange": true,
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    }
+    "stateDelta": {}
   },
   {
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": false,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "update: remove priority and enabled",
-    "config": {
-      "description": "metric anomaly baseline",
-      "name": "tfbaseline-ma-removal",
-      "type_definition": {
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "remove": [
+        "/enabled",
+        "/priority"
+      ]
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": true,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/enabled": true
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "metric anomaly baseline",
-            "enabled": true,
-            "groupByKeys": [
-              "pod"
-            ],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "metricAnomaly": {
-              "metricFilter": {
-                "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-              },
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL",
-                    "forOverPct": 80,
-                    "minNonNullValuesPct": 40,
-                    "ofTheLast": {
-                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_HOUR_1"
-                    },
-                    "threshold": 20
-                  }
-                }
-              ]
-            },
-            "name": "tfbaseline-ma-removal",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P2",
-            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/enabled": true
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": true,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/enabled": true
       }
     },
     "replanEmpty": true
@@ -1183,269 +371,35 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "metric anomaly baseline",
-      "enabled": true,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "update: remove description",
-    "config": {
-      "name": "tfbaseline-ma-removal",
-      "type_definition": {
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "remove": [
+        "/description"
+      ]
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/description": null
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "groupByKeys": [
-              "pod"
-            ],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "metricAnomaly": {
-              "metricFilter": {
-                "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-              },
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL",
-                    "forOverPct": 80,
-                    "minNonNullValuesPct": 40,
-                    "ofTheLast": {
-                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_HOUR_1"
-                    },
-                    "threshold": 20
-                  }
-                }
-              ]
-            },
-            "name": "tfbaseline-ma-removal",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P2",
-            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/description": ""
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/description": null
       }
     },
     "replanEmpty": true
@@ -1454,74 +408,10 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [
-        "pod"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-ma-removal",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum by (pod) (rate(tfbaseline_requests_total[5m]))"
-          },
-          "percentage_of_deviation": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "LESS_THAN",
-                "for_over_pct": 80,
-                "min_non_null_values_pct": 40,
-                "of_the_last": "1_HOUR",
-                "threshold": 20
-              }
-            }
-          ]
-        },
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   }
 ]

@@ -66,8 +66,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -85,6 +83,8 @@
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -155,139 +155,32 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "update: set access_policy",
-    "config": {
-      "access_policy": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}",
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/access_policy": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
       }
     },
-    "plan": {
-      "access_policy": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
+    "planDelta": {
+      "set": {
+        "/access_policy": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}",
+        "/deleted": false,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
         },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        "/priority": "P5"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "accessPolicy": {
             "upsert": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
@@ -315,63 +208,14 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\",\n      \"alerts:UpdateConfig\": \"grant\",\n      \"alerts:ReadAccessPolicy\": \"grant\",\n      \"alerts:UpdateAccessPolicy\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
       }
     },
     "replanEmpty": true
@@ -380,65 +224,12 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"deny\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"deny\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "drift": [
@@ -451,326 +242,54 @@
   },
   {
     "step": "update: the same policy as jsonencode writes it",
-    "config": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
-    "plan": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "accessPolicy": {
-            "upsert": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
-          },
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {},
-                  "luceneQuery": "tfbaseline"
-                }
-              }
-            },
-            "name": "tfbaseline-common-policy",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/accessPolicy/upsert": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
+        }
       }
     ],
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "replanEmpty": true
   },
   {
     "step": "update: change the policy",
-    "config": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
-    "plan": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "accessPolicy": {
-            "upsert": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
-          },
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {},
-                  "luceneQuery": "tfbaseline"
-                }
-              }
-            },
-            "name": "tfbaseline-common-policy",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/accessPolicy/upsert": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
+        }
       }
     ],
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "replanEmpty": true
@@ -779,65 +298,12 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "drift": [
@@ -850,197 +316,27 @@
   },
   {
     "step": "update: remove access_policy",
-    "config": {
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
-      }
+    "configDelta": {
+      "remove": [
+        "/access_policy"
+      ]
     },
-    "plan": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "noChange": true,
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    }
+    "stateDelta": {}
   },
   {
     "step": "refresh after removal",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:LogsReadConfig\":\"deny\",\"alerts:LogsUpdateConfig\":\"deny\",\"alerts:MetricsReadConfig\":\"deny\",\"alerts:MetricsUpdateConfig\":\"grant\",\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:SloMgmtReadConfig\":\"deny\",\"alerts:SloMgmtUpdateConfig\":\"deny\",\"alerts:SnowbitCreateSecurityAlert\":\"deny\",\"alerts:SnowbitRead\":\"deny\",\"alerts:SpansReadConfig\":\"deny\",\"alerts:SpansUpdateConfig\":\"deny\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"access_policy\")"
@@ -1048,326 +344,57 @@
   },
   {
     "step": "update: set access_policy again",
-    "config": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
-    "plan": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "accessPolicy": {
-            "upsert": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
-          },
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {},
-                  "luceneQuery": "tfbaseline"
-                }
-              }
-            },
-            "name": "tfbaseline-common-policy",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/accessPolicy/upsert": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
+        }
       }
     ],
-    "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}"
       }
     },
     "replanEmpty": true
   },
   {
     "step": "update: access_policy is an empty string",
-    "config": {
-      "access_policy": "",
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/access_policy": ""
       }
     },
-    "plan": {
-      "access_policy": "",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/access_policy": ""
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "accessPolicy": {
-            "delete": {}
-          },
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {},
-                  "luceneQuery": "tfbaseline"
-                }
-              }
-            },
-            "name": "tfbaseline-common-policy",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
+        "deltaOf": "PUT",
+        "set": {
+          "/body/accessPolicy/delete": {}
         },
-        "status": 200
+        "remove": [
+          "/body/accessPolicy/upsert"
+        ]
       }
     ],
-    "state": {
-      "access_policy": "",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": ""
       }
     },
     "replanEmpty": true
@@ -1376,65 +403,12 @@
     "step": "refresh after the delete",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/access_policy": null
       }
     },
     "drift": [
@@ -1453,9 +427,7 @@
     "step": "import by id (refresh)",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
     "state": {
@@ -1548,131 +520,9 @@
   },
   {
     "step": "plan the same config on the imported state",
-    "config": {
-      "access_policy": "",
-      "name": "tfbaseline-common-policy",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "lucene_query": "tfbaseline"
-            }
-          }
-        }
-      }
-    },
-    "plan": {
-      "access_policy": "",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-common-policy",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "tfbaseline"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    }
+    "configDelta": {},
+    "planDelta": {},
+    "stateDelta": {}
   },
   {
     "step": "destroy",

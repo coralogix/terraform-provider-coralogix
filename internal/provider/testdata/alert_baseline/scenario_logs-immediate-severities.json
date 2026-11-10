@@ -73,8 +73,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -96,6 +94,8 @@
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -168,147 +168,33 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Critical"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "severity Debug",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Debug"
-                ]
-              },
-              "lucene_query": "q"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Debug"
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Debug"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
         },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        "/priority": "P5",
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Debug"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "",
@@ -337,65 +223,14 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Debug"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Debug"
       }
     },
     "replanEmpty": true
@@ -404,239 +239,35 @@
     "step": "refresh Debug",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Debug"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "severity Error",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Error"
-                ]
-              },
-              "lucene_query": "q"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Error"
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Error"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Error"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {
-                    "severities": [
-                      "LOG_SEVERITY_ERROR"
-                    ]
-                  },
-                  "luceneQuery": "q"
-                }
-              }
-            },
-            "name": "tfbaseline-logs-immediate-severities",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/severities/0": "LOG_SEVERITY_ERROR"
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Error"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Error"
       }
     },
     "replanEmpty": true
@@ -645,239 +276,35 @@
     "step": "refresh Error",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Error"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "severity Info",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Info"
-                ]
-              },
-              "lucene_query": "q"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Info"
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Info"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Info"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {
-                    "severities": [
-                      "LOG_SEVERITY_INFO"
-                    ]
-                  },
-                  "luceneQuery": "q"
-                }
-              }
-            },
-            "name": "tfbaseline-logs-immediate-severities",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/severities/0": "LOG_SEVERITY_INFO"
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Info"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Info"
       }
     },
     "replanEmpty": true
@@ -886,239 +313,35 @@
     "step": "refresh Info",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Info"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "severity Unspecified",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Unspecified"
-                ]
-              },
-              "lucene_query": "q"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Unspecified"
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Unspecified"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Unspecified"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {
-                    "severities": [
-                      "LOG_SEVERITY_VERBOSE_UNSPECIFIED"
-                    ]
-                  },
-                  "luceneQuery": "q"
-                }
-              }
-            },
-            "name": "tfbaseline-logs-immediate-severities",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/severities/0": "LOG_SEVERITY_VERBOSE_UNSPECIFIED"
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Unspecified"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Unspecified"
       }
     },
     "replanEmpty": true
@@ -1127,239 +350,35 @@
     "step": "refresh Unspecified",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Unspecified"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "severity Warning",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Warning"
-                ]
-              },
-              "lucene_query": "q"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Warning"
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Warning"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Warning"
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {
-                    "severities": [
-                      "LOG_SEVERITY_WARNING"
-                    ]
-                  },
-                  "luceneQuery": "q"
-                }
-              }
-            },
-            "name": "tfbaseline-logs-immediate-severities",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/severities/0": "LOG_SEVERITY_WARNING"
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Warning"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities/0": "Warning"
       }
     },
     "replanEmpty": true
@@ -1368,259 +387,63 @@
     "step": "refresh Warning",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Warning"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "all severities",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Critical",
-                  "Debug",
-                  "Error",
-                  "Info",
-                  "Unspecified",
-                  "Warning"
-                ]
-              },
-              "lucene_query": "q"
-            }
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities": [
+          "Critical",
+          "Debug",
+          "Error",
+          "Info",
+          "Unspecified",
+          "Warning"
+        ]
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Critical",
-                  "Debug",
-                  "Error",
-                  "Info",
-                  "Unspecified",
-                  "Warning"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities": [
+          "Critical",
+          "Debug",
+          "Error",
+          "Info",
+          "Unspecified",
+          "Warning"
+        ]
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {
-                    "severities": [
-                      "LOG_SEVERITY_CRITICAL",
-                      "LOG_SEVERITY_DEBUG",
-                      "LOG_SEVERITY_ERROR",
-                      "LOG_SEVERITY_INFO",
-                      "LOG_SEVERITY_VERBOSE_UNSPECIFIED",
-                      "LOG_SEVERITY_WARNING"
-                    ]
-                  },
-                  "luceneQuery": "q"
-                }
-              }
-            },
-            "name": "tfbaseline-logs-immediate-severities",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/severities": [
+            "LOG_SEVERITY_CRITICAL",
+            "LOG_SEVERITY_DEBUG",
+            "LOG_SEVERITY_ERROR",
+            "LOG_SEVERITY_INFO",
+            "LOG_SEVERITY_VERBOSE_UNSPECIFIED",
+            "LOG_SEVERITY_WARNING"
+          ]
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Critical",
-                  "Debug",
-                  "Error",
-                  "Info",
-                  "Unspecified",
-                  "Warning"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities": [
+          "Critical",
+          "Debug",
+          "Error",
+          "Info",
+          "Unspecified",
+          "Warning"
+        ]
       }
     },
     "replanEmpty": true
@@ -1629,232 +452,35 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": [
-                  "Critical",
-                  "Debug",
-                  "Error",
-                  "Info",
-                  "Unspecified",
-                  "Warning"
-                ],
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "severities cleared",
-    "config": {
-      "name": "tfbaseline-logs-immediate-severities",
-      "type_definition": {
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {},
-              "lucene_query": "q"
-            }
-          }
-        }
-      }
+    "configDelta": {
+      "remove": [
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities"
+      ]
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities": null
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "",
-            "enabled": true,
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "logsImmediate": {
-              "logsFilter": {
-                "simpleFilter": {
-                  "labelFilters": {},
-                  "luceneQuery": "q"
-                }
-              }
-            },
-            "name": "tfbaseline-logs-immediate-severities",
-            "notificationGroup": {},
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "remove": [
+          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/severities"
+        ]
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/severities": null
       }
     },
     "replanEmpty": true
@@ -1863,67 +489,10 @@
     "step": "refresh",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-logs-immediate-severities",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
-              },
-              "lucene_query": "q"
-            }
-          },
-          "notification_payload_filter": null
-        },
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   }
 ]
