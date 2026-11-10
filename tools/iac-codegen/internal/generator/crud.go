@@ -61,6 +61,8 @@ type crudData struct {
 	// GetResponse is the SDK type that the Get call returns.
 	GetHooks    bool
 	GetResponse string
+	// GetRequest is the SDK type of the Get request builder, which the Get hook receives a factory of.
+	GetRequest string
 	// GetQuery are the query values that Get always sends: the request builder method and the Go
 	// expression of the value.
 	GetQuery []crudQuery
@@ -558,7 +560,11 @@ func getHooks(ix *refIndex, r *model.Resource, file *overrides.File, out *crudDa
 	if err != nil {
 		return err
 	}
-	out.GetHooks, out.GetResponse = true, response.Name
+	request, err := ix.typeRef("get")
+	if err != nil {
+		return err
+	}
+	out.GetHooks, out.GetResponse, out.GetRequest = true, response.Name, request.Name
 	return nil
 }
 

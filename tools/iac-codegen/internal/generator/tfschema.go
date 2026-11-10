@@ -99,6 +99,11 @@ type tfAttr struct {
 	// GroupValidators are the oneOf group validators. They state the structure of the request, not a
 	// limit, so they stay when the behavior-overrides file removes the inferred validators.
 	GroupValidators []string
+	// EnumValueSets are the values that an enum validator accepts, by the Go expression of the
+	// validator, recorded where the validator is built. The description of an attribute lists
+	// them (enumValuesInDescription), so the list is never read back from the text of a validator.
+	// A validator that is no longer in Validators contributes nothing.
+	EnumValueSets map[string][]string
 	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
 	// The acceptance test sets one arm of each group.
 	OneOfGroup string
@@ -546,9 +551,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 }
 
 // addEnumValues appends the accepted values of the enum validator of an attribute to its
-// description, in every attribute below attrs. The values are read from the validator itself, so
-// the list and the check cannot disagree: they are the Terraform spellings of the enums line, and
-// the zero value only when the validator accepts it. A description that a field line states, one
+// description, in every attribute below attrs. The values are the ones that were recorded when the
+// validator was built (EnumValueSets), so the list and the check cannot disagree: they are the
+// Terraform spellings of the enums line, and the zero value only when the validator accepts it. A description that a field line states, one
 // that already has "Valid values", and an attribute without an enum validator stay as they are.
 // Without enumValuesInDescription (enabled false) it changes nothing.
 func addEnumValues(attrs []*tfAttr, enabled bool) {
@@ -567,66 +572,26 @@ func addEnumValues(attrs []*tfAttr, enabled bool) {
 	}
 }
 
-// enumValidatorValues returns the values of the OneOf or OneOfCaseInsensitive validator of an
-// attribute of an enum (or a list or set of one), in the order of the validator.
+// enumValidatorValues returns the values of the enum validators of an attribute of an enum (or a
+// list or set of one). Every validator must pass, so with more than one, such as an inferred one
+// and an enumExceptZero line, the accepted values are the ones that all of them accept.
 func enumValidatorValues(a *tfAttr) ([]string, bool) {
 	if a.EnumSchema == "" && a.FoldEnum == "" {
 		return nil, false
 	}
-	prefix := ""
-	if a.ValueKind == "List" || a.ValueKind == "Set" {
-		prefix = strings.ToLower(a.ValueKind) + "validator.ValueStringsAre("
-	} else if a.ValueKind != "String" {
-		return nil, false
-	}
-	// Every validator must pass, so with more than one, such as an inferred one and an
-	// enumExceptZero line, the accepted values are the ones that all of them accept.
 	var values []string
 	found := false
 	for _, v := range a.Validators {
-		for _, call := range []string{"stringvalidator.OneOf(", "stringvalidator.OneOfCaseInsensitive("} {
-			rest, ok := strings.CutPrefix(v, prefix+call)
-			if !ok {
-				continue
-			}
-			list, ok := quotedList(rest, prefix != "")
-			switch {
-			case !ok:
-			case !found:
-				values, found = list, true
-			default:
-				values = slices.DeleteFunc(values, func(value string) bool { return !slices.Contains(list, value) })
-			}
+		list, ok := a.EnumValueSets[v]
+		switch {
+		case !ok:
+		case !found:
+			values, found = slices.Clone(list), true
+		default:
+			values = slices.DeleteFunc(values, func(value string) bool { return !slices.Contains(list, value) })
 		}
 	}
 	return values, found && len(values) != 0
-}
-
-// quotedList reads the Go string literals of an argument list that ends the call: `"a", "b")`,
-// or `"a", "b"))` when the call is itself an argument.
-func quotedList(rest string, nested bool) ([]string, bool) {
-	var values []string
-	for {
-		quoted, err := strconv.QuotedPrefix(rest)
-		if err != nil {
-			return nil, false
-		}
-		value, err := strconv.Unquote(quoted)
-		if err != nil {
-			return nil, false
-		}
-		values = append(values, value)
-		rest = rest[len(quoted):]
-		if next, ok := strings.CutPrefix(rest, ", "); ok {
-			rest = next
-			continue
-		}
-		end := ")"
-		if nested {
-			end = "))"
-		}
-		return values, rest == end
-	}
 }
 
 // stripComputedConfig removes configuration checks from a computed-only attribute
@@ -932,7 +897,9 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		for _, one := range v.OneOf {
 			quoted = append(quoted, strconv.Quote(one))
 		}
-		return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
+		expr := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+		a.recordEnumValues(expr, slices.Clone(v.OneOf))
+		return expr, nil
 	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
 	case v.LengthAtLeast != nil && a.ValueKind == "String":
@@ -972,23 +939,42 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
 // exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
 func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
-	oneOf, err := enumOneOf(a, file, exceptZero)
+	oneOf, values, err := enumChoice(a, file, exceptZero)
 	if err != nil {
 		return "", err
 	}
 	if a.ValueKind == "List" || a.ValueKind == "Set" {
-		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
+		expr := strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")"
+		a.recordEnumValues(expr, values)
+		return expr, nil
 	}
+	a.recordEnumValues(oneOf, values)
 	return oneOf, nil
+}
+
+// recordEnumValues states the values that the validator with the expression expr accepts.
+func (a *tfAttr) recordEnumValues(expr string, values []string) {
+	if a.EnumValueSets == nil {
+		a.EnumValueSets = map[string][]string{}
+	}
+	a.EnumValueSets[expr] = values
 }
 
 // enumOneOf is the OneOf validator of one value of the enum of the attribute: the validator of a
 // scalar, and the validator of each element of a list or set.
 func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
+	expr, _, err := enumChoice(a, file, exceptZero)
+	return expr, err
+}
+
+// enumChoice is the OneOf validator of one value of the enum of the attribute, and the values that
+// it accepts: the Terraform values of the enums line, sorted, and the zero value unless exceptZero.
+// The expression is made from the values, so the two cannot disagree.
+func enumChoice(a *tfAttr, file *overrides.File, exceptZero bool) (string, []string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	collection := a.ValueKind == "List" || a.ValueKind == "Set"
 	if a.EnumSchema == "" || !ok || a.ValueKind != "String" && !collection {
-		return "", errors.New("the enum validator needs a field of an enum type, or a list or set of one, that has a line under enums")
+		return "", nil, errors.New("the enum validator needs a field of an enum type, or a list or set of one, that has a line under enums")
 	}
 	var values []string
 	if enum.Zero != "" && !exceptZero {
@@ -1003,9 +989,9 @@ func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error)
 		quoted = append(quoted, strconv.Quote(v))
 	}
 	if enum.CaseInsensitive {
-		return "stringvalidator.OneOfCaseInsensitive(" + strings.Join(quoted, ", ") + ")", nil
+		return "stringvalidator.OneOfCaseInsensitive(" + strings.Join(quoted, ", ") + ")", values, nil
 	}
-	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
+	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", values, nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
@@ -2565,7 +2551,7 @@ func stringArms(t *model.Type) (enum, str *model.Field, err error) {
 // Terraform spelling of the enum, or matches one of them. With enum: true and no pattern, only the
 // spellings are valid. With neither, the attribute takes any string.
 func foldStringValidators(a *tfAttr, file *overrides.File, enumOnly bool) error {
-	oneOf, err := enumOneOf(&tfAttr{EnumSchema: a.FoldEnum, ValueKind: "String"}, file, false)
+	oneOf, values, err := enumChoice(&tfAttr{EnumSchema: a.FoldEnum, ValueKind: "String"}, file, false)
 	if err != nil {
 		return err
 	}
@@ -2582,6 +2568,7 @@ func foldStringValidators(a *tfAttr, file *overrides.File, enumOnly bool) error 
 		a.Validators = append(a.Validators, "stringvalidator.Any("+strings.Join(append([]string{oneOf}, regexes...), ", ")+")")
 	case enumOnly:
 		a.Validators = append(a.Validators, oneOf)
+		a.recordEnumValues(oneOf, values)
 	}
 	return nil
 }

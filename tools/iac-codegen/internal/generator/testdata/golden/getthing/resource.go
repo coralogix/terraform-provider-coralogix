@@ -48,14 +48,16 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *folder_things_service.FolderThing) diag.Diagnostics
-	// Get replaces the Get call that Read, the data source, and every read after a write make
-	// (nil: the generated call). It returns what the generated call returns: the whole Get
-	// response, the HTTP response, and the error. A hook adds a query parameter that the
-	// generated call cannot send, or retries the call. The generated code classifies the error
-	// as it does for its own call (a 404 of the resource is a resource that is gone, a 404 of a
-	// route that does not exist is an error), and takes the resource out of the response. It
-	// sends the fixed query values of the contract itself only when the hook does.
-	Get func(context.Context, *folder_things_service.FolderThingsServiceAPIService, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error)
+	// Get replaces the Execute step of the Get call that Read, the data source, and every read
+	// after a write make (nil: the generated call). It receives a factory of the generated
+	// request, which already holds the context, the id, and the fixed query values of the
+	// contract: every call of the factory returns a fresh request that the hook adds a query
+	// parameter to and executes, as many times as it needs (a retry without the parameter calls
+	// the factory again). It returns what Execute returns: the whole Get response, the HTTP
+	// response, and the error. The generated code classifies the error as it does for its own
+	// call (a 404 of the resource is a resource that is gone, a 404 of a route that does not
+	// exist is an error), and takes the resource out of the response.
+	Get func(context.Context, func() folder_things_service.ApiFolderThingsServiceGetFolderThingRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error)
 	// AfterGet receives the whole Get response, with the values next to the resource that the
 	// generated code drops, and the state that was just written from it. It runs after
 	// the state was written and before AfterRead, only for a state that a Get call produced
@@ -284,13 +286,16 @@ func withGetResult(ctx context.Context) (context.Context, *getResult) {
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*folder_things_service.FolderThing, error) {
+	request := func() folder_things_service.ApiFolderThingsServiceGetFolderThingRequest {
+		return r.client.FolderThingsServiceGetFolderThing(ctx, id)
+	}
 	var out *folder_things_service.GetFolderThingResponse
 	var httpResp *http.Response
 	var err error
 	if r.hooks.Get != nil {
-		out, httpResp, err = r.hooks.Get(ctx, r.client, id)
+		out, httpResp, err = r.hooks.Get(ctx, request)
 	} else {
-		out, httpResp, err = r.client.FolderThingsServiceGetFolderThing(ctx, id).Execute()
+		out, httpResp, err = request().Execute()
 	}
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)

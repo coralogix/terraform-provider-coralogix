@@ -18,6 +18,7 @@ import (
 )
 
 type service = folder_things_service.FolderThingsServiceAPIService
+type getRequest = folder_things_service.ApiFolderThingsServiceGetFolderThingRequest
 
 // goneError is the 404 of a resource that does not exist. routeError is the 404 of a route that
 // does not exist, which is no resource that is gone.
@@ -43,13 +44,13 @@ func reset() {
 }
 
 // retryingGet asks for the revision, and asks again without it when the server answers 403.
-func retryingGet(calls *int) func(context.Context, *service, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
-	return func(ctx context.Context, client *service, id string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+func retryingGet(calls *int) func(context.Context, func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+	return func(ctx context.Context, request func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
 		*calls++
-		out, httpResp, err := client.FolderThingsServiceGetFolderThing(ctx, id).IncludeRevision(true).Execute()
+		out, httpResp, err := request().IncludeRevision(true).Execute()
 		if err != nil && httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
 			*calls++
-			out, httpResp, err = client.FolderThingsServiceGetFolderThing(ctx, id).Execute()
+			out, httpResp, err = request().Execute()
 		}
 		return out, httpResp, err
 	}
@@ -166,7 +167,7 @@ func TestGetHookErrorsAreClassifiedLikeTheGeneratedCall(t *testing.T) {
 	reset()
 	afterRan := false
 	hooks := Hooks{
-		Get: func(context.Context, *service, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+		Get: func(context.Context, func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
 			return nil, &http.Response{StatusCode: http.StatusNotFound}, goneError{}
 		},
 		AfterGet: func(context.Context, *tfsdk.State, *folder_things_service.GetFolderThingResponse) diag.Diagnostics {
@@ -178,14 +179,14 @@ func TestGetHookErrorsAreClassifiedLikeTheGeneratedCall(t *testing.T) {
 	if resp.Diagnostics.HasError() || !resp.State.Raw.IsNull() || len(resp.Diagnostics.Warnings()) != 1 {
 		t.Fatalf("read of a resource that is gone: state null = %v, diagnostics = %v, want a warning and no state", resp.State.Raw.IsNull(), resp.Diagnostics)
 	}
-	hooks.Get = func(context.Context, *service, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+	hooks.Get = func(context.Context, func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
 		return nil, &http.Response{StatusCode: http.StatusNotFound}, routeError{}
 	}
 	resp, _ = readThing(t, hooks)
 	if !resp.Diagnostics.HasError() || resp.State.Raw.IsNull() {
 		t.Fatalf("read with a route that does not exist: state null = %v, diagnostics = %v, want an error and the state kept", resp.State.Raw.IsNull(), resp.Diagnostics)
 	}
-	hooks.Get = func(context.Context, *service, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+	hooks.Get = func(context.Context, func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
 		return nil, nil, errors.New("read failed")
 	}
 	if resp, _ = readThing(t, hooks); !resp.Diagnostics.HasError() {
@@ -287,7 +288,7 @@ func TestUpdateRunsTheGetHooks(t *testing.T) {
 	if got := revisionOf(t, resp.State); got.ValueString() != "r1" {
 		t.Fatalf("revision after update = %v, want r1", got)
 	}
-	r.hooks.Get = func(context.Context, *service, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+	r.hooks.Get = func(context.Context, func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
 		return nil, &http.Response{StatusCode: http.StatusNotFound}, goneError{}
 	}
 	if resp = update(); !resp.Diagnostics.HasError() {
@@ -328,7 +329,7 @@ func TestDataSourceRunsTheGetHooks(t *testing.T) {
 	if got := revisionOf(t, resp.State); got.ValueString() != "r1" {
 		t.Fatalf("data source revision = %v, want r1", got)
 	}
-	resp = readDataSource(t, Hooks{Get: func(context.Context, *service, string) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
+	resp = readDataSource(t, Hooks{Get: func(context.Context, func() getRequest) (*folder_things_service.GetFolderThingResponse, *http.Response, error) {
 		return nil, &http.Response{StatusCode: http.StatusNotFound}, goneError{}
 	}, AfterGet: setRevision})
 	if !resp.Diagnostics.HasError() {
