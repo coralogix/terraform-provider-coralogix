@@ -1906,11 +1906,10 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		}
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
-	case model.OneOf:
-		if cf.SplitArms {
+	case model.Object, model.OneOf:
+		if t.Elem.Kind == model.OneOf && cf.SplitArms {
 			return b.splitArmsConv(cf, t)
 		}
-	case model.Object:
 		if len(t.Elem.Fields) == 0 {
 			break
 		}

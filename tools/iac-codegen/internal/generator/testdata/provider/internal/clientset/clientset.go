@@ -7,6 +7,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/filter_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
@@ -46,6 +47,7 @@ type ClientSet struct {
 	StorageClient  *storage_service.StorageServiceAPIService
 	Rename         *rename_things_service.RenameThingsServiceAPIService
 	Parse          *parse_things_service.ParseThingsServiceAPIService
+	Filter         *filter_things_service.FilterThingsServiceAPIService
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
 	Retag          *retag_things_service.RetagThingsServiceAPIService
 }
@@ -110,6 +112,10 @@ func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPI
 
 func (c *ClientSet) ActionThings() *action_things_service.ActionThingsServiceAPIService {
 	return c.ActionThing
+}
+
+func (c *ClientSet) FilterThings() *filter_things_service.FilterThingsServiceAPIService {
+	return c.Filter
 }
 
 func (c *ClientSet) ParseThings() *parse_things_service.ParseThingsServiceAPIService {

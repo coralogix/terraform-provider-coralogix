@@ -1197,7 +1197,7 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	pkg := strings.ToLower(kind) + "validator"
 	a.Validators = sizeValidator(pkg, t.MinItems, t.MaxItems)
 	switch t.Elem.Kind {
-	case model.Object:
+	case model.Object, model.OneOf:
 		a.Kind = kind + "Nested"
 		a.ObjectComponent = t.Elem.Schema
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
