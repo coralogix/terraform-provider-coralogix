@@ -348,6 +348,10 @@ type convField struct {
 	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
 	// the value in any case, and flatten keeps the prior spelling of an equal value.
 	CaseInsensitive bool
+	// EmptyDefault is the Go expression of the empty list or set that the line gives as its default
+	// (default: []), for a field of a typedArms arm. A typedArms object reads a null of it as that
+	// value, because an arm that lacks the field gives null, and an import has no prior to restore.
+	EmptyDefault string
 	// Carried: a sibling or a fold flag in the model of a carrySiblings arm. The arm functions
 	// leave it to the object that holds the oneOf; it counts for the attribute types.
 	Carried bool

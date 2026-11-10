@@ -2508,6 +2508,13 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 	default:
 		diags.AddAttributeError(p, "Invalid response from server", "The response has none of{{range $typed.Arms}} {{.SDK}}{{end}}; it must have one.")
 	}
+{{- range .Fields}}{{if .EmptyDefault}}
+	if out.{{.Model}}.IsNull() {
+		// An arm that lacks the field, or an answer without values, reads as the default. An import
+		// has no prior value to restore the empty collection from.
+		out.{{.Model}} = {{.EmptyDefault}}
+	}
+{{- end}}{{end}}
 	return out
 }
 {{- end}}

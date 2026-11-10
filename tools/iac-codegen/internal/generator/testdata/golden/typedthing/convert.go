@@ -524,6 +524,11 @@ func flattenTypedSelection(ctx context.Context, p path.Path, v *typed_things_ser
 	default:
 		diags.AddAttributeError(p, "Invalid response from server", "The response has none of All List; it must have one.")
 	}
+	if out.Values.IsNull() {
+		// An arm that lacks the field, or an answer without values, reads as the default. An import
+		// has no prior value to restore the empty collection from.
+		out.Values = types.ListValueMust(types.StringType, []attr.Value{})
+	}
 	return out
 }
 
@@ -624,6 +629,11 @@ func flattenTypedOperator(ctx context.Context, p path.Path, v *typed_things_serv
 	default:
 		diags.AddAttributeError(p, "Invalid response from server", "The response has none of Equals NotEquals; it must have one.")
 	}
+	if out.Values.IsNull() {
+		// An arm that lacks the field, or an answer without values, reads as the default. An import
+		// has no prior value to restore the empty collection from.
+		out.Values = types.ListValueMust(types.StringType, []attr.Value{})
+	}
 	return out
 }
 
@@ -715,6 +725,11 @@ func flattenTypedNotSelection(ctx context.Context, p path.Path, v *typed_things_
 		}
 	default:
 		diags.AddAttributeError(p, "Invalid response from server", "The response has none of List; it must have one.")
+	}
+	if out.Values.IsNull() {
+		// An arm that lacks the field, or an answer without values, reads as the default. An import
+		// has no prior value to restore the empty collection from.
+		out.Values = types.ListValueMust(types.StringType, []attr.Value{})
 	}
 	return out
 }

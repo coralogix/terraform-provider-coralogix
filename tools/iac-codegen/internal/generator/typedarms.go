@@ -363,6 +363,9 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 			return fmt.Errorf("%s: no conversion of the arm %s", t.Schema, arm.Name)
 		}
 		a, fields := typedArmOf(cf, values[arm.Name], line)
+		if err := b.emptyDefaults(obj, cf, arm, fields); err != nil {
+			return fmt.Errorf("%s: %w", arm.Name, err)
+		}
 		var fresh []string
 		for _, f := range fields {
 			isNew := !slices.ContainsFunc(merged, func(o *convField) bool { return o.Model == f.Model })
@@ -428,6 +431,9 @@ func (b *convBuilder) mergeTyped(obj *convObject, merged []*convField, f *convFi
 	i := slices.IndexFunc(merged, func(o *convField) bool { return o.Model == c.Model })
 	if i < 0 {
 		return append(merged, &c), nil
+	}
+	if merged[i].EmptyDefault == "" {
+		merged[i].EmptyDefault = c.EmptyDefault
 	}
 	first, err := b.attrType(obj, merged[i])
 	if err != nil {
@@ -575,4 +581,42 @@ func typedArmNeedsPrior(t *convTyped) bool {
 // scalarNeedsPrior reports whether the read of a scalar field needs the prior value (markPriorFields).
 func scalarNeedsPrior(f *convField) bool {
 	return f.Equality != "" || f.Conv == convFloat64AsFloat32 || f.CaseInsensitive || f.ReadEmptyAsNull && f.Conv == convString
+}
+
+// emptyDefaults sets EmptyDefault on the fields of an object arm whose line has default: []. The
+// fields are copies of the arm's own, so the arm itself is not changed.
+func (b *convBuilder) emptyDefaults(obj *convObject, arm *convField, field *model.Field, fields []*convField) error {
+	if arm.Object == nil || field.Type.Schema == "" {
+		return nil
+	}
+	names := apiNames(arm.Object, field.Type)
+	for i, f := range fields {
+		d, ok := b.file.Types[field.Type.Schema].Fields[names[f]].Default.([]any)
+		if !ok || len(d) != 0 {
+			continue
+		}
+		expr, err := b.attrType(obj, f)
+		if err != nil {
+			return err
+		}
+		value, ok := emptyCollectionValue(expr)
+		if !ok {
+			return fmt.Errorf("%s: default: [] needs a list or set", f.TFName)
+		}
+		c := *f
+		c.EmptyDefault = value
+		fields[i] = &c
+	}
+	return nil
+}
+
+// emptyCollectionValue turns the attribute type of a list or set, such as
+// types.ListType{ElemType: types.StringType}, into the empty value of that type.
+func emptyCollectionValue(attrType string) (string, bool) {
+	for _, kind := range []string{"List", "Set"} {
+		if elem, ok := strings.CutPrefix(attrType, "types."+kind+"Type{ElemType: "); ok {
+			return "types." + kind + "ValueMust(" + strings.TrimSuffix(elem, "}") + ", []attr.Value{})", true
+		}
+	}
+	return "", false
 }

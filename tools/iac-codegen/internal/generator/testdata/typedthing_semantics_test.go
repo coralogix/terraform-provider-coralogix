@@ -525,3 +525,37 @@ func TestSharedFieldIsConvertedByTheSelectedArm(t *testing.T) {
 		t.Fatalf("percentile = %+v, want the free text", got)
 	}
 }
+
+// An import reads with only the id, so no prior value restores an empty list. An arm that lacks a
+// list with a default of [] still gives [], because the next plan would otherwise change null to [].
+func TestImportReadsEmptyDefaultsOfInactiveArms(t *testing.T) {
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	id := "thing-1"
+	typed_things_service.Stored = typed_things_service.TypedThing{
+		Id:        &id,
+		Selection: &typed_things_service.TypedSelection{All: map[string]interface{}{}},
+		Operator:  &typed_things_service.TypedOperator{Equals: &typed_things_service.TypedEquals{Selection: &typed_things_service.TypedSelection{All: map[string]interface{}{}}}},
+	}
+	r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var values map[string]tftypes.Value
+	if err := resp.State.Raw.As(&values); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"selection", "operator"} {
+		var attrs map[string]tftypes.Value
+		if err := values[name].As(&attrs); err != nil {
+			t.Fatal(err)
+		}
+		if !attrs["selected_values"].Equal(stringList()) {
+			t.Fatalf("%s selected_values = %v, want the empty default []", name, attrs["selected_values"])
+		}
+	}
+}
