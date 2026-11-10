@@ -1,7 +1,7 @@
 # Unreleased
 
 #### provider
-- FIX: Reject empty string response IDs before writing or recovering state in generated resources.
+- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
 
 #### tools/iac-codegen
 - FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.

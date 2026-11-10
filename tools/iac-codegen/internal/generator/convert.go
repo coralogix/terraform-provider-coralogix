@@ -2859,11 +2859,11 @@ func (d *convData) UsesEquality(kind ...string) bool {
 // HasPrior reports whether flatten takes the prior model of the resource.
 func (d *convData) HasPrior() bool { return d.Resource != nil && d.Resource.NeedsPrior }
 
-// idGuard returns the model field of the id when flatten must check it, else "". The contract
-// may not require the id in the response (a proto3 optional field, or a schema that a released
-// API shares with the request). Without the id, Read, Update, and Delete would have no identity.
+// idGuard returns the model field of the id when flatten must check it, else "". A required
+// string id can still decode as empty. An optional id can be absent. Either leaves later
+// lifecycle calls without an identity.
 func idGuard(r *model.Resource) string {
-	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
+	if r.Singleton || r.IDType.Kind != model.String && !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
 	return camelize(r.ID())

@@ -845,8 +845,7 @@ func attrAt(t *testing.T, attrs []*tfAttr, names ...string) *tfAttr {
 }
 
 // serverSetID: a released API returns a server-set id that its contract does not require. The
-// generated flatten then checks the id, as it does for a client-set one. An id that Get requires
-// needs no check, and serverSetID on it is an error.
+// generated flatten then checks the id, as it does for a client-set one.
 func TestExistingResourceChecksAnOptionalServerSetID(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
 	if err != nil {
@@ -869,9 +868,6 @@ func TestExistingResourceChecksAnOptionalServerSetID(t *testing.T) {
 	}
 	if convert, err := os.ReadFile(filepath.Join(out, "convert.go")); err != nil || !strings.Contains(string(convert), `"Missing id"`) {
 		t.Fatalf("convert.go has no id check (err %v)", err)
-	}
-	if convert, err := os.ReadFile(filepath.Join(generateCustomThing(t), "convert.go")); err != nil || strings.Contains(string(convert), `"Missing id"`) {
-		t.Fatalf("customthing convert.go checks an id that Get requires (err %v)", err)
 	}
 }
 
