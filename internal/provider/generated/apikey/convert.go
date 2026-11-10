@@ -285,7 +285,14 @@ func expandUpdateApiKeyRequest(ctx context.Context, p path.Path, m *KeyInfoModel
 	}
 	out := &api_keys_service.UpdateApiKeyRequest{}
 	out.AccessPolicy = expandString(m.AccessPolicy)
-	out.IsActive = expandBool(m.Active)
+	if m.Active.IsUnknown() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as the
+		// value that a new resource has.
+		unknown := bool(true)
+		out.IsActive = &unknown
+	} else {
+		out.IsActive = expandBool(m.Active)
+	}
 	{
 		var inner []string
 		inner = expandStringsSet[string](ctx, p.AtName("permissions"), m.Permissions, diags)
