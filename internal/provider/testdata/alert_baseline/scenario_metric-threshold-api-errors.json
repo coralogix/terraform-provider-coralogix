@@ -193,8 +193,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -300,6 +298,8 @@
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 400
       }
     ],
@@ -310,317 +310,103 @@
   },
   {
     "step": "create with an empty promql",
-    "config": {
-      "name": "tfbaseline-mt-errors",
-      "type_definition": {
-        "metric_threshold": {
-          "metric_filter": {
-            "promql": ""
-          },
-          "missing_values": {
-            "replace_with_zero": true
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "10_MINUTES",
-                "threshold": 10
-              },
-              "override": {}
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/metric_threshold/metric_filter/promql": "",
+        "/type_definition/metric_threshold/rules": [
+          {
+            "condition": {
+              "condition_type": "MORE_THAN",
+              "for_over_pct": 50,
+              "of_the_last": "10_MINUTES",
+              "threshold": 10
+            },
+            "override": {}
+          }
+        ]
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-mt-errors",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": ""
-          },
-          "missing_values": {
-            "min_non_null_values_pct": null,
-            "replace_with_zero": true
-          },
-          "no_data_policy": "(unknown)",
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "10_MINUTES",
-                "threshold": 10
-              },
-              "override": {
-                "priority": "P5"
-              }
+    "planDelta": {
+      "set": {
+        "/type_definition/metric_threshold/metric_filter/promql": "",
+        "/type_definition/metric_threshold/rules": [
+          {
+            "condition": {
+              "condition_type": "MORE_THAN",
+              "for_over_pct": 50,
+              "of_the_last": "10_MINUTES",
+              "threshold": 10
+            },
+            "override": {
+              "priority": "P5"
             }
-          ],
-          "undetected_values_management": {
-            "auto_retire_timeframe": "NEVER",
-            "trigger_undetected_values": false
           }
-        },
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        ]
       }
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "metricThreshold": {
-              "metricFilter": {
-                "promql": ""
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/metricThreshold/metricFilter/promql": "",
+          "/body/alertDefProperties/metricThreshold/rules": [
+            {
+              "condition": {
+                "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                "forOverPct": 50,
+                "ofTheLast": {
+                  "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                },
+                "threshold": 10
               },
-              "missingValues": {
-                "replaceWithZero": true
-              },
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
-                    "forOverPct": 50,
-                    "ofTheLast": {
-                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
-                    },
-                    "threshold": 10
-                  },
-                  "override": {
-                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                  }
-                }
-              ],
-              "undetectedValuesManagement": {
-                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
-                "triggerUndetectedValues": false
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
               }
-            },
-            "name": "tfbaseline-mt-errors",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
-          }
-        },
-        "status": 400
+            }
+          ]
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 1,\\n    \\\"type\\\": \\\"string\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"String must contain at least 1 character(s)\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"metricFilter\\\",\\n      \\\"type\\\",\\n      \\\"promql\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "create with a duration the API does not parse",
-    "config": {
-      "name": "tfbaseline-mt-errors",
-      "type_definition": {
-        "metric_threshold": {
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "replace_with_zero": true
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "5 minutes",
-                "threshold": 1
-              },
-              "override": {}
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/metric_threshold/metric_filter/promql": "sum(rate(tfbaseline_requests_total[5m]))",
+        "/type_definition/metric_threshold/rules/0/condition/of_the_last": "5 minutes",
+        "/type_definition/metric_threshold/rules/0/condition/threshold": 1
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"5 minutes\">, \"threshold\":tftypes.Number<\"1\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")] | Attribute type_definition.metric_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"of_the_last\":\"5 minutes\",\"threshold\":1.000000},\"override\":{\"priority\":<null>}})].condition.of_the_last value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"5 minutes\"",
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"5 minutes\">, \"threshold\":tftypes.Number<\"1\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")] | Attribute type_definition.metric_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"of_the_last\":\"5 minutes\",\"threshold\":1.000000},\"override\":{\"priority\":<null>}})].condition.of_the_last value must match regular expression '^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$', got: 5 minutes"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "create a valid alert",
-    "config": {
-      "name": "tfbaseline-mt-errors",
-      "type_definition": {
-        "metric_threshold": {
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "replace_with_zero": true
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "10_MINUTES",
-                "threshold": 10
-              },
-              "override": {}
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/metric_threshold/rules/0/condition/of_the_last": "10_MINUTES",
+        "/type_definition/metric_threshold/rules/0/condition/threshold": 10
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-mt-errors",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "min_non_null_values_pct": null,
-            "replace_with_zero": true
-          },
-          "no_data_policy": "(unknown)",
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "10_MINUTES",
-                "threshold": 10
-              },
-              "override": {
-                "priority": "P5"
-              }
-            }
-          ],
-          "undetected_values_management": {
-            "auto_retire_timeframe": "NEVER",
-            "trigger_undetected_values": false
-          }
-        },
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/metric_threshold/metric_filter/promql": "sum(rate(tfbaseline_requests_total[5m]))"
       }
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "metricThreshold": {
-              "metricFilter": {
-                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-              },
-              "missingValues": {
-                "replaceWithZero": true
-              },
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
-                    "forOverPct": 50,
-                    "ofTheLast": {
-                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
-                    },
-                    "threshold": 10
-                  },
-                  "override": {
-                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                  }
-                }
-              ],
-              "undetectedValuesManagement": {
-                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
-                "triggerUndetectedValues": false
-              }
-            },
-            "name": "tfbaseline-mt-errors",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
-          }
-        },
-        "status": 200
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/metricThreshold/metricFilter/promql": "sum(rate(tfbaseline_requests_total[5m]))",
+          "/status": 200
+        }
       }
     ],
     "state": {
@@ -701,108 +487,35 @@
   },
   {
     "step": "update: for_over_pct 101",
-    "config": {
-      "name": "tfbaseline-mt-errors",
-      "type_definition": {
-        "metric_threshold": {
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "replace_with_zero": true
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 101,
-                "of_the_last": "10_MINUTES",
-                "threshold": 1
-              },
-              "override": {}
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/metric_threshold/rules/0/condition/for_over_pct": 101,
+        "/type_definition/metric_threshold/rules/0/condition/threshold": 1
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-mt-errors",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "min_non_null_values_pct": null,
-            "replace_with_zero": true
-          },
-          "no_data_policy": {
-            "auto_retire_seconds": null,
-            "state": null
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 101,
-                "of_the_last": "10_MINUTES",
-                "threshold": 1
-              },
-              "override": {
-                "priority": "P5"
-              }
-            }
-          ],
-          "undetected_values_management": {
-            "auto_retire_timeframe": "NEVER",
-            "trigger_undetected_values": false
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/group_by": null,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
           }
         },
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        "/priority": "P5",
+        "/type_definition/metric_threshold/no_data_policy": {
+          "auto_retire_seconds": null,
+          "state": null
+        },
+        "/type_definition/metric_threshold/rules/0/condition/for_over_pct": 101,
+        "/type_definition/metric_threshold/rules/0/condition/threshold": 1
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -848,86 +561,15 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 400
       }
     ],
     "applyDiagnostics": [
       "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 100,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 100\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"forOverPct\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-mt-errors",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "min_non_null_values_pct": null,
-            "replace_with_zero": true
-          },
-          "no_data_policy": {
-            "auto_retire_seconds": null,
-            "state": null
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "10_MINUTES",
-                "threshold": 10
-              },
-              "override": {
-                "priority": "P5"
-              }
-            }
-          ],
-          "undetected_values_management": {
-            "auto_retire_timeframe": "NEVER",
-            "trigger_undetected_values": false
-          }
-        },
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    }
+    "stateDelta": {}
   },
   {
     "step": "refresh after the refused update",
@@ -938,80 +580,7 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-mt-errors",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": {
-          "custom_evaluation_delay": null,
-          "metric_filter": {
-            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
-          },
-          "missing_values": {
-            "min_non_null_values_pct": null,
-            "replace_with_zero": true
-          },
-          "no_data_policy": {
-            "auto_retire_seconds": null,
-            "state": null
-          },
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "for_over_pct": 50,
-                "of_the_last": "10_MINUTES",
-                "threshold": 10
-              },
-              "override": {
-                "priority": "P5"
-              }
-            }
-          ],
-          "undetected_values_management": {
-            "auto_retire_timeframe": "NEVER",
-            "trigger_undetected_values": false
-          }
-        },
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"101\">, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<\"1\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>)",

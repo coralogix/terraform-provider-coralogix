@@ -92,8 +92,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -130,6 +128,8 @@
             "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 400
       }
     ],
@@ -140,142 +140,28 @@
   },
   {
     "step": "burn_rate duration 100000",
-    "config": {
-      "name": "tfbaseline-slo-invalid",
-      "type_definition": {
-        "slo_threshold": {
-          "burn_rate": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": 1
-                },
-                "override": {}
-              }
-            ],
-            "single": {
-              "time_duration": {
-                "duration": 100000,
-                "unit": "HOURS"
-              }
-            }
-          },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 100000
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-slo-invalid",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": {
-          "burn_rate": {
-            "dual": null,
-            "rules": [
-              {
-                "condition": {
-                  "threshold": 1
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              }
-            ],
-            "single": {
-              "time_duration": {
-                "duration": 100000,
-                "unit": "HOURS"
-              }
-            }
-          },
-          "error_budget": null,
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
-          }
-        },
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 100000
       }
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "name": "tfbaseline-slo-invalid",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "sloThreshold": {
-              "burnRate": {
-                "rules": [
-                  {
-                    "condition": {
-                      "threshold": 1
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  }
-                ],
-                "single": {
-                  "timeDuration": {
-                    "duration": "100000",
-                    "unit": "DURATION_UNIT_HOURS"
-                  }
-                }
-              },
-              "sloDefinition": {
-                "sloId": "00000000-0000-4000-8000-0000000000aa"
-              }
-            },
-            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
-          }
-        },
-        "status": 400
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/duration": "100000"
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 48,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 48\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"single\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "empty slo_id",
@@ -299,572 +185,288 @@
         }
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-slo-invalid",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": {
-          "burn_rate": null,
-          "error_budget": {
+    "planDelta": {
+      "set": {
+        "/type_definition/slo_threshold/burn_rate": null,
+        "/type_definition/slo_threshold/error_budget": {
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ]
+        },
+        "/type_definition/slo_threshold/slo_definition/slo_id": ""
+      }
+    },
+    "requests": [
+      {
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/sloThreshold/errorBudget": {
             "rules": [
               {
                 "condition": {
                   "threshold": 1
                 },
                 "override": {
-                  "priority": "P5"
+                  "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
                 }
               }
             ]
           },
-          "slo_definition": {
-            "slo_id": ""
-          }
+          "/body/alertDefProperties/sloThreshold/sloDefinition/sloId": ""
         },
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "name": "tfbaseline-slo-invalid",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "sloThreshold": {
-              "errorBudget": {
-                "rules": [
-                  {
-                    "condition": {
-                      "threshold": 1
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  }
-                ]
-              },
-              "sloDefinition": {
-                "sloId": ""
-              }
-            },
-            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
-          }
-        },
-        "status": 400
+        "remove": [
+          "/body/alertDefProperties/sloThreshold/burnRate"
+        ]
       }
     ],
     "applyDiagnostics": [
       "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 1,\\n    \\\"type\\\": \\\"string\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"sloId cannot be empty\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"sloDefinition\\\",\\n      \\\"sloId\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "six rules",
-    "config": {
-      "name": "tfbaseline-slo-invalid",
-      "type_definition": {
-        "slo_threshold": {
-          "error_budget": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": 1
-                },
-                "override": {}
-              },
-              {
-                "condition": {
-                  "threshold": 2
-                },
-                "override": {}
-              },
-              {
-                "condition": {
-                  "threshold": 3
-                },
-                "override": {}
-              },
-              {
-                "condition": {
-                  "threshold": 4
-                },
-                "override": {}
-              },
-              {
-                "condition": {
-                  "threshold": 5
-                },
-                "override": {}
-              },
-              {
-                "condition": {
-                  "threshold": 6
-                },
-                "override": {}
-              }
-            ]
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules": [
+          {
+            "condition": {
+              "threshold": 1
+            },
+            "override": {}
           },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          {
+            "condition": {
+              "threshold": 2
+            },
+            "override": {}
+          },
+          {
+            "condition": {
+              "threshold": 3
+            },
+            "override": {}
+          },
+          {
+            "condition": {
+              "threshold": 4
+            },
+            "override": {}
+          },
+          {
+            "condition": {
+              "threshold": 5
+            },
+            "override": {}
+          },
+          {
+            "condition": {
+              "threshold": 6
+            },
+            "override": {}
           }
-        }
+        ],
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-0000000000aa"
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-slo-invalid",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": {
-          "burn_rate": null,
-          "error_budget": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": 1
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              },
-              {
-                "condition": {
-                  "threshold": 2
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              },
-              {
-                "condition": {
-                  "threshold": 3
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              },
-              {
-                "condition": {
-                  "threshold": 4
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              },
-              {
-                "condition": {
-                  "threshold": 5
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              },
-              {
-                "condition": {
-                  "threshold": 6
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              }
-            ]
+    "planDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules": [
+          {
+            "condition": {
+              "threshold": 1
+            },
+            "override": {
+              "priority": "P5"
+            }
           },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          {
+            "condition": {
+              "threshold": 2
+            },
+            "override": {
+              "priority": "P5"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 3
+            },
+            "override": {
+              "priority": "P5"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 4
+            },
+            "override": {
+              "priority": "P5"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 5
+            },
+            "override": {
+              "priority": "P5"
+            }
+          },
+          {
+            "condition": {
+              "threshold": 6
+            },
+            "override": {
+              "priority": "P5"
+            }
           }
-        },
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        ],
+        "/type_definition/slo_threshold/slo_definition/slo_id": "00000000-0000-4000-8000-0000000000aa"
       }
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "name": "tfbaseline-slo-invalid",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "sloThreshold": {
-              "errorBudget": {
-                "rules": [
-                  {
-                    "condition": {
-                      "threshold": 1
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  },
-                  {
-                    "condition": {
-                      "threshold": 2
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  },
-                  {
-                    "condition": {
-                      "threshold": 3
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  },
-                  {
-                    "condition": {
-                      "threshold": 4
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  },
-                  {
-                    "condition": {
-                      "threshold": 5
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  },
-                  {
-                    "condition": {
-                      "threshold": 6
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  }
-                ]
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/sloThreshold/errorBudget/rules": [
+            {
+              "condition": {
+                "threshold": 1
               },
-              "sloDefinition": {
-                "sloId": "00000000-0000-4000-8000-0000000000aa"
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
               }
             },
-            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
-          }
-        },
-        "status": 400
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 6
+              },
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "/body/alertDefProperties/sloThreshold/sloDefinition/sloId": "00000000-0000-4000-8000-0000000000aa"
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Different condition rules cannot have the same priority\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "error_budget threshold above 100",
-    "config": {
-      "name": "tfbaseline-slo-invalid",
-      "type_definition": {
-        "slo_threshold": {
-          "error_budget": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": 1000
-                },
-                "override": {}
-              }
-            ]
-          },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules": [
+          {
+            "condition": {
+              "threshold": 1000
+            },
+            "override": {}
           }
-        }
+        ]
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-slo-invalid",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": {
-          "burn_rate": null,
-          "error_budget": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": 1000
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              }
-            ]
-          },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+    "planDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules": [
+          {
+            "condition": {
+              "threshold": 1000
+            },
+            "override": {
+              "priority": "P5"
+            }
           }
-        },
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        ]
       }
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "name": "tfbaseline-slo-invalid",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "sloThreshold": {
-              "errorBudget": {
-                "rules": [
-                  {
-                    "condition": {
-                      "threshold": 1000
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  }
-                ]
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/sloThreshold/errorBudget/rules": [
+            {
+              "condition": {
+                "threshold": 1000
               },
-              "sloDefinition": {
-                "sloId": "00000000-0000-4000-8000-0000000000aa"
+              "override": {
+                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
               }
-            },
-            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
-          }
-        },
-        "status": 400
+            }
+          ]
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Error budget threshold must be between 0 and 100\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "negative error_budget threshold",
-    "config": {
-      "name": "tfbaseline-slo-invalid",
-      "type_definition": {
-        "slo_threshold": {
-          "error_budget": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": -1
-                },
-                "override": {}
-              }
-            ]
-          },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules/0/condition/threshold": -1
       }
     },
-    "plan": {
-      "access_policy": "(unknown)",
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": "(unknown)",
-      "description": null,
-      "enabled": true,
-      "group_by": "(unknown)",
-      "id": "(unknown)",
-      "incidents_settings": "(unknown)",
-      "labels": null,
-      "name": "tfbaseline-slo-invalid",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "(unknown)",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": {
-          "burn_rate": null,
-          "error_budget": {
-            "rules": [
-              {
-                "condition": {
-                  "threshold": -1
-                },
-                "override": {
-                  "priority": "P5"
-                }
-              }
-            ]
-          },
-          "slo_definition": {
-            "slo_id": "00000000-0000-4000-8000-0000000000aa"
-          }
-        },
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/type_definition/slo_threshold/error_budget/rules/0/condition/threshold": -1
       }
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "name": "tfbaseline-slo-invalid",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "sloThreshold": {
-              "errorBudget": {
-                "rules": [
-                  {
-                    "condition": {
-                      "threshold": -1
-                    },
-                    "override": {
-                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-                    }
-                  }
-                ]
-              },
-              "sloDefinition": {
-                "sloId": "00000000-0000-4000-8000-0000000000aa"
-              }
-            },
-            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
-          }
-        },
-        "status": 400
+        "deltaOf": "POST",
+        "set": {
+          "/body/alertDefProperties/sloThreshold/errorBudget/rules/0/condition/threshold": -1
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
     ],
-    "state": null
+    "stateDelta": {}
   }
 ]

@@ -14,6 +14,24 @@ The data source is not part of this baseline: it moves later.
 `make test` (the unit tests job) leaves these tests out and the `alert-baseline` job runs them with
 `make test-alert-baseline` (about 80 seconds): the pattern is `ALERT_BASELINE_TESTS` in the Makefile.
 
+## How a golden is written
+
+A scenario golden saves the first `config`, `plan`, and `state` of a scenario in full. Each later step
+saves only what changed against the same field of the step before, as `configDelta`, `planDelta`, or
+`stateDelta` (or the whole value, when that is shorter):
+
+```json
+"stateDelta": {"set": {"/case_settings/auto_resolve_mode": "enabled"}, "remove": ["/access_policy"]}
+```
+
+A path is a JSON Pointer. The requests of a step are compared one by one with the latest earlier request
+that has the same method, and a request that is shorter as a change reads
+`{"deltaOf": "PUT", "set": {"/body/alertDefProperties/name": "new name"}}`. The encoding is lossless:
+the values on a changed path are saved in full, and `TestAlertBaselineGoldenDeltaRoundTrip` rebuilds
+every step from its deltas and encodes it again. In a golden diff an unchanged value shows once per
+scenario, and a change shows once. The format is in `alert_baseline_delta_test.go`. The recordings in
+`fidelity/` are not deltas: the fake replays them whole.
+
 ## What is covered
 
 229 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).

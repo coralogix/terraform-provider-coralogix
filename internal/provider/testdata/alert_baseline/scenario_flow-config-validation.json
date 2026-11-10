@@ -14,22 +14,19 @@
   },
   {
     "step": "a stage without timeframe_type",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": []
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages": [
+          {
+            "flow_stages_groups": []
+          }
+        ]
       }
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"timeframe_type\")] | Must set a configuration value for the type_definition.flow.stages[0].timeframe_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a stage without flow_stages_groups",
@@ -48,7 +45,7 @@
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\")] | Must set a configuration value for the type_definition.flow.stages[0].flow_stages_groups attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "timeframe_type outside the list",
@@ -69,259 +66,135 @@
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"timeframe_type\")] | Attribute type_definition.flow.stages[0].timeframe_type value must be one of: [\"Unspecified\" \"Up To\"], got: \"Within\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "lowercase timeframe_type",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [],
-              "timeframe_ms": 10,
-              "timeframe_type": "up to"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/timeframe_type": "up to"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"timeframe_type\")] | Attribute type_definition.flow.stages[0].timeframe_type value must be one of: [\"Unspecified\" \"Up To\"], got: \"up to\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "the enum name as timeframe_type",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [],
-              "timeframe_ms": 10,
-              "timeframe_type": "TIMEFRAME_TYPE_UP_TO"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/timeframe_type": "TIMEFRAME_TYPE_UP_TO"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"timeframe_type\")] | Attribute type_definition.flow.stages[0].timeframe_type value must be one of: [\"Unspecified\" \"Up To\"], got: \"TIMEFRAME_TYPE_UP_TO\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a group without alert_defs",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups": [
+          {
+            "alerts_op": "OR",
+            "next_op": "AND"
+          }
+        ],
+        "/type_definition/flow/stages/0/timeframe_type": "Up To"
       }
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\")] | Must set a configuration value for the type_definition.flow.stages[0].flow_stages_groups[0].alert_defs attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a group without alerts_op",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "a"
-                    }
-                  ],
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs": [
+          {
+            "id": "a"
+          }
+        ]
+      },
+      "remove": [
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op"
+      ]
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alerts_op\")] | Must set a configuration value for the type_definition.flow.stages[0].flow_stages_groups[0].alerts_op attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a group without next_op",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "a"
-                    }
-                  ],
-                  "alerts_op": "OR"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "OR"
+      },
+      "remove": [
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op"
+      ]
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"next_op\")] | Must set a configuration value for the type_definition.flow.stages[0].flow_stages_groups[0].next_op attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "alerts_op outside the list",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "a"
-                    }
-                  ],
-                  "alerts_op": "XOR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "XOR",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op": "AND"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alerts_op\")] | Attribute type_definition.flow.stages[0].flow_stages_groups[0].alerts_op value must be one of: [\"AND\" \"OR\"], got: \"XOR\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "next_op outside the list",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "a"
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "XOR"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "OR",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op": "XOR"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"next_op\")] | Attribute type_definition.flow.stages[0].flow_stages_groups[0].next_op value must be one of: [\"AND\" \"OR\"], got: \"XOR\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "lowercase alerts_op",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "a"
-                    }
-                  ],
-                  "alerts_op": "or",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "or",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op": "AND"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alerts_op\")] | Attribute type_definition.flow.stages[0].flow_stages_groups[0].alerts_op value must be one of: [\"AND\" \"OR\"], got: \"or\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "lowercase next_op",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "a"
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "and"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "OR",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op": "and"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"next_op\")] | Attribute type_definition.flow.stages[0].flow_stages_groups[0].next_op value must be one of: [\"AND\" \"OR\"], got: \"and\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "an alert_def without id",
@@ -352,147 +225,78 @@
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\").ElementKeyValue(tftypes.Object[\"id\":tftypes.String, \"not\":tftypes.Bool]<\"id\":tftypes.String<null>, \"not\":tftypes.Bool<\"true\">>).AttributeName(\"id\")] | Must set a configuration value for the type_definition.flow.stages[0].flow_stages_groups[0].alert_defs[Value({\"id\":<null>,\"not\":true})].id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a null id",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": null
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/id": null
+      },
+      "remove": [
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/not"
+      ]
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\").ElementKeyValue(tftypes.Object[\"id\":tftypes.String, \"not\":tftypes.Bool]<\"id\":tftypes.String<null>, \"not\":tftypes.Bool<null>>).AttributeName(\"id\")] | Must set a configuration value for the type_definition.flow.stages[0].flow_stages_groups[0].alert_defs[Value({\"id\":<null>,\"not\":<null>})].id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a stage with a null timeframe_ms is fine",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [],
-              "timeframe_ms": null,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/flow/stages/0/flow_stages_groups": [],
+        "/type_definition/flow/stages/0/timeframe_ms": null
       }
     },
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "group_by is allowed",
-    "config": {
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "11111111-1111-4111-8111-111111111111"
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/group_by": [
+          "coralogix.metadata.applicationName"
+        ],
+        "/type_definition/flow/stages/0/flow_stages_groups": [
+          {
+            "alert_defs": [
+              {
+                "id": "11111111-1111-4111-8111-111111111111"
+              }
+            ],
+            "alerts_op": "OR",
+            "next_op": "AND"
+          }
+        ],
+        "/type_definition/flow/stages/0/timeframe_ms": 10
       }
     },
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "a null group_by is fine",
-    "config": {
-      "group_by": null,
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "11111111-1111-4111-8111-111111111111"
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/group_by": null
       }
     },
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "two arms: flow and logs_immediate",
-    "config": {
-      "name": "tfbaseline-flow-validation",
-      "type_definition": {
-        "flow": {
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "11111111-1111-4111-8111-111111111111"
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 10,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_immediate": {}
-      }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_immediate": {}
+      },
+      "remove": [
+        "/group_by"
+      ]
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")] | 2 attributes specified when one (and only one) of [type_definition.logs_threshold,type_definition.logs_anomaly,type_definition.logs_ratio_threshold,type_definition.logs_unique_count,type_definition.logs_new_value,type_definition.logs_time_relative_threshold,type_definition.metric_threshold,type_definition.metric_anomaly,type_definition.tracing_immediate,type_definition.tracing_threshold,type_definition.flow,type_definition.slo_threshold,type_definition.analytics_immediate,type_definition.analytics_threshold] is required"
     ],
-    "state": null
+    "stateDelta": {}
   }
 ]

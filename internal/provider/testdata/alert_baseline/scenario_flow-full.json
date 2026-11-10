@@ -150,8 +150,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "full",
@@ -221,6 +219,8 @@
             "type": "ALERT_DEF_TYPE_FLOW"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -329,100 +329,7 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
@@ -433,9 +340,7 @@
     "step": "import by id (refresh)",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
     "state": {
@@ -568,252 +473,22 @@
   },
   {
     "step": "plan the same config on the imported state",
-    "config": {
-      "description": "full",
-      "enabled": false,
-      "name": "tfbaseline-flow-full",
-      "priority": "P2",
-      "type_definition": {
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001"
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
+    "configDelta": {},
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/group_by": [],
+        "/id": "00000000-0000-4000-8000-000000000007",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
+          }
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    }
+    "stateDelta": {}
   },
   {
     "step": "update: change every value",
@@ -875,104 +550,29 @@
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "changed",
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": false,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": false
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 30000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 90000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/description": "changed",
+        "/enabled": true,
+        "/priority": "P4",
+        "/type_definition/flow/enforce_suppression": false,
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/id": "00000000-0000-4000-8000-000000000005",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/not": false,
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/1/not": true,
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "AND",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op": "OR",
+        "/type_definition/flow/stages/0/flow_stages_groups/1/alert_defs/0/id": "00000000-0000-4000-8000-000000000001",
+        "/type_definition/flow/stages/0/flow_stages_groups/1/alert_defs/0/not": false,
+        "/type_definition/flow/stages/0/flow_stages_groups/1/alerts_op": "OR",
+        "/type_definition/flow/stages/0/timeframe_ms": 30000,
+        "/type_definition/flow/stages/1/flow_stages_groups/0/alert_defs/0/id": "00000000-0000-4000-8000-000000000003",
+        "/type_definition/flow/stages/1/flow_stages_groups/0/alert_defs/0/not": true,
+        "/type_definition/flow/stages/1/flow_stages_groups/0/alerts_op": "OR",
+        "/type_definition/flow/stages/1/timeframe_ms": 90000
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "changed",
@@ -1047,101 +647,30 @@
           },
           "id": "00000000-0000-4000-8000-000000000007"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "changed",
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": false,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": false
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 30000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 90000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/description": "changed",
+        "/enabled": true,
+        "/priority": "P4",
+        "/type_definition/flow/enforce_suppression": false,
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/id": "00000000-0000-4000-8000-000000000005",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/not": false,
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/1/not": true,
+        "/type_definition/flow/stages/0/flow_stages_groups/0/alerts_op": "AND",
+        "/type_definition/flow/stages/0/flow_stages_groups/0/next_op": "OR",
+        "/type_definition/flow/stages/0/flow_stages_groups/1/alert_defs/0/id": "00000000-0000-4000-8000-000000000001",
+        "/type_definition/flow/stages/0/flow_stages_groups/1/alert_defs/0/not": false,
+        "/type_definition/flow/stages/0/flow_stages_groups/1/alerts_op": "OR",
+        "/type_definition/flow/stages/0/timeframe_ms": 30000,
+        "/type_definition/flow/stages/1/flow_stages_groups/0/alert_defs/0/id": "00000000-0000-4000-8000-000000000003",
+        "/type_definition/flow/stages/1/flow_stages_groups/0/alert_defs/0/not": true,
+        "/type_definition/flow/stages/1/flow_stages_groups/0/alerts_op": "OR",
+        "/type_definition/flow/stages/1/timeframe_ms": 90000
       }
     },
     "replanEmpty": true
@@ -1150,105 +679,10 @@
     "step": "refresh after the change",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "changed",
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": false,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": false
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 30000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 90000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
@@ -1276,180 +710,80 @@
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": false,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 0,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/description": null,
+        "/type_definition/flow/stages": [
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "OR",
+                "next_op": "AND"
+              }
+            ],
+            "timeframe_ms": 0,
+            "timeframe_type": "Up To"
+          }
+        ]
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "flow": {
-              "enforceSuppression": false,
-              "stages": [
-                {
-                  "flowStagesGroups": {
-                    "groups": [
-                      {
-                        "alertDefs": [
-                          {
-                            "id": "00000000-0000-4000-8000-000000000001",
-                            "not": false
-                          }
-                        ],
-                        "alertsOp": "ALERTS_OP_OR",
-                        "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
-                      }
-                    ]
-                  },
-                  "timeframeMs": "0",
-                  "timeframeType": "TIMEFRAME_TYPE_UP_TO"
-                }
-              ]
-            },
-            "groupByKeys": [],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "name": "tfbaseline-flow-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P4",
-            "type": "ALERT_DEF_TYPE_FLOW"
-          },
-          "id": "00000000-0000-4000-8000-000000000007"
-        },
-        "status": 200
-      }
-    ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": false,
-          "stages": [
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/flow/stages": [
             {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 0,
-              "timeframe_type": "Up To"
+              "flowStagesGroups": {
+                "groups": [
+                  {
+                    "alertDefs": [
+                      {
+                        "id": "00000000-0000-4000-8000-000000000001",
+                        "not": false
+                      }
+                    ],
+                    "alertsOp": "ALERTS_OP_OR",
+                    "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
+                  }
+                ]
+              },
+              "timeframeMs": "0",
+              "timeframeType": "TIMEFRAME_TYPE_UP_TO"
             }
           ]
         },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+        "remove": [
+          "/body/alertDefProperties/description"
+        ]
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/description": null,
+        "/type_definition/flow/stages": [
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "OR",
+                "next_op": "AND"
+              }
+            ],
+            "timeframe_ms": 0,
+            "timeframe_type": "Up To"
+          }
+        ]
       }
     },
     "replanEmpty": true
@@ -1458,404 +792,242 @@
     "step": "refresh after the removal",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": false,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 0,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "update: set them again",
-    "config": {
-      "description": "full",
-      "enabled": false,
-      "name": "tfbaseline-flow-full",
-      "priority": "P2",
-      "type_definition": {
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001"
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/priority": "P2",
+        "/type_definition/flow/enforce_suppression": true,
+        "/type_definition/flow/stages": [
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": true
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-000000000003",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "OR",
+                "next_op": "AND"
+              },
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000005",
+                    "not": true
+                  }
+                ],
+                "alerts_op": "AND",
+                "next_op": "OR"
+              }
+            ],
+            "timeframe_ms": 60000,
+            "timeframe_type": "Up To"
+          },
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001"
+                  }
+                ],
+                "alerts_op": "AND",
+                "next_op": "AND"
+              }
+            ],
+            "timeframe_ms": 120000,
+            "timeframe_type": "Up To"
+          }
+        ]
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "planDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/priority": "P2",
+        "/type_definition/flow/enforce_suppression": true,
+        "/type_definition/flow/stages": [
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": true
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-000000000003",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "OR",
+                "next_op": "AND"
+              },
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000005",
+                    "not": true
+                  }
+                ],
+                "alerts_op": "AND",
+                "next_op": "OR"
+              }
+            ],
+            "timeframe_ms": 60000,
+            "timeframe_type": "Up To"
+          },
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "AND",
+                "next_op": "AND"
+              }
+            ],
+            "timeframe_ms": 120000,
+            "timeframe_type": "Up To"
+          }
+        ]
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "description": "full",
-            "enabled": false,
-            "flow": {
-              "enforceSuppression": true,
-              "stages": [
-                {
-                  "flowStagesGroups": {
-                    "groups": [
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/description": "full",
+          "/body/alertDefProperties/enabled": false,
+          "/body/alertDefProperties/flow/enforceSuppression": true,
+          "/body/alertDefProperties/flow/stages": [
+            {
+              "flowStagesGroups": {
+                "groups": [
+                  {
+                    "alertDefs": [
                       {
-                        "alertDefs": [
-                          {
-                            "id": "00000000-0000-4000-8000-000000000001",
-                            "not": true
-                          },
-                          {
-                            "id": "00000000-0000-4000-8000-000000000003",
-                            "not": false
-                          }
-                        ],
-                        "alertsOp": "ALERTS_OP_OR",
-                        "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
+                        "id": "00000000-0000-4000-8000-000000000001",
+                        "not": true
                       },
                       {
-                        "alertDefs": [
-                          {
-                            "id": "00000000-0000-4000-8000-000000000005",
-                            "not": true
-                          }
-                        ],
-                        "alertsOp": "ALERTS_OP_AND_OR_UNSPECIFIED",
-                        "nextOp": "NEXT_OP_OR"
+                        "id": "00000000-0000-4000-8000-000000000003",
+                        "not": false
                       }
-                    ]
+                    ],
+                    "alertsOp": "ALERTS_OP_OR",
+                    "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
                   },
-                  "timeframeMs": "60000",
-                  "timeframeType": "TIMEFRAME_TYPE_UP_TO"
-                },
-                {
-                  "flowStagesGroups": {
-                    "groups": [
+                  {
+                    "alertDefs": [
                       {
-                        "alertDefs": [
-                          {
-                            "id": "00000000-0000-4000-8000-000000000001",
-                            "not": false
-                          }
-                        ],
-                        "alertsOp": "ALERTS_OP_AND_OR_UNSPECIFIED",
-                        "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
+                        "id": "00000000-0000-4000-8000-000000000005",
+                        "not": true
                       }
-                    ]
-                  },
-                  "timeframeMs": "120000",
-                  "timeframeType": "TIMEFRAME_TYPE_UP_TO"
-                }
-              ]
+                    ],
+                    "alertsOp": "ALERTS_OP_AND_OR_UNSPECIFIED",
+                    "nextOp": "NEXT_OP_OR"
+                  }
+                ]
+              },
+              "timeframeMs": "60000",
+              "timeframeType": "TIMEFRAME_TYPE_UP_TO"
             },
-            "groupByKeys": [],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "name": "tfbaseline-flow-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P2",
-            "type": "ALERT_DEF_TYPE_FLOW"
-          },
-          "id": "00000000-0000-4000-8000-000000000007"
-        },
-        "status": 200
+            {
+              "flowStagesGroups": {
+                "groups": [
+                  {
+                    "alertDefs": [
+                      {
+                        "id": "00000000-0000-4000-8000-000000000001",
+                        "not": false
+                      }
+                    ],
+                    "alertsOp": "ALERTS_OP_AND_OR_UNSPECIFIED",
+                    "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
+                  }
+                ]
+              },
+              "timeframeMs": "120000",
+              "timeframeType": "TIMEFRAME_TYPE_UP_TO"
+            }
+          ],
+          "/body/alertDefProperties/priority": "ALERT_DEF_PRIORITY_P2"
+        }
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000007",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-flow-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": {
-          "enforce_suppression": true,
-          "stages": [
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": true
-                    },
-                    {
-                      "id": "00000000-0000-4000-8000-000000000003",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "OR",
-                  "next_op": "AND"
-                },
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000005",
-                      "not": true
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "OR"
-                }
-              ],
-              "timeframe_ms": 60000,
-              "timeframe_type": "Up To"
-            },
-            {
-              "flow_stages_groups": [
-                {
-                  "alert_defs": [
-                    {
-                      "id": "00000000-0000-4000-8000-000000000001",
-                      "not": false
-                    }
-                  ],
-                  "alerts_op": "AND",
-                  "next_op": "AND"
-                }
-              ],
-              "timeframe_ms": 120000,
-              "timeframe_type": "Up To"
-            }
-          ]
-        },
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": null
+    "stateDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/priority": "P2",
+        "/type_definition/flow/enforce_suppression": true,
+        "/type_definition/flow/stages": [
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": true
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-000000000003",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "OR",
+                "next_op": "AND"
+              },
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000005",
+                    "not": true
+                  }
+                ],
+                "alerts_op": "AND",
+                "next_op": "OR"
+              }
+            ],
+            "timeframe_ms": 60000,
+            "timeframe_type": "Up To"
+          },
+          {
+            "flow_stages_groups": [
+              {
+                "alert_defs": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000001",
+                    "not": false
+                  }
+                ],
+                "alerts_op": "AND",
+                "next_op": "AND"
+              }
+            ],
+            "timeframe_ms": 120000,
+            "timeframe_type": "Up To"
+          }
+        ]
       }
     },
     "replanEmpty": true

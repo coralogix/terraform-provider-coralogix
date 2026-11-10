@@ -229,8 +229,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "full",
@@ -340,6 +338,8 @@
             "type": "ALERT_DEF_TYPE_TRACING_THRESHOLD"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -488,140 +488,7 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.field"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 3,
-                "time_window": "15_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 100,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "app-a",
-                    "app-b"
-                  ]
-                },
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "app-"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "op-a",
-                    "op-b"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "200"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "STARTS_WITH",
-                    "values": [
-                      "40",
-                      "50"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS_NOT",
-                    "values": [
-                      "GET"
-                    ]
-                  },
-                  "key": "http.method"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "sub-a"
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
@@ -632,9 +499,7 @@
     "step": "import by id (refresh)",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
     "state": {
@@ -808,371 +673,21 @@
   },
   {
     "step": "plan the same config on the imported state",
-    "config": {
-      "description": "full",
-      "enabled": false,
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "name": "tfbaseline-tracing-threshold-full",
-      "priority": "P2",
-      "type_definition": {
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.field"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "span_amount": 3,
-                "time_window": "15_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 100,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "app-a",
-                    "app-b"
-                  ]
-                },
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "app-"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "op-a",
-                    "op-b"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "values": [
-                      "200"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "STARTS_WITH",
-                    "values": [
-                      "40",
-                      "50"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS_NOT",
-                    "values": [
-                      "GET"
-                    ]
-                  },
-                  "key": "http.method"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "values": [
-                    "sub-a"
-                  ]
-                }
-              ]
-            }
+    "configDelta": {},
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
           }
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.field"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 3,
-                "time_window": "15_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 100,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "app-a",
-                    "app-b"
-                  ]
-                },
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "app-"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "op-a",
-                    "op-b"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "200"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "STARTS_WITH",
-                    "values": [
-                      "40",
-                      "50"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS_NOT",
-                    "values": [
-                      "GET"
-                    ]
-                  },
-                  "key": "http.method"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "sub-a"
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      }
-    },
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.field"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 3,
-                "time_window": "15_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 100,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "app-a",
-                    "app-b"
-                  ]
-                },
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "app-"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "op-a",
-                    "op-b"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "200"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "STARTS_WITH",
-                    "values": [
-                      "40",
-                      "50"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS_NOT",
-                    "values": [
-                      "GET"
-                    ]
-                  },
-                  "key": "http.method"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "sub-a"
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      }
-    }
+    "stateDelta": {}
   },
   {
     "step": "update: change every value",
@@ -1266,135 +781,77 @@
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "changed",
-      "enabled": true,
-      "group_by": [
-        "coralogix.metadata.subsystemName",
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.changed",
-            "obj.other"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 9,
-                "time_window": "2_HOURS"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 250,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS_NOT",
-                  "values": [
-                    "app-c"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "op-c"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "svc-a"
-                  ]
-                },
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "-svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "ENDS_WITH",
-                    "values": [
-                      "00"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "postgres"
-                    ]
-                  },
-                  "key": "db.system"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "sub-b",
-                    "sub-c"
-                  ]
-                }
-              ]
-            }
+    "planDelta": {
+      "set": {
+        "/description": "changed",
+        "/enabled": true,
+        "/group_by": [
+          "coralogix.metadata.subsystemName",
+          "coralogix.metadata.applicationName"
+        ],
+        "/priority": "P4",
+        "/type_definition/tracing_threshold/notification_payload_filter": [
+          "obj.changed",
+          "obj.other"
+        ],
+        "/type_definition/tracing_threshold/rules/0/condition/span_amount": 9,
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "2_HOURS",
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 250,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": [
+          {
+            "operation": "IS_NOT",
+            "values": [
+              "app-c"
+            ]
           }
-        }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name/0/operation": "INCLUDES",
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name/0/values": [
+          "op-c"
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": [
+          {
+            "operation": "IS",
+            "values": [
+              "svc-a"
+            ]
+          },
+          {
+            "operation": "ENDS_WITH",
+            "values": [
+              "-svc"
+            ]
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": [
+          {
+            "filter_type": {
+              "operation": "ENDS_WITH",
+              "values": [
+                "00"
+              ]
+            },
+            "key": "status"
+          },
+          {
+            "filter_type": {
+              "operation": "IS",
+              "values": [
+                "postgres"
+              ]
+            },
+            "key": "db.system"
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name/0/operation": "STARTS_WITH",
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name/0/values": [
+          "sub-b",
+          "sub-c"
+        ]
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "changed",
@@ -1500,132 +957,78 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "changed",
-      "enabled": true,
-      "group_by": [
-        "coralogix.metadata.subsystemName",
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.changed",
-            "obj.other"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 9,
-                "time_window": "2_HOURS"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 250,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS_NOT",
-                  "values": [
-                    "app-c"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "op-c"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "svc-a"
-                  ]
-                },
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "-svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "ENDS_WITH",
-                    "values": [
-                      "00"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "postgres"
-                    ]
-                  },
-                  "key": "db.system"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "sub-b",
-                    "sub-c"
-                  ]
-                }
-              ]
-            }
+    "stateDelta": {
+      "set": {
+        "/description": "changed",
+        "/enabled": true,
+        "/group_by": [
+          "coralogix.metadata.subsystemName",
+          "coralogix.metadata.applicationName"
+        ],
+        "/priority": "P4",
+        "/type_definition/tracing_threshold/notification_payload_filter": [
+          "obj.changed",
+          "obj.other"
+        ],
+        "/type_definition/tracing_threshold/rules/0/condition/span_amount": 9,
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "2_HOURS",
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 250,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": [
+          {
+            "operation": "IS_NOT",
+            "values": [
+              "app-c"
+            ]
           }
-        }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name/0/operation": "INCLUDES",
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name/0/values": [
+          "op-c"
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": [
+          {
+            "operation": "IS",
+            "values": [
+              "svc-a"
+            ]
+          },
+          {
+            "operation": "ENDS_WITH",
+            "values": [
+              "-svc"
+            ]
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": [
+          {
+            "filter_type": {
+              "operation": "ENDS_WITH",
+              "values": [
+                "00"
+              ]
+            },
+            "key": "status"
+          },
+          {
+            "filter_type": {
+              "operation": "IS",
+              "values": [
+                "postgres"
+              ]
+            },
+            "key": "db.system"
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name/0/operation": "STARTS_WITH",
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name/0/values": [
+          "sub-b",
+          "sub-c"
+        ]
       }
     },
     "replanEmpty": true
@@ -1634,136 +1037,10 @@
     "step": "refresh after the change",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "changed",
-      "enabled": true,
-      "group_by": [
-        "coralogix.metadata.subsystemName",
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.changed",
-            "obj.other"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 9,
-                "time_window": "2_HOURS"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 250,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS_NOT",
-                  "values": [
-                    "app-c"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "op-c"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "svc-a"
-                  ]
-                },
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "-svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "ENDS_WITH",
-                    "values": [
-                      "00"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "postgres"
-                    ]
-                  },
-                  "key": "db.system"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "sub-b",
-                    "sub-c"
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
@@ -1787,188 +1064,42 @@
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [
-        "coralogix.metadata.subsystemName",
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 9,
-                "time_window": "2_HOURS"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 250,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "planDelta": {
+      "set": {
+        "/description": null,
+        "/type_definition/tracing_threshold/notification_payload_filter": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name": null
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [
-              "coralogix.metadata.subsystemName",
-              "coralogix.metadata.applicationName"
-            ],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "name": "tfbaseline-tracing-threshold-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P4",
-            "tracingThreshold": {
-              "notificationPayloadFilter": [],
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
-                    "spanAmount": 9,
-                    "timeWindow": {
-                      "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_HOURS_2"
-                    }
-                  }
-                }
-              ],
-              "tracingFilter": {
-                "simpleFilter": {
-                  "latencyThresholdMs": "250",
-                  "tracingLabelFilters": {}
-                }
-              }
-            },
-            "type": "ALERT_DEF_TYPE_TRACING_THRESHOLD"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/tracingThreshold/notificationPayloadFilter": []
         },
-        "status": 200
+        "remove": [
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/applicationName",
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/operationName",
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/serviceName",
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/spanFields",
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/subsystemName",
+          "/body/alertDefProperties/description"
+        ]
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [
-        "coralogix.metadata.subsystemName",
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 9,
-                "time_window": "2_HOURS"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 250,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "stateDelta": {
+      "set": {
+        "/description": null,
+        "/type_definition/tracing_threshold/notification_payload_filter": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": null,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name": null
       }
     },
     "replanEmpty": true
@@ -1977,79 +1108,10 @@
     "step": "refresh after the removal",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [
-        "coralogix.metadata.subsystemName",
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P4",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 9,
-                "time_window": "2_HOURS"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 250,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
@@ -2151,144 +1213,94 @@
         }
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.field"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 3,
-                "time_window": "15_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 100,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "app-a",
-                    "app-b"
-                  ]
-                },
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "app-"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "op-a",
-                    "op-b"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "200"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "STARTS_WITH",
-                    "values": [
-                      "40",
-                      "50"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS_NOT",
-                    "values": [
-                      "GET"
-                    ]
-                  },
-                  "key": "http.method"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "sub-a"
-                  ]
-                }
-              ]
-            }
+    "planDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/group_by": [
+          "coralogix.metadata.applicationName"
+        ],
+        "/priority": "P2",
+        "/type_definition/tracing_threshold/notification_payload_filter": [
+          "obj.field"
+        ],
+        "/type_definition/tracing_threshold/rules/0/condition/span_amount": 3,
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "15_MINUTES",
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 100,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": [
+          {
+            "operation": "IS",
+            "values": [
+              "app-a",
+              "app-b"
+            ]
+          },
+          {
+            "operation": "STARTS_WITH",
+            "values": [
+              "app-"
+            ]
           }
-        }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name": [
+          {
+            "operation": "ENDS_WITH",
+            "values": [
+              "op-a",
+              "op-b"
+            ]
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": [
+          {
+            "operation": "INCLUDES",
+            "values": [
+              "svc"
+            ]
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": [
+          {
+            "filter_type": {
+              "operation": "IS",
+              "values": [
+                "200"
+              ]
+            },
+            "key": "status"
+          },
+          {
+            "filter_type": {
+              "operation": "STARTS_WITH",
+              "values": [
+                "40",
+                "50"
+              ]
+            },
+            "key": "status"
+          },
+          {
+            "filter_type": {
+              "operation": "IS_NOT",
+              "values": [
+                "GET"
+              ]
+            },
+            "key": "http.method"
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name": [
+          {
+            "operation": "IS",
+            "values": [
+              "sub-a"
+            ]
+          }
+        ]
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "description": "full",
@@ -2403,141 +1415,95 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": "full",
-      "enabled": false,
-      "group_by": [
-        "coralogix.metadata.applicationName"
-      ],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-full",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P2",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": [
-            "obj.field"
-          ],
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 3,
-                "time_window": "15_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 100,
-            "tracing_label_filters": {
-              "application_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "app-a",
-                    "app-b"
-                  ]
-                },
-                {
-                  "operation": "STARTS_WITH",
-                  "values": [
-                    "app-"
-                  ]
-                }
-              ],
-              "operation_name": [
-                {
-                  "operation": "ENDS_WITH",
-                  "values": [
-                    "op-a",
-                    "op-b"
-                  ]
-                }
-              ],
-              "service_name": [
-                {
-                  "operation": "INCLUDES",
-                  "values": [
-                    "svc"
-                  ]
-                }
-              ],
-              "span_fields": [
-                {
-                  "filter_type": {
-                    "operation": "IS",
-                    "values": [
-                      "200"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "STARTS_WITH",
-                    "values": [
-                      "40",
-                      "50"
-                    ]
-                  },
-                  "key": "status"
-                },
-                {
-                  "filter_type": {
-                    "operation": "IS_NOT",
-                    "values": [
-                      "GET"
-                    ]
-                  },
-                  "key": "http.method"
-                }
-              ],
-              "subsystem_name": [
-                {
-                  "operation": "IS",
-                  "values": [
-                    "sub-a"
-                  ]
-                }
-              ]
-            }
+    "stateDelta": {
+      "set": {
+        "/description": "full",
+        "/enabled": false,
+        "/group_by": [
+          "coralogix.metadata.applicationName"
+        ],
+        "/priority": "P2",
+        "/type_definition/tracing_threshold/notification_payload_filter": [
+          "obj.field"
+        ],
+        "/type_definition/tracing_threshold/rules/0/condition/span_amount": 3,
+        "/type_definition/tracing_threshold/rules/0/condition/time_window": "15_MINUTES",
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 100,
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": [
+          {
+            "operation": "IS",
+            "values": [
+              "app-a",
+              "app-b"
+            ]
+          },
+          {
+            "operation": "STARTS_WITH",
+            "values": [
+              "app-"
+            ]
           }
-        }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name": [
+          {
+            "operation": "ENDS_WITH",
+            "values": [
+              "op-a",
+              "op-b"
+            ]
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": [
+          {
+            "operation": "INCLUDES",
+            "values": [
+              "svc"
+            ]
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": [
+          {
+            "filter_type": {
+              "operation": "IS",
+              "values": [
+                "200"
+              ]
+            },
+            "key": "status"
+          },
+          {
+            "filter_type": {
+              "operation": "STARTS_WITH",
+              "values": [
+                "40",
+                "50"
+              ]
+            },
+            "key": "status"
+          },
+          {
+            "filter_type": {
+              "operation": "IS_NOT",
+              "values": [
+                "GET"
+              ]
+            },
+            "key": "http.method"
+          }
+        ],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name": [
+          {
+            "operation": "IS",
+            "values": [
+              "sub-a"
+            ]
+          }
+        ]
       }
     },
     "replanEmpty": true

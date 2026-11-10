@@ -20,69 +20,55 @@
   },
   {
     "step": "rules missing",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {}
-      }
+    "configDelta": {
+      "remove": [
+        "/type_definition/logs_new_value/rules"
+      ]
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.logs_new_value.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "rules empty",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": []
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/rules": []
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\")] | Attribute type_definition.logs_new_value.rules set must contain at least 1 elements, got: 0"
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "rule without condition",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": [
-            {}
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/rules": [
+          {}
+        ]
       }
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<null>>).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.logs_new_value.rules[Value({\"condition\":<null>})].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "condition without keypath_to_track",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": [
-            {
-              "condition": {
-                "time_window": "24_HOURS"
-              }
-            }
-          ]
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/rules/0/condition": {
+          "time_window": "24_HOURS"
         }
       }
     },
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<\"keypath_to_track\":tftypes.String<null>, \"time_window\":tftypes.String<\"24_HOURS\">>>).AttributeName(\"condition\").AttributeName(\"keypath_to_track\")] | Must set a configuration value for the type_definition.logs_new_value.rules[Value({\"condition\":{\"keypath_to_track\":<null>,\"time_window\":\"24_HOURS\"}})].condition.keypath_to_track attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "condition without time_window",
@@ -103,7 +89,7 @@
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<\"keypath_to_track\":tftypes.String<\"a\">, \"time_window\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Must set a configuration value for the type_definition.logs_new_value.rules[Value({\"condition\":{\"keypath_to_track\":\"a\",\"time_window\":<null>}})].condition.time_window attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "null keypath_to_track",
@@ -125,7 +111,7 @@
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<\"keypath_to_track\":tftypes.String<null>, \"time_window\":tftypes.String<\"24_HOURS\">>>).AttributeName(\"condition\").AttributeName(\"keypath_to_track\")] | Must set a configuration value for the type_definition.logs_new_value.rules[Value({\"condition\":{\"keypath_to_track\":<null>,\"time_window\":\"24_HOURS\"}})].condition.keypath_to_track attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "null time_window",
@@ -147,51 +133,31 @@
     "validateDiagnostics": [
       "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<\"keypath_to_track\":tftypes.String<\"a\">, \"time_window\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Must set a configuration value for the type_definition.logs_new_value.rules[Value({\"condition\":{\"keypath_to_track\":\"a\",\"time_window\":<null>}})].condition.time_window attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "time_window of another type",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "a",
-                "time_window": "1_HOUR"
-              }
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/rules/0/condition/time_window": "1_HOUR"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<\"keypath_to_track\":tftypes.String<\"a\">, \"time_window\":tftypes.String<\"1_HOUR\">>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.logs_new_value.rules[Value({\"condition\":{\"keypath_to_track\":\"a\",\"time_window\":\"1_HOUR\"}})].condition.time_window value must be one of: [\"12_HOURS\" \"1_MONTH\" \"1_WEEK\" \"24_HOURS\" \"2_MONTHS\" \"3_MONTHS\" \"48_HOURS\" \"72_HOURS\"], got: \"1_HOUR\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "time_window 6_HOURS",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "a",
-                "time_window": "6_HOURS"
-              }
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/rules/0/condition/time_window": "6_HOURS"
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]]<\"condition\":tftypes.Object[\"keypath_to_track\":tftypes.String, \"time_window\":tftypes.String]<\"keypath_to_track\":tftypes.String<\"a\">, \"time_window\":tftypes.String<\"6_HOURS\">>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.logs_new_value.rules[Value({\"condition\":{\"keypath_to_track\":\"a\",\"time_window\":\"6_HOURS\"}})].condition.time_window value must be one of: [\"12_HOURS\" \"1_MONTH\" \"1_WEEK\" \"24_HOURS\" \"2_MONTHS\" \"3_MONTHS\" \"48_HOURS\" \"72_HOURS\"], got: \"6_HOURS\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "group_by is not allowed",
@@ -216,127 +182,82 @@
     "validateDiagnostics": [
       "error: group_by | Group by is not allowed for logs_immediate, logs_new_value, tracing_immediate alert types."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "empty group_by is not allowed either",
-    "config": {
-      "group_by": [],
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "remote_addr_geoip.country_name",
-                "time_window": "24_HOURS"
-              }
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/group_by": []
       }
     },
     "validateDiagnostics": [
       "error: group_by | Group by is not allowed for logs_immediate, logs_new_value, tracing_immediate alert types."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "group_by with a null member",
-    "config": {
-      "group_by": [
-        null
-      ],
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "remote_addr_geoip.country_name",
-                "time_window": "24_HOURS"
-              }
-            }
-          ]
-        }
+    "configDelta": {
+      "set": {
+        "/group_by": [
+          null
+        ]
       }
     },
     "validateDiagnostics": [
       "error: group_by | Group by is not allowed for logs_immediate, logs_new_value, tracing_immediate alert types."
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "unknown severity",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "severities": [
-                  "Fatal"
-                ]
-              }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/logs_filter": {
+          "simple_filter": {
+            "label_filters": {
+              "severities": [
+                "Fatal"
+              ]
             }
-          },
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "remote_addr_geoip.country_name",
-                "time_window": "24_HOURS"
-              }
-            }
-          ]
+          }
         }
-      }
+      },
+      "remove": [
+        "/group_by"
+      ]
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"severities\").ElementKeyValue(tftypes.String<\"Fatal\">)] | Attribute type_definition.logs_new_value.logs_filter.simple_filter.label_filters.severities[Value(\"Fatal\")] value must be one of: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"], got: \"Fatal\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "unknown label operation",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_new_value": {
-          "logs_filter": {
-            "simple_filter": {
-              "label_filters": {
-                "subsystem_name": [
-                  {
-                    "operation": "EQUALS",
-                    "value": "a"
-                  }
-                ]
-              }
-            }
-          },
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "remote_addr_geoip.country_name",
-                "time_window": "24_HOURS"
-              }
-            }
-          ]
-        }
-      }
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_new_value/logs_filter/simple_filter/label_filters/subsystem_name": [
+          {
+            "operation": "EQUALS",
+            "value": "a"
+          }
+        ]
+      },
+      "remove": [
+        "/type_definition/logs_new_value/logs_filter/simple_filter/label_filters/severities"
+      ]
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_new_value\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"subsystem_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"value\":tftypes.String]<\"operation\":tftypes.String<\"EQUALS\">, \"value\":tftypes.String<\"a\">>).AttributeName(\"operation\")] | Attribute type_definition.logs_new_value.logs_filter.simple_filter.label_filters.subsystem_name[Value({\"operation\":\"EQUALS\",\"value\":\"a\"})].operation value must be one of: [\"ENDS_WITH\" \"INCLUDES\" \"IS\" \"STARTS_WITH\"], got: \"EQUALS\""
     ],
-    "state": null
+    "stateDelta": {}
   },
   {
     "step": "two type definitions",
-    "config": {
-      "name": "tfbaseline-new-value-validation",
-      "type_definition": {
-        "logs_anomaly": {
+    "configDelta": {
+      "set": {
+        "/type_definition/logs_anomaly": {
           "rules": [
             {
               "condition": {
@@ -345,22 +266,15 @@
               }
             }
           ]
-        },
-        "logs_new_value": {
-          "rules": [
-            {
-              "condition": {
-                "keypath_to_track": "remote_addr_geoip.country_name",
-                "time_window": "24_HOURS"
-              }
-            }
-          ]
         }
-      }
+      },
+      "remove": [
+        "/type_definition/logs_new_value/logs_filter"
+      ]
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Combination [AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")] | 2 attributes specified when one (and only one) of [type_definition.logs_threshold,type_definition.logs_anomaly,type_definition.logs_ratio_threshold,type_definition.logs_unique_count,type_definition.logs_new_value,type_definition.logs_time_relative_threshold,type_definition.metric_threshold,type_definition.metric_anomaly,type_definition.tracing_immediate,type_definition.tracing_threshold,type_definition.flow,type_definition.slo_threshold,type_definition.analytics_immediate,type_definition.analytics_threshold] is required"
     ],
-    "state": null
+    "stateDelta": {}
   }
 ]

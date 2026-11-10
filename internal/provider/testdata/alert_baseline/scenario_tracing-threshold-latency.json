@@ -82,8 +82,6 @@
     },
     "requests": [
       {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -117,6 +115,8 @@
             "type": "ALERT_DEF_TYPE_TRACING_THRESHOLD"
           }
         },
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -196,163 +196,34 @@
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 0,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "latency 1000",
-    "config": {
-      "name": "tfbaseline-tracing-threshold-latency",
-      "type_definition": {
-        "tracing_threshold": {
-          "rules": [
-            {
-              "condition": {
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 1000,
-            "tracing_label_filters": {}
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1000
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 1000,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
+    "planDelta": {
+      "set": {
+        "/access_policy": null,
+        "/deleted": false,
+        "/group_by": [],
+        "/id": "00000000-0000-4000-8000-000000000001",
+        "/incidents_settings": {
+          "notify_on": "Triggered Only",
+          "retriggering_period": {
+            "minutes": 10
           }
-        }
+        },
+        "/priority": "P5",
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1000
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -391,72 +262,14 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 1000,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "stateDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1000
       }
     },
     "replanEmpty": true
@@ -465,275 +278,38 @@
     "step": "refresh 1000",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 1000,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": true
   },
   {
     "step": "latency 12345678901",
-    "config": {
-      "name": "tfbaseline-tracing-threshold-latency",
-      "type_definition": {
-        "tracing_threshold": {
-          "rules": [
-            {
-              "condition": {
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 12345678901,
-            "tracing_label_filters": {}
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 12345678901
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 12345678901,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "planDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 12345678901
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "name": "tfbaseline-tracing-threshold-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "tracingThreshold": {
-              "notificationPayloadFilter": [],
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
-                    "spanAmount": 1,
-                    "timeWindow": {
-                      "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
-                    }
-                  }
-                }
-              ],
-              "tracingFilter": {
-                "simpleFilter": {
-                  "latencyThresholdMs": "1.23456789e+10",
-                  "tracingLabelFilters": {}
-                }
-              }
-            },
-            "type": "ALERT_DEF_TYPE_TRACING_THRESHOLD"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 200
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "1.23456789e+10"
+        }
       }
     ],
     "inconsistentResult": [
       "type_definition.tracing_threshold.tracing_filter.latency_threshold_ms"
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 12345678900,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "stateDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 12345678900
       }
     },
     "replanEmpty": false,
@@ -745,76 +321,10 @@
     "step": "refresh 12345678901",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
-        "status": 200
+        "deltaOf": "GET"
       }
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 12345678900,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
-      }
-    },
+    "stateDelta": {},
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"latency_threshold_ms\")"
@@ -822,402 +332,54 @@
   },
   {
     "step": "update: 2^63, above the largest int64",
-    "config": {
-      "name": "tfbaseline-tracing-threshold-latency",
-      "type_definition": {
-        "tracing_threshold": {
-          "rules": [
-            {
-              "condition": {
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 9223372036854776000,
-            "tracing_label_filters": {}
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 9223372036854776000
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 9223372036854776000,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "planDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 9223372036854776000
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "name": "tfbaseline-tracing-threshold-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "tracingThreshold": {
-              "notificationPayloadFilter": [],
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
-                    "spanAmount": 1,
-                    "timeWindow": {
-                      "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
-                    }
-                  }
-                }
-              ],
-              "tracingFilter": {
-                "simpleFilter": {
-                  "latencyThresholdMs": "9.223372037e+18",
-                  "tracingLabelFilters": {}
-                }
-              }
-            },
-            "type": "ALERT_DEF_TYPE_TRACING_THRESHOLD"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 500
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "9.223372037e+18",
+          "/status": 500
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Replace"
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 12345678900,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
-      }
-    }
+    "stateDelta": {}
   },
   {
     "step": "update: a fraction",
-    "config": {
-      "name": "tfbaseline-tracing-threshold-latency",
-      "type_definition": {
-        "tracing_threshold": {
-          "rules": [
-            {
-              "condition": {
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 1.5,
-            "tracing_label_filters": {}
-          }
-        }
+    "configDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1.5
       }
     },
-    "plan": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 1.5,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
+    "planDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1.5
       }
     },
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
-        "body": {
-          "alertDefProperties": {
-            "enabled": true,
-            "groupByKeys": [],
-            "incidentsSettings": {
-              "minutes": 10,
-              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
-            },
-            "name": "tfbaseline-tracing-threshold-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
-            "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
-            "tracingThreshold": {
-              "notificationPayloadFilter": [],
-              "rules": [
-                {
-                  "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
-                    "spanAmount": 1,
-                    "timeWindow": {
-                      "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
-                    }
-                  }
-                }
-              ],
-              "tracingFilter": {
-                "simpleFilter": {
-                  "latencyThresholdMs": "1.5",
-                  "tracingLabelFilters": {}
-                }
-              }
-            },
-            "type": "ALERT_DEF_TYPE_TRACING_THRESHOLD"
-          },
-          "id": "00000000-0000-4000-8000-000000000001"
-        },
-        "status": 400
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "1.5",
+          "/status": 400
+        }
       }
     ],
     "applyDiagnostics": [
       "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: proto: (line 1:611): invalid value for uint64 field value: \\\"1.5\\\"\"}\noperation - Replace"
     ],
-    "state": {
-      "access_policy": null,
-      "case_settings": null,
-      "data_sources": null,
-      "deleted": false,
-      "description": null,
-      "enabled": true,
-      "group_by": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "incidents_settings": {
-        "notify_on": "Triggered Only",
-        "retriggering_period": {
-          "minutes": 10
-        }
-      },
-      "labels": null,
-      "name": "tfbaseline-tracing-threshold-latency",
-      "notification_group": {
-        "destinations": null,
-        "group_by_keys": null,
-        "router": null,
-        "webhooks_settings": null
-      },
-      "phantom_mode": false,
-      "priority": "P5",
-      "schedule": null,
-      "type_definition": {
-        "analytics_immediate": null,
-        "analytics_threshold": null,
-        "flow": null,
-        "logs_anomaly": null,
-        "logs_immediate": null,
-        "logs_new_value": null,
-        "logs_ratio_threshold": null,
-        "logs_threshold": null,
-        "logs_time_relative_threshold": null,
-        "logs_unique_count": null,
-        "metric_anomaly": null,
-        "metric_threshold": null,
-        "slo_threshold": null,
-        "tracing_immediate": null,
-        "tracing_threshold": {
-          "notification_payload_filter": null,
-          "rules": [
-            {
-              "condition": {
-                "condition_type": "MORE_THAN",
-                "span_amount": 1,
-                "time_window": "5_MINUTES"
-              }
-            }
-          ],
-          "tracing_filter": {
-            "latency_threshold_ms": 12345678900,
-            "tracing_label_filters": {
-              "application_name": null,
-              "operation_name": null,
-              "service_name": null,
-              "span_fields": null,
-              "subsystem_name": null
-            }
-          }
-        }
-      }
-    }
+    "stateDelta": {}
   }
 ]

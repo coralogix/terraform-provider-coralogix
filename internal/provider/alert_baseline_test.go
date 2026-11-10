@@ -43,7 +43,7 @@ func TestAlertBaselineScenarios(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			h := newAlertHarness(t)
 			run(h)
-			checkGoldenAt(t, alertGoldenDir, "scenario_"+name+".json", marshalGolden(t, h.steps))
+			checkGoldenAt(t, alertGoldenDir, "scenario_"+name+".json", marshalAlertGolden(t, h.steps))
 		})
 	}
 }
