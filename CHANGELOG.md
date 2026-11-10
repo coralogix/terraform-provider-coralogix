@@ -1,5 +1,12 @@
 # Unreleased
 
+#### provider
+- CHORE: Refresh the management SDK scope contract. Empty filter requests omit `filters` instead of sending null; the API treats both as empty. Malformed scope responses can now report SDK validation errors before flattening.
+- FIX: Reject empty string response IDs before writing or recovering state in generated resources.
+
+#### tools/iac-codegen
+- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.
@@ -145,8 +152,6 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
-- CHORE: Refresh the management SDK scope contract. Empty filter requests omit `filters` instead of sending null; the API treats both as empty. Malformed scope responses can now report SDK validation errors before flattening.
-- FIX: Reject empty string response IDs before writing or recovering state in generated resources.
 - CHORE: Bump `coralogix-management-sdk` to the version with the rule groups contract. The SDK holds required fields as values. The TCO policies still send `description` and `priority` on every create, with no change to plans. The new SDK leaves out the null `severities` next to a TCO `dpxl_expression`; the API reads it as empty.
 - CHORE: Bump `coralogix-management-sdk` to the version with the recording rules contract: unordered `groups`, the defaults of `interval` (60) and `limit` ("0"), which the response requires, and `groups` required with at least one item in Create and Update.
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
@@ -157,7 +162,6 @@
 - FIX: A read that the API fails names the fixed id `archive-logs-settings` in its error. Before, it named `archive_logs`.
 
 #### tools/iac-codegen
-- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
 - FEAT: `api.overwrite` generates a collection resource: one write replaces every item of a kind, and one Get with fixed `getQuery` values lists them (the TCO policies). Create and Update send the write and read back with Get; Delete sends the write with no items. Before, `tfgen check` stopped with `UPSERT_SHAPE_UNSUPPORTED`. The data source sends the same query.
 - FEAT: `types.<Type>.requestWrapper`, `requestAs` on a nested field, and `negate` describe a request item that holds the fields of the read item in a wrapper, under another name, or negated (`{policy: {disabled}}` for `{enabled}`). Before, `requestAs` worked only on a field of the resource component.
 - FEAT: `inline: true` works on an object field of a nested component too: its fields are attributes of the component, in the response and in the request item that holds the same object. A missing oneOf arm reads as null fields. Before, inline applied only to a field of the resource component.
