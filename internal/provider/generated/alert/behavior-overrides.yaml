@@ -218,12 +218,18 @@ types:
     fields:
       dataprimeQuery: {required: true}
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      # The released resource has no evaluation period. The API fills it in on every read, so a plain optional
+      # attribute would fail with "was null, but now 10". A later change adds it as Optional+Computed with a plan rule.
+      evaluationPeriodMinutes: {skip: true}
       noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
       timeframeMinutes: {required: true, validators: [{atLeast: 1}]}
   AnalyticsThresholdType:
     fields:
       dataprimeQuery: {required: true}
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      # The released resource has no evaluation period. The API fills it in on every read, so a plain optional
+      # attribute would fail with "was null, but now 10". A later change adds it as Optional+Computed with a plan rule.
+      evaluationPeriodMinutes: {skip: true}
       noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
       operator: {required: true, validators: [{enum: true}]}
       rules: {required: true, validators: [{sizeAtLeast: 1}], markdownDescription: "The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID."}
