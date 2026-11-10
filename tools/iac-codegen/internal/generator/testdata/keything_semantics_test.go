@@ -182,3 +182,33 @@ func TestCreateFollowsWithAnUpdateForAnotherEnabled(t *testing.T) {
 		t.Fatalf("update bodies after create = %+v, want one that sends isEnabled false", key_things_service.Updated)
 	}
 }
+
+// A removed enabled that differs from the value of a new resource plans as unknown. The API keeps
+// the stored value of a field that Update omits, so Update sends the value of a new resource: an
+// omitted isEnabled would leave the key disabled, and every later plan would update it again.
+func TestUpdateSendsTheDefaultForARemovedEnabled(t *testing.T) {
+	ctx := context.Background()
+	key_things_service.Updated, key_things_service.UpdatedID = nil, nil
+	id := "key-9"
+	key_things_service.Stored = stored(id, "k", true, "livetail:Read")
+	r, schemaResp, root := keySchema(t)
+	idValue := tftypes.NewValue(tftypes.String, id)
+	state := keyValue(root, idValue, "k", false, "livetail:Read")
+	planned := map[string]tftypes.Value{}
+	if err := keyValue(root, idValue, "k", false, "livetail:Read").As(&planned); err != nil {
+		t.Fatal(err)
+	}
+	planned["enabled"] = tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue)
+	resp := &frameworkresource.UpdateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}
+	r.Update(ctx, frameworkresource.UpdateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: keyValue(root, tftypes.NewValue(tftypes.String, nil), "k", false, "livetail:Read")},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, planned)},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if len(key_things_service.Updated) != 1 || key_things_service.Updated[0].IsEnabled == nil || !*key_things_service.Updated[0].IsEnabled {
+		t.Fatalf("update bodies = %+v, want one that sends isEnabled true", key_things_service.Updated)
+	}
+}

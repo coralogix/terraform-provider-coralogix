@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
@@ -380,6 +381,9 @@ type convField struct {
 	// (sendUnknownAsZero). ZeroType is its Go type.
 	SendUnknownAsZero bool
 	ZeroType          string
+	// UnknownValue: expand sends this Go literal, as a ZeroType, when the plan is unknown
+	// (updateDefault). Update omits nothing: the API keeps the stored value of an omitted field.
+	UnknownValue string
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	// FixedValue is its Go expression: an enum cast, a quoted string, or a bool.
 	RequestValue string
@@ -1617,6 +1621,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err := b.applyReleasedKeys(cf); err != nil {
 		return nil, err
 	}
+	if err := b.applyUpdateDefault(cf, component, name); err != nil {
+		return nil, err
+	}
 	b.applyMissingEnum(cf, component, name, presence)
 	if cf.Conv == convEnum && cf.EnumMap != nil && cf.EnumMap.ZeroNull != "" && b.file != nil && b.file.Types[component].Fields[name].Default != nil {
 		// A missing value reads as null, so the planned default would come back as null.
@@ -1722,6 +1729,38 @@ func applySendUnknownAsZero(cf *convField) error {
 		return fmt.Errorf("%s: sendUnknownAsZero needs a string, bool, or number field without wrappers, not a %s field", cf.TFName, cf.Conv)
 	}
 	cf.ZeroType = zero
+	return nil
+}
+
+// applyUpdateDefault makes expand send the value of an updateDefault line when the plan of the field
+// is unknown. The field has a server default, so the plan is unknown after a removal of a value that
+// differs from it, and the API keeps the stored value of a field that the request omits: sending the
+// value that a new resource has is what resets it.
+func (b *convBuilder) applyUpdateDefault(cf *convField, component, name string) error {
+	value, ok := b.resource.Policy.UpdateDefaults[component+"."+name]
+	if !ok {
+		return nil
+	}
+	goType, supported := zeroTypes[cf.Conv]
+	if !supported || cf.Wrap != nil {
+		return fmt.Errorf("%s: updateDefault needs a string, bool, or number field without wrappers, not a %s field", cf.TFName, cf.Conv)
+	}
+	switch cf.Conv {
+	case convString:
+		cf.UnknownValue = strconv.Quote(value)
+	case convBool:
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("%s: updateDefault %q is not a boolean", cf.TFName, value)
+		}
+		cf.UnknownValue = strconv.FormatBool(parsed)
+	default:
+		if _, err := strconv.ParseFloat(value, 64); err != nil {
+			return fmt.Errorf("%s: updateDefault %q is not a number", cf.TFName, value)
+		}
+		cf.UnknownValue = value
+	}
+	cf.ZeroType = goType
 	return nil
 }
 
