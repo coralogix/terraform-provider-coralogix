@@ -509,6 +509,9 @@ type Field struct {
 	Name string `yaml:"name"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
+	// Sensitive marks the Terraform attribute sensitive, as the released attribute was: Terraform
+	// hides its value in plans and output. It is a Terraform fact that the contract does not state.
+	Sensitive bool `yaml:"sensitive"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
@@ -521,7 +524,8 @@ type Field struct {
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
-	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
+	// ReadNullAs: "empty" reads a missing string as "", and a missing list or set of objects as an
+	// empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
 	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
 	// oneOf: each arm attribute holds the other fields of the object (the siblings) next to the
@@ -1045,6 +1049,7 @@ func (l Field) keys() []string {
 	add(l.Collection != "", "collection")
 	add(l.Name != "", "name")
 	add(l.Deprecation != "", "deprecation")
+	add(l.Sensitive, "sensitive")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.UseNonNullStateForUnknown, "useNonNullStateForUnknown")
@@ -1068,6 +1073,9 @@ func (l Field) keys() []string {
 	add(l.RequiresReplace, "requiresReplace")
 	add(l.UniqueBy != "", "uniqueBy")
 	add(l.RequestAs != "", "requestAs")
+	add(l.UpdateAs != "", "updateAs")
+	add(l.UpdateDefault != "", "updateDefault")
+	add(l.ItemName != "", "itemName")
 	add(l.Negate, "negate")
 	add(l.Split != "", "split")
 	add(l.Inline, "inline")
@@ -1188,7 +1196,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" && !l.Sensitive &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 
@@ -1201,7 +1209,7 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && !l.Negate && l.Split == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == ""
 }
 
 func (l Field) check() error {

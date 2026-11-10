@@ -1,0 +1,42 @@
+# A released resource whose Update names and wraps values differently from Create and Get: Create
+# takes name, and Update takes newName; enabled is the isEnabled of Update, which Create cannot set;
+# Create and Get hold the lists in keyPermissions, which the resource shows as attributes, and Update
+# holds each list in a one-property object; Get holds each preset as an object with a name, and the
+# requests send the names.
+resource: KeyThing
+mode: existing
+typeName: key_thing
+
+validators:
+  inferred: false
+
+api:
+  idProperty: id
+  createResponseOnlyIDProperty: keyId
+  operations:
+    create: KeyThingsService_CreateKeyThing
+    get: KeyThingsService_GetKeyThing
+    update: KeyThingsService_UpdateKeyThing
+    delete: KeyThingsService_DeleteKeyThing
+
+unwrap: [KeyThingPresets, KeyThingPermissions]
+
+types:
+  KeyOwner:
+    fields:
+      teamId: {terraformType: String}
+  KeyThing:
+    fields:
+      name: {updateAs: newName}
+      enabled: {updateAs: isEnabled, updateDefault: true}
+      hashed: {readOnly: true}
+      # The secret that Get returns for a key that is not hashed.
+      # A key whose value the API leaves out reads as "".
+      value: {sensitive: true, readNullAs: empty}
+      keyPermissions: {inline: true}
+      # The owner is one of three ids. The released team id is the decimal text of the number.
+      owner: {requireOne: true}
+      # The lists are required in the released schema, but Create takes either one: the Get response
+      # requires both, and Create has a body of its own, so only the line makes them required.
+      presets: {itemName: name, required: true, collection: set}
+      permissions: {required: true, collection: set}
