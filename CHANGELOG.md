@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.25.0
+
 #### provider
 - FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
 
