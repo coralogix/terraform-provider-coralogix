@@ -2358,7 +2358,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		// fields. The object serves both, so it gets the fields of either walk. A typedArms
 		// object holds the merged fields, not the arms, so it has nothing to add.
 		if obj.Typed != nil {
-			return obj, nil
+			return obj, b.typedParentsOfBoth(obj, ref.Path, t)
 		}
 		if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
 			return nil, err
@@ -2396,6 +2396,20 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	return obj, nil
+}
+
+// typedParentsOfBoth makes the SDK pointer that holds an inlined object a parent of both the request
+// and the response conversion of the typedArms object obj. The second walk of a shared component
+// adds no field to it, but the pointer that holds the arms is a parent for both.
+func (b *convBuilder) typedParentsOfBoth(obj *convObject, sdkPath string, t *model.Type) error {
+	for _, f := range t.Fields {
+		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
+			if err := b.nestedParentOfBoth(obj, sdkPath, parent); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+		}
+	}
+	return nil
 }
 
 // carry sets obj.Carry when the line of a field of component has carrySiblings, and adds the

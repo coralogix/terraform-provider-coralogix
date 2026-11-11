@@ -22,6 +22,12 @@ types:
       id: {readOnly: true}
       # The legacy selection is the list of values: [] selects all.
       pick: {name: picked_values, computed: true, default: []}
+  # The value of the span value is a span field, which has a typedArms line (below). The inline line
+  # moves its arms into the span value, which shows them as the span field does: span_value =
+  # {type, value}, with no value object between.
+  TypedSpanValue:
+    fields:
+      value: {inline: true}
   TypedAggregation:
     typedArms:
       # The released spelling of an arm that is not its name: average is avg.

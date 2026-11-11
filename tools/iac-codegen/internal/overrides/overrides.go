@@ -2171,10 +2171,31 @@ func (f *File) accepted(k *iacoverrides.KeyedBy) map[string]map[string]string {
 	return out
 }
 
-// TypedArmsOf returns the typedArms line of the component, or nil.
+// TypedArmsOf returns the typedArms line of the component, or nil. A component without a line
+// takes the line of the typedArms object that an inline line moved into it: the arms are then
+// its own fields, and it shows them as that object does.
 func (f *File) TypedArmsOf(component string) *TypedArms {
 	if f == nil {
 		return nil
 	}
-	return f.Types[component].TypedArms
+	if line := f.Types[component].TypedArms; line != nil {
+		return line
+	}
+	return f.inlinedTypedArms(component)
+}
+
+// inlinedTypedArms returns the typedArms line of the object that an inline line moved into the
+// component, or nil. The generator reports an object with an asList line, and a component that
+// holds more than one such object or other fields (reshape.go), so the first one is the one.
+func (f *File) inlinedTypedArms(component string) *TypedArms {
+	if f.Inlined == nil {
+		return nil
+	}
+	parents := f.Inlined.Nested[component]
+	for _, field := range sortedKeys(parents) {
+		if line := f.Types[parents[field].Schema].TypedArms; line != nil && !line.AsList {
+			return line
+		}
+	}
+	return nil
 }

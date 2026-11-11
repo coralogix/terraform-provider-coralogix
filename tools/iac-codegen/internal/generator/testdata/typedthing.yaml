@@ -25,6 +25,7 @@ paths:
                 fields:
                   type: array
                   items: {$ref: '#/components/schemas/TypedSpanField'}
+                spanValue: {$ref: '#/components/schemas/TypedSpanValue'}
       responses:
         '200':
           description: ok
@@ -62,6 +63,7 @@ paths:
                 fields:
                   type: array
                   items: {$ref: '#/components/schemas/TypedSpanField'}
+                spanValue: {$ref: '#/components/schemas/TypedSpanValue'}
       responses:
         '200':
           description: ok
@@ -105,6 +107,12 @@ components:
         fields:
           type: array
           items: {$ref: '#/components/schemas/TypedSpanField'}
+        spanValue: {$ref: '#/components/schemas/TypedSpanValue'}
+    # An object that holds one span field in its value, as the field value of a query does.
+    TypedSpanValue:
+      type: object
+      properties:
+        value: {$ref: '#/components/schemas/TypedSpanField'}
     TypedAggregation:
       type: object
       oneOf:

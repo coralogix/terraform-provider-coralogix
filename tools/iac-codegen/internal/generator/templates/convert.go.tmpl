@@ -2760,6 +2760,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{$typed.Pkg}}.{{.SDK}}{}
+{{- range .Parents}}
+	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its arms are the arms of this object
+{{- end}}
 	kind := m.{{$type.Model}}.ValueString()
 {{- if $typed.Infer}}
 	if m.{{$type.Model}}.IsNull() || m.{{$type.Model}}.IsUnknown() {
@@ -2814,6 +2817,16 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 	if v == nil {
 		return nil
 	}
+{{- if .FlattenParents}}
+	// A response without the inlined object has no arm, which the switch below reports.
+	copied := *v
+	v = &copied
+{{- range .FlattenParents}}
+	if v.{{.SDK}} == nil {
+		v.{{.SDK}} = &{{.Type}}{}
+	}
+{{- end}}
+{{- end}}
 	out := &{{.Model}}{}
 {{- $obj := .}}
 {{- range $typed.Arms}}
@@ -2828,6 +2841,9 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 {{- if .InitScalar}}
 	{
 		v := &{{$typed.Pkg}}.{{$obj.SDK}}{}
+{{- range $obj.FlattenParents}}
+		v.{{.SDK}} = &{{.Type}}{}
+{{- end}}
 {{- template "flattenField" .Scalar}}
 	}
 {{- end}}

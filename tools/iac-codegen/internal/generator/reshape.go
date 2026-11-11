@@ -309,7 +309,8 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 	parents := map[string]overrides.Parent{}
 	flat := &yaml.Node{Kind: yaml.MappingNode}
 	var flatRequired []string
-	var carried *yaml.Node // the oneOf of an inlined object
+	var carried *yaml.Node        // the oneOf of an inlined object
+	var typedObjects []*yaml.Node // the properties of each inlined object that has a typedArms line
 	add := func(key, value *yaml.Node, isRequired bool) error {
 		if mapValue(flat, key.Value) != nil {
 			return fmt.Errorf("inline: two fields have the name %q", key.Value)
@@ -346,6 +347,9 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 		if carried, err = carryOneOf(s, object, name, carried); err != nil {
 			return nil, err
 		}
+		if typedObjects, err = h.typedObject(typedObjects, name, component, objectProps); err != nil {
+			return nil, err
+		}
 		isArm := name == arm
 		optional := h.optionalObject(s, name, isArm, kept, required)
 		if !isArm && !slices.Contains(required, name) && !optional {
@@ -373,6 +377,9 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: isArm && len(kept) == 0, Kept: strings.Join(kept, ","), Same: same}
 		}
 	}
+	if err := h.checkTypedFields(typedObjects, flat); err != nil {
+		return nil, err
+	}
 	setMap(s, "properties", flat)
 	setMap(s, "required", stringNode(flatRequired))
 	if arm != "" {
@@ -382,6 +389,40 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 		setMap(s, "oneOf", carried)
 	}
 	return parents, nil
+}
+
+// typedObject adds the properties of an inlined object that has a typedArms line to typed, and
+// checks the object. Its fields keep the line: the component that receives them shows them as that
+// object does (File.TypedArmsOf). A list has no fields to move, and the resource has no line of its
+// own that could take the arms.
+func (h inliner) typedObject(typed []*yaml.Node, name, object string, props *yaml.Node) ([]*yaml.Node, error) {
+	line := h.file.Types[object].TypedArms
+	switch {
+	case line == nil:
+		return typed, nil
+	case line.AsList:
+		return nil, fmt.Errorf("inline: %s has typedArms.asList, which shows a list: no fields of an object are left to inline", name)
+	case !h.nested:
+		return nil, fmt.Errorf("inline: %s has a typedArms line, which only a nested component takes with its fields; put the line on the resource component to show the arms as one object", name)
+	}
+	return append(typed, props), nil
+}
+
+// checkTypedFields checks the component that receives the fields of inlined objects with a
+// typedArms line. It takes that line when it has none of its own. The line shows every field of the
+// component as an arm, so the fields must be those of one object: another field, or a second
+// object, would be an arm too.
+func (h inliner) checkTypedFields(typed []*yaml.Node, flat *yaml.Node) error {
+	if len(typed) == 0 || h.file.Types[h.resource].TypedArms != nil {
+		return nil
+	}
+	if len(typed) > 1 {
+		return fmt.Errorf("inline: more than one inlined object has a typedArms line, so the line of the component is unclear; put a typedArms line on %s", h.resource)
+	}
+	if len(flat.Content) != len(typed[0].Content) {
+		return fmt.Errorf("inline: the fields of an object with a typedArms line are arms in %s, but %s has other fields; put a typedArms line on %s to say what it shows", h.resource, h.resource, h.resource)
+	}
+	return nil
 }
 
 // carryOneOf returns the oneOf group that the fields of the inlined object bring to s: the group of
@@ -515,7 +556,7 @@ func inlineSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 			// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
 			out = append(out,
 				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: pkg, Owner: rootType, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: pkg, Name: typ, Rule: sdkcheck.RuleComponent, Schema: parent.Schema})
+				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: pkg, Name: typ, Rule: sdkcheck.RuleComponent})
 		}
 	}
 	return inlineNestedSDKNames(out, file)
@@ -556,7 +597,7 @@ func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.
 			// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
 			out = append(out,
 				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: ref.Pkg, Owner: ref.Owner, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent, Schema: parent.Schema})
+				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent})
 		}
 	}
 	return out

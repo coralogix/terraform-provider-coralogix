@@ -15,6 +15,7 @@ type TypedThingModel struct {
 	Pick        types.List             `tfsdk:"picked_values"`
 	Operator    *TypedOperatorModel    `tfsdk:"operator"`
 	Fields      types.List             `tfsdk:"fields"`
+	SpanValue   *TypedSpanValueModel   `tfsdk:"span_value"`
 }
 
 type TypedAverageModel struct {
@@ -83,6 +84,11 @@ type TypedOperatorModel struct {
 }
 
 type TypedSpanFieldModel struct {
+	Type  types.String `tfsdk:"type"`
+	Value types.String `tfsdk:"value"`
+}
+
+type TypedSpanValueModel struct {
 	Type  types.String `tfsdk:"type"`
 	Value types.String `tfsdk:"value"`
 }

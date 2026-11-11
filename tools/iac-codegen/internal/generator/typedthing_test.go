@@ -127,3 +127,60 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 		})
 	}
 }
+
+// An inline line on a field whose object has a typedArms line shows the arms of the object as the
+// attributes of the component that holds it. The generator refuses the shapes where the line would
+// make an arm of something that is no arm, or where no component could take it.
+func TestInlineOfATypedObjectIsChecked(t *testing.T) {
+	spanValue := "    TypedSpanValue:\n      type: object\n      properties:\n        value: {$ref: '#/components/schemas/TypedSpanField'}\n"
+	tests := map[string]struct {
+		spec, overrides [2]string
+		want            string
+	}{
+		"an object that shows a list": {
+			overrides: [2]string{"    typedArms:\n      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}", "    typedArms: {asList: true}"},
+			want:      "has typedArms.asList, which shows a list",
+		},
+		"another field beside the object": {
+			spec: [2]string{spanValue, spanValue + "        note: {type: string, x-coralogix-presence: true}\n"},
+			want: "the fields of an object with a typedArms line are arms in TypedSpanValue, but TypedSpanValue has other fields",
+		},
+		"two objects with a typedArms line": {
+			spec:      [2]string{spanValue, spanValue + "        notSelection: {$ref: '#/components/schemas/TypedNotSelection'}\n"},
+			overrides: [2]string{"      value: {inline: true}\n", "      value: {inline: true}\n      notSelection: {inline: true}\n"},
+			want:      "more than one inlined object has a typedArms line",
+		},
+		"the resource itself": {
+			overrides: [2]string{"      id: {readOnly: true}\n", "      id: {readOnly: true}\n      aggregation: {inline: true, required: true}\n"},
+			want:      "only a nested component takes with its fields",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec, err := os.ReadFile(filepath.Join("testdata", "typedthing.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			overrides, err := os.ReadFile(filepath.Join("testdata", "typedthing-overrides.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.spec[0] != "" {
+				spec = []byte(replaceOnce(t, string(spec), test.spec[0], test.spec[1]))
+			}
+			if test.overrides[0] != "" {
+				overrides = []byte(replaceOnce(t, string(overrides), test.overrides[0], test.overrides[1]))
+			}
+			path := filepath.Join(t.TempDir(), "typedthing-overrides.yaml")
+			if err := os.WriteFile(path, overrides, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			err = generateFromInput(Options{Resource: "TypedThing", OutputDir: filepath.Join(t.TempDir(), "typedthing"), OverridesPath: path}, input, loadDir)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

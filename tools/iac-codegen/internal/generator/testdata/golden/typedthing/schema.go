@@ -172,6 +172,24 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"span_value": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"type": schema.StringAttribute{
+						Required: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("metadata", "tag", "process_tag"),
+							typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "service_name")}}}},
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"tag\", \"process_tag\".",
+					},
+					"value": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
 		},
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"sort"
 	"strconv"
 	"time"
@@ -62,6 +63,7 @@ var createFields = []struct {
 	{attr: "picked_values", serverDefault: false},
 	{attr: "operator", serverDefault: false},
 	{attr: "fields", serverDefault: false},
+	{attr: "span_value", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -128,6 +130,9 @@ var oneOfArms = map[string]bool{
 	"fields.metadata_field":          true,
 	"fields.tag_field":               true,
 	"fields.process_tag_field":       true,
+	"span_value.metadata_field":      true,
+	"span_value.tag_field":           true,
+	"span_value.process_tag_field":   true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
@@ -146,6 +151,7 @@ var requiredAttrs = map[string]bool{
 	"aggregation.type": true,
 	"operator.type":    true,
 	"fields.type":      true,
+	"span_value.type":  true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -312,6 +318,7 @@ func expandCreateTypedThingBody(ctx context.Context, p path.Path, m *TypedThingM
 			out.Fields = append(out.Fields, *expandTypedSpanField(ctx, p.AtName("fields").AtListIndex(i), &items[i], diags))
 		}
 	}
+	out.SpanValue = expandTypedSpanValue(ctx, p.AtName("span_value"), m.SpanValue, diags)
 	return out
 }
 
@@ -838,6 +845,61 @@ func typedSpanFieldAttrTypes() map[string]attr.Type {
 	}
 }
 
+// expandTypedSpanValue sends the arm that the type attribute names, with the merged fields that the arm
+// holds in the API.
+func expandTypedSpanValue(ctx context.Context, p path.Path, m *TypedSpanValueModel, diags *diag.Diagnostics) *typed_things_service.TypedSpanValue {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedSpanValue{}
+	out.Value = &typed_things_service.TypedSpanField{} // an inlined object: its arms are the arms of this object
+	kind := m.Type.ValueString()
+	switch kind {
+	case "metadata":
+		out.Value.MetadataField = expandEnumMapped(p.AtName("value"), m.Value, typedMetadataFieldToAPI, diags)
+	case "tag":
+		out.Value.TagField = expandString(m.Value)
+	case "process_tag":
+		out.Value.ProcessTagField = expandString(m.Value)
+	default:
+		diags.AddAttributeError(p.AtName("type"), "Unknown type", fmt.Sprintf("The type %q is not one of metadata, tag, process_tag.", m.Type.ValueString()))
+	}
+	return out
+}
+
+// flattenTypedSpanValue reads the arm of TypedSpanValue as the type attribute and the merged fields.
+func flattenTypedSpanValue(ctx context.Context, p path.Path, v *typed_things_service.TypedSpanValue, diags *diag.Diagnostics) *TypedSpanValueModel {
+	if v == nil {
+		return nil
+	}
+	// A response without the inlined object has no arm, which the switch below reports.
+	copied := *v
+	v = &copied
+	if v.Value == nil {
+		v.Value = &typed_things_service.TypedSpanField{}
+	}
+	out := &TypedSpanValueModel{}
+	{
+		v := &typed_things_service.TypedSpanValue{}
+		v.Value = &typed_things_service.TypedSpanField{}
+		out.Value = flattenEnumMapped(p.AtName("value"), v.Value.MetadataField, typedMetadataFieldFromAPI, diags)
+	}
+	switch {
+	case v.Value.MetadataField != nil:
+		out.Type = types.StringValue("metadata")
+		out.Value = flattenEnumMapped(p.AtName("value"), v.Value.MetadataField, typedMetadataFieldFromAPI, diags)
+	case v.Value.TagField != nil:
+		out.Type = types.StringValue("tag")
+		out.Value = types.StringPointerValue(v.Value.TagField)
+	case v.Value.ProcessTagField != nil:
+		out.Type = types.StringValue("process_tag")
+		out.Value = types.StringPointerValue(v.Value.ProcessTagField)
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of Value.MetadataField Value.TagField Value.ProcessTagField; it must have one.")
+	}
+	return out
+}
+
 func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThingModel, diags *diag.Diagnostics) *typed_things_service.ReplaceTypedThingBody {
 	if m == nil {
 		return nil
@@ -863,6 +925,7 @@ func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThing
 			out.Fields = append(out.Fields, *expandTypedSpanField(ctx, p.AtName("fields").AtListIndex(i), &items[i], diags))
 		}
 	}
+	out.SpanValue = expandTypedSpanValue(ctx, p.AtName("span_value"), m.SpanValue, diags)
 	return out
 }
 
@@ -914,6 +977,7 @@ func flattenTypedThing(ctx context.Context, p path.Path, v *typed_things_service
 		}
 		out.Fields = flattenList(ctx, types.ObjectType{AttrTypes: typedSpanFieldAttrTypes()}, items, diags)
 	}
+	out.SpanValue = flattenTypedSpanValue(ctx, p.AtName("span_value"), v.SpanValue, diags)
 	return out
 }
 
@@ -1002,6 +1066,19 @@ func expandBool(v types.Bool) *bool {
 	}
 	b := v.ValueBool()
 	return &b
+}
+
+// modelNull reports whether the configuration leaves a model field out: a null value, or a nil
+// object, list, or map.
+func modelNull(v any) bool {
+	if a, ok := v.(attr.Value); ok {
+		return a.IsNull()
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return rv.IsNil()
+	}
+	return false
 }
 
 func expandFloat64(v types.Float64) *float64 {

@@ -729,3 +729,110 @@ func TestValidatorsLineOfAnArmFieldRunsOnlyForThatArm(t *testing.T) {
 		}
 	}
 }
+
+func spanValue(root tftypes.Object, set map[string]tftypes.Value) tftypes.Value {
+	return objectValue(root.AttributeTypes["span_value"], set)
+}
+
+// readStored reads the thing that the fake service holds, as an import does: the state has only
+// the id.
+func readStored(t *testing.T, stored typed_things_service.TypedThing) (*frameworkresource.ReadResponse, map[string]tftypes.Value) {
+	t.Helper()
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	id := "thing-1"
+	stored.Id = &id
+	typed_things_service.Stored = stored
+	r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	var values map[string]tftypes.Value
+	if !resp.Diagnostics.HasError() {
+		if err := resp.State.Raw.As(&values); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return resp, values
+}
+
+// The span value shows the arms of its span field as its own attributes: {type, value}, with no
+// value object between. Each arm is sent in the object that holds the span field, by Create and by
+// Update, and a span value that the configuration leaves out sends no object.
+func TestInlinedTypedObjectSendsItsArmInsideTheObject(t *testing.T) {
+	root := thingRoot(t)
+	for kind, test := range map[string]struct {
+		value string
+		check func(*typed_things_service.TypedSpanField) bool
+	}{
+		"metadata": {"service_name", func(f *typed_things_service.TypedSpanField) bool {
+			return f.MetadataField != nil && *f.MetadataField == typed_things_service.TYPEDMETADATAFIELD_METADATA_FIELD_SERVICE_NAME && f.TagField == nil && f.ProcessTagField == nil
+		}},
+		"tag": {"env", func(f *typed_things_service.TypedSpanField) bool {
+			return f.TagField != nil && *f.TagField == "env" && f.MetadataField == nil && f.ProcessTagField == nil
+		}},
+		"process_tag": {"pid", func(f *typed_things_service.TypedSpanField) bool {
+			return f.ProcessTagField != nil && *f.ProcessTagField == "pid" && f.MetadataField == nil && f.TagField == nil
+		}},
+	} {
+		value := spanValue(root, map[string]tftypes.Value{"type": str(kind), "value": str(test.value)})
+		resp, _, config := createWith(t, map[string]tftypes.Value{"span_value": value}, nil)
+		sent := typed_things_service.Created[0].SpanValue
+		if sent == nil || sent.Value == nil || !test.check(sent.Value) {
+			t.Fatalf("%s: sent %+v, want only that arm in the object", kind, sent)
+		}
+		// The state is the plan: the next plan has no change.
+		var state, want map[string]tftypes.Value
+		if err := resp.State.Raw.As(&state); err != nil {
+			t.Fatal(err)
+		}
+		if err := config.As(&want); err != nil {
+			t.Fatal(err)
+		}
+		if !state["span_value"].Equal(want["span_value"]) {
+			t.Fatalf("%s: state span_value = %v, want %v", kind, state["span_value"], want["span_value"])
+		}
+	}
+	createWith(t, nil, nil)
+	if got := typed_things_service.Created[0].SpanValue; got != nil {
+		t.Fatalf("a span value left out sent %+v, want none", got)
+	}
+}
+
+// An import reads the span value from the object that holds the span field: each arm gives its type
+// and its value, and the next plan has no change.
+func TestImportReadsAnInlinedTypedObject(t *testing.T) {
+	service, env := typed_things_service.TYPEDMETADATAFIELD_METADATA_FIELD_SERVICE_NAME, "env"
+	for kind, test := range map[string]struct {
+		field *typed_things_service.TypedSpanField
+		value string
+	}{
+		"metadata": {&typed_things_service.TypedSpanField{MetadataField: &service}, "service_name"},
+		"tag":      {&typed_things_service.TypedSpanField{TagField: &env}, "env"},
+	} {
+		resp, values := readStored(t, typed_things_service.TypedThing{SpanValue: &typed_things_service.TypedSpanValue{Value: test.field}})
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("%s: %v", kind, resp.Diagnostics)
+		}
+		want := spanValue(thingRoot(t), map[string]tftypes.Value{"type": str(kind), "value": str(test.value)})
+		if !values["span_value"].Equal(want) {
+			t.Fatalf("%s: span_value = %v, want %v", kind, values["span_value"], want)
+		}
+	}
+	// No object at all reads as null.
+	if _, values := readStored(t, typed_things_service.TypedThing{}); !values["span_value"].IsNull() {
+		t.Fatalf("span_value = %v, want null", values["span_value"])
+	}
+}
+
+// A response that has the object but no arm in it is an error, not a panic: the type has nothing
+// to name. The same for a response whose object holds no span field at all.
+func TestInlinedTypedObjectWithoutAnArmIsAnError(t *testing.T) {
+	for name, value := range map[string]*typed_things_service.TypedSpanField{"empty span field": {}, "no span field": nil} {
+		resp, _ := readStored(t, typed_things_service.TypedThing{SpanValue: &typed_things_service.TypedSpanValue{Value: value}})
+		if !resp.Diagnostics.HasError() {
+			t.Fatalf("%s: no error, want one that says the response has no arm", name)
+		}
+	}
+}
