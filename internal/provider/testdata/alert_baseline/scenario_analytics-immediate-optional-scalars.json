@@ -39,6 +39,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": "(unknown)",
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -113,6 +114,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": null,
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -474,15 +476,16 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1,
-          "/status": 400
+          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1
         }
       }
     ],
-    "applyDiagnostics": [
-      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"evaluationPeriodMinutes is omitted, so the alert keeps its current value (10), which exceeds the new timeframeMinutes (1); set evaluationPeriodMinutes to at most 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsImmediate\\\",\\n      \\\"evaluationPeriodMinutes\\\"\\n    ]\\n  }\\n]\"}"
-    ],
-    "stateDelta": {}
+    "stateDelta": {
+      "set": {
+        "/type_definition/analytics_immediate/timeframe_minutes": 1
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "timeframe_minutes 1440",
@@ -500,8 +503,7 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1440,
-          "/status": 200
+          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1440
         }
       }
     ],
@@ -592,15 +594,16 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 9,
-          "/status": 400
+          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 9
         }
       }
     ],
-    "applyDiagnostics": [
-      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"evaluationPeriodMinutes is omitted, so the alert keeps its current value (10), which exceeds the new timeframeMinutes (9); set evaluationPeriodMinutes to at most 9\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsImmediate\\\",\\n      \\\"evaluationPeriodMinutes\\\"\\n    ]\\n  }\\n]\"}"
-    ],
-    "stateDelta": {}
+    "stateDelta": {
+      "set": {
+        "/type_definition/analytics_immediate/timeframe_minutes": 9
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "create with timeframe_minutes 9 on a new alert",
@@ -625,8 +628,7 @@
     ],
     "stateDelta": {
       "set": {
-        "/id": "00000000-0000-4000-8000-000000000013",
-        "/type_definition/analytics_immediate/timeframe_minutes": 9
+        "/id": "00000000-0000-4000-8000-000000000015"
       }
     },
     "replanEmpty": true
@@ -653,7 +655,7 @@
     ],
     "stateDelta": {
       "set": {
-        "/id": "00000000-0000-4000-8000-000000000015",
+        "/id": "00000000-0000-4000-8000-000000000017",
         "/type_definition/analytics_immediate/timeframe_minutes": 1
       }
     },

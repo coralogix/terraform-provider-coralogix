@@ -193,6 +193,8 @@ type_definition.analytics_immediate.dataprime_query.query  StringAttribute requi
     markdown: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."
     validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
     validator: stringvalidator.lengthAtMostValidator string length must be at most 65535
+type_definition.analytics_immediate.evaluation_period_minutes  Int32Attribute optional
+    markdown: "How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`."
 type_definition.analytics_immediate.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
@@ -219,6 +221,8 @@ type_definition.analytics_threshold.dataprime_query.query  StringAttribute requi
     markdown: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."
     validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
     validator: stringvalidator.lengthAtMostValidator string length must be at most 65535
+type_definition.analytics_threshold.evaluation_period_minutes  Int32Attribute optional
+    markdown: "How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`."
 type_definition.analytics_threshold.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

@@ -936,6 +936,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
+- `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
 - `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. Defaults to false for immediate alerts to avoid high-cardinality alerts by mistake.
 
@@ -971,6 +972,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
+- `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
 - `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. Defaults to true for threshold alerts as permutation count is easier to estimate.
 

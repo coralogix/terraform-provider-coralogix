@@ -1392,58 +1392,10 @@ func init() {
 	})
 }
 
-func init() {
-	// Recorded: the server has an evaluation period of its own for an analytics alert. A new alert
-	// gets the smaller of 10 and its timeframe, and a Replace keeps the stored value, so a Replace
-	// with a timeframe below the stored period fails. The provider cannot set the period.
-	addAlertFill(func(props map[string]any) {
-		for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
-			body := atfObj(props, arm)
-			if body == nil {
-				continue
-			}
-			minutes, _ := body["timeframeMinutes"].(float64)
-			setDefault(body, "evaluationPeriodMinutes", math.Min(minutes, 10))
-		}
-	})
-	addAlertStoreCheck(func(f *alertFake, id string, props map[string]any) (int, any) {
-		stored, found := f.alerts[id]
-		if !found {
-			return 0, nil
-		}
-		for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
-			body := atfObj(props, arm)
-			oldBody := atfObj(atfObj(stored, "alertDefProperties"), arm)
-			if body == nil || oldBody == nil {
-				continue
-			}
-			period, _ := oldBody["evaluationPeriodMinutes"].(float64)
-			minutes, _ := body["timeframeMinutes"].(float64)
-			if _, sent := body["evaluationPeriodMinutes"]; !sent && period > minutes {
-				message := fmt.Sprintf("evaluationPeriodMinutes is omitted, so the alert keeps its current value (%s), which exceeds the new timeframeMinutes (%s); set evaluationPeriodMinutes to at most %s",
-					strconv.FormatFloat(period, 'f', -1, 64), strconv.FormatFloat(minutes, 'f', -1, 64), strconv.FormatFloat(minutes, 'f', -1, 64))
-				return http.StatusBadRequest, map[string]any{"code": 400, "message": "Bad Request: " + atfCustom(message, atfPath(arm, "evaluationPeriodMinutes")...)}
-			}
-		}
-		return 0, nil
-	})
-}
-
-func init() { addAlertKeepRule(atfKeepOnReplace) }
-
-// atfKeepOnReplace keeps what the server keeps when a Replace does not send it: the evaluation
-// period of an analytics alert.
-func atfKeepOnReplace(oldProps, newProps map[string]any) {
-	for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
-		oldBody, newBody := atfObj(oldProps, arm), atfObj(newProps, arm)
-		if oldBody == nil || newBody == nil {
-			continue
-		}
-		if period, ok := oldBody["evaluationPeriodMinutes"]; ok {
-			newBody["evaluationPeriodMinutes"] = period
-		}
-	}
-}
+// The API keeps the evaluation period of an analytics alert only when the request sets it: a
+// Create or Replace that omits it stores no period, so a read returns none. The period the alert
+// runs with is the smaller of 10 and its timeframe, and it is not part of the readable resource.
+// The fake therefore stores what a request sends and adds nothing.
 
 // atfIssue is the text of one validation error of the API. fields holds the keys and the JSON
 // values of the issue before its path, in order.
