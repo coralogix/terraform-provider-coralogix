@@ -45,6 +45,15 @@ types:
       UnionItem.first:
         fields: {label: {name: title}}
 
+  # The same component holds its value in an object in two places. The first place inlines the
+  # value, and names the note remark. The items of the list keep the object and the note.
+  Pick:
+    at:
+      UnionItem.choice:
+        fields:
+          value: {inline: true}
+          note: {name: remark}
+
 enums:
   ThingVariant:
     zero: a

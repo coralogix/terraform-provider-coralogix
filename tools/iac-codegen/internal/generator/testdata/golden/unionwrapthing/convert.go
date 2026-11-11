@@ -355,6 +355,13 @@ func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags 
 	out.Options = expandItemOptions(ctx, p.AtName("options"), m.Options, diags)
 	out.First = expandTagAtUnionItemFirst(ctx, p.AtName("first"), m.First, diags)
 	out.Second = expandTag(ctx, p.AtName("second"), m.Second, diags)
+	out.Choice = expandPickAtUnionItemChoice(ctx, p.AtName("choice"), m.Choice, diags)
+	if items := expandElements[PickModel](ctx, p.AtName("choices"), m.Choices, diags); items != nil {
+		out.Choices = make([]union_wrap_things_service.Pick, 0, len(items))
+		for i := range items {
+			out.Choices = append(out.Choices, *expandPick(ctx, p.AtName("choices").AtListIndex(i), &items[i], diags))
+		}
+	}
 	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
 		out.Value = nil // an optional object that the configuration sets no attribute of is left out
 	}
@@ -385,6 +392,15 @@ func flattenUnionItem(ctx context.Context, p path.Path, v *union_wrap_things_ser
 	out.Options = flattenItemOptions(ctx, p.AtName("options"), v.Options, diags)
 	out.First = flattenTagAtUnionItemFirst(ctx, p.AtName("first"), v.First, diags)
 	out.Second = flattenTag(ctx, p.AtName("second"), v.Second, diags)
+	out.Choice = flattenPickAtUnionItemChoice(ctx, p.AtName("choice"), v.Choice, diags)
+	out.Choices = types.ListNull(types.ObjectType{AttrTypes: pickAttrTypes()})
+	if v.Choices != nil {
+		items := make([]PickModel, 0, len(v.Choices))
+		for i := range v.Choices {
+			items = append(items, *flattenPick(ctx, p.AtName("choices").AtListIndex(i), &v.Choices[i], diags))
+		}
+		out.Choices = flattenList(ctx, types.ObjectType{AttrTypes: pickAttrTypes()}, items, diags)
+	}
 	return out
 }
 
@@ -397,6 +413,8 @@ func unionItemAttrTypes() map[string]attr.Type {
 		"options": types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
 		"first":   types.ObjectType{AttrTypes: tagAtUnionItemFirstAttrTypes()},
 		"second":  types.ObjectType{AttrTypes: tagAttrTypes()},
+		"choice":  types.ObjectType{AttrTypes: pickAtUnionItemChoiceAttrTypes()},
+		"choices": types.ListType{ElemType: types.ObjectType{AttrTypes: pickAttrTypes()}},
 	}
 }
 
@@ -488,6 +506,100 @@ func flattenTag(ctx context.Context, p path.Path, v *union_wrap_things_service.T
 
 func tagAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
+		"label": types.StringType,
+	}
+}
+
+func expandPickAtUnionItemChoice(ctx context.Context, p path.Path, m *PickAtUnionItemChoiceModel, diags *diag.Diagnostics) *union_wrap_things_service.Pick {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Pick{}
+	out.Value = &union_wrap_things_service.Labelled{} // an inlined object: its fields are top-level attributes
+	out.Value.Value = expandString(m.Value)
+	out.Value.Label = expandString(m.Label)
+	out.Note = expandString(m.Note)
+	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
+		out.Value = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenPickAtUnionItemChoice(ctx context.Context, p path.Path, v *union_wrap_things_service.Pick, diags *diag.Diagnostics) *PickAtUnionItemChoiceModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Value == nil {
+		v.Value = &union_wrap_things_service.Labelled{}
+	}
+	out := &PickAtUnionItemChoiceModel{}
+	out.Value = types.StringPointerValue(v.Value.Value)
+	out.Label = types.StringPointerValue(v.Value.Label)
+	out.Note = types.StringPointerValue(v.Note)
+	return out
+}
+
+func pickAtUnionItemChoiceAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value":  types.StringType,
+		"label":  types.StringType,
+		"remark": types.StringType,
+	}
+}
+
+func expandPick(ctx context.Context, p path.Path, m *PickModel, diags *diag.Diagnostics) *union_wrap_things_service.Pick {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Pick{}
+	out.Value = expandLabelled(ctx, p.AtName("value"), m.Value, diags)
+	out.Note = expandString(m.Note)
+	return out
+}
+
+func flattenPick(ctx context.Context, p path.Path, v *union_wrap_things_service.Pick, diags *diag.Diagnostics) *PickModel {
+	if v == nil {
+		return nil
+	}
+	out := &PickModel{}
+	out.Value = flattenLabelled(ctx, p.AtName("value"), v.Value, diags)
+	out.Note = types.StringPointerValue(v.Note)
+	return out
+}
+
+func pickAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value": types.ObjectType{AttrTypes: labelledAttrTypes()},
+		"note":  types.StringType,
+	}
+}
+
+func expandLabelled(ctx context.Context, p path.Path, m *LabelledModel, diags *diag.Diagnostics) *union_wrap_things_service.Labelled {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Labelled{}
+	out.Value = expandString(m.Value)
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenLabelled(ctx context.Context, p path.Path, v *union_wrap_things_service.Labelled, diags *diag.Diagnostics) *LabelledModel {
+	if v == nil {
+		return nil
+	}
+	out := &LabelledModel{}
+	out.Value = types.StringPointerValue(v.Value)
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+func labelledAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value": types.StringType,
 		"label": types.StringType,
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -117,6 +118,12 @@ func TestVariantFollowsTheArmThatIsSet(t *testing.T) {
 
 func itemList(t *testing.T, items ...UnionItemModel) types.List {
 	t.Helper()
+	for i := range items {
+		if items[i].Choices.IsNull() {
+			// A list that the test leaves out has no element type yet.
+			items[i].Choices = types.ListNull(types.ObjectType{AttrTypes: pickAttrTypes()})
+		}
+	}
 	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: unionItemAttrTypes()}, items)
 	if diags.HasError() {
 		t.Fatal(diags)
@@ -281,7 +288,8 @@ func TestInlinedArmConflictsWithTheKeptArm(t *testing.T) {
 		}
 		nullString := tftypes.NewValue(tftypes.String, nil)
 		item := tftypes.NewValue(itemType, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, "i"), "note": nullString, "value": nullString, "label": nullString, "options": opts,
-			"first": tftypes.NewValue(itemType.AttributeTypes["first"], nil), "second": tftypes.NewValue(itemType.AttributeTypes["second"], nil)})
+			"first": tftypes.NewValue(itemType.AttributeTypes["first"], nil), "second": tftypes.NewValue(itemType.AttributeTypes["second"], nil),
+			"choice": tftypes.NewValue(itemType.AttributeTypes["choice"], nil), "choices": tftypes.NewValue(itemType.AttributeTypes["choices"], nil)})
 		values["name"] = tftypes.NewValue(tftypes.String, "n")
 		kindType := objectType.AttributeTypes["kind"].(tftypes.Object)
 		armValues := map[string]tftypes.Value{}
@@ -357,5 +365,111 @@ func TestOneComponentHasAnotherNameInEachPlace(t *testing.T) {
 	}
 	if items[1].First != nil || items[1].Second != nil {
 		t.Fatalf("an item without tags read %+v %+v, want null objects", items[1].First, items[1].Second)
+	}
+}
+
+func pickList(t *testing.T, picks ...PickModel) types.List {
+	t.Helper()
+	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: pickAttrTypes()}, picks)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return list
+}
+
+// One component, two places. The single place inlines the value: its fields and its note (named
+// remark there) are attributes of the place. The list keeps the object. Each is sent in the API
+// object that its place holds.
+func TestOnePlaceInlinesTheValueAndTheListKeepsIt(t *testing.T) {
+	null := types.StringNull()
+	got := sentItems(t,
+		UnionItemModel{Name: types.StringValue("both"), Note: null, Value: null, Label: null,
+			Choice: &PickAtUnionItemChoiceModel{Value: types.StringValue("v"), Label: types.StringValue("l"), Note: types.StringValue("n")},
+			Choices: pickList(t,
+				PickModel{Value: &LabelledModel{Value: types.StringValue("lv"), Label: types.StringValue("ll")}, Note: types.StringValue("ln")},
+				PickModel{Note: types.StringValue("only a note")})},
+		UnionItemModel{Name: types.StringValue("note"), Note: null, Value: null, Label: null,
+			Choice: &PickAtUnionItemChoiceModel{Value: null, Label: null, Note: types.StringValue("n")}},
+		UnionItemModel{Name: types.StringValue("none"), Note: null, Value: null, Label: null},
+	)
+	choice := got[0].Choice
+	if choice == nil || choice.Value == nil || *choice.Value.Value != "v" || *choice.Value.Label != "l" || *choice.Note != "n" {
+		t.Fatalf("choice = %+v, want the value inside its object, and the note", choice)
+	}
+	list := got[0].Choices
+	if len(list) != 2 || list[0].Value == nil || *list[0].Value.Value != "lv" || *list[0].Value.Label != "ll" || *list[0].Note != "ln" {
+		t.Fatalf("choices = %+v, want the objects of the list kept", list)
+	}
+	if list[1].Value != nil || *list[1].Note != "only a note" {
+		t.Fatalf("second choice = %+v, want no value object", list[1])
+	}
+	// The object of the inlined place is sent only when one of its attributes is set.
+	if got[1].Choice == nil || got[1].Choice.Value != nil || *got[1].Choice.Note != "n" {
+		t.Fatalf("choice with a note only = %+v, want no value object", got[1].Choice)
+	}
+	if got[2].Choice != nil || got[2].Choices != nil {
+		t.Fatalf("item without choices sent %+v %+v", got[2].Choice, got[2].Choices)
+	}
+}
+
+// A read gives each place its own shape, also an import, which has only the id: the inlined place
+// reads null attributes when the API has no object, and what was read is what the next plan sees,
+// so the expand of the state sends what the API had.
+func TestPlacesReadBackInTheirOwnShape(t *testing.T) {
+	ctx := context.Background()
+	v, l, n, lv := "v", "l", "n", "lv"
+	id := "thing-1"
+	union_wrap_things_service.Stored = union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{
+		Name: "n", ArmC: &union_wrap_things_service.ArmC{},
+		Items: []union_wrap_things_service.UnionItem{
+			{Name: "full", Choice: &union_wrap_things_service.Pick{Value: &union_wrap_things_service.Labelled{Value: &v, Label: &l}, Note: &n},
+				Choices: []union_wrap_things_service.Pick{{Value: &union_wrap_things_service.Labelled{Value: &lv}}}},
+			{Name: "no object", Choice: &union_wrap_things_service.Pick{Note: &n}},
+			{Name: "bare"},
+		},
+	}}
+	r := &Resource{client: &union_wrap_things_service.UnionWrapThingsServiceAPIService{}}
+	var schemaResp frameworkresource.SchemaResponse
+	r.Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for name, typ := range root.AttributeTypes {
+		values[name] = tftypes.NewValue(typ, nil)
+	}
+	values["id"] = tftypes.NewValue(tftypes.String, id)
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, values)}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var model UnionWrapThingModel
+	if diags := resp.State.Get(ctx, &model); diags.HasError() {
+		t.Fatal(diags)
+	}
+	var items []UnionItemModel
+	if diags := model.Items.ElementsAs(ctx, &items, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if c := items[0].Choice; c == nil || c.Value.ValueString() != "v" || c.Label.ValueString() != "l" || c.Note.ValueString() != "n" {
+		t.Fatalf("choice = %+v, want v, l, and the note n", c)
+	}
+	var picks []PickModel
+	if diags := items[0].Choices.ElementsAs(ctx, &picks, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if len(picks) != 1 || picks[0].Value == nil || picks[0].Value.Value.ValueString() != "lv" || !picks[0].Value.Label.IsNull() || !picks[0].Note.IsNull() {
+		t.Fatalf("choices = %+v, want the object of the list kept", picks)
+	}
+	if c := items[1].Choice; c == nil || !c.Value.IsNull() || !c.Label.IsNull() || c.Note.ValueString() != "n" {
+		t.Fatalf("choice without an object = %+v, want null value and label", c)
+	}
+	if items[2].Choice != nil || !items[2].Choices.IsNull() {
+		t.Fatalf("bare item = %+v %v, want null choice and choices", items[2].Choice, items[2].Choices)
+	}
+	// The second plan: what was read, sent again, is what the API had.
+	again := sentItems(t, items...)
+	if again[0].Choice.Value == nil || *again[0].Choice.Value.Value != "v" || again[0].Choices[0].Value == nil || again[1].Choice.Value != nil || again[2].Choice != nil {
+		t.Fatalf("sent again = %+v %+v %+v", again[0], again[1], again[2])
 	}
 }

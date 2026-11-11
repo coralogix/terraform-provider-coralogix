@@ -50,12 +50,30 @@ type TagModel struct {
 	Label types.String `tfsdk:"label"`
 }
 
+type PickAtUnionItemChoiceModel struct {
+	Value types.String `tfsdk:"value"`
+	Label types.String `tfsdk:"label"`
+	Note  types.String `tfsdk:"remark"`
+}
+
+type LabelledModel struct {
+	Value types.String `tfsdk:"value"`
+	Label types.String `tfsdk:"label"`
+}
+
+type PickModel struct {
+	Value *LabelledModel `tfsdk:"value"`
+	Note  types.String   `tfsdk:"note"`
+}
+
 type UnionItemModel struct {
-	Name    types.String              `tfsdk:"name"`
-	Note    types.String              `tfsdk:"note"`
-	Value   types.String              `tfsdk:"value"`
-	Label   types.String              `tfsdk:"label"`
-	Options *ItemOptionsModel         `tfsdk:"options"`
-	First   *TagAtUnionItemFirstModel `tfsdk:"first"`
-	Second  *TagModel                 `tfsdk:"second"`
+	Name    types.String                `tfsdk:"name"`
+	Note    types.String                `tfsdk:"note"`
+	Value   types.String                `tfsdk:"value"`
+	Label   types.String                `tfsdk:"label"`
+	Options *ItemOptionsModel           `tfsdk:"options"`
+	First   *TagAtUnionItemFirstModel   `tfsdk:"first"`
+	Second  *TagModel                   `tfsdk:"second"`
+	Choice  *PickAtUnionItemChoiceModel `tfsdk:"choice"`
+	Choices types.List                  `tfsdk:"choices"`
 }

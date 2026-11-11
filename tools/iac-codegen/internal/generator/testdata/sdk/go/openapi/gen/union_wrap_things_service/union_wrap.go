@@ -49,6 +49,12 @@ type Tag struct {
 	Label *string
 }
 
+// Pick holds a value in an object, in one place and in the items of a list.
+type Pick struct {
+	Value *Labelled
+	Note  *string
+}
+
 type UnionItem struct {
 	Name    string
 	Extra   *ItemExtra
@@ -56,6 +62,8 @@ type UnionItem struct {
 	Options *ItemOptions
 	First   *Tag
 	Second  *Tag
+	Choice  *Pick
+	Choices []Pick
 }
 
 // Thing holds the common fields and the arms of the oneOf. The requests and the response hold it

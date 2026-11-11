@@ -148,12 +148,26 @@ components:
         options: {$ref: '#/components/schemas/ItemOptions'}
         first: {$ref: '#/components/schemas/Tag'}
         second: {$ref: '#/components/schemas/Tag'}
+        choice: {$ref: '#/components/schemas/Pick'}
+        choices:
+          type: array
+          items: {$ref: '#/components/schemas/Pick'}
     # One component in two places. Terraform names its label title in the first place and label in the
     # second, as the released resource names a metric in two kinds of filter.
     Tag:
       type: object
       properties:
         label: {type: string, x-coralogix-presence: true}
+    # One component in two places that hold its value in different shapes. The single place (choice)
+    # inlines the value: choice = {value, label, remark}. The list (choices) keeps the object:
+    # choices = [{value = {value, label}, note}].
+    Pick:
+      type: object
+      properties:
+        value:
+          allOf: [{$ref: '#/components/schemas/Labelled'}]
+          description: The value, held in an object.
+        note: {type: string, x-coralogix-presence: true}
     ItemExtra:
       type: object
       properties:

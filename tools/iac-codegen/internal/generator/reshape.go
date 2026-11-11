@@ -54,6 +54,9 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 	schemas := mapValue(mapValue(doc, "components"), "schemas")
 	h := inliner{schemas: schemas, fields: inlined, resource: component, file: file, done: map[*yaml.Node]map[string]overrides.Parent{}, relied: map[*yaml.Node][]string{}}
 	shape := &overrides.Inlined{}
+	if report := h.placeClones(); len(report) != 0 {
+		return data, ids, report
+	}
 	var needed []*yaml.Node // the schemas of the resource that an inline line with required: true can be needed in
 	if len(inlined) != 0 {
 		response := mapValue(schemas, component)
@@ -741,7 +744,7 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		for _, component := range slices.Sorted(maps.Keys(objects)) {
 			// A line on C.f inlines f in C, and in a component that only a request holds, the request
 			// counterpart of C. Another component of the response that has the same field keeps it.
-			if name != component && (responses[name] || !requests[name]) {
+			if name != component && !h.isCounterpart(component, responses[name], requests[name]) {
 				continue
 			}
 			var fields []string
@@ -780,13 +783,28 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 	}
 	for _, component := range slices.Sorted(maps.Keys(nested)) {
 		if len(out[component]) == 0 {
-			return nil, issue.Report{inlineIssue(component, "the resource does not hold "+component+", so its inline lines change nothing")}
+			return nil, issue.Report{h.unheldIssue(component)}
 		}
 	}
 	if report := h.unusedNestedRequired(nested, relied); len(report) != 0 {
 		return nil, report
 	}
 	return out, nil
+}
+
+// isCounterpart reports whether a schema that is not component can be its request counterpart: only
+// a request holds it. The copy of a component at a place has none.
+func (h inliner) isCounterpart(component string, inResponse, inRequest bool) bool {
+	return !inResponse && inRequest && !h.file.IsPlaceClone(component)
+}
+
+// unheldIssue reports an inline line, or an at line that inlines, of a component that the resource
+// does not hold.
+func (h inliner) unheldIssue(component string) issue.Issue {
+	if c := h.file.PlaceCloneOf(component); c != nil {
+		return inlineIssue(c.Component, "the resource does not hold "+c.Holder+", so the at line of "+c.Component+" changes nothing")
+	}
+	return inlineIssue(component, "the resource does not hold "+component+", so its inline lines change nothing")
 }
 
 // reachable adds the components that s refers to, directly or through other components, to seen.

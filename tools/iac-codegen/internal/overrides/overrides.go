@@ -71,6 +71,9 @@ type File struct {
 	// Inlined is what the generator derives from the upsert and inline lines. It is not a key of
 	// the file.
 	Inlined *Inlined `yaml:"-"`
+	// PlaceClones is what the generator derives from the at lines that inline a field: the copies of
+	// components that the places hold. It is not a key of the file.
+	PlaceClones []*PlaceClone `yaml:"-"`
 	// Distributed is what the generator derives from the distributeTo lines: the lists that the
 	// resource no longer holds. It is not a key of the file.
 	Distributed []*Distribution `yaml:"-"`
@@ -438,20 +441,59 @@ type Type struct {
 	// the item, unlike one on an attribute inside it, is not an attribute of the item.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
 	// At states lines for the places of this component, for a component that the API uses in
-	// several places and that Terraform names differently by place. The key is the API path of the
-	// holder: the component that holds this one, a dot, and its field, such as `Filter.Source.metrics`.
+	// several places and that Terraform shows differently by place: with another name for a field,
+	// or with an object field inlined. The key is the API path of the holder: the component that
+	// holds this one, a dot, and its field, such as `Filter.Source.metrics`.
 	At map[string]Place `yaml:"at"`
 }
 
-// Place holds the field lines of a component at one place. Only a name is a place line: the model
-// struct of the place has the names, and the other keys do not depend on the place.
+// Place holds the field lines of a component at one place. Only a name and inline are place lines:
+// the model struct of the place has them, and the other keys do not depend on the place.
 type Place struct {
 	Fields map[string]PlaceField `yaml:"fields"`
 }
 
-// PlaceField is the Terraform name of a field at a place.
+// PlaceField is a line of a field at a place: its Terraform name, or inline: true, which shows the
+// fields of its object as attributes of the component at that place only. A field has one of them.
 type PlaceField struct {
-	Name string `yaml:"name"`
+	Name   string `yaml:"name"`
+	Inline bool   `yaml:"inline"`
+}
+
+// PlaceClone is a component at a place where an at line inlines a field. The generator gives the
+// place a copy of the component, so that the inline line does not reach the other places. It is not
+// a key of the file.
+type PlaceClone struct {
+	Component string // the component that the at line is on
+	Holder    string // the API path of the field that holds it: Holder.field
+	Name      string // the name of the copy
+	Fields    map[string]PlaceField
+}
+
+// PlaceCloneOf returns the place that the copy of a component with this name is for, or nil.
+func (f *File) PlaceCloneOf(name string) *PlaceClone {
+	if f == nil {
+		return nil
+	}
+	for _, c := range f.PlaceClones {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
+}
+
+// IsPlaceClone reports whether name is the name of the copy of a component at a place.
+func (f *File) IsPlaceClone(name string) bool { return f.PlaceCloneOf(name) != nil }
+
+// IsInline reports whether the place inlines a field, so that its component needs a copy.
+func (p Place) IsInline() bool {
+	for _, f := range p.Fields {
+		if f.Inline {
+			return true
+		}
+	}
+	return false
 }
 
 // isEmpty reports whether the type line sets nothing.
@@ -1162,8 +1204,15 @@ func (t Type) checkPlaces() error {
 			return fmt.Errorf("at.%s has no fields", place)
 		}
 		for _, field := range sortedKeys(t.At[place].Fields) {
-			if name := t.At[place].Fields[field].Name; !tfNamePattern.MatchString(name) {
-				return fmt.Errorf("at.%s.fields.%s.name %q must be lower case letters, digits, and _", place, field, name)
+			line := t.At[place].Fields[field]
+			switch {
+			case line.Inline && line.Name != "":
+				return fmt.Errorf("at.%s.fields.%s: an inlined field has no attribute of its own, so it takes no name", place, field)
+			case line.Inline:
+			case line.Name == "":
+				return fmt.Errorf("at.%s.fields.%s has no name or inline", place, field)
+			case !tfNamePattern.MatchString(line.Name):
+				return fmt.Errorf("at.%s.fields.%s.name %q must be lower case letters, digits, and _", place, field, line.Name)
 			}
 		}
 	}

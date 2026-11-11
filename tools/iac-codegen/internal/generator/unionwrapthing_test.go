@@ -240,3 +240,53 @@ func TestPlaceLinesAreChecked(t *testing.T) {
 		})
 	}
 }
+
+// An at line that inlines a field gives one place a copy of the component. The generator checks the
+// holder, the field of the holder that holds the component, and the fields that the line names, and
+// refuses a line that the places or the other lines of the file make unclear.
+func TestPlaceInlineIsChecked(t *testing.T) {
+	const extra = "    ItemExtra:\n      type: object\n"
+	tests := map[string]struct {
+		spec, overrides [2]string
+		want            string
+	}{
+		"a holder that the contract does not have": {
+			overrides: [2]string{"UnionItem.choice:", "NoSuchHolder.choice:"}, want: "the contract has no component NoSuchHolder"},
+		"a field that the holder does not have": {
+			overrides: [2]string{"UnionItem.choice:", "UnionItem.nothing:"}, want: "UnionItem has no field nothing"},
+		"a field of the holder that holds another component": {
+			overrides: [2]string{"UnionItem.choice:", "UnionItem.first:"}, want: "the field first of UnionItem does not hold Pick"},
+		"a field that the component does not have": {
+			overrides: [2]string{"value: {inline: true}\n          note:", "nothing: {inline: true}\n          note:"}, want: "Pick has no field nothing"},
+		"a field that is no object": {
+			overrides: [2]string{"note: {name: remark}", "note: {inline: true}"}, want: "note must be a $ref to an object component"},
+		"a holder that the resource does not hold": {
+			spec:      [2]string{extra, "    Orphan:\n      type: object\n      properties:\n        pick: {$ref: '#/components/schemas/Pick'}\n" + extra},
+			overrides: [2]string{"UnionItem.choice:", "Orphan.pick:"}, want: "the resource does not hold Orphan.pick, so the at line of Pick changes nothing"},
+		"the same field inlined in every place by the component": {
+			overrides: [2]string{"  Pick:\n    at:", "  Pick:\n    fields:\n      value: {inline: true}\n    at:"}, want: "the line of Pick inlines the field in every place already"},
+		"a name with inline": {
+			overrides: [2]string{"value: {inline: true}\n          note:", "value: {inline: true, name: other}\n          note:"}, want: "takes no name"},
+		"neither a name nor inline": {
+			overrides: [2]string{"note: {name: remark}", "note: {}"}, want: "has no name or inline"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec, overrides := unionWrapThingInputs(t)
+			if test.spec[0] != "" {
+				spec = replaceOnce(t, spec, test.spec[0], test.spec[1])
+			}
+			dir := t.TempDir()
+			path := filepath.Join(dir, "unionwrapthing-overrides.yaml")
+			if err := os.WriteFile(path, []byte(replaceOnce(t, overrides, test.overrides[0], test.overrides[1])), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = []byte(spec)
+			err := generateFromInput(Options{Resource: "UnionWrapThing", OutputDir: filepath.Join(dir, "out"), OverridesPath: path}, input, loadDir)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

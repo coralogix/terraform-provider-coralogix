@@ -144,6 +144,50 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+						"choice": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"value": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"label": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"remark": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"choices": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"value": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"value": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"label": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+										},
+										MarkdownDescription: "The value, held in an object.",
+									},
+									"note": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+								},
+							},
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",
