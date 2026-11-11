@@ -9,19 +9,20 @@ import (
 )
 
 type DashboardModel struct {
-	TimeFrame   *DashboardTimeFrameModel `tfsdk:"time_frame"`
-	Annotations types.List               `tfsdk:"annotations"`
-	Description types.String             `tfsdk:"description"`
-	AutoRefresh types.Object             `tfsdk:"auto_refresh"`
-	Filters     types.List               `tfsdk:"filters"`
-	FolderId    types.String             `tfsdk:"folder_id"`
-	FolderPath  *FolderPathModel         `tfsdk:"folder_path"`
-	Id          types.String             `tfsdk:"id"`
-	Layout      *LayoutModel             `tfsdk:"layout"`
-	Name        types.String             `tfsdk:"name"`
-	SlugName    types.String             `tfsdk:"slug_name"`
-	Variables   types.List               `tfsdk:"variables"`
-	VariablesV2 types.List               `tfsdk:"variables_v2"`
+	TimeFrame    *DashboardTimeFrameModel `tfsdk:"time_frame"`
+	Annotations  types.List               `tfsdk:"annotations"`
+	Description  types.String             `tfsdk:"description"`
+	AutoRefresh  types.Object             `tfsdk:"auto_refresh"`
+	Filters      types.List               `tfsdk:"filters"`
+	Folder       *DashboardFolderModel    `tfsdk:"folder"`
+	Id           types.String             `tfsdk:"id"`
+	Layout       *LayoutModel             `tfsdk:"layout"`
+	Name         types.String             `tfsdk:"name"`
+	SlugName     types.String             `tfsdk:"slug_name"`
+	Variables    types.List               `tfsdk:"variables"`
+	VariablesV2  types.List               `tfsdk:"variables_v2"`
+	AccessPolicy types.String             `tfsdk:"access_policy"`
+	ContentJson  types.String             `tfsdk:"content_json"`
 }
 
 type TimeFrameModel struct {
@@ -90,11 +91,11 @@ type RecurrenceModel struct {
 
 type EventRecurrenceSourceStrategyDurationModel struct {
 	Duration      types.String `tfsdk:"duration"`
-	StartTimeHour types.Int32  `tfsdk:"start_time_hour"`
+	StartTimeHour types.Int64  `tfsdk:"start_time_hour"`
 }
 
 type EventRecurrenceSourceStrategyInstantModel struct {
-	StartTimeHour types.Int32 `tfsdk:"start_time_hour"`
+	StartTimeHour types.Int64 `tfsdk:"start_time_hour"`
 }
 
 type EventRecurrenceSourceStrategyModel struct {
@@ -161,13 +162,13 @@ type ManualSourceModel struct {
 }
 
 type AutoIntervalResolutionModel struct {
-	MaximumDataPoints types.Int32  `tfsdk:"maximum_data_points"`
+	MaximumDataPoints types.Int64  `tfsdk:"maximum_data_points"`
 	MinimumInterval   types.String `tfsdk:"minimum_interval"`
 }
 
 type ManualIntervalResolutionModel struct {
 	Interval          types.String `tfsdk:"interval"`
-	MaximumDataPoints types.Int32  `tfsdk:"maximum_data_points"`
+	MaximumDataPoints types.Int64  `tfsdk:"maximum_data_points"`
 	MinimumInterval   types.String `tfsdk:"minimum_interval"`
 }
 
@@ -332,8 +333,9 @@ type FiltersFilterModel struct {
 	Source      *FilterSourceModel      `tfsdk:"source"`
 }
 
-type FolderPathModel struct {
-	Segments types.List `tfsdk:"segments"`
+type DashboardFolderModel struct {
+	FolderId   types.String `tfsdk:"id"`
+	FolderPath types.String `tfsdk:"path"`
 }
 
 type RepetitiveVarModel struct {
@@ -350,29 +352,6 @@ type SectionOptionsModel struct {
 	Name          types.String                 `tfsdk:"name"`
 	RepetitiveVar *RepetitiveVarModel          `tfsdk:"repetitive_var"`
 	Internal      *InternalSectionOptionsModel `tfsdk:"internal"`
-}
-
-type ColorsByAggregationModel struct {
-}
-
-type ColorsByCategoryModel struct {
-}
-
-type ColorsByGroupByModel struct {
-}
-
-type ColorsByQueryModel struct {
-}
-
-type ColorsByStackModel struct {
-}
-
-type ColorsByModel struct {
-	Aggregation *ColorsByAggregationModel `tfsdk:"aggregation"`
-	Category    *ColorsByCategoryModel    `tfsdk:"category"`
-	GroupBy     *ColorsByGroupByModel     `tfsdk:"group_by"`
-	Query       *ColorsByQueryModel       `tfsdk:"query"`
-	Stack       *ColorsByStackModel       `tfsdk:"stack"`
 }
 
 type LegendModel struct {
@@ -448,7 +427,7 @@ type BarChartLogsQueryModel struct {
 	TimeFrame             *TimeFrameSelectModel  `tfsdk:"time_frame"`
 }
 
-type MetricsFilterModel struct {
+type MetricsFilterAtBarChartMetricsQueryFiltersModel struct {
 	Label    types.String         `tfsdk:"label"`
 	Metric   types.String         `tfsdk:"metric"`
 	Operator *FilterOperatorModel `tfsdk:"operator"`
@@ -500,12 +479,12 @@ type BarChartQueryModel struct {
 }
 
 type BarChartStackDefinitionModel struct {
-	MaxSlicesPerBar   types.Int32  `tfsdk:"max_slices_per_bar"`
+	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
 	StackNameTemplate types.String `tfsdk:"stack_name_template"`
 }
 
 type XAxisByTimeModel struct {
-	BucketsPresented types.Int32  `tfsdk:"buckets_presented"`
+	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
 	Interval         types.String `tfsdk:"interval"`
 }
 
@@ -521,15 +500,15 @@ type XAxisModel struct {
 type BarChartModel struct {
 	BarValueDisplay   types.String                  `tfsdk:"bar_value_display"`
 	ColorScheme       types.String                  `tfsdk:"color_scheme"`
-	ColorsBy          *ColorsByModel                `tfsdk:"colors_by"`
+	ColorsBy          types.String                  `tfsdk:"colors_by"`
 	CustomUnit        types.String                  `tfsdk:"custom_unit"`
 	DataModeType      types.String                  `tfsdk:"data_mode_type"`
-	Decimal           types.Int32                   `tfsdk:"decimal"`
+	Decimal           types.Number                  `tfsdk:"decimal"`
 	DecimalPrecision  types.Bool                    `tfsdk:"decimal_precision"`
 	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
 	HashColors        types.Bool                    `tfsdk:"hash_colors"`
 	Legend            *LegendModel                  `tfsdk:"legend"`
-	MaxBarsPerChart   types.Int32                   `tfsdk:"max_bars_per_chart"`
+	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
 	Query             *BarChartQueryModel           `tfsdk:"query"`
 	ScaleType         types.String                  `tfsdk:"scale_type"`
 	SortBy            types.String                  `tfsdk:"sort_by"`
@@ -537,13 +516,13 @@ type BarChartModel struct {
 	Unit              types.String                  `tfsdk:"unit"`
 	XAxis             *XAxisModel                   `tfsdk:"xaxis"`
 	XAxisTimeFormat   types.String                  `tfsdk:"x_axis_time_format"`
-	YAxisMax          types.Float32                 `tfsdk:"y_axis_max"`
-	YAxisMin          types.Float32                 `tfsdk:"y_axis_min"`
+	YAxisMax          types.Float64                 `tfsdk:"y_axis_max"`
+	YAxisMin          types.Float64                 `tfsdk:"y_axis_min"`
 }
 
 type DataTableColumnModel struct {
 	Field types.String `tfsdk:"field"`
-	Width types.Int32  `tfsdk:"width"`
+	Width types.Int64  `tfsdk:"width"`
 }
 
 type OrderingFieldModel struct {
@@ -575,6 +554,12 @@ type DataTableLogsQueryModel struct {
 	Grouping    *LogsQueryGroupingModel `tfsdk:"grouping"`
 	LuceneQuery types.String            `tfsdk:"lucene_query"`
 	TimeFrame   *TimeFrameSelectModel   `tfsdk:"time_frame"`
+}
+
+type MetricsFilterAtDataTableMetricsQueryFiltersModel struct {
+	Label    types.String         `tfsdk:"label"`
+	Metric   types.String         `tfsdk:"metric"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
 }
 
 type DataTableMetricsQueryModel struct {
@@ -617,7 +602,7 @@ type DataTableModel struct {
 	DataModeType   types.String         `tfsdk:"data_mode_type"`
 	OrderBy        *OrderingFieldModel  `tfsdk:"order_by"`
 	Query          *DataTableQueryModel `tfsdk:"query"`
-	ResultsPerPage types.Int32          `tfsdk:"results_per_page"`
+	ResultsPerPage types.Int64          `tfsdk:"results_per_page"`
 	RowStyle       types.String         `tfsdk:"row_style"`
 }
 
@@ -678,7 +663,7 @@ type VisualizationGaugeModel struct {
 	ArcDisplay        *ArcDisplayModel       `tfsdk:"arc_display"`
 	CategoryFields    types.List             `tfsdk:"category_fields"`
 	CustomUnit        types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64            `tfsdk:"decimal_precision"`
 	DisplaySeriesName types.Bool             `tfsdk:"display_series_name"`
 	Legend            *LegendModel           `tfsdk:"legend"`
 	LegendBy          types.String           `tfsdk:"legend_by"`
@@ -698,12 +683,9 @@ type GeomapAggregationFieldBasedModel struct {
 	Field *ObservationFieldModel `tfsdk:"field"`
 }
 
-type GeomapAggregationSimpleModel struct {
-}
-
 type GeomapAggregationModel struct {
 	Avg   *GeomapAggregationFieldBasedModel `tfsdk:"avg"`
-	Count *GeomapAggregationSimpleModel     `tfsdk:"count"`
+	Count types.Bool                        `tfsdk:"count"`
 	Max   *GeomapAggregationFieldBasedModel `tfsdk:"max"`
 	Min   *GeomapAggregationFieldBasedModel `tfsdk:"min"`
 	Sum   *GeomapAggregationFieldBasedModel `tfsdk:"sum"`
@@ -738,16 +720,13 @@ type GeomapFieldConfigModel struct {
 	IbmRegionConfig  *GeomapIbmRegionConfigModel  `tfsdk:"ibm_region_config"`
 }
 
-type MinMaxAutoModel struct {
-}
-
 type MinMaxCustomModel struct {
 	Max types.Float64 `tfsdk:"max"`
 	Min types.Float64 `tfsdk:"min"`
 }
 
 type MinMaxModel struct {
-	Auto   *MinMaxAutoModel   `tfsdk:"auto"`
+	Auto   types.Bool         `tfsdk:"auto"`
 	Custom *MinMaxCustomModel `tfsdk:"custom"`
 }
 
@@ -762,7 +741,7 @@ type GeomapModel struct {
 	Color             *GeomapColorModel       `tfsdk:"color"`
 	Config            *GeomapFieldConfigModel `tfsdk:"config"`
 	CustomUnit        types.String            `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32             `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64             `tfsdk:"decimal_precision"`
 	MinMax            *MinMaxModel            `tfsdk:"min_max"`
 	Tooltip           *GeomapTooltipModel     `tfsdk:"tooltip"`
 	Unit              types.String            `tfsdk:"unit"`
@@ -775,11 +754,11 @@ type HeatmapTooltipModel struct {
 
 type HeatmapModel struct {
 	AllowAbbreviation   types.Bool             `tfsdk:"allow_abbreviation"`
-	ColorAxisMax        types.Float32          `tfsdk:"color_axis_max"`
-	ColorAxisMin        types.Float32          `tfsdk:"color_axis_min"`
+	ColorAxisMax        types.Float64          `tfsdk:"color_axis_max"`
+	ColorAxisMin        types.Float64          `tfsdk:"color_axis_min"`
 	ColorRange          types.String           `tfsdk:"color_range"`
 	CustomUnit          types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision    types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision    types.Int64            `tfsdk:"decimal_precision"`
 	HistogramBucketUnit types.String           `tfsdk:"histogram_bucket_unit"`
 	Preset              types.String           `tfsdk:"preset"`
 	ScaleType           types.String           `tfsdk:"scale_type"`
@@ -796,7 +775,7 @@ type HexagonBinsModel struct {
 	AllowAbbreviation types.Bool             `tfsdk:"allow_abbreviation"`
 	CategoryFields    types.List             `tfsdk:"category_fields"`
 	CustomUnit        types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64            `tfsdk:"decimal_precision"`
 	Legend            *LegendModel           `tfsdk:"legend"`
 	LegendBy          types.String           `tfsdk:"legend_by"`
 	Max               types.Float64          `tfsdk:"max"`
@@ -811,23 +790,23 @@ type HorizontalBarsModel struct {
 	AllowAbbreviation types.Bool             `tfsdk:"allow_abbreviation"`
 	CategoryFields    types.List             `tfsdk:"category_fields"`
 	ColorScheme       types.String           `tfsdk:"color_scheme"`
-	ColorsBy          *ColorsByModel         `tfsdk:"colors_by"`
+	ColorsBy          types.String           `tfsdk:"colors_by"`
 	CustomUnit        types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64            `tfsdk:"decimal_precision"`
 	DisplayOnBar      types.Bool             `tfsdk:"display_on_bar"`
 	GroupNameTemplate types.String           `tfsdk:"group_name_template"`
 	HashColors        types.Bool             `tfsdk:"hash_colors"`
 	Legend            *LegendModel           `tfsdk:"legend"`
-	MaxBarsPerChart   types.Int32            `tfsdk:"max_bars_per_chart"`
-	MaxSlicesPerBar   types.Int32            `tfsdk:"max_slices_per_bar"`
+	MaxBarsPerChart   types.Int64            `tfsdk:"max_bars_per_chart"`
+	MaxSlicesPerBar   types.Int64            `tfsdk:"max_slices_per_bar"`
 	ScaleType         types.String           `tfsdk:"scale_type"`
 	SortBy            types.String           `tfsdk:"sort_by"`
 	StackNameTemplate types.String           `tfsdk:"stack_name_template"`
 	SubCategoryFields types.List             `tfsdk:"sub_category_fields"`
 	Unit              types.String           `tfsdk:"unit"`
 	ValueField        *ObservationFieldModel `tfsdk:"value_field"`
-	YAxisMax          types.Float32          `tfsdk:"y_axis_max"`
-	YAxisMin          types.Float32          `tfsdk:"y_axis_min"`
+	YAxisMax          types.Float64          `tfsdk:"y_axis_max"`
+	YAxisMin          types.Float64          `tfsdk:"y_axis_min"`
 	YAxisViewBy       types.String           `tfsdk:"y_axis_view_by"`
 }
 
@@ -836,15 +815,12 @@ type HorizontalBarsMultiQueryFieldSettingsModel struct {
 	ValueField *ObservationFieldModel `tfsdk:"value_field"`
 }
 
-type SortByCategoryModel struct {
-}
-
 type SortByQueryValueModel struct {
 	QueryId types.String `tfsdk:"query_id"`
 }
 
 type SortStrategyModel struct {
-	Category     *SortByCategoryModel   `tfsdk:"category"`
+	Category     types.Bool             `tfsdk:"category"`
 	QueryValue   *SortByQueryValueModel `tfsdk:"query_value"`
 	StrategyType types.String           `tfsdk:"strategy_type"`
 }
@@ -858,20 +834,20 @@ type HorizontalBarsMultiModel struct {
 	AllowAbbreviation  types.Bool                   `tfsdk:"allow_abbreviation"`
 	CategoryFields     types.List                   `tfsdk:"category_fields"`
 	ColorScheme        types.String                 `tfsdk:"color_scheme"`
-	ColorsBy           *ColorsByModel               `tfsdk:"colors_by"`
+	ColorsBy           types.String                 `tfsdk:"colors_by"`
 	CustomUnit         types.String                 `tfsdk:"custom_unit"`
-	DecimalPrecision   types.Int32                  `tfsdk:"decimal_precision"`
+	DecimalPrecision   types.Int64                  `tfsdk:"decimal_precision"`
 	DisplayOnBar       types.Bool                   `tfsdk:"display_on_bar"`
 	GroupNameTemplate  types.String                 `tfsdk:"group_name_template"`
 	HashColors         types.Bool                   `tfsdk:"hash_colors"`
 	Legend             *LegendModel                 `tfsdk:"legend"`
-	MaxBarsPerChart    types.Int32                  `tfsdk:"max_bars_per_chart"`
+	MaxBarsPerChart    types.Int64                  `tfsdk:"max_bars_per_chart"`
 	QueryFieldSettings types.List                   `tfsdk:"query_field_settings"`
 	ScaleType          types.String                 `tfsdk:"scale_type"`
 	SortOrder          *VisualizationSortOrderModel `tfsdk:"sort_order"`
 	Unit               types.String                 `tfsdk:"unit"`
-	YAxisMax           types.Float32                `tfsdk:"y_axis_max"`
-	YAxisMin           types.Float32                `tfsdk:"y_axis_min"`
+	YAxisMax           types.Float64                `tfsdk:"y_axis_max"`
+	YAxisMin           types.Float64                `tfsdk:"y_axis_min"`
 	YAxisViewBy        types.String                 `tfsdk:"y_axis_view_by"`
 }
 
@@ -888,14 +864,14 @@ type VisualizationPieChartModel struct {
 	CategoryFields     types.List                                 `tfsdk:"category_fields"`
 	ColorScheme        types.String                               `tfsdk:"color_scheme"`
 	CustomUnit         types.String                               `tfsdk:"custom_unit"`
-	DecimalPrecision   types.Int32                                `tfsdk:"decimal_precision"`
+	DecimalPrecision   types.Int64                                `tfsdk:"decimal_precision"`
 	GroupNameTemplate  types.String                               `tfsdk:"group_name_template"`
 	HashColors         types.Bool                                 `tfsdk:"hash_colors"`
 	LabelDefinition    *VisualizationPieChartLabelDefinitionModel `tfsdk:"label_definition"`
 	Legend             *LegendModel                               `tfsdk:"legend"`
-	MaxSlicesPerChart  types.Int32                                `tfsdk:"max_slices_per_chart"`
-	MaxSlicesPerStack  types.Int32                                `tfsdk:"max_slices_per_stack"`
-	MinSlicePercentage types.Int32                                `tfsdk:"min_slice_percentage"`
+	MaxSlicesPerChart  types.Int64                                `tfsdk:"max_slices_per_chart"`
+	MaxSlicesPerStack  types.Int64                                `tfsdk:"max_slices_per_stack"`
+	MinSlicePercentage types.Int64                                `tfsdk:"min_slice_percentage"`
 	ShowTotal          types.Bool                                 `tfsdk:"show_total"`
 	StackNameTemplate  types.String                               `tfsdk:"stack_name_template"`
 	SubCategoryFields  types.List                                 `tfsdk:"sub_category_fields"`
@@ -907,7 +883,7 @@ type StatModel struct {
 	AllowAbbreviation types.Bool             `tfsdk:"allow_abbreviation"`
 	CategoryFields    types.List             `tfsdk:"category_fields"`
 	CustomUnit        types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64            `tfsdk:"decimal_precision"`
 	DisplaySeriesName types.Bool             `tfsdk:"display_series_name"`
 	Legend            *LegendModel           `tfsdk:"legend"`
 	LegendBy          types.String           `tfsdk:"legend_by"`
@@ -948,16 +924,13 @@ type ColorLabelMappingModel struct {
 	Value   *ColorLabelMappingValueMappingModel `tfsdk:"value"`
 }
 
-type MappedValuesModel struct {
-}
-
 type DisplayNameTemplateVariableModel struct {
-	MappedValues     *MappedValuesModel     `tfsdk:"mapped_values"`
+	MappedValues     types.Bool             `tfsdk:"mapped_values"`
 	ObservationField *ObservationFieldModel `tfsdk:"observation_field"`
 }
 
 type StatVisualElementModel struct {
-	MappedValues      *MappedValuesModel     `tfsdk:"mapped_values"`
+	MappedValues      types.Bool             `tfsdk:"mapped_values"`
 	ObservationField  *ObservationFieldModel `tfsdk:"observation_field"`
 	TemplateText      types.String           `tfsdk:"template_text"`
 	TemplateVariables types.List             `tfsdk:"template_variables"`
@@ -968,7 +941,7 @@ type StatCardModel struct {
 	CategoryFields    types.List              `tfsdk:"category_fields"`
 	ColorLabelMapping *ColorLabelMappingModel `tfsdk:"color_label_mapping"`
 	CustomUnit        types.String            `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32             `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64             `tfsdk:"decimal_precision"`
 	Label             *StatVisualElementModel `tfsdk:"label"`
 	Legend            *LegendModel            `tfsdk:"legend"`
 	LegendBy          types.String            `tfsdk:"legend_by"`
@@ -978,8 +951,13 @@ type StatCardModel struct {
 	ValueFields       types.List              `tfsdk:"value_fields"`
 }
 
+type ObservationFieldAtTableColumnFieldModel struct {
+	Keypath types.List   `tfsdk:"keypath"`
+	Scope   types.String `tfsdk:"scope"`
+}
+
 type TableColumnModel struct {
-	Field *ObservationFieldModel `tfsdk:"field"`
+	Field *ObservationFieldAtTableColumnFieldModel `tfsdk:"field"`
 }
 
 type LinkActionModel struct {
@@ -1003,7 +981,7 @@ type PropertyThresholdsModel struct {
 type PropertyUnitsModel struct {
 	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
 	CustomUnit        types.String  `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32   `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
 	Max               types.Float64 `tfsdk:"max"`
 	Min               types.Float64 `tfsdk:"min"`
 	Unit              types.String  `tfsdk:"unit"`
@@ -1035,10 +1013,15 @@ type PropertyModel struct {
 	Id         types.String             `tfsdk:"id"`
 }
 
+type ObservationFieldAtRuleScopeFieldModel struct {
+	Keypath types.List   `tfsdk:"keypath"`
+	Scope   types.String `tfsdk:"scope"`
+}
+
 type RuleScopeModel struct {
-	Field     *ObservationFieldModel `tfsdk:"field"`
-	FieldType types.String           `tfsdk:"field_type"`
-	Regex     types.String           `tfsdk:"regex"`
+	Field     *ObservationFieldAtRuleScopeFieldModel `tfsdk:"field"`
+	FieldType types.String                           `tfsdk:"field_type"`
+	Regex     types.String                           `tfsdk:"regex"`
 }
 
 type TableRuleModel struct {
@@ -1051,7 +1034,7 @@ type TableRuleModel struct {
 
 type ColumnWidthEntryModel struct {
 	ColumnName types.String `tfsdk:"column_name"`
-	Width      types.Int32  `tfsdk:"width"`
+	Width      types.Int64  `tfsdk:"width"`
 }
 
 type TableSettingsModel struct {
@@ -1076,10 +1059,10 @@ type TimeSeriesBarsModel struct {
 	CategoryFields     types.List              `tfsdk:"category_fields"`
 	ColorScheme        types.String            `tfsdk:"color_scheme"`
 	CustomUnit         types.String            `tfsdk:"custom_unit"`
-	DecimalPrecision   types.Int32             `tfsdk:"decimal_precision"`
+	DecimalPrecision   types.Int64             `tfsdk:"decimal_precision"`
 	HashColors         types.Bool              `tfsdk:"hash_colors"`
 	Legend             *LegendModel            `tfsdk:"legend"`
-	MaxSlicesPerBar    types.Int32             `tfsdk:"max_slices_per_bar"`
+	MaxSlicesPerBar    types.Int64             `tfsdk:"max_slices_per_bar"`
 	ScaleType          types.String            `tfsdk:"scale_type"`
 	SeriesNameTemplate types.String            `tfsdk:"series_name_template"`
 	SortBy             types.String            `tfsdk:"sort_by"`
@@ -1088,8 +1071,8 @@ type TimeSeriesBarsModel struct {
 	Unit               types.String            `tfsdk:"unit"`
 	ValueFields        types.List              `tfsdk:"value_fields"`
 	XAxisTimeFormat    types.String            `tfsdk:"x_axis_time_format"`
-	YAxisMax           types.Float32           `tfsdk:"y_axis_max"`
-	YAxisMin           types.Float32           `tfsdk:"y_axis_min"`
+	YAxisMax           types.Float64           `tfsdk:"y_axis_max"`
+	YAxisMin           types.Float64           `tfsdk:"y_axis_min"`
 }
 
 type TimeSeriesLinesModel struct {
@@ -1098,11 +1081,11 @@ type TimeSeriesLinesModel struct {
 	ColorScheme        types.String            `tfsdk:"color_scheme"`
 	ConnectNulls       types.Bool              `tfsdk:"connect_nulls"`
 	CustomUnit         types.String            `tfsdk:"custom_unit"`
-	DecimalPrecision   types.Int32             `tfsdk:"decimal_precision"`
+	DecimalPrecision   types.Int64             `tfsdk:"decimal_precision"`
 	HashColors         types.Bool              `tfsdk:"hash_colors"`
 	Legend             *LegendModel            `tfsdk:"legend"`
 	ScaleType          types.String            `tfsdk:"scale_type"`
-	SeriesCountLimit   types.String            `tfsdk:"series_count_limit"`
+	SeriesCountLimit   types.Int64             `tfsdk:"series_count_limit"`
 	SeriesNameTemplate types.String            `tfsdk:"series_name_template"`
 	StackedLine        types.String            `tfsdk:"stacked_line"`
 	TemporalField      *ObservationFieldModel  `tfsdk:"temporal_field"`
@@ -1111,8 +1094,8 @@ type TimeSeriesLinesModel struct {
 	UseDataTimeRange   types.Bool              `tfsdk:"use_data_time_range"`
 	ValueFields        types.List              `tfsdk:"value_fields"`
 	XAxisTimeFormat    types.String            `tfsdk:"x_axis_time_format"`
-	YAxisMax           types.Float32           `tfsdk:"y_axis_max"`
-	YAxisMin           types.Float32           `tfsdk:"y_axis_min"`
+	YAxisMax           types.Float64           `tfsdk:"y_axis_max"`
+	YAxisMin           types.Float64           `tfsdk:"y_axis_min"`
 }
 
 type QueryDisplaySettingsModel struct {
@@ -1120,17 +1103,17 @@ type QueryDisplaySettingsModel struct {
 	CategoryFields     types.List             `tfsdk:"category_fields"`
 	ColorScheme        types.String           `tfsdk:"color_scheme"`
 	CustomUnit         types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision   types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision   types.Int64            `tfsdk:"decimal_precision"`
 	HashColors         types.Bool             `tfsdk:"hash_colors"`
 	QueryId            types.String           `tfsdk:"query_id"`
 	ScaleType          types.String           `tfsdk:"scale_type"`
-	SeriesCountLimit   types.String           `tfsdk:"series_count_limit"`
+	SeriesCountLimit   types.Int64            `tfsdk:"series_count_limit"`
 	SeriesNameTemplate types.String           `tfsdk:"series_name_template"`
 	TemporalField      *ObservationFieldModel `tfsdk:"temporal_field"`
 	Unit               types.String           `tfsdk:"unit"`
 	ValueFields        types.List             `tfsdk:"value_fields"`
-	YAxisMax           types.Float32          `tfsdk:"y_axis_max"`
-	YAxisMin           types.Float32          `tfsdk:"y_axis_min"`
+	YAxisMax           types.Float64          `tfsdk:"y_axis_max"`
+	YAxisMin           types.Float64          `tfsdk:"y_axis_min"`
 }
 
 type TimeSeriesLinesMultiModel struct {
@@ -1148,22 +1131,22 @@ type VerticalBarsModel struct {
 	BarValueDisplay   types.String           `tfsdk:"bar_value_display"`
 	CategoryFields    types.List             `tfsdk:"category_fields"`
 	ColorScheme       types.String           `tfsdk:"color_scheme"`
-	ColorsBy          *ColorsByModel         `tfsdk:"colors_by"`
+	ColorsBy          types.String           `tfsdk:"colors_by"`
 	CustomUnit        types.String           `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int32            `tfsdk:"decimal_precision"`
+	DecimalPrecision  types.Int64            `tfsdk:"decimal_precision"`
 	GroupNameTemplate types.String           `tfsdk:"group_name_template"`
 	HashColors        types.Bool             `tfsdk:"hash_colors"`
 	Legend            *LegendModel           `tfsdk:"legend"`
-	MaxBarsPerChart   types.Int32            `tfsdk:"max_bars_per_chart"`
-	MaxSlicesPerBar   types.Int32            `tfsdk:"max_slices_per_bar"`
+	MaxBarsPerChart   types.Int64            `tfsdk:"max_bars_per_chart"`
+	MaxSlicesPerBar   types.Int64            `tfsdk:"max_slices_per_bar"`
 	ScaleType         types.String           `tfsdk:"scale_type"`
 	SortBy            types.String           `tfsdk:"sort_by"`
 	StackNameTemplate types.String           `tfsdk:"stack_name_template"`
 	SubCategoryFields types.List             `tfsdk:"sub_category_fields"`
 	Unit              types.String           `tfsdk:"unit"`
 	ValueField        *ObservationFieldModel `tfsdk:"value_field"`
-	YAxisMax          types.Float32          `tfsdk:"y_axis_max"`
-	YAxisMin          types.Float32          `tfsdk:"y_axis_min"`
+	YAxisMax          types.Float64          `tfsdk:"y_axis_max"`
+	YAxisMin          types.Float64          `tfsdk:"y_axis_min"`
 }
 
 type VerticalBarsMultiQueryFieldSettingsModel struct {
@@ -1176,19 +1159,19 @@ type VerticalBarsMultiModel struct {
 	BarValueDisplay    types.String                 `tfsdk:"bar_value_display"`
 	CategoryFields     types.List                   `tfsdk:"category_fields"`
 	ColorScheme        types.String                 `tfsdk:"color_scheme"`
-	ColorsBy           *ColorsByModel               `tfsdk:"colors_by"`
+	ColorsBy           types.String                 `tfsdk:"colors_by"`
 	CustomUnit         types.String                 `tfsdk:"custom_unit"`
-	DecimalPrecision   types.Int32                  `tfsdk:"decimal_precision"`
+	DecimalPrecision   types.Int64                  `tfsdk:"decimal_precision"`
 	GroupNameTemplate  types.String                 `tfsdk:"group_name_template"`
 	HashColors         types.Bool                   `tfsdk:"hash_colors"`
 	Legend             *LegendModel                 `tfsdk:"legend"`
-	MaxBarsPerChart    types.Int32                  `tfsdk:"max_bars_per_chart"`
+	MaxBarsPerChart    types.Int64                  `tfsdk:"max_bars_per_chart"`
 	QueryFieldSettings types.List                   `tfsdk:"query_field_settings"`
 	ScaleType          types.String                 `tfsdk:"scale_type"`
 	SortOrder          *VisualizationSortOrderModel `tfsdk:"sort_order"`
 	Unit               types.String                 `tfsdk:"unit"`
-	YAxisMax           types.Float32                `tfsdk:"y_axis_max"`
-	YAxisMin           types.Float32                `tfsdk:"y_axis_min"`
+	YAxisMax           types.Float64                `tfsdk:"y_axis_max"`
+	YAxisMin           types.Float64                `tfsdk:"y_axis_min"`
 }
 
 type VisualizationModel struct {
@@ -1230,6 +1213,12 @@ type GaugeLogsQueryModel struct {
 	TimeFrame       *TimeFrameSelectModel `tfsdk:"time_frame"`
 }
 
+type MetricsFilterAtGaugeMetricsQueryFiltersModel struct {
+	Label    types.String         `tfsdk:"label"`
+	Metric   types.String         `tfsdk:"metric"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
 type GaugeMetricsQueryModel struct {
 	Aggregation     types.String          `tfsdk:"aggregation"`
 	EditorMode      types.String          `tfsdk:"editor_mode"`
@@ -1265,7 +1254,7 @@ type WidgetsGaugeModel struct {
 	ArcDisplay        *ArcDisplayModel `tfsdk:"arc_display"`
 	CustomUnit        types.String     `tfsdk:"custom_unit"`
 	DataModeType      types.String     `tfsdk:"data_mode_type"`
-	Decimal           types.Int32      `tfsdk:"decimal"`
+	Decimal           types.Number     `tfsdk:"decimal"`
 	DecimalPrecision  types.Bool       `tfsdk:"decimal_precision"`
 	DisplaySeriesName types.Bool       `tfsdk:"display_series_name"`
 	Legend            *LegendModel     `tfsdk:"legend"`
@@ -1296,6 +1285,12 @@ type HexagonLogsQueryModel struct {
 	TimeFrame       *TimeFrameSelectModel `tfsdk:"time_frame"`
 }
 
+type MetricsFilterAtHexagonMetricsQueryFiltersModel struct {
+	Label    types.String         `tfsdk:"label"`
+	Metric   types.String         `tfsdk:"metric"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
 type HexagonMetricsQueryModel struct {
 	Aggregation     types.String          `tfsdk:"aggregation"`
 	EditorMode      types.String          `tfsdk:"editor_mode"`
@@ -1321,18 +1316,24 @@ type HexagonQueryModel struct {
 	Spans     *HexagonSpansQueryModel     `tfsdk:"spans"`
 }
 
+type CommonThresholdAtHexagonThresholdsModel struct {
+	Color types.String `tfsdk:"color"`
+	From  types.Number `tfsdk:"from"`
+	Label types.String `tfsdk:"label"`
+}
+
 type HexagonModel struct {
 	CustomUnit       types.String       `tfsdk:"custom_unit"`
 	DataModeType     types.String       `tfsdk:"data_mode_type"`
-	Decimal          types.Int32        `tfsdk:"decimal"`
+	Decimal          types.Number       `tfsdk:"decimal"`
 	DecimalPrecision types.Bool         `tfsdk:"decimal_precision"`
 	Legend           *LegendModel       `tfsdk:"legend"`
 	LegendBy         types.String       `tfsdk:"legend_by"`
-	Max              types.Float64      `tfsdk:"max"`
-	Min              types.Float64      `tfsdk:"min"`
+	Max              types.Number       `tfsdk:"max"`
+	Min              types.Number       `tfsdk:"min"`
 	Query            *HexagonQueryModel `tfsdk:"query"`
 	ThresholdType    types.String       `tfsdk:"threshold_type"`
-	Thresholds       types.List         `tfsdk:"thresholds"`
+	Thresholds       types.Set          `tfsdk:"thresholds"`
 	Unit             types.String       `tfsdk:"unit"`
 }
 
@@ -1353,6 +1354,12 @@ type HorizontalBarChartLogsQueryModel struct {
 	StackedGroupName      types.String           `tfsdk:"stacked_group_name"`
 	StackedGroupNameField *ObservationFieldModel `tfsdk:"stacked_group_name_field"`
 	TimeFrame             *TimeFrameSelectModel  `tfsdk:"time_frame"`
+}
+
+type MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel struct {
+	Label    types.String         `tfsdk:"label"`
+	Metric   types.String         `tfsdk:"metric"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
 }
 
 type HorizontalBarChartMetricsQueryModel struct {
@@ -1385,41 +1392,30 @@ type HorizontalBarChartQueryModel struct {
 }
 
 type HorizontalBarChartStackDefinitionModel struct {
-	MaxSlicesPerBar   types.Int32  `tfsdk:"max_slices_per_bar"`
+	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
 	StackNameTemplate types.String `tfsdk:"stack_name_template"`
-}
-
-type YAxisViewByCategoryModel struct {
-}
-
-type YAxisViewByValueModel struct {
-}
-
-type HorizontalBarChartYAxisViewByModel struct {
-	Category *YAxisViewByCategoryModel `tfsdk:"category"`
-	Value    *YAxisViewByValueModel    `tfsdk:"value"`
 }
 
 type HorizontalBarChartModel struct {
 	ColorScheme       types.String                            `tfsdk:"color_scheme"`
-	ColorsBy          *ColorsByModel                          `tfsdk:"colors_by"`
+	ColorsBy          types.String                            `tfsdk:"colors_by"`
 	CustomUnit        types.String                            `tfsdk:"custom_unit"`
 	DataModeType      types.String                            `tfsdk:"data_mode_type"`
-	Decimal           types.Int32                             `tfsdk:"decimal"`
+	Decimal           types.Number                            `tfsdk:"decimal"`
 	DecimalPrecision  types.Bool                              `tfsdk:"decimal_precision"`
 	DisplayOnBar      types.Bool                              `tfsdk:"display_on_bar"`
 	GroupNameTemplate types.String                            `tfsdk:"group_name_template"`
 	HashColors        types.Bool                              `tfsdk:"hash_colors"`
 	Legend            *LegendModel                            `tfsdk:"legend"`
-	MaxBarsPerChart   types.Int32                             `tfsdk:"max_bars_per_chart"`
+	MaxBarsPerChart   types.Int64                             `tfsdk:"max_bars_per_chart"`
 	Query             *HorizontalBarChartQueryModel           `tfsdk:"query"`
 	ScaleType         types.String                            `tfsdk:"scale_type"`
 	SortBy            types.String                            `tfsdk:"sort_by"`
 	StackDefinition   *HorizontalBarChartStackDefinitionModel `tfsdk:"stack_definition"`
 	Unit              types.String                            `tfsdk:"unit"`
-	YAxisMax          types.Float32                           `tfsdk:"y_axis_max"`
-	YAxisMin          types.Float32                           `tfsdk:"y_axis_min"`
-	YAxisViewBy       *HorizontalBarChartYAxisViewByModel     `tfsdk:"y_axis_view_by"`
+	YAxisMax          types.Float64                           `tfsdk:"y_axis_max"`
+	YAxisMin          types.Float64                           `tfsdk:"y_axis_min"`
+	YAxisViewBy       types.String                            `tfsdk:"y_axis_view_by"`
 }
 
 type LineChartDataprimeQueryModel struct {
@@ -1435,6 +1431,12 @@ type LineChartLogsQueryModel struct {
 	GroupBys     types.List            `tfsdk:"group_bys"`
 	LuceneQuery  types.String          `tfsdk:"lucene_query"`
 	TimeFrame    *TimeFrameSelectModel `tfsdk:"time_frame"`
+}
+
+type MetricsFilterAtLineChartMetricsQueryFiltersModel struct {
+	Label    types.String         `tfsdk:"label"`
+	Metric   types.String         `tfsdk:"metric"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
 }
 
 type LineChartMetricsQueryModel struct {
@@ -1463,7 +1465,7 @@ type LineChartQueryModel struct {
 }
 
 type LineChartResolutionModel struct {
-	BucketsPresented types.Int32  `tfsdk:"buckets_presented"`
+	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
 	Interval         types.String `tfsdk:"interval"`
 }
 
@@ -1471,7 +1473,7 @@ type LineChartQueryDefinitionModel struct {
 	ColorScheme        types.String              `tfsdk:"color_scheme"`
 	CustomUnit         types.String              `tfsdk:"custom_unit"`
 	DataModeType       types.String              `tfsdk:"data_mode_type"`
-	Decimal            types.Int32               `tfsdk:"decimal"`
+	Decimal            types.Number              `tfsdk:"decimal"`
 	DecimalPrecision   types.Bool                `tfsdk:"decimal_precision"`
 	HashColors         types.Bool                `tfsdk:"hash_colors"`
 	Id                 types.String              `tfsdk:"id"`
@@ -1481,11 +1483,11 @@ type LineChartQueryDefinitionModel struct {
 	Query              *LineChartQueryModel      `tfsdk:"query"`
 	Resolution         *LineChartResolutionModel `tfsdk:"resolution"`
 	ScaleType          types.String              `tfsdk:"scale_type"`
-	SeriesCountLimit   types.String              `tfsdk:"series_count_limit"`
+	SeriesCountLimit   types.Int64               `tfsdk:"series_count_limit"`
 	SeriesNameTemplate types.String              `tfsdk:"series_name_template"`
 	Unit               types.String              `tfsdk:"unit"`
-	YAxisMax           types.Float32             `tfsdk:"y_axis_max"`
-	YAxisMin           types.Float32             `tfsdk:"y_axis_min"`
+	YAxisMax           types.Float64             `tfsdk:"y_axis_max"`
+	YAxisMin           types.Float64             `tfsdk:"y_axis_min"`
 }
 
 type TooltipModel struct {
@@ -1535,6 +1537,12 @@ type PieChartLogsQueryModel struct {
 	TimeFrame             *TimeFrameSelectModel  `tfsdk:"time_frame"`
 }
 
+type MetricsFilterAtPieChartMetricsQueryFiltersModel struct {
+	Label    types.String         `tfsdk:"label"`
+	Metric   types.String         `tfsdk:"metric"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
 type PieChartMetricsQueryModel struct {
 	Aggregation      types.String          `tfsdk:"aggregation"`
 	EditorMode       types.String          `tfsdk:"editor_mode"`
@@ -1565,7 +1573,7 @@ type PieChartQueryModel struct {
 }
 
 type PieChartStackDefinitionModel struct {
-	MaxSlicesPerStack types.Int32  `tfsdk:"max_slices_per_stack"`
+	MaxSlicesPerStack types.Int64  `tfsdk:"max_slices_per_stack"`
 	StackNameTemplate types.String `tfsdk:"stack_name_template"`
 }
 
@@ -1573,14 +1581,14 @@ type WidgetsPieChartModel struct {
 	ColorScheme        types.String                         `tfsdk:"color_scheme"`
 	CustomUnit         types.String                         `tfsdk:"custom_unit"`
 	DataModeType       types.String                         `tfsdk:"data_mode_type"`
-	Decimal            types.Int32                          `tfsdk:"decimal"`
+	Decimal            types.Number                         `tfsdk:"decimal"`
 	DecimalPrecision   types.Bool                           `tfsdk:"decimal_precision"`
 	GroupNameTemplate  types.String                         `tfsdk:"group_name_template"`
 	HashColors         types.Bool                           `tfsdk:"hash_colors"`
 	LabelDefinition    *WidgetsPieChartLabelDefinitionModel `tfsdk:"label_definition"`
 	Legend             *LegendModel                         `tfsdk:"legend"`
-	MaxSlicesPerChart  types.Int32                          `tfsdk:"max_slices_per_chart"`
-	MinSlicePercentage types.Int32                          `tfsdk:"min_slice_percentage"`
+	MaxSlicesPerChart  types.Int64                          `tfsdk:"max_slices_per_chart"`
+	MinSlicePercentage types.Int64                          `tfsdk:"min_slice_percentage"`
 	Query              *PieChartQueryModel                  `tfsdk:"query"`
 	ShowLegend         types.Bool                           `tfsdk:"show_legend"`
 	ShowTotal          types.Bool                           `tfsdk:"show_total"`
@@ -1615,8 +1623,8 @@ type DashboardActionModel struct {
 }
 
 type WidgetModel struct {
-	Width         types.Int32            `tfsdk:"width"`
-	CreatedAt     timetypes.RFC3339      `tfsdk:"created_at"`
+	Width         types.Int64            `tfsdk:"width"`
+	CreatedAt     types.String           `tfsdk:"created_at"`
 	Definition    *WidgetDefinitionModel `tfsdk:"definition"`
 	Description   types.String           `tfsdk:"description"`
 	Highlighted   types.Bool             `tfsdk:"highlighted"`
@@ -1624,12 +1632,12 @@ type WidgetModel struct {
 	LayoutColumns types.Int32            `tfsdk:"layout_columns"`
 	Reference     *WidgetReferenceModel  `tfsdk:"reference"`
 	Title         types.String           `tfsdk:"title"`
-	UpdatedAt     timetypes.RFC3339      `tfsdk:"updated_at"`
+	UpdatedAt     types.String           `tfsdk:"updated_at"`
 	CustomActions types.List             `tfsdk:"custom_actions"`
 }
 
 type RowModel struct {
-	Height  types.Int32  `tfsdk:"height"`
+	Height  types.Int64  `tfsdk:"height"`
 	Id      types.String `tfsdk:"id"`
 	Widgets types.List   `tfsdk:"widgets"`
 }
@@ -1646,11 +1654,6 @@ type LayoutModel struct {
 
 type DashboardTimeFrameRelativeModel struct {
 	RelativeTimeFrame types.String `tfsdk:"duration"`
-}
-
-type LogsPathSourceModel struct {
-	ObservationField *ObservationFieldModel `tfsdk:"observation_field"`
-	Value            types.String           `tfsdk:"value"`
 }
 
 type MetricLabelSourceModel struct {
@@ -1748,7 +1751,7 @@ type MultiSelectQuerySourceModel struct {
 
 type MultiSelectSourceModel struct {
 	ConstantList types.List                   `tfsdk:"constant_list"`
-	LogsPath     *LogsPathSourceModel         `tfsdk:"logs_path"`
+	LogsPath     types.String                 `tfsdk:"logs_path"`
 	MetricLabel  *MetricLabelSourceModel      `tfsdk:"metric_label"`
 	Query        *MultiSelectQuerySourceModel `tfsdk:"query"`
 	SpanField    *SpanFieldModel              `tfsdk:"span_field"`
@@ -1920,9 +1923,9 @@ type TextboxDefaultLuceneValueModel struct {
 
 type TextboxDefaultNumericValueModel struct {
 	IsInteger types.Bool    `tfsdk:"is_integer"`
-	Max       types.Float32 `tfsdk:"max"`
-	Min       types.Float32 `tfsdk:"min"`
-	Value     types.Float32 `tfsdk:"value"`
+	Max       types.Float64 `tfsdk:"max"`
+	Min       types.Float64 `tfsdk:"min"`
+	Value     types.Float64 `tfsdk:"value"`
 }
 
 type TextboxDefaultRegexValueModel struct {
@@ -1995,7 +1998,7 @@ type RegexValueModel struct {
 
 type VariableValueV2SingleNumericValueModel struct {
 	Label types.String  `tfsdk:"label"`
-	Value types.Float32 `tfsdk:"value"`
+	Value types.Float64 `tfsdk:"value"`
 }
 
 type SingleStringValueAtVariableValueV2SingleStringModel struct {

@@ -30,13 +30,13 @@ var updateFields = []struct {
 	{attr: "description", serverDefault: false},
 	{attr: "auto_refresh", serverDefault: false},
 	{attr: "filters", serverDefault: false},
-	{attr: "folder_id", serverDefault: false},
-	{attr: "folder_path", serverDefault: false},
+	{attr: "folder", serverDefault: false},
 	{attr: "layout", serverDefault: false},
 	{attr: "name", serverDefault: false},
 	{attr: "slug_name", serverDefault: false},
 	{attr: "variables", serverDefault: false},
 	{attr: "variables_v2", serverDefault: false},
+	{attr: "content_json", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

@@ -6,15 +6,24 @@ package dashboard
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -26,6 +35,7 @@ import (
 // Schema is the Terraform schema of the resource.
 func Schema() schema.Schema {
 	return schema.Schema{
+		Version: 4,
 		Attributes: map[string]schema.Attribute{
 			"time_frame": schema.SingleNestedAttribute{
 				Optional: true,
@@ -37,12 +47,12 @@ func Schema() schema.Schema {
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"start": schema.StringAttribute{
-								Optional:            true,
+								Required:            true,
 								CustomType:          timetypes.RFC3339Type{},
 								MarkdownDescription: "The from.",
 							},
 							"end": schema.StringAttribute{
-								Optional:            true,
+								Required:            true,
 								CustomType:          timetypes.RFC3339Type{},
 								MarkdownDescription: "The to.",
 							},
@@ -64,10 +74,16 @@ func Schema() schema.Schema {
 			},
 			"annotations": schema.ListNestedAttribute{
 				Optional: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"color": schema.StringAttribute{
-							Optional:            true,
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf("blue", "cyan", "default", "green", "magenta", "orange", "purple", "red", "yellow"),
+							},
 							MarkdownDescription: "Annotation color.",
 						},
 						"description": schema.StringAttribute{
@@ -76,20 +92,26 @@ func Schema() schema.Schema {
 						},
 						"enabled": schema.BoolAttribute{
 							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(true),
 							MarkdownDescription: "Whether this resource is enabled.",
 						},
 						"id": schema.StringAttribute{
-							Optional:            true,
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "Unique identifier.",
 						},
 						"name": schema.StringAttribute{
-							Optional:            true,
+							Required:            true,
 							MarkdownDescription: "Display name.",
 						},
 						"scope": schema.SingleNestedAttribute{
 							Optional: true,
 							Validators: []validator.Object{
-								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"all_widgets", "specific_widgets"}, Required: false}}},
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"all_widgets", "specific_widgets"}, Required: true}}},
 							},
 							Attributes: map[string]schema.Attribute{
 								"all_widgets": schema.SingleNestedAttribute{
@@ -101,7 +123,7 @@ func Schema() schema.Schema {
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
 										"widget_ids": schema.ListAttribute{
-											Optional:            true,
+											Required:            true,
 											ElementType:         types.StringType,
 											MarkdownDescription: "The widget ids.",
 										},
@@ -112,16 +134,21 @@ func Schema() schema.Schema {
 							MarkdownDescription: "Widget scope.",
 						},
 						"source": schema.SingleNestedAttribute{
-							Optional: true,
+							Required: true,
 							Validators: []validator.Object{
-								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"dataprime", "event_recurrence", "logs", "manual", "metrics", "spans"}, Required: false}}},
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"dataprime", "event_recurrence", "logs", "manual", "metrics", "spans"}, Required: true}}},
 							},
 							Attributes: map[string]schema.Attribute{
 								"dataprime": schema.SingleNestedAttribute{
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
 										"data_mode_type": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("unspecified"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("archive", "unspecified"),
+											},
 											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
 										},
 										"label_fields": schema.ListNestedAttribute{
@@ -129,12 +156,18 @@ func Schema() schema.Schema {
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
 													"keypath": schema.ListAttribute{
-														Optional:            true,
-														ElementType:         types.StringType,
+														Required:    true,
+														ElementType: types.StringType,
+														Validators: []validator.List{
+															listvalidator.SizeAtLeast(1),
+														},
 														MarkdownDescription: "The keypath.",
 													},
 													"scope": schema.StringAttribute{
-														Optional:            true,
+														Required: true,
+														Validators: []validator.String{
+															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+														},
 														MarkdownDescription: "Dataset scope.",
 													},
 												},
@@ -146,47 +179,64 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The message template.",
 										},
 										"orientation": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("vertical"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("horizontal", "vertical"),
+											},
 											MarkdownDescription: "Annotation orientation.",
 										},
 										"query": schema.StringAttribute{
-											Optional:            true,
+											Required:            true,
 											MarkdownDescription: "Line chart.dataprime query.",
 										},
 										"strategy": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Validators: []validator.Object{
-												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "instant", "range"}, Required: false}}},
+												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "instant", "range"}, Required: true}}},
 											},
 											Attributes: map[string]schema.Attribute{
 												"duration": schema.SingleNestedAttribute{
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"duration_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
 															MarkdownDescription: "Observation field.",
 														},
 														"start_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -199,15 +249,21 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -220,30 +276,42 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"end_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
 															MarkdownDescription: "Observation field.",
 														},
 														"start_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -266,14 +334,17 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The message template.",
 										},
 										"recurrence": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Attributes: map[string]schema.Attribute{
 												"weekly": schema.SingleNestedAttribute{
-													Optional: true,
+													Required: true,
 													Attributes: map[string]schema.Attribute{
 														"days_of_week": schema.ListAttribute{
-															Optional:            true,
-															ElementType:         types.StringType,
+															Required:    true,
+															ElementType: types.StringType,
+															Validators: []validator.List{
+																listvalidator.ValueStringsAre(stringvalidator.OneOf("friday", "monday", "saturday", "sunday", "thursday", "tuesday", "unspecified", "wednesday")),
+															},
 															MarkdownDescription: "The days of week.",
 														},
 													},
@@ -283,20 +354,20 @@ func Schema() schema.Schema {
 											MarkdownDescription: "Recurrence.",
 										},
 										"strategy": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Validators: []validator.Object{
-												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "instant"}, Required: false}}},
+												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "instant"}, Required: true}}},
 											},
 											Attributes: map[string]schema.Attribute{
 												"duration": schema.SingleNestedAttribute{
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"duration": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "Duration.",
 														},
-														"start_time_hour": schema.Int32Attribute{
-															Optional:            true,
+														"start_time_hour": schema.Int64Attribute{
+															Required:            true,
 															MarkdownDescription: "The start time hour.",
 														},
 													},
@@ -305,8 +376,8 @@ func Schema() schema.Schema {
 												"instant": schema.SingleNestedAttribute{
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
-														"start_time_hour": schema.Int32Attribute{
-															Optional:            true,
+														"start_time_hour": schema.Int64Attribute{
+															Required:            true,
 															MarkdownDescription: "The start time hour.",
 														},
 													},
@@ -322,7 +393,12 @@ func Schema() schema.Schema {
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
 										"data_mode_type": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("unspecified"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("archive", "unspecified"),
+											},
 											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
 										},
 										"label_fields": schema.ListNestedAttribute{
@@ -330,12 +406,18 @@ func Schema() schema.Schema {
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
 													"keypath": schema.ListAttribute{
-														Optional:            true,
-														ElementType:         types.StringType,
+														Required:    true,
+														ElementType: types.StringType,
+														Validators: []validator.List{
+															listvalidator.SizeAtLeast(1),
+														},
 														MarkdownDescription: "The keypath.",
 													},
 													"scope": schema.StringAttribute{
-														Optional:            true,
+														Required: true,
+														Validators: []validator.String{
+															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+														},
 														MarkdownDescription: "Dataset scope.",
 													},
 												},
@@ -351,7 +433,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The message template.",
 										},
 										"strategy": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Validators: []validator.Object{
 												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "instant", "range"}, Required: false}}},
 											},
@@ -360,30 +442,42 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"duration_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
 															MarkdownDescription: "Observation field.",
 														},
 														"start_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -396,15 +490,21 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -417,30 +517,42 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"end_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
 															MarkdownDescription: "Observation field.",
 														},
 														"start_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -463,13 +575,18 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The message template.",
 										},
 										"orientation": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("vertical"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("horizontal", "vertical"),
+											},
 											MarkdownDescription: "Annotation orientation.",
 										},
 										"strategy": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Validators: []validator.Object{
-												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"instant", "range"}, Required: false}}},
+												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"instant", "range"}, Required: true}}},
 											},
 											Attributes: map[string]schema.Attribute{
 												"instant": schema.SingleNestedAttribute{
@@ -480,7 +597,12 @@ func Schema() schema.Schema {
 															MarkdownDescription: "The custom unit.",
 														},
 														"unit": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Computed: true,
+															Default:  stringdefault.StaticString("unspecified"),
+															Validators: []validator.String{
+																stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+															},
 															MarkdownDescription: "Unit.",
 														},
 														"value": schema.Float64Attribute{
@@ -506,7 +628,12 @@ func Schema() schema.Schema {
 															MarkdownDescription: "The start value.",
 														},
 														"unit": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Computed: true,
+															Default:  stringdefault.StaticString("unspecified"),
+															Validators: []validator.String{
+																stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+															},
 															MarkdownDescription: "Unit.",
 														},
 													},
@@ -530,12 +657,18 @@ func Schema() schema.Schema {
 												"auto": schema.SingleNestedAttribute{
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
-														"maximum_data_points": schema.Int32Attribute{
-															Optional:            true,
+														"maximum_data_points": schema.Int64Attribute{
+															Optional: true,
+															Validators: []validator.Int64{
+																int64validator.Between(-2147483648, 2147483647),
+															},
 															MarkdownDescription: "Maximum number of data points to display. The calculated interval ensures this limit is not exceeded.",
 														},
 														"minimum_interval": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Validators: []validator.String{
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+															},
 															MarkdownDescription: "Minimum interval duration. The calculated interval will not be smaller than this value.",
 														},
 													},
@@ -545,15 +678,24 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"interval": schema.StringAttribute{
-															Required:            true,
+															Required: true,
+															Validators: []validator.String{
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+															},
 															MarkdownDescription: "Fixed interval duration for time buckets, specified by the user.",
 														},
-														"maximum_data_points": schema.Int32Attribute{
-															Optional:            true,
+														"maximum_data_points": schema.Int64Attribute{
+															Optional: true,
+															Validators: []validator.Int64{
+																int64validator.Between(-2147483648, 2147483647),
+															},
 															MarkdownDescription: "Maximum number of data points constraint.",
 														},
 														"minimum_interval": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Validators: []validator.String{
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+															},
 															MarkdownDescription: "Minimum interval duration constraint. The selected interval will not be smaller than this value.",
 														},
 													},
@@ -576,15 +718,20 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The message template.",
 										},
 										"orientation": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("vertical"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("horizontal", "vertical"),
+											},
 											MarkdownDescription: "Annotation orientation.",
 										},
 										"promql_query": schema.StringAttribute{
-											Optional:            true,
+											Required:            true,
 											MarkdownDescription: "Prom ql query.",
 										},
 										"strategy": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Attributes: map[string]schema.Attribute{
 												"start_time": schema.SingleNestedAttribute{
 													Optional:            true,
@@ -601,7 +748,12 @@ func Schema() schema.Schema {
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
 										"data_mode_type": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("unspecified"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("archive", "unspecified"),
+											},
 											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
 										},
 										"label_fields": schema.ListNestedAttribute{
@@ -609,12 +761,18 @@ func Schema() schema.Schema {
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
 													"keypath": schema.ListAttribute{
-														Optional:            true,
-														ElementType:         types.StringType,
+														Required:    true,
+														ElementType: types.StringType,
+														Validators: []validator.List{
+															listvalidator.SizeAtLeast(1),
+														},
 														MarkdownDescription: "The keypath.",
 													},
 													"scope": schema.StringAttribute{
-														Optional:            true,
+														Required: true,
+														Validators: []validator.String{
+															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+														},
 														MarkdownDescription: "Dataset scope.",
 													},
 												},
@@ -630,7 +788,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The message template.",
 										},
 										"strategy": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Validators: []validator.Object{
 												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "instant", "range"}, Required: false}}},
 											},
@@ -639,30 +797,42 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"duration_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
 															MarkdownDescription: "Observation field.",
 														},
 														"start_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -675,15 +845,21 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -696,30 +872,42 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"end_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
 															MarkdownDescription: "Observation field.",
 														},
 														"start_timestamp_field": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
+																	Required:    true,
+																	ElementType: types.StringType,
+																	Validators: []validator.List{
+																		listvalidator.SizeAtLeast(1),
+																	},
 																	MarkdownDescription: "The keypath.",
 																},
 																"scope": schema.StringAttribute{
-																	Optional:            true,
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																	},
 																	MarkdownDescription: "Dataset scope.",
 																},
 															},
@@ -763,10 +951,15 @@ func Schema() schema.Schema {
 			},
 			"filters": schema.ListNestedAttribute{
 				Optional: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"collapsed": schema.BoolAttribute{
 							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(false),
 							MarkdownDescription: "Indicates if the filter's UI representation should be collapsed or expanded.",
 						},
 						"display_name": schema.StringAttribute{
@@ -775,10 +968,16 @@ func Schema() schema.Schema {
 						},
 						"enabled": schema.BoolAttribute{
 							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(true),
 							MarkdownDescription: "Indicates if the filter is currently enabled or not.",
 						},
 						"id": schema.StringAttribute{
-							Optional:            true,
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "Filter's unique identifier",
 						},
 						"scope": schema.SingleNestedAttribute{
@@ -793,7 +992,7 @@ func Schema() schema.Schema {
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
 										"widget_ids": schema.ListAttribute{
-											Optional:            true,
+											Required:            true,
 											ElementType:         types.StringType,
 											MarkdownDescription: "The widget ids.",
 										},
@@ -804,9 +1003,9 @@ func Schema() schema.Schema {
 							MarkdownDescription: "Scope of the filter, defining which widgets the filter applies to.",
 						},
 						"source": schema.SingleNestedAttribute{
-							Optional: true,
+							Required: true,
 							Validators: []validator.Object{
-								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 							},
 							Attributes: map[string]schema.Attribute{
 								"logs": schema.SingleNestedAttribute{
@@ -820,19 +1019,25 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"keypath": schema.ListAttribute{
-													Optional:            true,
-													ElementType:         types.StringType,
+													Required:    true,
+													ElementType: types.StringType,
+													Validators: []validator.List{
+														listvalidator.SizeAtLeast(1),
+													},
 													MarkdownDescription: "The keypath.",
 												},
 												"scope": schema.StringAttribute{
-													Optional:            true,
+													Required: true,
+													Validators: []validator.String{
+														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+													},
 													MarkdownDescription: "Dataset scope.",
 												},
 											},
 											MarkdownDescription: "The observation log field to which the filter is applied.",
 										},
 										"operator": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.StringAttribute{
 													Required: true,
@@ -879,7 +1084,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The name of the metric to which the filter is applied.",
 										},
 										"operator": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.StringAttribute{
 													Required: true,
@@ -924,12 +1129,12 @@ func Schema() schema.Schema {
 													Required: true,
 													Validators: []validator.String{
 														stringvalidator.OneOf("metadata", "process_tag", "tag"),
-														typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+														typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 													},
 													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 												},
 												"value": schema.StringAttribute{
-													Optional:            true,
+													Required:            true,
 													MarkdownDescription: "Metadata field.",
 												},
 											},
@@ -939,23 +1144,34 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"keypath": schema.ListAttribute{
-													Optional:            true,
-													ElementType:         types.StringType,
+													Required:    true,
+													ElementType: types.StringType,
+													Validators: []validator.List{
+														listvalidator.SizeAtLeast(1),
+													},
 													MarkdownDescription: "The keypath.",
 												},
 												"relation_type": schema.StringAttribute{
-													Optional:            true,
+													Optional: true,
+													Computed: true,
+													Default:  stringdefault.StaticString("unspecified"),
+													Validators: []validator.String{
+														stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+													},
 													MarkdownDescription: "Span relation type.",
 												},
 												"scope": schema.StringAttribute{
-													Optional:            true,
+													Required: true,
+													Validators: []validator.String{
+														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+													},
 													MarkdownDescription: "Dataset scope.",
 												},
 											},
 											MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 										},
 										"operator": schema.SingleNestedAttribute{
-											Optional: true,
+											Required: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.StringAttribute{
 													Required: true,
@@ -997,20 +1213,22 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "A list of filters that can be applied to the dashboard's data",
 			},
-			"folder_id": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "The folder id.",
-			},
-			"folder_path": schema.SingleNestedAttribute{
+			"folder": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"segments": schema.ListAttribute{
+					"id": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("path")),
+						},
+						MarkdownDescription: "ID of the dashboards folder this dashboard belongs to. When authoring a `coralogix_dashboard` resource, this is the lifecycle-safe choice: reference a `coralogix_dashboards_folder` resource's `id` so the folder is created and destroyed by Terraform alongside the dashboard.",
+					},
+					"path": schema.StringAttribute{
 						Optional:            true,
-						ElementType:         types.StringType,
-						MarkdownDescription: "The segments.",
+						MarkdownDescription: "Folder path.",
 					},
 				},
-				MarkdownDescription: "Folder path.",
+				MarkdownDescription: "The dashboards folder this dashboard belongs to. Exactly one of `id` or `path` is set.",
 			},
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -1020,14 +1238,18 @@ func Schema() schema.Schema {
 				MarkdownDescription: "A unique identifier of the dashboard",
 			},
 			"layout": schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"sections": schema.ListNestedAttribute{
 						Optional: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"id": schema.StringAttribute{
-									Optional:            true,
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.String{
+										stringplanmodifier.UseNonNullStateForUnknown(),
+									},
 									MarkdownDescription: "Section unique identifier",
 								},
 								"options": schema.SingleNestedAttribute{
@@ -1041,7 +1263,10 @@ func Schema() schema.Schema {
 											MarkdownDescription: "Indicator if the section is collapsed",
 										},
 										"color": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "pink", "purple"),
+											},
 											MarkdownDescription: "Color of the section header",
 										},
 										"description": schema.StringAttribute{
@@ -1056,7 +1281,7 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"name": schema.StringAttribute{
-													Optional:            true,
+													Required:            true,
 													MarkdownDescription: "Variable name that can be applied on section making it repetitive section",
 												},
 											},
@@ -1072,77 +1297,80 @@ func Schema() schema.Schema {
 								},
 								"rows": schema.ListNestedAttribute{
 									Optional: true,
+									Validators: []validator.List{
+										listvalidator.SizeAtLeast(1),
+									},
 									NestedObject: schema.NestedAttributeObject{
 										Attributes: map[string]schema.Attribute{
-											"height": schema.Int32Attribute{
-												Optional:            true,
+											"height": schema.Int64Attribute{
+												Required: true,
+												Validators: []validator.Int64{
+													int64validator.AtLeast(1),
+												},
 												MarkdownDescription: "Height of a row, defined as a multiplier number of the base height, where 1 = 1 * base height, 2 = 2 * base height etc",
 											},
 											"id": schema.StringAttribute{
-												Optional:            true,
+												Optional: true,
+												Computed: true,
+												PlanModifiers: []planmodifier.String{
+													stringplanmodifier.UseNonNullStateForUnknown(),
+												},
 												MarkdownDescription: "Row unique identifier",
 											},
 											"widgets": schema.ListNestedAttribute{
 												Optional: true,
+												Validators: []validator.List{
+													listvalidator.SizeAtLeast(1),
+												},
 												NestedObject: schema.NestedAttributeObject{
 													Attributes: map[string]schema.Attribute{
-														"width": schema.Int32Attribute{
-															Optional:            true,
+														"width": schema.Int64Attribute{
+															Optional: true,
+															Computed: true,
+															PlanModifiers: []planmodifier.Int64{
+																int64planmodifier.UseNonNullStateForUnknown(),
+															},
 															MarkdownDescription: "The width.",
 														},
 														"created_at": schema.StringAttribute{
-															Optional:            true,
-															CustomType:          timetypes.RFC3339Type{},
+															Computed:            true,
 															MarkdownDescription: "Creation timestamp.",
 														},
 														"definition": schema.SingleNestedAttribute{
 															Optional: true,
 															Validators: []validator.Object{
-																oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"bar_chart", "data_table", "dynamic", "gauge", "hexagon", "horizontal_bar_chart", "line_chart", "markdown", "pie_chart"}, Required: false}}},
+																oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"bar_chart", "data_table", "dynamic", "gauge", "hexagon", "horizontal_bar_chart", "line_chart", "markdown", "pie_chart"}, Required: true}}},
 															},
 															Attributes: map[string]schema.Attribute{
 																"bar_chart": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"bar_value_display": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("both", "inside", "top", "unspecified"),
+																			},
+																			PlanModifiers: []planmodifier.String{
+																				stringplanmodifier.UseNonNullStateForUnknown(),
+																			},
 																			MarkdownDescription: "Specifies where to display the bar value",
 																		},
 																		"color_scheme": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("blue", "classic", "cold", "green", "negative", "red", "severity"),
+																			},
 																			MarkdownDescription: "Applied color scheme, one of the predefined values",
 																		},
-																		"colors_by": schema.SingleNestedAttribute{
+																		"colors_by": schema.StringAttribute{
 																			Optional: true,
-																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"aggregation", "category", "group_by", "query", "stack"}, Required: false}}},
-																			},
-																			Attributes: map[string]schema.Attribute{
-																				"aggregation": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by aggregation.",
-																				},
-																				"category": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by category.",
-																				},
-																				"group_by": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by group by.",
-																				},
-																				"query": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by query.",
-																				},
-																				"stack": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by stack.",
-																				},
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
+																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																			},
 																			MarkdownDescription: "How the bar colors should be organized",
 																		},
@@ -1151,10 +1379,15 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Custom unit (requires to have unit field set to custom to take effect)",
 																		},
 																		"data_mode_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("archive", "unspecified"),
+																			},
 																			MarkdownDescription: "Data mode type, either high or archive",
 																		},
-																		"decimal": schema.Int32Attribute{
+																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																		},
@@ -1174,40 +1407,55 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"columns": schema.ListAttribute{
-																					Optional:            true,
-																					ElementType:         types.StringType,
+																					Optional:    true,
+																					ElementType: types.StringType,
+																					Validators: []validator.List{
+																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																						listvalidator.SizeAtLeast(1),
+																					},
 																					MarkdownDescription: "List of columns to display in legend",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Is the legend visible in the widget",
 																				},
 																				"placement": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																					},
+																					PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseNonNullStateForUnknown(),
+																					},
 																					MarkdownDescription: "Location of the legend in the widget",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
 																		},
-																		"max_bars_per_chart": schema.Int32Attribute{
+																		"max_bars_per_chart": schema.Int64Attribute{
 																			Optional:            true,
 																			MarkdownDescription: "Maximum number of bars on a chart",
 																		},
 																		"query": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"data_prime": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "Dataprime query text",
 																						},
 																						"filters": schema.ListNestedAttribute{
@@ -1225,19 +1473,25 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -1284,7 +1538,7 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "The name of the metric to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -1329,12 +1583,12 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																													},
 																													"value": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Metadata field.",
 																													},
 																												},
@@ -1344,23 +1598,34 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"relation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																														},
 																														MarkdownDescription: "Span relation type.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -1397,7 +1662,7 @@ func Schema() schema.Schema {
 																									},
 																								},
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																								},
 																							},
 																							MarkdownDescription: "List of query filters",
@@ -1414,19 +1679,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -1453,13 +1718,13 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Required: true,
 																							Attributes: map[string]schema.Attribute{
 																								"type": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																								},
@@ -1471,12 +1736,18 @@ func Schema() schema.Schema {
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -1491,6 +1762,9 @@ func Schema() schema.Schema {
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -1501,19 +1775,25 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -1559,12 +1839,18 @@ func Schema() schema.Schema {
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -1583,12 +1869,18 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -1597,19 +1889,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -1636,15 +1928,32 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Aggregation function",
 																						},
 																						"editor_mode": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("builder", "text", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"label": schema.StringAttribute{
@@ -1652,11 +1961,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "The label associated with the metric.",
 																									},
 																									"metric": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "The name of the metric to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -1698,11 +2007,18 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of field names by which metric results are grouped",
 																						},
 																						"promql_query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "PromQL query string for querying metrics",
 																						},
 																						"promql_query_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("instant", "range", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																						},
 																						"stacked_group_name": schema.StringAttribute{
@@ -1712,19 +2028,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -1757,16 +2073,16 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
 																								"aggregation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension aggregation type.",
 																								},
 																								"field": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension field.",
 																								},
 																							},
@@ -1774,6 +2090,9 @@ func Schema() schema.Schema {
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
@@ -1783,12 +2102,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -1798,23 +2117,34 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -1858,12 +2188,12 @@ func Schema() schema.Schema {
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																										},
 																										MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																									},
 																									"value": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "Metadata field.",
 																									},
 																								},
@@ -1872,19 +2202,33 @@ func Schema() schema.Schema {
 																						},
 																						"group_names_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"relation_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																										},
 																										MarkdownDescription: "Span relation type.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -1902,12 +2246,12 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																										typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																										typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																								},
 																								"value": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Metadata field.",
 																								},
 																							},
@@ -1917,16 +2261,27 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"relation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																									},
 																									MarkdownDescription: "Span relation type.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -1935,19 +2290,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -1975,16 +2330,23 @@ func Schema() schema.Schema {
 																		},
 																		"scale_type": schema.StringAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             stringdefault.StaticString("unspecified"),
 																			MarkdownDescription: "Scale type - linear/logarithmic",
 																		},
 																		"sort_by": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("name", "unspecified", "value"),
+																			},
 																			MarkdownDescription: "Sort type, by name or by value",
 																		},
 																		"stack_definition": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
-																				"max_slices_per_bar": schema.Int32Attribute{
+																				"max_slices_per_bar": schema.Int64Attribute{
 																					Optional:            true,
 																					MarkdownDescription: "How many slices can fit in a single bar",
 																				},
@@ -1996,24 +2358,32 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Configuration of stacked bars",
 																		},
 																		"unit": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																			},
 																			MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																		},
 																		"xaxis": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"time", "time_buckets", "value"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"time", "time_buckets", "value"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"time": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
-																						"buckets_presented": schema.Int32Attribute{
+																						"buckets_presented": schema.Int64Attribute{
 																							Optional:            true,
 																							MarkdownDescription: "How many buckets to present in the selected timeframe (deprecated)",
 																						},
 																						"interval": schema.StringAttribute{
-																							Optional:            true,
+																							Required: true,
+																							Validators: []validator.String{
+																								stringvalidator.RegexMatches(regexp.MustCompile(`^([-+]?0|[-+]?(([0-9]+(\.[0-9]*)?|\.[0-9]+)(ns|us|µs|μs|ms|s|m|h))+)$`), "A duration string, such as 1s or 1m."),
+																							},
 																							MarkdownDescription: "Interval of value sampling, i.e. every 5 minutes, every 1 second and so on (deprecated)",
 																						},
 																					},
@@ -2028,12 +2398,18 @@ func Schema() schema.Schema {
 																						"auto": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
-																								"maximum_data_points": schema.Int32Attribute{
-																									Optional:            true,
+																								"maximum_data_points": schema.Int64Attribute{
+																									Optional: true,
+																									Validators: []validator.Int64{
+																										int64validator.Between(-2147483648, 2147483647),
+																									},
 																									MarkdownDescription: "Maximum number of data points to display. The calculated interval ensures this limit is not exceeded.",
 																								},
 																								"minimum_interval": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Validators: []validator.String{
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																									},
 																									MarkdownDescription: "Minimum interval duration. The calculated interval will not be smaller than this value.",
 																								},
 																							},
@@ -2043,15 +2419,24 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"interval": schema.StringAttribute{
-																									Required:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																									},
 																									MarkdownDescription: "Fixed interval duration for time buckets, specified by the user.",
 																								},
-																								"maximum_data_points": schema.Int32Attribute{
-																									Optional:            true,
+																								"maximum_data_points": schema.Int64Attribute{
+																									Optional: true,
+																									Validators: []validator.Int64{
+																										int64validator.Between(-2147483648, 2147483647),
+																									},
 																									MarkdownDescription: "Maximum number of data points constraint.",
 																								},
 																								"minimum_interval": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Validators: []validator.String{
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																									},
 																									MarkdownDescription: "Minimum interval duration constraint. The selected interval will not be smaller than this value.",
 																								},
 																							},
@@ -2073,15 +2458,28 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Specifies how to organize the x axis of the chart",
 																		},
 																		"x_axis_time_format": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
+																			},
+																			PlanModifiers: []planmodifier.String{
+																				stringplanmodifier.UseNonNullStateForUnknown(),
+																			},
 																			MarkdownDescription: "Time format for the X axis (only applicable when X axis is time-based)",
 																		},
-																		"y_axis_max": schema.Float32Attribute{
-																			Optional:            true,
+																		"y_axis_max": schema.Float64Attribute{
+																			Optional: true,
+																			Validators: []validator.Float64{
+																				float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																			},
 																			MarkdownDescription: "Number indicating the upper band for y axis",
 																		},
-																		"y_axis_min": schema.Float32Attribute{
-																			Optional:            true,
+																		"y_axis_min": schema.Float64Attribute{
+																			Optional: true,
+																			Validators: []validator.Float64{
+																				float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																			},
 																			MarkdownDescription: "Number indicating the lower band for y axis",
 																		},
 																	},
@@ -2089,17 +2487,27 @@ func Schema() schema.Schema {
 																},
 																"data_table": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"columns": schema.ListNestedAttribute{
 																			Optional: true,
+																			Validators: []validator.List{
+																				listvalidator.SizeAtLeast(1),
+																			},
 																			NestedObject: schema.NestedAttributeObject{
 																				Attributes: map[string]schema.Attribute{
 																					"field": schema.StringAttribute{
-																						Optional:            true,
+																						Required:            true,
 																						MarkdownDescription: "Name of the field to display in the column",
 																					},
-																					"width": schema.Int32Attribute{
-																						Optional:            true,
+																					"width": schema.Int64Attribute{
+																						Optional: true,
+																						Computed: true,
+																						PlanModifiers: []planmodifier.Int64{
+																							int64planmodifier.UseStateForUnknown(),
+																						},
 																						MarkdownDescription: "Custom width of the column, by default it's automatically adjusted",
 																					},
 																				},
@@ -2107,7 +2515,12 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "List of column definitions. At least one column is required when the query is a logs query.",
 																		},
 																		"data_mode_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("archive", "unspecified"),
+																			},
 																			MarkdownDescription: "Data mode type, either high or archive",
 																		},
 																		"order_by": schema.SingleNestedAttribute{
@@ -2118,16 +2531,21 @@ func Schema() schema.Schema {
 																					MarkdownDescription: "Field name to order by",
 																				},
 																				"order_direction": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Default:  stringdefault.StaticString("unspecified"),
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("asc", "desc", "unspecified"),
+																					},
 																					MarkdownDescription: "Order direction, ascending or descending",
 																				},
 																			},
 																			MarkdownDescription: "Defines how to order the results in the table",
 																		},
 																		"query": schema.SingleNestedAttribute{
-																			Optional: true,
+																			Required: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"data_prime": schema.SingleNestedAttribute{
@@ -2152,19 +2570,25 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -2211,7 +2635,7 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "The name of the metric to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -2256,12 +2680,12 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																													},
 																													"value": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Metadata field.",
 																													},
 																												},
@@ -2271,23 +2695,34 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"relation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																														},
 																														MarkdownDescription: "Span relation type.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -2324,7 +2759,7 @@ func Schema() schema.Schema {
 																									},
 																								},
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																								},
 																							},
 																							MarkdownDescription: "List of query filters",
@@ -2332,19 +2767,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -2372,6 +2807,9 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -2382,19 +2820,25 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -2438,13 +2882,13 @@ func Schema() schema.Schema {
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
 																											"aggregation": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																															typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																															typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																													},
@@ -2456,12 +2900,18 @@ func Schema() schema.Schema {
 																														Optional: true,
 																														Attributes: map[string]schema.Attribute{
 																															"keypath": schema.ListAttribute{
-																																Optional:            true,
-																																ElementType:         types.StringType,
+																																Required:    true,
+																																ElementType: types.StringType,
+																																Validators: []validator.List{
+																																	listvalidator.SizeAtLeast(1),
+																																},
 																																MarkdownDescription: "The keypath.",
 																															},
 																															"scope": schema.StringAttribute{
-																																Optional:            true,
+																																Required: true,
+																																Validators: []validator.String{
+																																	stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																																},
 																																MarkdownDescription: "Dataset scope.",
 																															},
 																														},
@@ -2475,11 +2925,17 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "Type of aggregation function",
 																											},
 																											"id": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												PlanModifiers: []planmodifier.String{
+																													stringplanmodifier.UseNonNullStateForUnknown(),
+																												},
 																												MarkdownDescription: "Aggregation unique identifier",
 																											},
 																											"is_visible": schema.BoolAttribute{
 																												Optional:            true,
+																												Computed:            true,
+																												Default:             booldefault.StaticBool(true),
 																												MarkdownDescription: "Whether the aggregation is visible in the table",
 																											},
 																											"name": schema.StringAttribute{
@@ -2500,12 +2956,18 @@ func Schema() schema.Schema {
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -2522,19 +2984,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -2561,11 +3023,21 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"editor_mode": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("builder", "text", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"label": schema.StringAttribute{
@@ -2573,11 +3045,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "The label associated with the metric.",
 																									},
 																									"metric": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "The name of the metric to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -2614,29 +3086,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of metrics filters",
 																						},
 																						"promql_query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "PromQL query string for querying metrics",
 																						},
 																						"promql_query_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("instant", "range", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																						},
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -2664,6 +3141,9 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
@@ -2673,12 +3153,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -2688,23 +3168,34 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -2754,27 +3245,32 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("dimension", "metric"),
-																															typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																															typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																													},
 																													"aggregation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Dimension aggregation type.",
 																													},
 																													"field": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Dimension field.",
 																													},
 																												},
 																												MarkdownDescription: "Type of spans aggregation function",
 																											},
 																											"id": schema.StringAttribute{
-																												Optional:            true,
+																												Computed: true,
+																												PlanModifiers: []planmodifier.String{
+																													stringplanmodifier.UseNonNullStateForUnknown(),
+																												},
 																												MarkdownDescription: "Aggregation unique identifier",
 																											},
 																											"is_visible": schema.BoolAttribute{
 																												Optional:            true,
+																												Computed:            true,
+																												Default:             booldefault.StaticBool(true),
 																												MarkdownDescription: "Whether the aggregation is visible in the table",
 																											},
 																											"name": schema.StringAttribute{
@@ -2793,12 +3289,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -2810,16 +3306,27 @@ func Schema() schema.Schema {
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -2836,19 +3343,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -2874,12 +3381,15 @@ func Schema() schema.Schema {
 																			},
 																			MarkdownDescription: "A query object containing query definition",
 																		},
-																		"results_per_page": schema.Int32Attribute{
-																			Optional:            true,
+																		"results_per_page": schema.Int64Attribute{
+																			Required:            true,
 																			MarkdownDescription: "How many results are displayed per table page",
 																		},
 																		"row_style": schema.StringAttribute{
-																			Optional:            true,
+																			Required: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("condensed", "json", "list", "one_line", "two_line", "unspecified"),
+																			},
 																			MarkdownDescription: "Specifies how rows are displayed",
 																		},
 																	},
@@ -2887,17 +3397,32 @@ func Schema() schema.Schema {
 																},
 																"dynamic": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"interpretation": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("categorical_analysis_horizontal_bars", "categorical_analysis_pie_chart", "categorical_analysis_vertical_bars", "multi_value_kpi", "multi_value_kpi_gauge", "multi_value_kpi_hexagon_bins", "multi_value_kpi_stat", "multi_value_kpi_stat_card", "raw_data_table", "single_value_kpi", "single_value_kpi_gauge", "single_value_kpi_stat", "single_value_kpi_stat_card", "trend_over_time_line", "unspecified"),
+																			},
 																			MarkdownDescription: "Interpretation of the query results (deprecated, use visualization instead)",
 																		},
 																		"query_definitions": schema.ListNestedAttribute{
-																			Optional: true,
+																			Required: true,
+																			Validators: []validator.List{
+																				listvalidator.SizeAtLeast(1),
+																			},
 																			NestedObject: schema.NestedAttributeObject{
 																				Attributes: map[string]schema.Attribute{
 																					"id": schema.StringAttribute{
-																						Required:            true,
+																						Optional: true,
+																						Computed: true,
+																						PlanModifiers: []planmodifier.String{
+																							stringplanmodifier.UseNonNullStateForUnknown(),
+																						},
 																						MarkdownDescription: "Unique id of the query definition",
 																					},
 																					"name": schema.StringAttribute{
@@ -2907,14 +3432,19 @@ func Schema() schema.Schema {
 																					"query": schema.SingleNestedAttribute{
 																						Required: true,
 																						Validators: []validator.Object{
-																							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																						},
 																						Attributes: map[string]schema.Attribute{
 																							"data_prime": schema.SingleNestedAttribute{
 																								Optional: true,
 																								Attributes: map[string]schema.Attribute{
 																									"data_mode_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("archive", "unspecified"),
+																										},
 																										MarkdownDescription: "Data mode type",
 																									},
 																									"query": schema.StringAttribute{
@@ -2929,13 +3459,16 @@ func Schema() schema.Schema {
 																								Attributes: map[string]schema.Attribute{
 																									"aggregations": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"type": schema.StringAttribute{
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																														typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																														typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																													},
 																													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																												},
@@ -2947,12 +3480,18 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
@@ -2967,11 +3506,19 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "Aggregation function",
 																									},
 																									"data_mode_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("archive", "unspecified"),
+																										},
 																										MarkdownDescription: "Data mode type",
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"field": schema.StringAttribute{
@@ -2982,19 +3529,25 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
 																													MarkdownDescription: "The observation log field to which the filter is applied.",
 																												},
 																												"operator": schema.SingleNestedAttribute{
-																													Optional: true,
+																													Required: true,
 																													Attributes: map[string]schema.Attribute{
 																														"type": schema.StringAttribute{
 																															Required: true,
@@ -3032,15 +3585,24 @@ func Schema() schema.Schema {
 																									},
 																									"group_by": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3058,19 +3620,34 @@ func Schema() schema.Schema {
 																								Optional: true,
 																								Attributes: map[string]schema.Attribute{
 																									"editor_mode": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("builder", "text", "unspecified"),
+																										},
 																										MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
 																									},
 																									"promql_query": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "PromQL query string for querying metrics",
 																									},
 																									"promql_query_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("instant", "range", "unspecified"),
+																										},
 																										MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																									},
 																									"series_limit_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("by_point_count", "by_series_count", "unspecified"),
+																										},
 																										MarkdownDescription: "How to limit the result using series_count_limit parameter",
 																									},
 																								},
@@ -3081,13 +3658,16 @@ func Schema() schema.Schema {
 																								Attributes: map[string]schema.Attribute{
 																									"aggregations": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"type": schema.StringAttribute{
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																														typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																														typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																													},
 																													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																												},
@@ -3099,12 +3679,18 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
@@ -3119,11 +3705,19 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "Span query aggregation function",
 																									},
 																									"data_mode_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("archive", "unspecified"),
+																										},
 																										MarkdownDescription: "Data mode type",
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"field": schema.SingleNestedAttribute{
@@ -3133,12 +3727,12 @@ func Schema() schema.Schema {
 																															Required: true,
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																																typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																																typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																															},
 																															MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																														},
 																														"value": schema.StringAttribute{
-																															Optional:            true,
+																															Required:            true,
 																															MarkdownDescription: "Metadata field.",
 																														},
 																													},
@@ -3148,23 +3742,34 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"relation_type": schema.StringAttribute{
-																															Optional:            true,
+																															Optional: true,
+																															Computed: true,
+																															Default:  stringdefault.StaticString("unspecified"),
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																															},
 																															MarkdownDescription: "Span relation type.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
 																													MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																												},
 																												"operator": schema.SingleNestedAttribute{
-																													Optional: true,
+																													Required: true,
 																													Attributes: map[string]schema.Attribute{
 																														"type": schema.StringAttribute{
 																															Required: true,
@@ -3202,19 +3807,33 @@ func Schema() schema.Schema {
 																									},
 																									"group_by": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"relation_type": schema.StringAttribute{
-																													Optional:            true,
+																													Optional: true,
+																													Computed: true,
+																													Default:  stringdefault.StaticString("unspecified"),
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																													},
 																													MarkdownDescription: "Span relation type.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3238,19 +3857,19 @@ func Schema() schema.Schema {
 																		"time_frame": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"absolute": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"start": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							CustomType:          timetypes.RFC3339Type{},
 																							MarkdownDescription: "The from.",
 																						},
 																						"end": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							CustomType:          timetypes.RFC3339Type{},
 																							MarkdownDescription: "The to.",
 																						},
@@ -3273,7 +3892,7 @@ func Schema() schema.Schema {
 																		"visualization": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"gauge", "geomap", "heatmap", "hexagon_bins", "horizontal_bars", "horizontal_bars_multi", "pie_chart", "stat", "stat_card", "table", "time_series_bars", "time_series_lines", "time_series_lines_multi", "vertical_bars", "vertical_bars_multi"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"gauge", "geomap", "heatmap", "hexagon_bins", "horizontal_bars", "horizontal_bars_multi", "pie_chart", "stat", "stat_card", "table", "time_series_bars", "time_series_lines", "time_series_lines_multi", "vertical_bars", "vertical_bars_multi"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"gauge": schema.SingleNestedAttribute{
@@ -3299,15 +3918,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -3318,8 +3946,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"display_series_name": schema.BoolAttribute{
@@ -3330,27 +3961,47 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
 																						"legend_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
+																							},
 																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
 																						},
 																						"max": schema.Float64Attribute{
@@ -3374,11 +4025,19 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range",
 																						},
 																						"threshold_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of the threshold, relative or absolute",
 																						},
 																						"thresholds": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"color": schema.StringAttribute{
@@ -3398,19 +4057,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of value thresholds, each with a certain color and an optional name label",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -3418,15 +4088,24 @@ func Schema() schema.Schema {
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -3442,7 +4121,7 @@ func Schema() schema.Schema {
 																						"aggregation": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"avg", "count", "max", "min", "sum"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"avg", "count", "max", "min", "sum"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"avg": schema.SingleNestedAttribute{
@@ -3452,12 +4131,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3466,9 +4151,11 @@ func Schema() schema.Schema {
 																									},
 																									MarkdownDescription: "Option that will use selected field in data results, perform AVG aggregation on it across all nodes in a cluster and display that value.",
 																								},
-																								"count": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
+																								"count": schema.BoolAttribute{
+																									Optional: true,
+																									Validators: []validator.Bool{
+																										boolvalidator.Equals(true),
+																									},
 																									MarkdownDescription: "Option that will make geomap clusters simply count the number of nodes in each cluster.",
 																								},
 																								"max": schema.SingleNestedAttribute{
@@ -3478,12 +4165,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3499,12 +4192,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3520,12 +4219,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3544,15 +4249,21 @@ func Schema() schema.Schema {
 																						"color": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"color_range", "size"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"color_range", "size"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"color_range": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("blue", "blue_reversed", "green", "green_reversed", "red", "red_reversed", "threshold", "threshold_reversed", "unspecified"),
+																									},
 																									MarkdownDescription: "Geomap clusters will have same size, but gradient color will be applied to distinguish data values and/or applied aggregation",
 																								},
 																								"size": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "purple", "red", "unspecified", "yellow"),
+																									},
 																									MarkdownDescription: "Geomap clusters will scale according to data values and/or applied aggregation, using a solid color",
 																								},
 																							},
@@ -3561,7 +4272,7 @@ func Schema() schema.Schema {
 																						"config": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"all_region_config", "aws_region_config", "coordinate_config", "ibm_region_config"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"all_region_config", "aws_region_config", "coordinate_config", "ibm_region_config"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"all_region_config": schema.SingleNestedAttribute{
@@ -3571,12 +4282,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3592,12 +4309,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3613,12 +4336,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3628,12 +4357,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3649,12 +4384,18 @@ func Schema() schema.Schema {
 																											Optional: true,
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -3670,19 +4411,24 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field as 'custom' to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"min_max": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"auto", "custom"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"auto", "custom"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
-																								"auto": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
+																								"auto": schema.BoolAttribute{
+																									Optional: true,
+																									Validators: []validator.Bool{
+																										boolvalidator.Equals(true),
+																									},
 																									MarkdownDescription: "An empty value to determine min/max limits to be automatically derived from data",
 																								},
 																								"custom": schema.SingleNestedAttribute{
@@ -3707,15 +4453,24 @@ func Schema() schema.Schema {
 																							Attributes: map[string]schema.Attribute{
 																								"labels": schema.ListNestedAttribute{
 																									Optional: true,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -3730,7 +4485,12 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Tooltip settings for the widget",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
 																					},
@@ -3746,36 +4506,61 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Whether to render numeric value with abbreviation",
 																						},
-																						"color_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"color_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Optional number indicating the max value for gradient color axis. Automatically calculated from data if not provided.",
 																						},
-																						"color_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"color_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Optional number indicating the lowest value for gradient color axis. Automatically calculated from data if not provided.",
 																						},
 																						"color_range": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("blue", "blue_reversed", "green", "green_reversed", "red", "red_reversed", "threshold", "threshold_reversed", "unspecified"),
+																							},
 																							MarkdownDescription: "Color configuration for the heatmap",
 																						},
 																						"custom_unit": schema.StringAttribute{
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field as 'custom' to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"histogram_bucket_unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "seconds", "unspecified"),
+																							},
 																							MarkdownDescription: "Unit used to format histogram bucket boundaries when a heatmap axis represents cumulative histogram buckets",
 																						},
 																						"preset": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("blue", "blue_reversed", "green", "green_reversed", "red", "red_reversed", "threshold", "threshold_reversed", "unspecified"),
+																							},
 																							MarkdownDescription: "Heatmap color preset.",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
 																						"show_numbers": schema.BoolAttribute{
@@ -3787,15 +4572,24 @@ func Schema() schema.Schema {
 																							Attributes: map[string]schema.Attribute{
 																								"labels": schema.ListNestedAttribute{
 																									Optional: true,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -3810,19 +4604,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Tooltip settings for the widget",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -3830,15 +4635,24 @@ func Schema() schema.Schema {
 																						},
 																						"x_axis_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -3846,20 +4660,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of observation fields used as x-axis categories in the heatmap grid.",
 																						},
 																						"x_axis_time_format": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
+																							},
 																							MarkdownDescription: "Time format for the X axis (only applicable when X axis contains timestamp fields)",
 																						},
 																						"y_axis_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -3878,15 +4706,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -3897,35 +4734,58 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"legend": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
 																						"legend_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
+																							},
 																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
 																						},
 																						"max": schema.Float64Attribute{
@@ -3937,11 +4797,19 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "A minimum gauge value used in percentage threshold calculation and for visual value representation",
 																						},
 																						"threshold_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of the threshold, relative or absolute",
 																						},
 																						"thresholds": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"color": schema.StringAttribute{
@@ -3961,19 +4829,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of value thresholds, each with a certain color and an optional name label",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -3991,15 +4870,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4010,37 +4898,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Applied color scheme, one of the predefined values",
 																						},
-																						"colors_by": schema.SingleNestedAttribute{
+																						"colors_by": schema.StringAttribute{
 																							Optional: true,
-																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"aggregation", "category", "group_by", "query", "stack"}, Required: false}}},
-																							},
-																							Attributes: map[string]schema.Attribute{
-																								"aggregation": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by aggregation.",
-																								},
-																								"category": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by category.",
-																								},
-																								"group_by": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by group by.",
-																								},
-																								"query": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by query.",
-																								},
-																								"stack": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by stack.",
-																								},
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
 																							MarkdownDescription: "How the bar colors should be organized",
 																						},
@@ -4048,8 +4910,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set to custom to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"display_on_bar": schema.BoolAttribute{
@@ -4068,39 +4933,70 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
-																						"max_bars_per_chart": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_bars_per_chart": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "Maximum number of bars on a chart",
 																						},
-																						"max_slices_per_bar": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_slices_per_bar": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "How many slices can fit in a single bar",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
 																						"sort_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("name", "unspecified", "value"),
+																							},
 																							MarkdownDescription: "Sort type, by name or by value",
 																						},
 																						"stack_name_template": schema.StringAttribute{
@@ -4109,15 +5005,24 @@ func Schema() schema.Schema {
 																						},
 																						"sub_category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4125,34 +5030,56 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "The sub category fields.",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
 																						},
-																						"y_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the upper band for y axis",
 																						},
-																						"y_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the lower band for y axis",
 																						},
 																						"y_axis_view_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("category", "unspecified", "value"),
+																							},
 																							MarkdownDescription: "Specifies how to organize the y-axis view",
 																						},
 																					},
@@ -4167,15 +5094,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4186,37 +5122,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Applied color scheme, one of the predefined values",
 																						},
-																						"colors_by": schema.SingleNestedAttribute{
+																						"colors_by": schema.StringAttribute{
 																							Optional: true,
-																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"aggregation", "category", "group_by", "query", "stack"}, Required: false}}},
-																							},
-																							Attributes: map[string]schema.Attribute{
-																								"aggregation": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by aggregation.",
-																								},
-																								"category": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by category.",
-																								},
-																								"group_by": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by group by.",
-																								},
-																								"query": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by query.",
-																								},
-																								"stack": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by stack.",
-																								},
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
 																							MarkdownDescription: "How the bar colors should be organized",
 																						},
@@ -4224,8 +5134,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set to custom to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"display_on_bar": schema.BoolAttribute{
@@ -4244,31 +5157,52 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
-																						"max_bars_per_chart": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_bars_per_chart": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "Maximum number of bars on a chart",
 																						},
 																						"query_field_settings": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"query_id": schema.StringAttribute{
@@ -4279,12 +5213,18 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -4295,25 +5235,37 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Per-query field settings",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
 																						"sort_order": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"order_direction": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("asc", "desc", "unspecified"),
+																									},
 																									MarkdownDescription: "Order direction, ascending or descending",
 																								},
 																								"strategy": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Validators: []validator.Object{
-																										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"category", "query_value"}, Required: false}}},
+																										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"category", "query_value"}, Required: true}}},
 																									},
 																									Attributes: map[string]schema.Attribute{
-																										"category": schema.SingleNestedAttribute{
-																											Optional:            true,
-																											Attributes:          map[string]schema.Attribute{},
+																										"category": schema.BoolAttribute{
+																											Optional: true,
+																											Validators: []validator.Bool{
+																												boolvalidator.Equals(true),
+																											},
 																											MarkdownDescription: "Order by category (e.g. bar label)",
 																										},
 																										"query_value": schema.SingleNestedAttribute{
@@ -4328,6 +5280,7 @@ func Schema() schema.Schema {
 																										},
 																										"strategy_type": schema.StringAttribute{
 																											Optional:            true,
+																											Computed:            true,
 																											MarkdownDescription: "Discriminator field - STRATEGY_TYPE_CATEGORY or STRATEGY_TYPE_QUERY_VALUE",
 																										},
 																									},
@@ -4337,19 +5290,35 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Sort order for bars - by category or by a specific observation field",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
-																						"y_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the upper band for y axis",
 																						},
-																						"y_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the lower band for y axis",
 																						},
 																						"y_axis_view_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("category", "unspecified", "value"),
+																							},
 																							MarkdownDescription: "Specifies how to organize the y-axis view",
 																						},
 																					},
@@ -4364,15 +5333,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4387,8 +5365,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires the unit field to be set to custom to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"group_name_template": schema.StringAttribute{
@@ -4407,7 +5388,12 @@ func Schema() schema.Schema {
 																									MarkdownDescription: "Are labels visible",
 																								},
 																								"label_source": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("inner", "stack", "unspecified"),
+																									},
 																									MarkdownDescription: "Source of the label",
 																								},
 																								"show_name": schema.BoolAttribute{
@@ -4429,35 +5415,59 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
-																						"max_slices_per_chart": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_slices_per_chart": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "Maximum number of slices on a chart",
 																						},
-																						"max_slices_per_stack": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_slices_per_stack": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "How many slices can fit in a single slice stack",
 																						},
-																						"min_slice_percentage": schema.Int32Attribute{
-																							Optional:            true,
+																						"min_slice_percentage": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(0, 100),
+																							},
 																							MarkdownDescription: "Minimum percentage threshold for slices to be displayed",
 																						},
 																						"show_total": schema.BoolAttribute{
@@ -4470,15 +5480,24 @@ func Schema() schema.Schema {
 																						},
 																						"sub_category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4486,19 +5505,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "The sub category fields.",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the value - one from a predefined list, or custom",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -4516,15 +5546,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4535,8 +5574,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"display_series_name": schema.BoolAttribute{
@@ -4547,27 +5589,47 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
 																						"legend_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
+																							},
 																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
 																						},
 																						"max": schema.Float64Attribute{
@@ -4579,15 +5641,28 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "A minimum gauge value used in percentage threshold calculation and for visual value representation",
 																						},
 																						"threshold_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("background", "unspecified", "value"),
+																							},
 																							MarkdownDescription: "Indicates which widget element should be colorized as the threshold, either the value or the background",
 																						},
 																						"threshold_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of the threshold, relative or absolute",
 																						},
 																						"thresholds": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"color": schema.StringAttribute{
@@ -4607,19 +5682,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of value thresholds, each with a certain color and an optional name label",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -4627,15 +5713,24 @@ func Schema() schema.Schema {
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4654,15 +5749,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -4672,11 +5776,16 @@ func Schema() schema.Schema {
 																						"color_label_mapping": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"range", "regex", "value"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"range", "regex", "value"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"color_by": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("background", "row", "unspecified", "value"),
+																									},
 																									MarkdownDescription: "Determines which element to colorize - value text or background",
 																								},
 																								"range": schema.SingleNestedAttribute{
@@ -4685,12 +5794,14 @@ func Schema() schema.Schema {
 																										"min_max": schema.SingleNestedAttribute{
 																											Optional: true,
 																											Validators: []validator.Object{
-																												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"auto", "custom"}, Required: false}}},
+																												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"auto", "custom"}, Required: true}}},
 																											},
 																											Attributes: map[string]schema.Attribute{
-																												"auto": schema.SingleNestedAttribute{
-																													Optional:            true,
-																													Attributes:          map[string]schema.Attribute{},
+																												"auto": schema.BoolAttribute{
+																													Optional: true,
+																													Validators: []validator.Bool{
+																														boolvalidator.Equals(true),
+																													},
 																													MarkdownDescription: "An empty value to determine min/max limits to be automatically derived from data",
 																												},
 																												"custom": schema.SingleNestedAttribute{
@@ -4711,11 +5822,19 @@ func Schema() schema.Schema {
 																											MarkdownDescription: "Min/max range configuration, auto-derived from data or custom values",
 																										},
 																										"threshold_type": schema.StringAttribute{
-																											Optional:            true,
+																											Optional: true,
+																											Computed: true,
+																											Default:  stringdefault.StaticString("unspecified"),
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																											},
 																											MarkdownDescription: "Type of the threshold, relative or absolute",
 																										},
 																										"thresholds": schema.ListNestedAttribute{
 																											Optional: true,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											NestedObject: schema.NestedAttributeObject{
 																												Attributes: map[string]schema.Attribute{
 																													"color": schema.StringAttribute{
@@ -4742,10 +5861,18 @@ func Schema() schema.Schema {
 																									Attributes: map[string]schema.Attribute{
 																										"sections": schema.ListNestedAttribute{
 																											Optional: true,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											NestedObject: schema.NestedAttributeObject{
 																												Attributes: map[string]schema.Attribute{
 																													"color": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "purple", "red", "unspecified", "yellow"),
+																														},
 																														MarkdownDescription: "Color for this mapping section",
 																													},
 																													"map_to": schema.StringAttribute{
@@ -4768,10 +5895,18 @@ func Schema() schema.Schema {
 																									Attributes: map[string]schema.Attribute{
 																										"sections": schema.ListNestedAttribute{
 																											Optional: true,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											NestedObject: schema.NestedAttributeObject{
 																												Attributes: map[string]schema.Attribute{
 																													"color": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "purple", "red", "unspecified", "yellow"),
+																														},
 																														MarkdownDescription: "Color for this mapping section",
 																													},
 																													"map_to": schema.StringAttribute{
@@ -4796,8 +5931,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"label": schema.SingleNestedAttribute{
@@ -4806,21 +5944,29 @@ func Schema() schema.Schema {
 																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"mapped_values", "observation_field"}, Required: false}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
-																								"mapped_values": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
+																								"mapped_values": schema.BoolAttribute{
+																									Optional: true,
+																									Validators: []validator.Bool{
+																										boolvalidator.Equals(true),
+																									},
 																									MarkdownDescription: "Display the result of the color label mapping",
 																								},
 																								"observation_field": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -4832,23 +5978,34 @@ func Schema() schema.Schema {
 																								},
 																								"template_variables": schema.ListNestedAttribute{
 																									Optional: true,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
-																											"mapped_values": schema.SingleNestedAttribute{
-																												Optional:            true,
-																												Attributes:          map[string]schema.Attribute{},
+																											"mapped_values": schema.BoolAttribute{
+																												Optional: true,
+																												Validators: []validator.Bool{
+																													boolvalidator.Equals(true),
+																												},
 																												MarkdownDescription: "Resolve the variable from the color label mapping result",
 																											},
 																											"observation_field": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
@@ -4868,27 +6025,47 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
 																						"legend_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
+																							},
 																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
 																						},
 																						"primary_value": schema.SingleNestedAttribute{
@@ -4897,21 +6074,29 @@ func Schema() schema.Schema {
 																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"mapped_values", "observation_field"}, Required: false}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
-																								"mapped_values": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
+																								"mapped_values": schema.BoolAttribute{
+																									Optional: true,
+																									Validators: []validator.Bool{
+																										boolvalidator.Equals(true),
+																									},
 																									MarkdownDescription: "Display the result of the color label mapping",
 																								},
 																								"observation_field": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -4923,23 +6108,34 @@ func Schema() schema.Schema {
 																								},
 																								"template_variables": schema.ListNestedAttribute{
 																									Optional: true,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
-																											"mapped_values": schema.SingleNestedAttribute{
-																												Optional:            true,
-																												Attributes:          map[string]schema.Attribute{},
+																											"mapped_values": schema.BoolAttribute{
+																												Optional: true,
+																												Validators: []validator.Bool{
+																													boolvalidator.Equals(true),
+																												},
 																												MarkdownDescription: "Resolve the variable from the color label mapping result",
 																											},
 																											"observation_field": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
@@ -4961,21 +6157,29 @@ func Schema() schema.Schema {
 																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"mapped_values", "observation_field"}, Required: false}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
-																								"mapped_values": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
+																								"mapped_values": schema.BoolAttribute{
+																									Optional: true,
+																									Validators: []validator.Bool{
+																										boolvalidator.Equals(true),
+																									},
 																									MarkdownDescription: "Display the result of the color label mapping",
 																								},
 																								"observation_field": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -4987,23 +6191,34 @@ func Schema() schema.Schema {
 																								},
 																								"template_variables": schema.ListNestedAttribute{
 																									Optional: true,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
-																											"mapped_values": schema.SingleNestedAttribute{
-																												Optional:            true,
-																												Attributes:          map[string]schema.Attribute{},
+																											"mapped_values": schema.BoolAttribute{
+																												Optional: true,
+																												Validators: []validator.Bool{
+																													boolvalidator.Equals(true),
+																												},
 																												MarkdownDescription: "Resolve the variable from the color label mapping result",
 																											},
 																											"observation_field": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
@@ -5020,20 +6235,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Optional title display configuration",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5048,18 +6277,27 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"columns": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Optional:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -5071,6 +6309,9 @@ func Schema() schema.Schema {
 																						},
 																						"rules": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"description": schema.StringAttribute{
@@ -5078,7 +6319,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "Human-readable description.",
 																									},
 																									"id": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										PlanModifiers: []planmodifier.String{
+																											stringplanmodifier.UseNonNullStateForUnknown(),
+																										},
 																										MarkdownDescription: "Unique identifier.",
 																									},
 																									"name": schema.StringAttribute{
@@ -5087,16 +6332,22 @@ func Schema() schema.Schema {
 																									},
 																									"properties": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"definition": schema.SingleNestedAttribute{
 																													Optional: true,
 																													Validators: []validator.Object{
-																														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"alignment", "column_display_name", "link", "regex_extract", "thresholds", "units", "values_alias", "values_mapping"}, Required: false}}},
+																														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"alignment", "column_display_name", "link", "regex_extract", "thresholds", "units", "values_alias", "values_mapping"}, Required: true}}},
 																													},
 																													Attributes: map[string]schema.Attribute{
 																														"alignment": schema.StringAttribute{
-																															Optional:            true,
+																															Optional: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("center", "left", "right", "unspecified"),
+																															},
 																															MarkdownDescription: "Text alignment.",
 																														},
 																														"column_display_name": schema.StringAttribute{
@@ -5108,10 +6359,17 @@ func Schema() schema.Schema {
 																															Attributes: map[string]schema.Attribute{
 																																"actions": schema.ListNestedAttribute{
 																																	Optional: true,
+																																	Validators: []validator.List{
+																																		listvalidator.SizeAtLeast(1),
+																																	},
 																																	NestedObject: schema.NestedAttributeObject{
 																																		Attributes: map[string]schema.Attribute{
 																																			"id": schema.StringAttribute{
-																																				Optional:            true,
+																																				Optional: true,
+																																				Computed: true,
+																																				PlanModifiers: []planmodifier.String{
+																																					stringplanmodifier.UseNonNullStateForUnknown(),
+																																				},
 																																				MarkdownDescription: "Unique id of the link action",
 																																			},
 																																			"name": schema.StringAttribute{
@@ -5149,11 +6407,19 @@ func Schema() schema.Schema {
 																																	MarkdownDescription: "A minimum value used in relative thresholds to calculate the threshold levels",
 																																},
 																																"type": schema.StringAttribute{
-																																	Optional:            true,
+																																	Optional: true,
+																																	Computed: true,
+																																	Default:  stringdefault.StaticString("unspecified"),
+																																	Validators: []validator.String{
+																																		stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																																	},
 																																	MarkdownDescription: "Type of the threshold, can be relative or absolute",
 																																},
 																																"values": schema.ListNestedAttribute{
 																																	Optional: true,
+																																	Validators: []validator.List{
+																																		listvalidator.SizeAtLeast(1),
+																																	},
 																																	NestedObject: schema.NestedAttributeObject{
 																																		Attributes: map[string]schema.Attribute{
 																																			"color": schema.StringAttribute{
@@ -5186,8 +6452,11 @@ func Schema() schema.Schema {
 																																	Optional:            true,
 																																	MarkdownDescription: "Custom unit (requires to set unit field as 'custom' to take effect)",
 																																},
-																																"decimal_precision": schema.Int32Attribute{
-																																	Optional:            true,
+																																"decimal_precision": schema.Int64Attribute{
+																																	Optional: true,
+																																	Validators: []validator.Int64{
+																																		int64validator.Between(-2147483648, 2147483647),
+																																	},
 																																	MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																																},
 																																"max": schema.Float64Attribute{
@@ -5199,7 +6468,12 @@ func Schema() schema.Schema {
 																																	MarkdownDescription: "A minimum value used in percentage type unit (UNIT_PERCENT) for calculating displayed value",
 																																},
 																																"unit": schema.StringAttribute{
-																																	Optional:            true,
+																																	Optional: true,
+																																	Computed: true,
+																																	Default:  stringdefault.StaticString("unspecified"),
+																																	Validators: []validator.String{
+																																		stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																																	},
 																																	MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																																},
 																															},
@@ -5214,6 +6488,9 @@ func Schema() schema.Schema {
 																															Attributes: map[string]schema.Attribute{
 																																"mappings": schema.ListNestedAttribute{
 																																	Optional: true,
+																																	Validators: []validator.List{
+																																		listvalidator.SizeAtLeast(1),
+																																	},
 																																	NestedObject: schema.NestedAttributeObject{
 																																		Attributes: map[string]schema.Attribute{
 																																			"input_value": schema.StringAttribute{
@@ -5225,7 +6502,12 @@ func Schema() schema.Schema {
 																																				MarkdownDescription: "The replace value.",
 																																			},
 																																			"type": schema.StringAttribute{
-																																				Optional:            true,
+																																				Optional: true,
+																																				Computed: true,
+																																				Default:  stringdefault.StaticString("unspecified"),
+																																				Validators: []validator.String{
+																																					stringvalidator.OneOf("regex", "unspecified", "value"),
+																																				},
 																																				MarkdownDescription: "Values mapping type.",
 																																			},
 																																		},
@@ -5239,7 +6521,11 @@ func Schema() schema.Schema {
 																													MarkdownDescription: "Property definition.",
 																												},
 																												"id": schema.StringAttribute{
-																													Optional:            true,
+																													Optional: true,
+																													Computed: true,
+																													PlanModifiers: []planmodifier.String{
+																														stringplanmodifier.UseNonNullStateForUnknown(),
+																													},
 																													MarkdownDescription: "Uuid.",
 																												},
 																											},
@@ -5249,26 +6535,35 @@ func Schema() schema.Schema {
 																									"rule_scope": schema.SingleNestedAttribute{
 																										Optional: true,
 																										Validators: []validator.Object{
-																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field", "field_type", "regex"}, Required: false}}},
+																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field", "field_type", "regex"}, Required: true}}},
 																										},
 																										Attributes: map[string]schema.Attribute{
 																											"field": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Optional:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "Observation field.",
 																											},
 																											"field_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("array", "boolean", "enum", "number", "object", "regex", "string", "timestamp", "union", "unspecified"),
+																												},
 																												MarkdownDescription: "Field data type.",
 																											},
 																											"regex": schema.StringAttribute{
@@ -5287,14 +6582,20 @@ func Schema() schema.Schema {
 																							Attributes: map[string]schema.Attribute{
 																								"column_widths": schema.ListNestedAttribute{
 																									Optional: true,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: map[string]schema.Attribute{
 																											"column_name": schema.StringAttribute{
 																												Optional:            true,
 																												MarkdownDescription: "The column name.",
 																											},
-																											"width": schema.Int32Attribute{
-																												Optional:            true,
+																											"width": schema.Int64Attribute{
+																												Optional: true,
+																												Validators: []validator.Int64{
+																													int64validator.Between(1, 2147483647),
+																												},
 																												MarkdownDescription: "The width.",
 																											},
 																										},
@@ -5302,7 +6603,12 @@ func Schema() schema.Schema {
 																									MarkdownDescription: "List of configured column widths",
 																								},
 																								"row_style": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("condensed", "json", "list", "one_line", "two_line", "unspecified"),
+																									},
 																									MarkdownDescription: "Type of row view style in the table",
 																								},
 																							},
@@ -5319,20 +6625,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Whether to render numeric value with abbreviation",
 																						},
 																						"bar_value_display": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("both", "inside", "top", "unspecified"),
+																							},
 																							MarkdownDescription: "Specifies where to display the bar value",
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5347,8 +6667,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field as 'custom' to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"hash_colors": schema.BoolAttribute{
@@ -5359,31 +6682,54 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
-																						"max_slices_per_bar": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_slices_per_bar": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "How many slices can fit in a single bar",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
 																						"series_name_template": schema.StringAttribute{
@@ -5391,19 +6737,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Custom template for the series name",
 																						},
 																						"sort_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("name", "unspecified", "value"),
+																							},
 																							MarkdownDescription: "Sort type, by name or by value",
 																						},
 																						"temporal_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -5424,20 +6781,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Tooltip settings for the widget",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5445,15 +6816,26 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "The value fields.",
 																						},
 																						"x_axis_time_format": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
+																							},
 																							MarkdownDescription: "Time format for the X axis",
 																						},
-																						"y_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the upper band for y axis",
 																						},
-																						"y_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the lower band for y axis",
 																						},
 																					},
@@ -5468,15 +6850,24 @@ func Schema() schema.Schema {
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5495,8 +6886,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field as 'custom' to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"hash_colors": schema.BoolAttribute{
@@ -5507,30 +6901,50 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
-																						"series_count_limit": schema.StringAttribute{
+																						"series_count_limit": schema.Int64Attribute{
 																							Optional:            true,
 																							MarkdownDescription: "Max count of the series per query",
 																						},
@@ -5539,19 +6953,30 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Custom template for the series name",
 																						},
 																						"stacked_line": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative",
 																						},
 																						"temporal_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -5572,7 +6997,12 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Tooltip settings for the widget",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
 																						"use_data_time_range": schema.BoolAttribute{
@@ -5581,15 +7011,24 @@ func Schema() schema.Schema {
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5597,15 +7036,26 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "The value fields.",
 																						},
 																						"x_axis_time_format": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
+																							},
 																							MarkdownDescription: "Time format for the X axis",
 																						},
-																						"y_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the upper band for y axis",
 																						},
-																						"y_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the lower band for y axis",
 																						},
 																					},
@@ -5622,20 +7072,35 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
@@ -5643,6 +7108,9 @@ func Schema() schema.Schema {
 																						},
 																						"query_display_settings": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"allow_abbreviation": schema.BoolAttribute{
@@ -5651,15 +7119,24 @@ func Schema() schema.Schema {
 																									},
 																									"category_fields": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -5674,8 +7151,11 @@ func Schema() schema.Schema {
 																										Optional:            true,
 																										MarkdownDescription: "Custom unit (requires to have unit field as 'custom' to take effect)",
 																									},
-																									"decimal_precision": schema.Int32Attribute{
-																										Optional:            true,
+																									"decimal_precision": schema.Int64Attribute{
+																										Optional: true,
+																										Validators: []validator.Int64{
+																											int64validator.Between(-2147483648, 2147483647),
+																										},
 																										MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																									},
 																									"hash_colors": schema.BoolAttribute{
@@ -5687,10 +7167,15 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "Reference to the query id from Dynamic.query_display_settings",
 																									},
 																									"scale_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																										},
 																										MarkdownDescription: "Scale type - linear/logarithmic",
 																									},
-																									"series_count_limit": schema.StringAttribute{
+																									"series_count_limit": schema.Int64Attribute{
 																										Optional:            true,
 																										MarkdownDescription: "Max count of the series per query",
 																									},
@@ -5702,44 +7187,70 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "Temporal field for time series data",
 																									},
 																									"unit": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																										},
 																										MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																									},
 																									"value_fields": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
 																										},
 																										MarkdownDescription: "A list of numeric/value observation fields to display from the query results",
 																									},
-																									"y_axis_max": schema.Float32Attribute{
-																										Optional:            true,
+																									"y_axis_max": schema.Float64Attribute{
+																										Optional: true,
+																										Validators: []validator.Float64{
+																											float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																										},
 																										MarkdownDescription: "Number indicating the upper band for y axis",
 																									},
-																									"y_axis_min": schema.Float32Attribute{
-																										Optional:            true,
+																									"y_axis_min": schema.Float64Attribute{
+																										Optional: true,
+																										Validators: []validator.Float64{
+																											float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																										},
 																										MarkdownDescription: "Number indicating the lower band for y axis",
 																									},
 																								},
@@ -5747,7 +7258,12 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Definitions of widget queries",
 																						},
 																						"stacked_line": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative",
 																						},
 																						"tooltip": schema.SingleNestedAttribute{
@@ -5769,7 +7285,12 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "When used, dashboard or widget time frame is ignored and X axis will represent only dates present in received data which can differ significantly from time ranges that were requested.",
 																						},
 																						"x_axis_time_format": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
+																							},
 																							MarkdownDescription: "Time format for the X axis",
 																						},
 																					},
@@ -5783,20 +7304,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Whether to render numeric value with abbreviation",
 																						},
 																						"bar_value_display": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("both", "inside", "top", "unspecified"),
+																							},
 																							MarkdownDescription: "Specifies where to display the bar value",
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5807,37 +7342,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Applied color scheme, one of the predefined values",
 																						},
-																						"colors_by": schema.SingleNestedAttribute{
+																						"colors_by": schema.StringAttribute{
 																							Optional: true,
-																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"aggregation", "category", "group_by", "query", "stack"}, Required: false}}},
-																							},
-																							Attributes: map[string]schema.Attribute{
-																								"aggregation": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by aggregation.",
-																								},
-																								"category": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by category.",
-																								},
-																								"group_by": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by group by.",
-																								},
-																								"query": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by query.",
-																								},
-																								"stack": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by stack.",
-																								},
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
 																							MarkdownDescription: "How the bar colors should be organized",
 																						},
@@ -5845,8 +7354,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set to custom to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"group_name_template": schema.StringAttribute{
@@ -5861,39 +7373,70 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
-																						"max_bars_per_chart": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_bars_per_chart": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "Maximum number of bars on a chart",
 																						},
-																						"max_slices_per_bar": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_slices_per_bar": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "How many slices can fit in a single bar",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
 																						"sort_by": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("name", "unspecified", "value"),
+																							},
 																							MarkdownDescription: "Sort type, by name or by value",
 																						},
 																						"stack_name_template": schema.StringAttribute{
@@ -5902,15 +7445,24 @@ func Schema() schema.Schema {
 																						},
 																						"sub_category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5918,30 +7470,47 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "The sub category fields.",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
 																						},
-																						"y_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the upper band for y axis",
 																						},
-																						"y_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the lower band for y axis",
 																						},
 																					},
@@ -5955,20 +7524,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Whether to render numeric value with abbreviation",
 																						},
 																						"bar_value_display": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("both", "inside", "top", "unspecified"),
+																							},
 																							MarkdownDescription: "Specifies where to display the bar value",
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -5979,37 +7562,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Applied color scheme, one of the predefined values",
 																						},
-																						"colors_by": schema.SingleNestedAttribute{
+																						"colors_by": schema.StringAttribute{
 																							Optional: true,
-																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"aggregation", "category", "group_by", "query", "stack"}, Required: false}}},
-																							},
-																							Attributes: map[string]schema.Attribute{
-																								"aggregation": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by aggregation.",
-																								},
-																								"category": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by category.",
-																								},
-																								"group_by": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by group by.",
-																								},
-																								"query": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by query.",
-																								},
-																								"stack": schema.SingleNestedAttribute{
-																									Optional:            true,
-																									Attributes:          map[string]schema.Attribute{},
-																									MarkdownDescription: "Colors by stack.",
-																								},
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
+																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
 																							MarkdownDescription: "How the bar colors should be organized",
 																						},
@@ -6017,8 +7574,11 @@ func Schema() schema.Schema {
 																							Optional:            true,
 																							MarkdownDescription: "Custom unit (requires to have unit field set to custom to take effect)",
 																						},
-																						"decimal_precision": schema.Int32Attribute{
-																							Optional:            true,
+																						"decimal_precision": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(-2147483648, 2147483647),
+																							},
 																							MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																						},
 																						"group_name_template": schema.StringAttribute{
@@ -6033,31 +7593,52 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"columns": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Optional:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "List of columns to display in legend",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(false),
 																									MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																								},
 																								"is_visible": schema.BoolAttribute{
 																									Optional:            true,
+																									Computed:            true,
+																									Default:             booldefault.StaticBool(true),
 																									MarkdownDescription: "Is the legend visible in the widget",
 																								},
 																								"placement": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																									},
+																									PlanModifiers: []planmodifier.String{
+																										stringplanmodifier.UseNonNullStateForUnknown(),
+																									},
 																									MarkdownDescription: "Location of the legend in the widget",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
 																						},
-																						"max_bars_per_chart": schema.Int32Attribute{
-																							Optional:            true,
+																						"max_bars_per_chart": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.Between(1, 2147483647),
+																							},
 																							MarkdownDescription: "Maximum number of bars on a chart",
 																						},
 																						"query_field_settings": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"query_id": schema.StringAttribute{
@@ -6068,12 +7649,18 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
@@ -6084,25 +7671,37 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Per-query field settings",
 																						},
 																						"scale_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																							},
 																							MarkdownDescription: "Scale type - linear/logarithmic",
 																						},
 																						"sort_order": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"order_direction": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("asc", "desc", "unspecified"),
+																									},
 																									MarkdownDescription: "Order direction, ascending or descending",
 																								},
 																								"strategy": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Validators: []validator.Object{
-																										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"category", "query_value"}, Required: false}}},
+																										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"category", "query_value"}, Required: true}}},
 																									},
 																									Attributes: map[string]schema.Attribute{
-																										"category": schema.SingleNestedAttribute{
-																											Optional:            true,
-																											Attributes:          map[string]schema.Attribute{},
+																										"category": schema.BoolAttribute{
+																											Optional: true,
+																											Validators: []validator.Bool{
+																												boolvalidator.Equals(true),
+																											},
 																											MarkdownDescription: "Order by category (e.g. bar label)",
 																										},
 																										"query_value": schema.SingleNestedAttribute{
@@ -6117,6 +7716,7 @@ func Schema() schema.Schema {
 																										},
 																										"strategy_type": schema.StringAttribute{
 																											Optional:            true,
+																											Computed:            true,
 																											MarkdownDescription: "Discriminator field - STRATEGY_TYPE_CATEGORY or STRATEGY_TYPE_QUERY_VALUE",
 																										},
 																									},
@@ -6126,15 +7726,26 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Sort order for bars - by category or by a specific observation field",
 																						},
 																						"unit": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																							},
 																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																						},
-																						"y_axis_max": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_max": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the upper band for y axis",
 																						},
-																						"y_axis_min": schema.Float32Attribute{
-																							Optional:            true,
+																						"y_axis_min": schema.Float64Attribute{
+																							Optional: true,
+																							Validators: []validator.Float64{
+																								float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																							},
 																							MarkdownDescription: "Number indicating the lower band for y axis",
 																						},
 																					},
@@ -6148,6 +7759,9 @@ func Schema() schema.Schema {
 																},
 																"gauge": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"arc_display": schema.SingleNestedAttribute{
 																			Optional: true,
@@ -6168,10 +7782,15 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Custom unit (requires to have unit field set as 'custom' to take effect)",
 																		},
 																		"data_mode_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("archive", "unspecified"),
+																			},
 																			MarkdownDescription: "Data mode type, either high or archive",
 																		},
-																		"decimal": schema.Int32Attribute{
+																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																		},
@@ -6181,47 +7800,79 @@ func Schema() schema.Schema {
 																		},
 																		"display_series_name": schema.BoolAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             booldefault.StaticBool(true),
 																			MarkdownDescription: "(multigauge display only) Whether to show the series names above the value",
 																		},
 																		"legend": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"columns": schema.ListAttribute{
-																					Optional:            true,
-																					ElementType:         types.StringType,
+																					Optional:    true,
+																					ElementType: types.StringType,
+																					Validators: []validator.List{
+																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																						listvalidator.SizeAtLeast(1),
+																					},
 																					MarkdownDescription: "List of columns to display in legend",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Is the legend visible in the widget",
 																				},
 																				"placement": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																					},
+																					PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseNonNullStateForUnknown(),
+																					},
 																					MarkdownDescription: "Location of the legend in the widget",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
 																		},
 																		"legend_by": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("groups", "thresholds", "unspecified"),
+																			},
+																			PlanModifiers: []planmodifier.String{
+																				stringplanmodifier.UseNonNullStateForUnknown(),
+																			},
 																			MarkdownDescription: "(multigauge display only) Indicates how to group the legend elements, either by thresholds or by standard groups",
 																		},
 																		"max": schema.Float64Attribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			PlanModifiers: []planmodifier.Float64{
+																				float64planmodifier.UseStateForUnknown(),
+																			},
 																			MarkdownDescription: "A maximum gauge value used in percentage threshold calculation and for visual value representation",
 																		},
 																		"min": schema.Float64Attribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			PlanModifiers: []planmodifier.Float64{
+																				float64planmodifier.UseStateForUnknown(),
+																			},
 																			MarkdownDescription: "A minimum gauge value used in percentage threshold calculation and for visual value representation",
 																		},
 																		"query": schema.SingleNestedAttribute{
-																			Optional: true,
+																			Required: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"data_prime": schema.SingleNestedAttribute{
@@ -6246,19 +7897,25 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -6305,7 +7962,7 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "The name of the metric to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -6350,12 +8007,12 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																													},
 																													"value": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Metadata field.",
 																													},
 																												},
@@ -6365,23 +8022,34 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"relation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																														},
 																														MarkdownDescription: "Span relation type.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -6418,7 +8086,7 @@ func Schema() schema.Schema {
 																									},
 																								},
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																								},
 																							},
 																							MarkdownDescription: "List of query filters",
@@ -6426,19 +8094,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -6466,6 +8134,9 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -6476,19 +8147,25 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -6526,15 +8203,24 @@ func Schema() schema.Schema {
 																						},
 																						"group_by": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -6542,13 +8228,13 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "A list of observation fields by which to group the results",
 																						},
 																						"logs_aggregation": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Required: true,
 																							Attributes: map[string]schema.Attribute{
 																								"type": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																								},
@@ -6560,12 +8246,18 @@ func Schema() schema.Schema {
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -6585,19 +8277,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -6624,15 +8316,30 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
+																							},
 																							MarkdownDescription: "Aggregation function",
 																						},
 																						"editor_mode": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("builder", "text", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"label": schema.StringAttribute{
@@ -6640,11 +8347,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "The label associated with the metric.",
 																									},
 																									"metric": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "The name of the metric to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -6681,29 +8388,36 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of metrics filters",
 																						},
 																						"promql_query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "PromQL query string for querying metrics",
 																						},
 																						"promql_query_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("instant", "range", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																						},
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -6731,6 +8445,9 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
@@ -6740,12 +8457,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -6755,23 +8472,34 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -6809,18 +8537,21 @@ func Schema() schema.Schema {
 																						},
 																						"group_by": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"type": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																										},
 																										MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																									},
 																									"value": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "Metadata field.",
 																									},
 																								},
@@ -6829,19 +8560,33 @@ func Schema() schema.Schema {
 																						},
 																						"group_bys": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"relation_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																										},
 																										MarkdownDescription: "Span relation type.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -6859,16 +8604,16 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
 																								"aggregation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension aggregation type.",
 																								},
 																								"field": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension field.",
 																								},
 																							},
@@ -6877,19 +8622,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -6917,6 +8662,8 @@ func Schema() schema.Schema {
 																		},
 																		"show_inner_arc": schema.BoolAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             booldefault.StaticBool(false),
 																			MarkdownDescription: "Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value",
 																		},
 																		"show_min_max": schema.BoolAttribute{
@@ -6925,14 +8672,26 @@ func Schema() schema.Schema {
 																		},
 																		"show_outer_arc": schema.BoolAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             booldefault.StaticBool(true),
 																			MarkdownDescription: "Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range",
 																		},
 																		"threshold_by": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("background", "unspecified", "value"),
+																			},
 																			MarkdownDescription: "Indicates which widget element should be colorized as the threshold, either the value or the background",
 																		},
 																		"threshold_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																			},
 																			MarkdownDescription: "Type of the threshold, relative or absolute",
 																		},
 																		"thresholds": schema.ListNestedAttribute{
@@ -6956,7 +8715,10 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "List of value thresholds, each with a certain color and an optional name label",
 																		},
 																		"unit": schema.StringAttribute{
-																			Optional:            true,
+																			Required: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "none", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																			},
 																			MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
 																		},
 																	},
@@ -6964,16 +8726,24 @@ func Schema() schema.Schema {
 																},
 																"hexagon": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"custom_unit": schema.StringAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)",
 																		},
 																		"data_mode_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("archive", "unspecified"),
+																			},
 																			MarkdownDescription: "Data mode type, either high or archive",
 																		},
-																		"decimal": schema.Int32Attribute{
+																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																		},
@@ -6985,41 +8755,61 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"columns": schema.ListAttribute{
-																					Optional:            true,
-																					ElementType:         types.StringType,
+																					Optional:    true,
+																					ElementType: types.StringType,
+																					Validators: []validator.List{
+																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																						listvalidator.SizeAtLeast(1),
+																					},
 																					MarkdownDescription: "List of columns to display in legend",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Is the legend visible in the widget",
 																				},
 																				"placement": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																					},
+																					PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseNonNullStateForUnknown(),
+																					},
 																					MarkdownDescription: "Location of the legend in the widget",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
 																		},
 																		"legend_by": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("groups", "thresholds", "unspecified"),
+																			},
 																			MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
 																		},
-																		"max": schema.Float64Attribute{
+																		"max": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "A maximum value used in percentage threshold calculation and for visual value representation",
 																		},
-																		"min": schema.Float64Attribute{
+																		"min": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "A minimum value used in percentage threshold calculation and for visual value representation",
 																		},
 																		"query": schema.SingleNestedAttribute{
-																			Optional: true,
+																			Required: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"data_prime": schema.SingleNestedAttribute{
@@ -7044,19 +8834,25 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -7103,7 +8899,7 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "The name of the metric to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -7148,12 +8944,12 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																													},
 																													"value": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Metadata field.",
 																													},
 																												},
@@ -7163,23 +8959,34 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"relation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																														},
 																														MarkdownDescription: "Span relation type.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -7216,7 +9023,7 @@ func Schema() schema.Schema {
 																									},
 																								},
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																								},
 																							},
 																							MarkdownDescription: "List of query filters",
@@ -7224,19 +9031,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -7264,6 +9071,9 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -7274,19 +9084,25 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -7327,12 +9143,18 @@ func Schema() schema.Schema {
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -7340,13 +9162,13 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "A list of observation fields by which to group the results",
 																						},
 																						"aggregation": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Required: true,
 																							Attributes: map[string]schema.Attribute{
 																								"type": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																								},
@@ -7358,12 +9180,18 @@ func Schema() schema.Schema {
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -7383,19 +9211,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -7422,15 +9250,30 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
+																							},
 																							MarkdownDescription: "Aggregation function",
 																						},
 																						"editor_mode": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("builder", "text", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"label": schema.StringAttribute{
@@ -7438,11 +9281,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "The label associated with the metric.",
 																									},
 																									"metric": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "The name of the metric to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -7479,29 +9322,34 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of metrics filters",
 																						},
 																						"promql_query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "PromQL query string for querying metrics",
 																						},
 																						"promql_query_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Default:  stringdefault.StaticString("unspecified"),
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("instant", "range", "unspecified"),
+																							},
 																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																						},
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -7529,6 +9377,9 @@ func Schema() schema.Schema {
 																					Attributes: map[string]schema.Attribute{
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
@@ -7538,12 +9389,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -7553,23 +9404,34 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -7613,12 +9475,12 @@ func Schema() schema.Schema {
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																										},
 																										MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																									},
 																									"value": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "Metadata field.",
 																									},
 																								},
@@ -7627,19 +9489,33 @@ func Schema() schema.Schema {
 																						},
 																						"group_bys": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"relation_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																										},
 																										MarkdownDescription: "Span relation type.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -7657,16 +9533,16 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
 																								"aggregation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension aggregation type.",
 																								},
 																								"field": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension field.",
 																								},
 																							},
@@ -7675,19 +9551,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -7714,19 +9590,25 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "A query object containing query definition",
 																		},
 																		"threshold_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																			},
 																			MarkdownDescription: "Type of the threshold, relative or absolute",
 																		},
-																		"thresholds": schema.ListNestedAttribute{
+																		"thresholds": schema.SetNestedAttribute{
 																			Optional: true,
+																			Computed: true,
 																			NestedObject: schema.NestedAttributeObject{
 																				Attributes: map[string]schema.Attribute{
 																					"color": schema.StringAttribute{
 																						Optional:            true,
 																						MarkdownDescription: "Color of the threshold",
 																					},
-																					"from": schema.Float64Attribute{
-																						Optional:            true,
+																					"from": schema.NumberAttribute{
+																						Required:            true,
 																						MarkdownDescription: "Minimum bound value of the threshold",
 																					},
 																					"label": schema.StringAttribute{
@@ -7738,7 +9620,12 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "List of value thresholds, each with a certain color and an optional name label",
 																		},
 																		"unit": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																			},
 																			MarkdownDescription: "Unit of the value - one from a predefined list, or custom",
 																		},
 																	},
@@ -7746,42 +9633,22 @@ func Schema() schema.Schema {
 																},
 																"horizontal_bar_chart": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"color_scheme": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("blue", "classic", "cold", "green", "negative", "red", "severity"),
+																			},
 																			MarkdownDescription: "Applied color scheme, one of the predefined values",
 																		},
-																		"colors_by": schema.SingleNestedAttribute{
+																		"colors_by": schema.StringAttribute{
 																			Optional: true,
-																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"aggregation", "category", "group_by", "query", "stack"}, Required: false}}},
-																			},
-																			Attributes: map[string]schema.Attribute{
-																				"aggregation": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by aggregation.",
-																				},
-																				"category": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by category.",
-																				},
-																				"group_by": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by group by.",
-																				},
-																				"query": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by query.",
-																				},
-																				"stack": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Colors by stack.",
-																				},
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
+																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																			},
 																			MarkdownDescription: "How the bar colors should be organized",
 																		},
@@ -7790,10 +9657,15 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Custom unit (requires to have unit field set to custom to take effect)",
 																		},
 																		"data_mode_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("archive", "unspecified"),
+																			},
 																			MarkdownDescription: "Data mode type, either high or archive",
 																		},
-																		"decimal": schema.Int32Attribute{
+																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																		},
@@ -7803,6 +9675,8 @@ func Schema() schema.Schema {
 																		},
 																		"display_on_bar": schema.BoolAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             booldefault.StaticBool(false),
 																			MarkdownDescription: "Specifies where to display the bar value",
 																		},
 																		"group_name_template": schema.StringAttribute{
@@ -7817,40 +9691,55 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"columns": schema.ListAttribute{
-																					Optional:            true,
-																					ElementType:         types.StringType,
+																					Optional:    true,
+																					ElementType: types.StringType,
+																					Validators: []validator.List{
+																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																						listvalidator.SizeAtLeast(1),
+																					},
 																					MarkdownDescription: "List of columns to display in legend",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Is the legend visible in the widget",
 																				},
 																				"placement": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																					},
+																					PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseNonNullStateForUnknown(),
+																					},
 																					MarkdownDescription: "Location of the legend in the widget",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
 																		},
-																		"max_bars_per_chart": schema.Int32Attribute{
+																		"max_bars_per_chart": schema.Int64Attribute{
 																			Optional:            true,
 																			MarkdownDescription: "Maximum number of bars on a chart",
 																		},
 																		"query": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"data_prime": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "Dataprime query text",
 																						},
 																						"filters": schema.ListNestedAttribute{
@@ -7868,19 +9757,25 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -7927,7 +9822,7 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "The name of the metric to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -7972,12 +9867,12 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																													},
 																													"value": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Metadata field.",
 																													},
 																												},
@@ -7987,23 +9882,34 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"relation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																														},
 																														MarkdownDescription: "Span relation type.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -8040,7 +9946,7 @@ func Schema() schema.Schema {
 																									},
 																								},
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																								},
 																							},
 																							MarkdownDescription: "List of query filters",
@@ -8057,19 +9963,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -8096,13 +10002,13 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Required: true,
 																							Attributes: map[string]schema.Attribute{
 																								"type": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																								},
@@ -8114,12 +10020,18 @@ func Schema() schema.Schema {
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -8134,6 +10046,9 @@ func Schema() schema.Schema {
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -8144,19 +10059,25 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -8193,8 +10114,11 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of filters that narrow down query results",
 																						},
 																						"group_names": schema.ListAttribute{
-																							Optional:            true,
-																							ElementType:         types.StringType,
+																							Optional:    true,
+																							ElementType: types.StringType,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							MarkdownDescription: "List of field names to group the query results",
 																						},
 																						"group_names_fields": schema.ListNestedAttribute{
@@ -8202,12 +10126,18 @@ func Schema() schema.Schema {
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -8226,12 +10156,18 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -8240,19 +10176,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -8279,15 +10215,32 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Aggregation function",
 																						},
 																						"editor_mode": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("builder", "text", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"label": schema.StringAttribute{
@@ -8295,11 +10248,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "The label associated with the metric.",
 																									},
 																									"metric": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "The name of the metric to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -8341,11 +10294,18 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of field names by which metric results are grouped",
 																						},
 																						"promql_query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "PromQL query string for querying metrics",
 																						},
 																						"promql_query_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("instant", "range", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																						},
 																						"stacked_group_name": schema.StringAttribute{
@@ -8355,19 +10315,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -8400,16 +10360,16 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
 																								"aggregation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension aggregation type.",
 																								},
 																								"field": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension field.",
 																								},
 																							},
@@ -8417,6 +10377,9 @@ func Schema() schema.Schema {
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
@@ -8426,12 +10389,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -8441,23 +10404,34 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -8501,12 +10475,12 @@ func Schema() schema.Schema {
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																										},
 																										MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																									},
 																									"value": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "Metadata field.",
 																									},
 																								},
@@ -8515,19 +10489,33 @@ func Schema() schema.Schema {
 																						},
 																						"group_names_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"relation_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																										},
 																										MarkdownDescription: "Span relation type.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -8545,12 +10533,12 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																										typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																										typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																								},
 																								"value": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Metadata field.",
 																								},
 																							},
@@ -8560,16 +10548,27 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"relation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																									},
 																									MarkdownDescription: "Span relation type.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -8578,19 +10577,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -8618,16 +10617,23 @@ func Schema() schema.Schema {
 																		},
 																		"scale_type": schema.StringAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             stringdefault.StaticString("unspecified"),
 																			MarkdownDescription: "Scale type - linear/logarithmic",
 																		},
 																		"sort_by": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("name", "unspecified", "value"),
+																			},
 																			MarkdownDescription: "Sort type, by name or by value",
 																		},
 																		"stack_definition": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
-																				"max_slices_per_bar": schema.Int32Attribute{
+																				"max_slices_per_bar": schema.Int64Attribute{
 																					Optional:            true,
 																					MarkdownDescription: "How many slices can fit in a single bar",
 																				},
@@ -8639,33 +10645,33 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Configuration of stacked bars",
 																		},
 																		"unit": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																			},
 																			MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																		},
-																		"y_axis_max": schema.Float32Attribute{
-																			Optional:            true,
+																		"y_axis_max": schema.Float64Attribute{
+																			Optional: true,
+																			Validators: []validator.Float64{
+																				float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																			},
 																			MarkdownDescription: "Number indicating the upper band for y axis",
 																		},
-																		"y_axis_min": schema.Float32Attribute{
-																			Optional:            true,
+																		"y_axis_min": schema.Float64Attribute{
+																			Optional: true,
+																			Validators: []validator.Float64{
+																				float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																			},
 																			MarkdownDescription: "Number indicating the lower band for y axis",
 																		},
-																		"y_axis_view_by": schema.SingleNestedAttribute{
+																		"y_axis_view_by": schema.StringAttribute{
 																			Optional: true,
-																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"category", "value"}, Required: false}}},
-																			},
-																			Attributes: map[string]schema.Attribute{
-																				"category": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Y axis scale divided by individual groups",
-																				},
-																				"value": schema.SingleNestedAttribute{
-																					Optional:            true,
-																					Attributes:          map[string]schema.Attribute{},
-																					MarkdownDescription: "Y axis scale divided into value buckets",
-																				},
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("category", "value"),
+																				stringvalidator.OneOf("category", "value"),
 																			},
 																			MarkdownDescription: "Specifies how to organize the y-axis view",
 																		},
@@ -8674,6 +10680,9 @@ func Schema() schema.Schema {
 																},
 																"line_chart": schema.SingleNestedAttribute{
 																	Optional: true,
+																	Validators: []validator.Object{
+																		objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("title")),
+																	},
 																	Attributes: map[string]schema.Attribute{
 																		"connect_nulls": schema.BoolAttribute{
 																			Optional:            true,
@@ -8683,20 +10692,35 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"columns": schema.ListAttribute{
-																					Optional:            true,
-																					ElementType:         types.StringType,
+																					Optional:    true,
+																					ElementType: types.StringType,
+																					Validators: []validator.List{
+																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																						listvalidator.SizeAtLeast(1),
+																					},
 																					MarkdownDescription: "List of columns to display in legend",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Is the legend visible in the widget",
 																				},
 																				"placement": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																					},
+																					PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseNonNullStateForUnknown(),
+																					},
 																					MarkdownDescription: "Location of the legend in the widget",
 																				},
 																			},
@@ -8707,7 +10731,10 @@ func Schema() schema.Schema {
 																			NestedObject: schema.NestedAttributeObject{
 																				Attributes: map[string]schema.Attribute{
 																					"color_scheme": schema.StringAttribute{
-																						Optional:            true,
+																						Optional: true,
+																						Validators: []validator.String{
+																							stringvalidator.OneOf("blue", "classic", "cold", "green", "negative", "red", "severity"),
+																						},
 																						MarkdownDescription: "Applied color scheme for this query, one of the predefined values",
 																					},
 																					"custom_unit": schema.StringAttribute{
@@ -8715,10 +10742,15 @@ func Schema() schema.Schema {
 																						MarkdownDescription: "Custom unit (requires to have unit field as 'custom' to take effect)",
 																					},
 																					"data_mode_type": schema.StringAttribute{
-																						Optional:            true,
+																						Optional: true,
+																						Computed: true,
+																						Default:  stringdefault.StaticString("unspecified"),
+																						Validators: []validator.String{
+																							stringvalidator.OneOf("archive", "unspecified"),
+																						},
 																						MarkdownDescription: "Data mode type, either high or archive",
 																					},
-																					"decimal": schema.Int32Attribute{
+																					"decimal": schema.NumberAttribute{
 																						Optional:            true,
 																						MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																					},
@@ -8731,7 +10763,11 @@ func Schema() schema.Schema {
 																						MarkdownDescription: "Whether to ignore color scheme and derive colors from algorithm",
 																					},
 																					"id": schema.StringAttribute{
-																						Required:            true,
+																						Optional: true,
+																						Computed: true,
+																						PlanModifiers: []planmodifier.String{
+																							stringplanmodifier.UseNonNullStateForUnknown(),
+																						},
 																						MarkdownDescription: "Unique id of the query definition. If empty or omitted, it is auto-replaced with a generated UUID.",
 																					},
 																					"interval_resolution": schema.SingleNestedAttribute{
@@ -8743,12 +10779,18 @@ func Schema() schema.Schema {
 																							"auto": schema.SingleNestedAttribute{
 																								Optional: true,
 																								Attributes: map[string]schema.Attribute{
-																									"maximum_data_points": schema.Int32Attribute{
-																										Optional:            true,
+																									"maximum_data_points": schema.Int64Attribute{
+																										Optional: true,
+																										Validators: []validator.Int64{
+																											int64validator.Between(-2147483648, 2147483647),
+																										},
 																										MarkdownDescription: "Maximum number of data points to display. The calculated interval ensures this limit is not exceeded.",
 																									},
 																									"minimum_interval": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Validators: []validator.String{
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																										},
 																										MarkdownDescription: "Minimum interval duration. The calculated interval will not be smaller than this value.",
 																									},
 																								},
@@ -8758,15 +10800,24 @@ func Schema() schema.Schema {
 																								Optional: true,
 																								Attributes: map[string]schema.Attribute{
 																									"interval": schema.StringAttribute{
-																										Required:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																										},
 																										MarkdownDescription: "Fixed interval duration for time buckets, specified by the user.",
 																									},
-																									"maximum_data_points": schema.Int32Attribute{
-																										Optional:            true,
+																									"maximum_data_points": schema.Int64Attribute{
+																										Optional: true,
+																										Validators: []validator.Int64{
+																											int64validator.Between(-2147483648, 2147483647),
+																										},
 																										MarkdownDescription: "Maximum number of data points constraint.",
 																									},
 																									"minimum_interval": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Validators: []validator.String{
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																										},
 																										MarkdownDescription: "Minimum interval duration constraint. The selected interval will not be smaller than this value.",
 																									},
 																								},
@@ -8781,6 +10832,8 @@ func Schema() schema.Schema {
 																					},
 																					"is_visible": schema.BoolAttribute{
 																						Optional:            true,
+																						Computed:            true,
+																						Default:             booldefault.StaticBool(true),
 																						MarkdownDescription: "Is the query visible",
 																					},
 																					"name": schema.StringAttribute{
@@ -8790,7 +10843,7 @@ func Schema() schema.Schema {
 																					"query": schema.SingleNestedAttribute{
 																						Required: true,
 																						Validators: []validator.Object{
-																							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																						},
 																						Attributes: map[string]schema.Attribute{
 																							"data_prime": schema.SingleNestedAttribute{
@@ -8815,19 +10868,25 @@ func Schema() schema.Schema {
 																															Optional: true,
 																															Attributes: map[string]schema.Attribute{
 																																"keypath": schema.ListAttribute{
-																																	Optional:            true,
-																																	ElementType:         types.StringType,
+																																	Required:    true,
+																																	ElementType: types.StringType,
+																																	Validators: []validator.List{
+																																		listvalidator.SizeAtLeast(1),
+																																	},
 																																	MarkdownDescription: "The keypath.",
 																																},
 																																"scope": schema.StringAttribute{
-																																	Optional:            true,
+																																	Required: true,
+																																	Validators: []validator.String{
+																																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																																	},
 																																	MarkdownDescription: "Dataset scope.",
 																																},
 																															},
 																															MarkdownDescription: "The observation log field to which the filter is applied.",
 																														},
 																														"operator": schema.SingleNestedAttribute{
-																															Optional: true,
+																															Required: true,
 																															Attributes: map[string]schema.Attribute{
 																																"type": schema.StringAttribute{
 																																	Required: true,
@@ -8874,7 +10933,7 @@ func Schema() schema.Schema {
 																															MarkdownDescription: "The name of the metric to which the filter is applied.",
 																														},
 																														"operator": schema.SingleNestedAttribute{
-																															Optional: true,
+																															Required: true,
 																															Attributes: map[string]schema.Attribute{
 																																"type": schema.StringAttribute{
 																																	Required: true,
@@ -8919,12 +10978,12 @@ func Schema() schema.Schema {
 																																	Required: true,
 																																	Validators: []validator.String{
 																																		stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																																		typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																																		typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																																	},
 																																	MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																																},
 																																"value": schema.StringAttribute{
-																																	Optional:            true,
+																																	Required:            true,
 																																	MarkdownDescription: "Metadata field.",
 																																},
 																															},
@@ -8934,23 +10993,34 @@ func Schema() schema.Schema {
 																															Optional: true,
 																															Attributes: map[string]schema.Attribute{
 																																"keypath": schema.ListAttribute{
-																																	Optional:            true,
-																																	ElementType:         types.StringType,
+																																	Required:    true,
+																																	ElementType: types.StringType,
+																																	Validators: []validator.List{
+																																		listvalidator.SizeAtLeast(1),
+																																	},
 																																	MarkdownDescription: "The keypath.",
 																																},
 																																"relation_type": schema.StringAttribute{
-																																	Optional:            true,
+																																	Optional: true,
+																																	Computed: true,
+																																	Default:  stringdefault.StaticString("unspecified"),
+																																	Validators: []validator.String{
+																																		stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																																	},
 																																	MarkdownDescription: "Span relation type.",
 																																},
 																																"scope": schema.StringAttribute{
-																																	Optional:            true,
+																																	Required: true,
+																																	Validators: []validator.String{
+																																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																																	},
 																																	MarkdownDescription: "Dataset scope.",
 																																},
 																															},
 																															MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																														},
 																														"operator": schema.SingleNestedAttribute{
-																															Optional: true,
+																															Required: true,
 																															Attributes: map[string]schema.Attribute{
 																																"type": schema.StringAttribute{
 																																	Required: true,
@@ -8987,7 +11057,7 @@ func Schema() schema.Schema {
 																												},
 																											},
 																											Validators: []validator.Object{
-																												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																											},
 																										},
 																										MarkdownDescription: "List of query filters",
@@ -8995,19 +11065,19 @@ func Schema() schema.Schema {
 																									"time_frame": schema.SingleNestedAttribute{
 																										Optional: true,
 																										Validators: []validator.Object{
-																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																										},
 																										Attributes: map[string]schema.Attribute{
 																											"absolute": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"start": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The from.",
 																													},
 																													"end": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The to.",
 																													},
@@ -9034,14 +11104,17 @@ func Schema() schema.Schema {
 																								Optional: true,
 																								Attributes: map[string]schema.Attribute{
 																									"aggregations": schema.ListNestedAttribute{
-																										Optional: true,
+																										Required: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"type": schema.StringAttribute{
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																														typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																														typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																													},
 																													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																												},
@@ -9053,12 +11126,18 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
@@ -9074,6 +11153,9 @@ func Schema() schema.Schema {
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"field": schema.StringAttribute{
@@ -9084,19 +11166,25 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
 																													MarkdownDescription: "The observation log field to which the filter is applied.",
 																												},
 																												"operator": schema.SingleNestedAttribute{
-																													Optional: true,
+																													Required: true,
 																													Attributes: map[string]schema.Attribute{
 																														"type": schema.StringAttribute{
 																															Required: true,
@@ -9139,15 +11227,24 @@ func Schema() schema.Schema {
 																									},
 																									"group_bys": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -9161,19 +11258,19 @@ func Schema() schema.Schema {
 																									"time_frame": schema.SingleNestedAttribute{
 																										Optional: true,
 																										Validators: []validator.Object{
-																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																										},
 																										Attributes: map[string]schema.Attribute{
 																											"absolute": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"start": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The from.",
 																													},
 																													"end": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The to.",
 																													},
@@ -9200,11 +11297,21 @@ func Schema() schema.Schema {
 																								Optional: true,
 																								Attributes: map[string]schema.Attribute{
 																									"editor_mode": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("builder", "text", "unspecified"),
+																										},
+																										PlanModifiers: []planmodifier.String{
+																											stringplanmodifier.UseNonNullStateForUnknown(),
+																										},
 																										MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"label": schema.StringAttribute{
@@ -9212,11 +11319,11 @@ func Schema() schema.Schema {
 																													MarkdownDescription: "The label associated with the metric.",
 																												},
 																												"metric": schema.StringAttribute{
-																													Optional:            true,
+																													Required:            true,
 																													MarkdownDescription: "The name of the metric to which the filter is applied.",
 																												},
 																												"operator": schema.SingleNestedAttribute{
-																													Optional: true,
+																													Required: true,
 																													Attributes: map[string]schema.Attribute{
 																														"type": schema.StringAttribute{
 																															Required: true,
@@ -9253,29 +11360,36 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "List of metrics filters",
 																									},
 																									"promql_query": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "PromQL query string for querying metrics",
 																									},
 																									"series_limit_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("by_point_count", "by_series_count", "unspecified"),
+																										},
+																										PlanModifiers: []planmodifier.String{
+																											stringplanmodifier.UseNonNullStateForUnknown(),
+																										},
 																										MarkdownDescription: "How to limit the result using series_count_limit parameter",
 																									},
 																									"time_frame": schema.SingleNestedAttribute{
 																										Optional: true,
 																										Validators: []validator.Object{
-																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																										},
 																										Attributes: map[string]schema.Attribute{
 																											"absolute": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"start": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The from.",
 																													},
 																													"end": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The to.",
 																													},
@@ -9315,16 +11429,16 @@ func Schema() schema.Schema {
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("dimension", "metric"),
-																														typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																														typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																													},
 																													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																												},
 																												"aggregation_type": schema.StringAttribute{
-																													Optional:            true,
+																													Required:            true,
 																													MarkdownDescription: "Dimension aggregation type.",
 																												},
 																												"field": schema.StringAttribute{
-																													Optional:            true,
+																													Required:            true,
 																													MarkdownDescription: "Dimension field.",
 																												},
 																											},
@@ -9333,6 +11447,9 @@ func Schema() schema.Schema {
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"field": schema.SingleNestedAttribute{
@@ -9342,12 +11459,12 @@ func Schema() schema.Schema {
 																															Required: true,
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																																typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																																typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																															},
 																															MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																														},
 																														"value": schema.StringAttribute{
-																															Optional:            true,
+																															Required:            true,
 																															MarkdownDescription: "Metadata field.",
 																														},
 																													},
@@ -9357,23 +11474,34 @@ func Schema() schema.Schema {
 																													Optional: true,
 																													Attributes: map[string]schema.Attribute{
 																														"keypath": schema.ListAttribute{
-																															Optional:            true,
-																															ElementType:         types.StringType,
+																															Required:    true,
+																															ElementType: types.StringType,
+																															Validators: []validator.List{
+																																listvalidator.SizeAtLeast(1),
+																															},
 																															MarkdownDescription: "The keypath.",
 																														},
 																														"relation_type": schema.StringAttribute{
-																															Optional:            true,
+																															Optional: true,
+																															Computed: true,
+																															Default:  stringdefault.StaticString("unspecified"),
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																															},
 																															MarkdownDescription: "Span relation type.",
 																														},
 																														"scope": schema.StringAttribute{
-																															Optional:            true,
+																															Required: true,
+																															Validators: []validator.String{
+																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																															},
 																															MarkdownDescription: "Dataset scope.",
 																														},
 																													},
 																													MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																												},
 																												"operator": schema.SingleNestedAttribute{
-																													Optional: true,
+																													Required: true,
 																													Attributes: map[string]schema.Attribute{
 																														"type": schema.StringAttribute{
 																															Required: true,
@@ -9417,12 +11545,12 @@ func Schema() schema.Schema {
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																														typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																														typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																													},
 																													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																												},
 																												"value": schema.StringAttribute{
-																													Optional:            true,
+																													Required:            true,
 																													MarkdownDescription: "Metadata field.",
 																												},
 																											},
@@ -9431,19 +11559,33 @@ func Schema() schema.Schema {
 																									},
 																									"group_bys": schema.ListNestedAttribute{
 																										Optional: true,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										NestedObject: schema.NestedAttributeObject{
 																											Attributes: map[string]schema.Attribute{
 																												"keypath": schema.ListAttribute{
-																													Optional:            true,
-																													ElementType:         types.StringType,
+																													Required:    true,
+																													ElementType: types.StringType,
+																													Validators: []validator.List{
+																														listvalidator.SizeAtLeast(1),
+																													},
 																													MarkdownDescription: "The keypath.",
 																												},
 																												"relation_type": schema.StringAttribute{
-																													Optional:            true,
+																													Optional: true,
+																													Computed: true,
+																													Default:  stringdefault.StaticString("unspecified"),
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																													},
 																													MarkdownDescription: "Span relation type.",
 																												},
 																												"scope": schema.StringAttribute{
-																													Optional:            true,
+																													Required: true,
+																													Validators: []validator.String{
+																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																													},
 																													MarkdownDescription: "Dataset scope.",
 																												},
 																											},
@@ -9457,19 +11599,19 @@ func Schema() schema.Schema {
 																									"time_frame": schema.SingleNestedAttribute{
 																										Optional: true,
 																										Validators: []validator.Object{
-																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																										},
 																										Attributes: map[string]schema.Attribute{
 																											"absolute": schema.SingleNestedAttribute{
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"start": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The from.",
 																													},
 																													"end": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														CustomType:          timetypes.RFC3339Type{},
 																														MarkdownDescription: "The to.",
 																													},
@@ -9498,7 +11640,7 @@ func Schema() schema.Schema {
 																					"resolution": schema.SingleNestedAttribute{
 																						Optional: true,
 																						Attributes: map[string]schema.Attribute{
-																							"buckets_presented": schema.Int32Attribute{
+																							"buckets_presented": schema.Int64Attribute{
 																								Optional:            true,
 																								MarkdownDescription: "How many buckets to present in the selected timeframe (deprecated)",
 																							},
@@ -9510,10 +11652,15 @@ func Schema() schema.Schema {
 																						MarkdownDescription: "Resolution settings of the query values (deprecated, use interval_resolution instead)",
 																					},
 																					"scale_type": schema.StringAttribute{
-																						Optional:            true,
+																						Optional: true,
+																						Computed: true,
+																						Default:  stringdefault.StaticString("unspecified"),
+																						Validators: []validator.String{
+																							stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
+																						},
 																						MarkdownDescription: "Scale type - linear/logarithmic",
 																					},
-																					"series_count_limit": schema.StringAttribute{
+																					"series_count_limit": schema.Int64Attribute{
 																						Optional:            true,
 																						MarkdownDescription: "Max count of the series per query",
 																					},
@@ -9522,15 +11669,26 @@ func Schema() schema.Schema {
 																						MarkdownDescription: "Custom template for the series name",
 																					},
 																					"unit": schema.StringAttribute{
-																						Optional:            true,
+																						Optional: true,
+																						Computed: true,
+																						Default:  stringdefault.StaticString("unspecified"),
+																						Validators: []validator.String{
+																							stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
+																						},
 																						MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
 																					},
-																					"y_axis_max": schema.Float32Attribute{
-																						Optional:            true,
+																					"y_axis_max": schema.Float64Attribute{
+																						Optional: true,
+																						Validators: []validator.Float64{
+																							float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																						},
 																						MarkdownDescription: "Number indicating the upper band for y axis",
 																					},
-																					"y_axis_min": schema.Float32Attribute{
-																						Optional:            true,
+																					"y_axis_min": schema.Float64Attribute{
+																						Optional: true,
+																						Validators: []validator.Float64{
+																							float64validator.Between(-340282346638528860000000000000000000000.0, 340282346638528860000000000000000000000.0),
+																						},
 																						MarkdownDescription: "Number indicating the lower band for y axis",
 																					},
 																				},
@@ -9538,7 +11696,12 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Definitions of widget queries",
 																		},
 																		"stacked_line": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("absolute", "relative", "unspecified"),
+																			},
 																			MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative",
 																		},
 																		"tooltip": schema.SingleNestedAttribute{
@@ -9546,10 +11709,15 @@ func Schema() schema.Schema {
 																			Attributes: map[string]schema.Attribute{
 																				"show_labels": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "The show labels.",
 																				},
 																				"type": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("all", "single", "unspecified"),
+																					},
 																					MarkdownDescription: "Type of the tooltip display, can be showing single series value or all series values at once",
 																				},
 																			},
@@ -9560,7 +11728,14 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "When used, dashboard or widget time frame is ignored and X axis will represent only dates present in received data which can differ significantly from time ranges that were requested.",
 																		},
 																		"x_axis_time_format": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
+																			},
+																			PlanModifiers: []planmodifier.String{
+																				stringplanmodifier.UseNonNullStateForUnknown(),
+																			},
 																			MarkdownDescription: "Time format for the X axis",
 																		},
 																	},
@@ -9584,7 +11759,10 @@ func Schema() schema.Schema {
 																	Optional: true,
 																	Attributes: map[string]schema.Attribute{
 																		"color_scheme": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("blue", "classic", "cold", "green", "negative", "red", "severity"),
+																			},
 																			MarkdownDescription: "Applied color scheme, one of the predefined values",
 																		},
 																		"custom_unit": schema.StringAttribute{
@@ -9592,10 +11770,15 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Custom unit (requires the unit field to be set to custom to take effect)",
 																		},
 																		"data_mode_type": schema.StringAttribute{
-																			Optional:            true,
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("archive", "unspecified"),
+																			},
 																			MarkdownDescription: "Data mode type, either high or archive",
 																		},
-																		"decimal": schema.Int32Attribute{
+																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
 																			MarkdownDescription: "Number indicating the decimal precision of the numeric values, within range 0-15",
 																		},
@@ -9612,26 +11795,39 @@ func Schema() schema.Schema {
 																			MarkdownDescription: "Whether to ignore color scheme and derive colors from algorithm",
 																		},
 																		"label_definition": schema.SingleNestedAttribute{
-																			Optional: true,
+																			Required: true,
 																			Attributes: map[string]schema.Attribute{
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Are labels visible",
 																				},
 																				"label_source": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Default:  stringdefault.StaticString("unspecified"),
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("inner", "stack", "unspecified"),
+																					},
 																					MarkdownDescription: "Source of the label",
 																				},
 																				"show_name": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Whether to show the name of slice in the label",
 																				},
 																				"show_percentage": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Whether to show percentage value of slice in the label",
 																				},
 																				"show_value": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Whether to show value of slice in the label",
 																				},
 																			},
@@ -9641,44 +11837,59 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"columns": schema.ListAttribute{
-																					Optional:            true,
-																					ElementType:         types.StringType,
+																					Optional:    true,
+																					ElementType: types.StringType,
+																					Validators: []validator.List{
+																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
+																						listvalidator.SizeAtLeast(1),
+																					},
 																					MarkdownDescription: "List of columns to display in legend",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(false),
 																					MarkdownDescription: "In case of multiple queries, whether legend items should be grouped by their respective queries",
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
+																					Computed:            true,
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Is the legend visible in the widget",
 																				},
 																				"placement": schema.StringAttribute{
-																					Optional:            true,
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf("auto", "bottom", "hidden", "side", "unspecified"),
+																					},
+																					PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseNonNullStateForUnknown(),
+																					},
 																					MarkdownDescription: "Location of the legend in the widget",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
 																		},
-																		"max_slices_per_chart": schema.Int32Attribute{
+																		"max_slices_per_chart": schema.Int64Attribute{
 																			Optional:            true,
 																			MarkdownDescription: "Maximum number of slices on a chart",
 																		},
-																		"min_slice_percentage": schema.Int32Attribute{
+																		"min_slice_percentage": schema.Int64Attribute{
 																			Optional:            true,
 																			MarkdownDescription: "Minimum percentage threshold for slices to be displayed",
 																		},
 																		"query": schema.SingleNestedAttribute{
-																			Optional: true,
+																			Required: true,
 																			Validators: []validator.Object{
-																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: false}}},
+																				oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"data_prime", "logs", "metrics", "spans"}, Required: true}}},
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"data_prime": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "Dataprime query text",
 																						},
 																						"filters": schema.ListNestedAttribute{
@@ -9696,19 +11907,25 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -9755,7 +11972,7 @@ func Schema() schema.Schema {
 																												MarkdownDescription: "The name of the metric to which the filter is applied.",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -9800,12 +12017,12 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																															typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																													},
 																													"value": schema.StringAttribute{
-																														Optional:            true,
+																														Required:            true,
 																														MarkdownDescription: "Metadata field.",
 																													},
 																												},
@@ -9815,23 +12032,34 @@ func Schema() schema.Schema {
 																												Optional: true,
 																												Attributes: map[string]schema.Attribute{
 																													"keypath": schema.ListAttribute{
-																														Optional:            true,
-																														ElementType:         types.StringType,
+																														Required:    true,
+																														ElementType: types.StringType,
+																														Validators: []validator.List{
+																															listvalidator.SizeAtLeast(1),
+																														},
 																														MarkdownDescription: "The keypath.",
 																													},
 																													"relation_type": schema.StringAttribute{
-																														Optional:            true,
+																														Optional: true,
+																														Computed: true,
+																														Default:  stringdefault.StaticString("unspecified"),
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																														},
 																														MarkdownDescription: "Span relation type.",
 																													},
 																													"scope": schema.StringAttribute{
-																														Optional:            true,
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																														},
 																														MarkdownDescription: "Dataset scope.",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																											},
 																											"operator": schema.SingleNestedAttribute{
-																												Optional: true,
+																												Required: true,
 																												Attributes: map[string]schema.Attribute{
 																													"type": schema.StringAttribute{
 																														Required: true,
@@ -9868,7 +12096,7 @@ func Schema() schema.Schema {
 																									},
 																								},
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 																								},
 																							},
 																							MarkdownDescription: "List of query filters",
@@ -9885,19 +12113,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -9924,13 +12152,13 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Required: true,
 																							Attributes: map[string]schema.Attribute{
 																								"type": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("avg", "count", "count_distinct", "max", "min", "percentile", "sum"),
-																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}},
+																										typedArmValidator{Names: []string{"field", "observation_field", "percent"}, Fields: map[string][]string{"avg": {"field", "observation_field"}, "count": {}, "count_distinct": {"field", "observation_field"}, "max": {"field", "observation_field"}, "min": {"field", "observation_field"}, "percentile": {"field", "observation_field", "percent"}, "sum": {"field", "observation_field"}}, Rules: map[string][]typedRule{"avg": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "count_distinct": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "max": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "min": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}, "sum": {{Kind: "exactlyOneOf", Names: []string{"field", "observation_field"}}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"avg\", \"count\", \"count_distinct\", \"max\", \"min\", \"percentile\", \"sum\".",
 																								},
@@ -9942,12 +12170,18 @@ func Schema() schema.Schema {
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"keypath": schema.ListAttribute{
-																											Optional:            true,
-																											ElementType:         types.StringType,
+																											Required:    true,
+																											ElementType: types.StringType,
+																											Validators: []validator.List{
+																												listvalidator.SizeAtLeast(1),
+																											},
 																											MarkdownDescription: "The keypath.",
 																										},
 																										"scope": schema.StringAttribute{
-																											Optional:            true,
+																											Required: true,
+																											Validators: []validator.String{
+																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																											},
 																											MarkdownDescription: "Dataset scope.",
 																										},
 																									},
@@ -9962,6 +12196,9 @@ func Schema() schema.Schema {
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -9972,19 +12209,25 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -10021,8 +12264,11 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of filters that narrow down query results",
 																						},
 																						"group_names": schema.ListAttribute{
-																							Optional:            true,
-																							ElementType:         types.StringType,
+																							Optional:    true,
+																							ElementType: types.StringType,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							MarkdownDescription: "List of field names to group the query results",
 																						},
 																						"group_names_fields": schema.ListNestedAttribute{
@@ -10030,12 +12276,18 @@ func Schema() schema.Schema {
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -10054,12 +12306,18 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -10068,19 +12326,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -10107,15 +12365,32 @@ func Schema() schema.Schema {
 																					Optional: true,
 																					Attributes: map[string]schema.Attribute{
 																						"aggregation": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Aggregation function",
 																						},
 																						"editor_mode": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("builder", "text", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"label": schema.StringAttribute{
@@ -10123,11 +12398,11 @@ func Schema() schema.Schema {
 																										MarkdownDescription: "The label associated with the metric.",
 																									},
 																									"metric": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "The name of the metric to which the filter is applied.",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -10169,11 +12444,18 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "List of field names by which metric results are grouped",
 																						},
 																						"promql_query": schema.StringAttribute{
-																							Optional:            true,
+																							Required:            true,
 																							MarkdownDescription: "PromQL query string for querying metrics",
 																						},
 																						"promql_query_type": schema.StringAttribute{
-																							Optional:            true,
+																							Optional: true,
+																							Computed: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("instant", "range", "unspecified"),
+																							},
+																							PlanModifiers: []planmodifier.String{
+																								stringplanmodifier.UseNonNullStateForUnknown(),
+																							},
 																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
 																						},
 																						"stacked_group_name": schema.StringAttribute{
@@ -10183,19 +12465,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -10228,16 +12510,16 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
 																								"aggregation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension aggregation type.",
 																								},
 																								"field": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Dimension field.",
 																								},
 																							},
@@ -10245,6 +12527,9 @@ func Schema() schema.Schema {
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.SingleNestedAttribute{
@@ -10254,12 +12539,12 @@ func Schema() schema.Schema {
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																													typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																												},
 																												MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																											},
 																											"value": schema.StringAttribute{
-																												Optional:            true,
+																												Required:            true,
 																												MarkdownDescription: "Metadata field.",
 																											},
 																										},
@@ -10269,23 +12554,34 @@ func Schema() schema.Schema {
 																										Optional: true,
 																										Attributes: map[string]schema.Attribute{
 																											"keypath": schema.ListAttribute{
-																												Optional:            true,
-																												ElementType:         types.StringType,
+																												Required:    true,
+																												ElementType: types.StringType,
+																												Validators: []validator.List{
+																													listvalidator.SizeAtLeast(1),
+																												},
 																												MarkdownDescription: "The keypath.",
 																											},
 																											"relation_type": schema.StringAttribute{
-																												Optional:            true,
+																												Optional: true,
+																												Computed: true,
+																												Default:  stringdefault.StaticString("unspecified"),
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																												},
 																												MarkdownDescription: "Span relation type.",
 																											},
 																											"scope": schema.StringAttribute{
-																												Optional:            true,
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																												},
 																												MarkdownDescription: "Dataset scope.",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
 																									},
 																									"operator": schema.SingleNestedAttribute{
-																										Optional: true,
+																										Required: true,
 																										Attributes: map[string]schema.Attribute{
 																											"type": schema.StringAttribute{
 																												Required: true,
@@ -10329,12 +12625,12 @@ func Schema() schema.Schema {
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																											typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																										},
 																										MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																									},
 																									"value": schema.StringAttribute{
-																										Optional:            true,
+																										Required:            true,
 																										MarkdownDescription: "Metadata field.",
 																									},
 																								},
@@ -10343,19 +12639,33 @@ func Schema() schema.Schema {
 																						},
 																						"group_names_fields": schema.ListNestedAttribute{
 																							Optional: true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"keypath": schema.ListAttribute{
-																										Optional:            true,
-																										ElementType:         types.StringType,
+																										Required:    true,
+																										ElementType: types.StringType,
+																										Validators: []validator.List{
+																											listvalidator.SizeAtLeast(1),
+																										},
 																										MarkdownDescription: "The keypath.",
 																									},
 																									"relation_type": schema.StringAttribute{
-																										Optional:            true,
+																										Optional: true,
+																										Computed: true,
+																										Default:  stringdefault.StaticString("unspecified"),
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																										},
 																										MarkdownDescription: "Span relation type.",
 																									},
 																									"scope": schema.StringAttribute{
-																										Optional:            true,
+																										Required: true,
+																										Validators: []validator.String{
+																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																										},
 																										MarkdownDescription: "Dataset scope.",
 																									},
 																								},
@@ -10373,12 +12683,12 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																										typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																										typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																								},
 																								"value": schema.StringAttribute{
-																									Optional:            true,
+																									Required:            true,
 																									MarkdownDescription: "Metadata field.",
 																								},
 																							},
@@ -10388,16 +12698,27 @@ func Schema() schema.Schema {
 																							Optional: true,
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
-																									Optional:            true,
-																									ElementType:         types.StringType,
+																									Required:    true,
+																									ElementType: types.StringType,
+																									Validators: []validator.List{
+																										listvalidator.SizeAtLeast(1),
+																									},
 																									MarkdownDescription: "The keypath.",
 																								},
 																								"relation_type": schema.StringAttribute{
-																									Optional:            true,
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString("unspecified"),
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("other", "parent", "root", "unspecified"),
+																									},
 																									MarkdownDescription: "Span relation type.",
 																								},
 																								"scope": schema.StringAttribute{
-																									Optional:            true,
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																									},
 																									MarkdownDescription: "Dataset scope.",
 																								},
 																							},
@@ -10406,19 +12727,19 @@ func Schema() schema.Schema {
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
 																							Validators: []validator.Object{
-																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: false}}},
+																								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"absolute", "relative"}, Required: true}}},
 																							},
 																							Attributes: map[string]schema.Attribute{
 																								"absolute": schema.SingleNestedAttribute{
 																									Optional: true,
 																									Attributes: map[string]schema.Attribute{
 																										"start": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The from.",
 																										},
 																										"end": schema.StringAttribute{
-																											Optional:            true,
+																											Required:            true,
 																											CustomType:          timetypes.RFC3339Type{},
 																											MarkdownDescription: "The to.",
 																										},
@@ -10446,6 +12767,8 @@ func Schema() schema.Schema {
 																		},
 																		"show_legend": schema.BoolAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             booldefault.StaticBool(true),
 																			MarkdownDescription: "Indicates whether to display the legend",
 																		},
 																		"show_total": schema.BoolAttribute{
@@ -10455,7 +12778,7 @@ func Schema() schema.Schema {
 																		"stack_definition": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
-																				"max_slices_per_stack": schema.Int32Attribute{
+																				"max_slices_per_stack": schema.Int64Attribute{
 																					Optional:            true,
 																					MarkdownDescription: "How many slices can fit in a single slice stack",
 																				},
@@ -10468,6 +12791,8 @@ func Schema() schema.Schema {
 																		},
 																		"unit": schema.StringAttribute{
 																			Optional:            true,
+																			Computed:            true,
+																			Default:             stringdefault.StaticString("unspecified"),
 																			MarkdownDescription: "Unit of the value - one from a predefined list, or custom",
 																		},
 																	},
@@ -10489,7 +12814,11 @@ func Schema() schema.Schema {
 															MarkdownDescription: "Deprecated: has no effect. The value is stored and returned unchanged; it does not highlight anything.",
 														},
 														"id": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Computed: true,
+															PlanModifiers: []planmodifier.String{
+																stringplanmodifier.UseNonNullStateForUnknown(),
+															},
 															MarkdownDescription: "Widget unique identifier",
 														},
 														"layout_columns": schema.Int32Attribute{
@@ -10500,11 +12829,11 @@ func Schema() schema.Schema {
 															Optional: true,
 															Attributes: map[string]schema.Attribute{
 																"dashboard_id": schema.StringAttribute{
-																	Optional:            true,
+																	Required:            true,
 																	MarkdownDescription: "Dashboard ID containing the referenced widget (21-char NanoIds)",
 																},
 																"widget_id": schema.StringAttribute{
-																	Optional:            true,
+																	Required:            true,
 																	MarkdownDescription: "Widget ID within the referenced dashboard",
 																},
 															},
@@ -10515,8 +12844,7 @@ func Schema() schema.Schema {
 															MarkdownDescription: "Name of the widget",
 														},
 														"updated_at": schema.StringAttribute{
-															Optional:            true,
-															CustomType:          timetypes.RFC3339Type{},
+															Computed:            true,
 															MarkdownDescription: "Last-updated timestamp.",
 														},
 														"custom_actions": schema.ListNestedAttribute{
@@ -10524,19 +12852,26 @@ func Schema() schema.Schema {
 															NestedObject: schema.NestedAttributeObject{
 																Attributes: map[string]schema.Attribute{
 																	"data_source": schema.StringAttribute{
-																		Optional:            true,
+																		Required: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf("dataprime", "logs", "metrics", "spans"),
+																		},
 																		MarkdownDescription: "Defines the data source type of the action, if applicable",
 																	},
 																	"url": schema.StringAttribute{
-																		Optional:            true,
+																		Required:            true,
 																		MarkdownDescription: "Static URL that may contain variables using {{variable_name}} syntax",
 																	},
 																	"id": schema.StringAttribute{
-																		Optional:            true,
+																		Optional: true,
+																		Computed: true,
+																		PlanModifiers: []planmodifier.String{
+																			stringplanmodifier.UseNonNullStateForUnknown(),
+																		},
 																		MarkdownDescription: "A unique identifier of the action",
 																	},
 																	"name": schema.StringAttribute{
-																		Optional:            true,
+																		Required:            true,
 																		MarkdownDescription: "The display name of the action",
 																	},
 																	"query_id": schema.StringAttribute{
@@ -10567,7 +12902,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "The layout configuration for the dashboard's visual elements.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
 				MarkdownDescription: "The display name of the dashboard",
 			},
 			"slug_name": schema.StringAttribute{
@@ -10576,12 +12911,15 @@ func Schema() schema.Schema {
 			},
 			"variables": schema.ListNestedAttribute{
 				Optional: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"definition": schema.SingleNestedAttribute{
-							Optional: true,
+							Required: true,
 							Validators: []validator.Object{
-								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"constant_value", "multi_select"}, Required: false}}},
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"constant_value", "multi_select"}, Required: true}}},
 							},
 							Attributes: map[string]schema.Attribute{
 								"constant_value": schema.StringAttribute{
@@ -10599,13 +12937,16 @@ func Schema() schema.Schema {
 											MarkdownDescription: "Discriminated union defining the current selection state: all values or a specific list of values.",
 										},
 										"selection_type": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf("multi", "single"),
+											},
 											MarkdownDescription: "Selection type.",
 										},
 										"source": schema.SingleNestedAttribute{
 											Optional: true,
 											Validators: []validator.Object{
-												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"constant_list", "logs_path", "metric_label", "query", "span_field"}, Required: false}}},
+												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"constant_list", "logs_path", "metric_label", "query", "span_field"}, Required: true}}},
 											},
 											Attributes: map[string]schema.Attribute{
 												"constant_list": schema.ListAttribute{
@@ -10613,36 +12954,15 @@ func Schema() schema.Schema {
 													ElementType:         types.StringType,
 													MarkdownDescription: "Constant list source.",
 												},
-												"logs_path": schema.SingleNestedAttribute{
-													Optional: true,
-													Attributes: map[string]schema.Attribute{
-														"observation_field": schema.SingleNestedAttribute{
-															Optional: true,
-															Attributes: map[string]schema.Attribute{
-																"keypath": schema.ListAttribute{
-																	Optional:            true,
-																	ElementType:         types.StringType,
-																	MarkdownDescription: "The keypath.",
-																},
-																"scope": schema.StringAttribute{
-																	Optional:            true,
-																	MarkdownDescription: "Dataset scope.",
-																},
-															},
-															MarkdownDescription: "Observation field.",
-														},
-														"value": schema.StringAttribute{
-															Optional:            true,
-															MarkdownDescription: "The value.",
-														},
-													},
+												"logs_path": schema.StringAttribute{
+													Optional:            true,
 													MarkdownDescription: "Logs path source.",
 												},
 												"metric_label": schema.SingleNestedAttribute{
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"label": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "The label.",
 														},
 														"metric_name": schema.StringAttribute{
@@ -10656,22 +12976,22 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"query": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Validators: []validator.Object{
-																oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: false}}},
+																oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"logs", "metrics", "spans"}, Required: true}}},
 															},
 															Attributes: map[string]schema.Attribute{
 																"logs": schema.SingleNestedAttribute{
 																	Optional: true,
 																	Validators: []validator.Object{
-																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field_name", "field_value"}, Required: false}}},
+																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field_name", "field_value"}, Required: true}}},
 																	},
 																	Attributes: map[string]schema.Attribute{
 																		"field_name": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"log_regex": schema.StringAttribute{
-																					Optional:            true,
+																					Required:            true,
 																					MarkdownDescription: "The log regex.",
 																				},
 																			},
@@ -10681,15 +13001,21 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"observation_field": schema.SingleNestedAttribute{
-																					Optional: true,
+																					Required: true,
 																					Attributes: map[string]schema.Attribute{
 																						"keypath": schema.ListAttribute{
-																							Optional:            true,
-																							ElementType:         types.StringType,
+																							Required:    true,
+																							ElementType: types.StringType,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																							MarkdownDescription: "The keypath.",
 																						},
 																						"scope": schema.StringAttribute{
-																							Optional:            true,
+																							Required: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																							},
 																							MarkdownDescription: "Dataset scope.",
 																						},
 																					},
@@ -10704,14 +13030,14 @@ func Schema() schema.Schema {
 																"metrics": schema.SingleNestedAttribute{
 																	Optional: true,
 																	Validators: []validator.Object{
-																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_name", "label_value", "metric_name"}, Required: false}}},
+																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_name", "label_value", "metric_name"}, Required: true}}},
 																	},
 																	Attributes: map[string]schema.Attribute{
 																		"label_name": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"metric_regex": schema.StringAttribute{
-																					Optional:            true,
+																					Required:            true,
 																					MarkdownDescription: "The metric regex.",
 																				},
 																			},
@@ -10727,7 +13053,7 @@ func Schema() schema.Schema {
 																							"label": schema.SingleNestedAttribute{
 																								Optional: true,
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																								},
 																								Attributes: map[string]schema.Attribute{
 																									"string_value": schema.StringAttribute{
@@ -10744,7 +13070,7 @@ func Schema() schema.Schema {
 																							"metric": schema.SingleNestedAttribute{
 																								Optional: true,
 																								Validators: []validator.Object{
-																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																								},
 																								Attributes: map[string]schema.Attribute{
 																									"string_value": schema.StringAttribute{
@@ -10798,7 +13124,7 @@ func Schema() schema.Schema {
 																				"label_name": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Validators: []validator.Object{
-																						oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																						oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																					},
 																					Attributes: map[string]schema.Attribute{
 																						"string_value": schema.StringAttribute{
@@ -10815,7 +13141,7 @@ func Schema() schema.Schema {
 																				"metric_name": schema.SingleNestedAttribute{
 																					Optional: true,
 																					Validators: []validator.Object{
-																						oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																						oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																					},
 																					Attributes: map[string]schema.Attribute{
 																						"string_value": schema.StringAttribute{
@@ -10836,7 +13162,7 @@ func Schema() schema.Schema {
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"metric_regex": schema.StringAttribute{
-																					Optional:            true,
+																					Required:            true,
 																					MarkdownDescription: "The metric regex.",
 																				},
 																			},
@@ -10848,14 +13174,14 @@ func Schema() schema.Schema {
 																"spans": schema.SingleNestedAttribute{
 																	Optional: true,
 																	Validators: []validator.Object{
-																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field_name", "field_value"}, Required: false}}},
+																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field_name", "field_value"}, Required: true}}},
 																	},
 																	Attributes: map[string]schema.Attribute{
 																		"field_name": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"span_regex": schema.StringAttribute{
-																					Optional:            true,
+																					Required:            true,
 																					MarkdownDescription: "The span regex.",
 																				},
 																			},
@@ -10868,12 +13194,12 @@ func Schema() schema.Schema {
 																					Required: true,
 																					Validators: []validator.String{
 																						stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																						typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																						typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																					},
 																					MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																				},
 																				"value": schema.StringAttribute{
-																					Optional:            true,
+																					Required:            true,
 																					MarkdownDescription: "Metadata field.",
 																				},
 																			},
@@ -10886,7 +13212,12 @@ func Schema() schema.Schema {
 															MarkdownDescription: "Discriminated union specifying whether to query logs, metrics, or spans for variable values.",
 														},
 														"refresh_strategy": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Computed: true,
+															Default:  stringdefault.StaticString("unspecified"),
+															Validators: []validator.String{
+																stringvalidator.OneOf("on_dashboard_load", "on_time_frame_change", "unspecified"),
+															},
 															MarkdownDescription: "Refresh strategy.",
 														},
 														"value_display_options": schema.SingleNestedAttribute{
@@ -10913,12 +13244,12 @@ func Schema() schema.Schema {
 															Required: true,
 															Validators: []validator.String{
 																stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 															},
 															MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 														},
 														"value": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "Metadata field.",
 														},
 													},
@@ -10928,7 +13259,10 @@ func Schema() schema.Schema {
 											MarkdownDescription: "Source.",
 										},
 										"values_order_direction": schema.StringAttribute{
-											Optional:            true,
+											Required: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf("asc", "desc", "unspecified"),
+											},
 											MarkdownDescription: "Order direction.",
 										},
 									},
@@ -10942,11 +13276,14 @@ func Schema() schema.Schema {
 							MarkdownDescription: "Human-readable description.",
 						},
 						"display_name": schema.StringAttribute{
-							Optional:            true,
+							Required:            true,
 							MarkdownDescription: "The display name.",
 						},
 						"display_type": schema.StringAttribute{
-							Optional:            true,
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf("label_value", "nothing", "value"),
+							},
 							MarkdownDescription: "Variable display type.",
 						},
 						"name": schema.StringAttribute{
@@ -10959,6 +13296,9 @@ func Schema() schema.Schema {
 			},
 			"variables_v2": schema.ListNestedAttribute{
 				Optional: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"description": schema.StringAttribute{
@@ -10974,11 +13314,20 @@ func Schema() schema.Schema {
 							MarkdownDescription: "The display name.",
 						},
 						"display_type": schema.StringAttribute{
-							Required:            true,
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString("label_value"),
+							Validators: []validator.String{
+								stringvalidator.OneOf("label_value", "nothing", "value"),
+							},
 							MarkdownDescription: "How the variable is rendered in the dashboard header. A concrete value is required — VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED is rejected.",
 						},
 						"id": schema.StringAttribute{
-							Optional:            true,
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "Variable's unique identifier. Assigned by the server. Dashboards created before this field existed return variables without it, so it must not be treated as always present when reading.",
 						},
 						"name": schema.StringAttribute{
@@ -10988,13 +13337,13 @@ func Schema() schema.Schema {
 						"source": schema.SingleNestedAttribute{
 							Required: true,
 							Validators: []validator.Object{
-								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"query", "static", "textbox"}, Required: false}}},
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"query", "static", "textbox"}, Required: true}}},
 							},
 							Attributes: map[string]schema.Attribute{
 								"query": schema.SingleNestedAttribute{
 									Optional: true,
 									Validators: []validator.Object{
-										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"dataprime_query", "logs_query", "metrics_query", "spans_query"}, Required: false}}},
+										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"dataprime_query", "logs_query", "metrics_query", "spans_query"}, Required: true}}},
 									},
 									Attributes: map[string]schema.Attribute{
 										"all_option": schema.SingleNestedAttribute{
@@ -11015,17 +13364,22 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.SingleNestedAttribute{
-													Optional: true,
+													Required: true,
 													Attributes: map[string]schema.Attribute{
 														"query_text": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"data_mode_type": schema.StringAttribute{
-																	Optional:            true,
+																	Optional: true,
+																	Computed: true,
+																	Default:  stringdefault.StaticString("high"),
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("archive", "unspecified"),
+																	},
 																	MarkdownDescription: "Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
 																},
 																"query": schema.StringAttribute{
-																	Optional:            true,
+																	Required:            true,
 																	MarkdownDescription: "Line chart.dataprime query.",
 																},
 															},
@@ -11041,7 +13395,7 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.SingleNestedAttribute{
-													Optional: true,
+													Required: true,
 													Validators: []validator.Object{
 														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field_name", "field_value"}, Required: false}}},
 													},
@@ -11057,18 +13411,24 @@ func Schema() schema.Schema {
 															MarkdownDescription: "Not implemented and unusable. Fetching log field names by regex is defined in the API but is not supported by the dashboards product: a dashboard whose variable uses fieldName cannot be created in the UI and fails to render when loaded. Use fieldValue instead.",
 														},
 														"field_value": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"observation_field": schema.SingleNestedAttribute{
 																	Required: true,
 																	Attributes: map[string]schema.Attribute{
 																		"keypath": schema.ListAttribute{
-																			Optional:            true,
-																			ElementType:         types.StringType,
+																			Required:    true,
+																			ElementType: types.StringType,
+																			Validators: []validator.List{
+																				listvalidator.SizeAtLeast(1),
+																			},
 																			MarkdownDescription: "The keypath.",
 																		},
 																		"scope": schema.StringAttribute{
-																			Optional:            true,
+																			Required: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																			},
 																			MarkdownDescription: "Dataset scope.",
 																		},
 																	},
@@ -11087,16 +13447,16 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.SingleNestedAttribute{
-													Optional: true,
+													Required: true,
 													Validators: []validator.Object{
-														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_name", "label_value", "metric_name", "promql_query"}, Required: false}}},
+														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_name", "label_value", "metric_name", "promql_query"}, Required: true}}},
 													},
 													Attributes: map[string]schema.Attribute{
 														"label_name": schema.SingleNestedAttribute{
 															Optional: true,
 															Attributes: map[string]schema.Attribute{
 																"metric_regex": schema.StringAttribute{
-																	Optional:            true,
+																	Required:            true,
 																	MarkdownDescription: "The metric regex.",
 																},
 															},
@@ -11112,7 +13472,7 @@ func Schema() schema.Schema {
 																			"label": schema.SingleNestedAttribute{
 																				Optional: true,
 																				Validators: []validator.Object{
-																					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																				},
 																				Attributes: map[string]schema.Attribute{
 																					"string_value": schema.StringAttribute{
@@ -11129,7 +13489,7 @@ func Schema() schema.Schema {
 																			"metric": schema.SingleNestedAttribute{
 																				Optional: true,
 																				Validators: []validator.Object{
-																					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																				},
 																				Attributes: map[string]schema.Attribute{
 																					"string_value": schema.StringAttribute{
@@ -11183,7 +13543,7 @@ func Schema() schema.Schema {
 																"label_name": schema.SingleNestedAttribute{
 																	Required: true,
 																	Validators: []validator.Object{
-																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																	},
 																	Attributes: map[string]schema.Attribute{
 																		"string_value": schema.StringAttribute{
@@ -11200,7 +13560,7 @@ func Schema() schema.Schema {
 																"metric_name": schema.SingleNestedAttribute{
 																	Optional: true,
 																	Validators: []validator.Object{
-																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: false}}},
+																		oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"string_value", "variable_name"}, Required: true}}},
 																	},
 																	Attributes: map[string]schema.Attribute{
 																		"string_value": schema.StringAttribute{
@@ -11221,7 +13581,7 @@ func Schema() schema.Schema {
 															Optional: true,
 															Attributes: map[string]schema.Attribute{
 																"metric_regex": schema.StringAttribute{
-																	Optional:            true,
+																	Required:            true,
 																	MarkdownDescription: "The metric regex.",
 																},
 															},
@@ -11231,11 +13591,16 @@ func Schema() schema.Schema {
 															Optional: true,
 															Attributes: map[string]schema.Attribute{
 																"promql_query_type": schema.StringAttribute{
-																	Optional:            true,
+																	Optional: true,
+																	Computed: true,
+																	Default:  stringdefault.StaticString("instant"),
+																	Validators: []validator.String{
+																		stringvalidator.OneOf("instant", "range"),
+																	},
 																	MarkdownDescription: "Whether to execute the PromQL query as an instant or a range query. Defaults to instant for variable use cases.",
 																},
 																"query": schema.StringAttribute{
-																	Optional:            true,
+																	Required:            true,
 																	MarkdownDescription: "PromQL query string used to fetch the values for this dashboard variable",
 																},
 															},
@@ -11248,14 +13613,17 @@ func Schema() schema.Schema {
 											MarkdownDescription: "Variable query source that fetches metric names, label names, or label values from the metrics store.",
 										},
 										"refresh_strategy": schema.StringAttribute{
-											Optional:            true,
+											Optional: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf("on_dashboard_load", "on_time_frame_change"),
+											},
 											MarkdownDescription: "Refresh strategy.",
 										},
 										"spans_query": schema.SingleNestedAttribute{
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"type": schema.SingleNestedAttribute{
-													Optional: true,
+													Required: true,
 													Validators: []validator.Object{
 														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"field_name", "field_value"}, Required: false}}},
 													},
@@ -11271,18 +13639,24 @@ func Schema() schema.Schema {
 															MarkdownDescription: "Not implemented and unusable. Fetching span field names by regex is defined in the API but is not supported by the dashboards product: a dashboard whose variable uses fieldName cannot be created in the UI and fails to render when loaded. Use fieldValue instead.",
 														},
 														"field_value": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"observation_field": schema.SingleNestedAttribute{
 																	Optional: true,
 																	Attributes: map[string]schema.Attribute{
 																		"keypath": schema.ListAttribute{
-																			Optional:            true,
-																			ElementType:         types.StringType,
+																			Required:    true,
+																			ElementType: types.StringType,
+																			Validators: []validator.List{
+																				listvalidator.SizeAtLeast(1),
+																			},
 																			MarkdownDescription: "The keypath.",
 																		},
 																		"scope": schema.StringAttribute{
-																			Optional:            true,
+																			Required: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
+																			},
 																			MarkdownDescription: "Dataset scope.",
 																		},
 																	},
@@ -11295,12 +13669,12 @@ func Schema() schema.Schema {
 																			Required: true,
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("metadata", "process_tag", "tag"),
-																				typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}},
+																				typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "process_tag": {"value"}, "tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "operation_name", "service_name", "subsystem_name")}}}},
 																			},
 																			MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"process_tag\", \"tag\".",
 																		},
 																		"value": schema.StringAttribute{
-																			Optional:            true,
+																			Required:            true,
 																			MarkdownDescription: "Metadata field.",
 																		},
 																	},
@@ -11330,7 +13704,12 @@ func Schema() schema.Schema {
 											MarkdownDescription: "Value display options.",
 										},
 										"values_order_direction": schema.StringAttribute{
-											Required:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("asc"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("asc", "desc", "none"),
+											},
 											MarkdownDescription: "Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected.",
 										},
 									},
@@ -11355,6 +13734,9 @@ func Schema() schema.Schema {
 										},
 										"values": schema.ListNestedAttribute{
 											Required: true,
+											Validators: []validator.List{
+												listvalidator.SizeAtLeast(1),
+											},
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
 													"is_default": schema.BoolAttribute{
@@ -11362,7 +13744,11 @@ func Schema() schema.Schema {
 														MarkdownDescription: "The is default.",
 													},
 													"label": schema.StringAttribute{
-														Required:            true,
+														Optional: true,
+														Computed: true,
+														PlanModifiers: []planmodifier.String{
+															siblingDefaultModifier{Sibling: "value"},
+														},
 														MarkdownDescription: "The label.",
 													},
 													"value": schema.StringAttribute{
@@ -11374,7 +13760,12 @@ func Schema() schema.Schema {
 											MarkdownDescription: "List of values.",
 										},
 										"values_order_direction": schema.StringAttribute{
-											Required:            true,
+											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("none"),
+											Validators: []validator.String{
+												stringvalidator.OneOf("asc", "desc", "none"),
+											},
 											MarkdownDescription: "Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected.",
 										},
 									},
@@ -11386,14 +13777,14 @@ func Schema() schema.Schema {
 										"default_value": schema.SingleNestedAttribute{
 											Optional: true,
 											Validators: []validator.Object{
-												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"default_interval_value", "default_lucene_value", "default_numeric_value", "default_regex_value", "default_string_value", "single_numeric", "single_string"}, Required: false}}},
+												oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"default_interval_value", "default_lucene_value", "default_numeric_value", "default_regex_value", "default_string_value", "single_numeric", "single_string"}, Required: true}}},
 											},
 											Attributes: map[string]schema.Attribute{
 												"default_interval_value": schema.SingleNestedAttribute{
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"value": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "The value.",
 														},
 													},
@@ -11403,11 +13794,16 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"data_mode_type": schema.StringAttribute{
-															Optional:            true,
+															Optional: true,
+															Computed: true,
+															Default:  stringdefault.StaticString("high"),
+															Validators: []validator.String{
+																stringvalidator.OneOf("archive", "unspecified"),
+															},
 															MarkdownDescription: "Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
 														},
 														"value": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "The value.",
 														},
 													},
@@ -11420,16 +13816,16 @@ func Schema() schema.Schema {
 															Optional:            true,
 															MarkdownDescription: "The is integer.",
 														},
-														"max": schema.Float32Attribute{
+														"max": schema.Float64Attribute{
 															Optional:            true,
 															MarkdownDescription: "Maximum value.",
 														},
-														"min": schema.Float32Attribute{
+														"min": schema.Float64Attribute{
 															Optional:            true,
 															MarkdownDescription: "Minimum value.",
 														},
-														"value": schema.Float32Attribute{
-															Optional:            true,
+														"value": schema.Float64Attribute{
+															Required:            true,
 															MarkdownDescription: "The value.",
 														},
 													},
@@ -11439,7 +13835,7 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"value": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "The value.",
 														},
 													},
@@ -11449,7 +13845,7 @@ func Schema() schema.Schema {
 													Optional: true,
 													Attributes: map[string]schema.Attribute{
 														"value": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "The value.",
 														},
 													},
@@ -11475,7 +13871,7 @@ func Schema() schema.Schema {
 						"value": schema.SingleNestedAttribute{
 							Required: true,
 							Validators: []validator.Object{
-								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"interval", "lucene", "multi_string", "regex", "single_numeric", "single_string"}, Required: false}}},
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"interval", "lucene", "multi_string", "regex", "single_numeric", "single_string"}, Required: true}}},
 							},
 							Attributes: map[string]schema.Attribute{
 								"interval": schema.SingleNestedAttribute{
@@ -11486,7 +13882,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The label.",
 										},
 										"value": schema.StringAttribute{
-											Optional:            true,
+											Required:            true,
 											MarkdownDescription: "The value.",
 										},
 									},
@@ -11500,7 +13896,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The label.",
 										},
 										"value": schema.StringAttribute{
-											Optional:            true,
+											Required:            true,
 											MarkdownDescription: "The value.",
 										},
 									},
@@ -11509,7 +13905,7 @@ func Schema() schema.Schema {
 								"multi_string": schema.SingleNestedAttribute{
 									Optional: true,
 									Validators: []validator.Object{
-										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"all", "list", "selected_all"}, Required: false}}},
+										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"all", "list", "selected_all"}, Required: true}}},
 									},
 									Attributes: map[string]schema.Attribute{
 										"all": schema.SingleNestedAttribute{
@@ -11521,7 +13917,7 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"values": schema.ListNestedAttribute{
-													Optional: true,
+													Required: true,
 													NestedObject: schema.NestedAttributeObject{
 														Attributes: map[string]schema.Attribute{
 															"value": schema.SingleNestedAttribute{
@@ -11532,7 +13928,7 @@ func Schema() schema.Schema {
 																		MarkdownDescription: "The label.",
 																	},
 																	"value": schema.StringAttribute{
-																		Optional:            true,
+																		Required:            true,
 																		MarkdownDescription: "The value.",
 																	},
 																},
@@ -11561,7 +13957,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The label.",
 										},
 										"value": schema.StringAttribute{
-											Optional:            true,
+											Required:            true,
 											MarkdownDescription: "The value.",
 										},
 									},
@@ -11574,8 +13970,8 @@ func Schema() schema.Schema {
 											Optional:            true,
 											MarkdownDescription: "The label.",
 										},
-										"value": schema.Float32Attribute{
-											Optional:            true,
+										"value": schema.Float64Attribute{
+											Required:            true,
 											MarkdownDescription: "The value.",
 										},
 									},
@@ -11601,6 +13997,23 @@ func Schema() schema.Schema {
 					},
 				},
 				MarkdownDescription: "A list of variables that can be used within the dashboard for dynamic content",
+			},
+			"access_policy": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					equivalentDocument{equal: jsonEqual},
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "JSON-encoded access policy for this dashboard.",
+			},
+			"content_json": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("id"), path.MatchRelative().AtParent().AtName("name"), path.MatchRelative().AtParent().AtName("description"), path.MatchRelative().AtParent().AtName("layout"), path.MatchRelative().AtParent().AtName("variables"), path.MatchRelative().AtParent().AtName("variables_v2"), path.MatchRelative().AtParent().AtName("filters"), path.MatchRelative().AtParent().AtName("time_frame"), path.MatchRelative().AtParent().AtName("annotations")),
+					stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("layout")),
+				},
+				MarkdownDescription: "An option to set the dashboard content from a json file. It excludes every other attribute of the dashboard, except `folder`, `auto_refresh`, and `access_policy`.",
 			},
 		},
 	}
@@ -11926,5 +14339,37 @@ func (v oneOfArmsValidator) ValidateObject(_ context.Context, req validator.Obje
 	}
 	for _, conflict := range v.Conflicts {
 		conflict.validate(req.Path, attributes, resp)
+	}
+}
+
+// siblingDefaultModifier plans the value of a sibling attribute for a computed string that the
+// configuration leaves out. It does not keep the state value: a value that follows its sibling changes
+// with it.
+type siblingDefaultModifier struct {
+	Sibling string
+}
+
+func (m siblingDefaultModifier) Description(context.Context) string {
+	return "When this is omitted, it is the value of " + m.Sibling + "."
+}
+
+func (m siblingDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m siblingDefaultModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsUnknown() || !req.ConfigValue.IsNull() {
+		return
+	}
+	var sibling types.String
+	if diags := req.Plan.GetAttribute(ctx, req.Path.ParentPath().AtName(m.Sibling), &sibling); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	switch {
+	case sibling.IsUnknown():
+		resp.PlanValue = types.StringUnknown()
+	case !sibling.IsNull():
+		resp.PlanValue = sibling
 	}
 }

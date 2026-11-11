@@ -6,6 +6,7 @@ package dashboard
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -16,6 +17,9 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	priorSchema1 "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	priorSchema2 "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	priorSchema3 "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 )
 
 // TypeName is the resource type name without the provider prefix.
@@ -27,6 +31,7 @@ var (
 	_ resource.ResourceWithConfigValidators = (*Resource)(nil)
 	_ resource.ResourceWithImportState      = (*Resource)(nil)
 	_ resource.ResourceWithValidateConfig   = (*Resource)(nil)
+	_ resource.ResourceWithUpgradeState     = (*Resource)(nil)
 )
 
 // Resource is the Terraform resource. The provider data must be a
@@ -47,9 +52,29 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *dashboard_service.Dashboard) diag.Diagnostics
+	// Get replaces the Execute step of the Get call that Read, the data source, and every read
+	// after a write make (nil: the generated call). It receives a factory of the generated
+	// request, which already holds the context, the id, and the fixed query values of the
+	// contract: every call of the factory returns a fresh request that the hook adds a query
+	// parameter to and executes, as many times as it needs (a retry without the parameter calls
+	// the factory again). It returns what Execute returns: the whole Get response, the HTTP
+	// response, and the error. The generated code classifies the error as it does for its own
+	// call (a 404 of the resource is a resource that is gone, a 404 of a route that does not
+	// exist is an error), and takes the resource out of the response.
+	Get func(context.Context, func() dashboard_service.ApiDashboardsServiceGetDashboardRequest) (*dashboard_service.GetDashboardResponse, *http.Response, error)
+	// AfterGet receives the whole Get response, with the values next to the resource that the
+	// generated code drops, and the state that was just written from it. It runs after
+	// the state was written and before AfterRead, only for a state that a Get call produced
+	// (the response of a write is no Get response), and not when flatten failed.
+	AfterGet func(context.Context, *tfsdk.State, *dashboard_service.GetDashboardResponse) diag.Diagnostics
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
+	// ModifyPlan runs last in the generated ModifyPlan, never on destroy, after the generated
+	// plan steps. req.Plan is the plan before the hook; resp.Plan starts as the plan after the
+	// generated steps, so the hook sets a planned value there. It must tolerate null and unknown
+	// values.
+	ModifyPlan func(context.Context, resource.ModifyPlanRequest, *resource.ModifyPlanResponse)
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
@@ -72,6 +97,16 @@ func (r *Resource) Schema(_ context.Context, _ resource.SchemaRequest, resp *res
 
 func (r *Resource) ConfigValidators(context.Context) []resource.ConfigValidator {
 	return ConfigValidators()
+}
+
+var _ resource.ResourceWithModifyPlan = (*Resource)(nil)
+
+// ModifyPlan runs the ModifyPlan hook, if there is one, unless the plan destroys the resource.
+func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || r.hooks.ModifyPlan == nil {
+		return
+	}
+	r.hooks.ModifyPlan(ctx, req, resp)
 }
 
 func (r *Resource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
@@ -109,6 +144,7 @@ func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequ
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx, _ = withGetResult(ctx)
 	resp.Diagnostics.Append(validateCreate(ctx, req.Config, req.Plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -148,6 +184,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 
 // Read removes the resource from the state when the API does not find it.
 func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx, _ = withGetResult(ctx)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -171,6 +208,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 // Update field changed, it sends no request and reads the resource instead
 // (D14).
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx, _ = withGetResult(ctx)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -251,13 +289,41 @@ func (r *Resource) create(ctx context.Context, body *dashboard_service.CreateDas
 	return v, nil
 }
 
+// getResultKey is the key of the getResult that a CRUD method puts in its context.
+type getResultKey struct{}
+
+// getResult holds the whole response of the last Get call of one CRUD method, for the AfterGet
+// hook. setState takes it once.
+type getResult struct {
+	response *dashboard_service.GetDashboardResponse
+}
+
+// withGetResult returns a context that carries a getResult.
+func withGetResult(ctx context.Context) (context.Context, *getResult) {
+	got := &getResult{}
+	return context.WithValue(ctx, getResultKey{}, got), got
+}
+
 func (r *Resource) get(ctx context.Context, id string) (*dashboard_service.Dashboard, error) {
-	out, httpResp, err := r.client.DashboardsServiceGetDashboard(ctx, id).Execute()
+	request := func() dashboard_service.ApiDashboardsServiceGetDashboardRequest {
+		return r.client.DashboardsServiceGetDashboard(ctx, id)
+	}
+	var out *dashboard_service.GetDashboardResponse
+	var httpResp *http.Response
+	var err error
+	if r.hooks.Get != nil {
+		out, httpResp, err = r.hooks.Get(ctx, request)
+	} else {
+		out, httpResp, err = request().Execute()
+	}
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
 	if out == nil {
 		return nil, nil
+	}
+	if got, ok := ctx.Value(getResultKey{}).(*getResult); ok {
+		got.response = out
 	}
 	return out.Dashboard, nil
 }
@@ -291,6 +357,12 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // the state takes the value of the API. flatten returns an error when the response has no
 // resource.
 func (r *Resource) setState(ctx context.Context, v *dashboard_service.Dashboard, prior tfData, state *tfsdk.State) diag.Diagnostics {
+	return r.setStateKept(ctx, v, prior, prior, state)
+}
+
+// setStateKept is setState that takes the attributes that the API does not hold from keptFrom,
+// for a state upgrade, whose kept values are in the state of the prior schema.
+func (r *Resource) setStateKept(ctx context.Context, v *dashboard_service.Dashboard, prior, keptFrom tfData, state *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeFlatten != nil && v != nil {
 		diags.Append(r.hooks.BeforeFlatten(ctx, v)...)
@@ -298,10 +370,26 @@ func (r *Resource) setState(ctx context.Context, v *dashboard_service.Dashboard,
 			return diags
 		}
 	}
-	m, flattenDiags := flatten(ctx, v)
+	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
 		return diags
+	}
+	if keptFrom != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.String
+		if !keptFrom.GetAttribute(ctx, path.Root("access_policy"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			m.AccessPolicy = kept
+		}
+	}
+	if keptFrom != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.String
+		if !keptFrom.GetAttribute(ctx, path.Root("content_json"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			m.ContentJson = kept
+		}
 	}
 	diags.Append(state.Set(ctx, m)...)
 	if diags.HasError() {
@@ -310,16 +398,35 @@ func (r *Resource) setState(ctx context.Context, v *dashboard_service.Dashboard,
 	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	}
+	// The response of the last Get call, if v came from one, is used once.
+	if got, ok := ctx.Value(getResultKey{}).(*getResult); ok && got.response != nil {
+		response := got.response
+		got.response = nil
+		if r.hooks.AfterGet != nil && !diags.HasError() {
+			diags.Append(r.hooks.AfterGet(ctx, state, response)...)
+		}
+	}
 	if r.hooks.AfterRead != nil && !diags.HasError() {
 		diags.Append(r.hooks.AfterRead(ctx, state, prior)...)
 	}
 	return diags
 }
 
+// priorModel returns the model in the state or the plan, or nil when there is none or it
+// cannot be read. The prior keeps a value the API does not return on its own: the order of a
+// list, the text of a document, or a configured empty string.
+func priorModel(ctx context.Context, data tfData) *DashboardModel {
+	var m DashboardModel
+	if data == nil || data.Get(ctx, &m).HasError() {
+		return nil
+	}
+	return &m
+}
+
 // Flatten returns the Terraform model of a resource in an API response, for a data source that
 // uses the schema and the model of this resource. It has no prior model.
 func Flatten(ctx context.Context, v *dashboard_service.Dashboard) (*DashboardModel, diag.Diagnostics) {
-	return flatten(ctx, v)
+	return flatten(ctx, v, nil)
 }
 
 // Expand returns what Create sends in the place of the resource, for a hook that has to build the
@@ -331,6 +438,47 @@ func Expand(ctx context.Context, m *DashboardModel) (*dashboard_service.Dashboar
 	var diags diag.Diagnostics
 	out := expandDashboardCreate(ctx, path.Empty(), m, &diags)
 	return out, diags
+}
+
+// UpgradeState upgrades the state of an older schema version. The prior schema only decodes the
+// old state. The upgrader reads the resource from the API, so it does not translate any value.
+func (r *Resource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
+	prior1 := priorSchema1.V1()
+	prior2 := priorSchema2.V2()
+	prior3 := priorSchema3.V3()
+	return map[int64]resource.StateUpgrader{
+		1: {PriorSchema: &prior1, StateUpgrader: r.upgradeByRefresh},
+		2: {PriorSchema: &prior2, StateUpgrader: r.upgradeByRefresh},
+		3: {PriorSchema: &prior3, StateUpgrader: r.upgradeByRefresh},
+	}
+}
+
+func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	ctx, _ = withGetResult(ctx)
+	if req.State == nil {
+		resp.Diagnostics.AddError("Missing prior state", "The state upgrade request has no prior state.")
+		return
+	}
+	id, diags := stateID(ctx, *req.State)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	v, err := r.get(ctx, id)
+	if cxsdk.IsNotFound(err) {
+		// The framework does not allow a state upgrade to remove the resource from state,
+		// and a refresh runs the upgrade first, so only the user can remove it.
+		resp.Diagnostics.AddError("Resource no longer exists",
+			fmt.Sprintf("The API did not find %s with id %v, so Terraform cannot upgrade its state. Run terraform state rm on its address to remove it from state, and the next plan creates it again.", TypeName, id))
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
+		return
+	}
+	// The API holds no value of the kept attributes. A prior schema that has one keeps its value,
+	// and AfterFlatten can still replace it.
+	resp.Diagnostics.Append(r.setStateKept(ctx, v, nil, req.State, &resp.State)...)
 }
 
 // stateID returns the id in the state.

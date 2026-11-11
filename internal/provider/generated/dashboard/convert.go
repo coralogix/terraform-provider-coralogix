@@ -5,12 +5,14 @@ package dashboard
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"math"
 	"math/big"
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
@@ -25,6 +27,32 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 )
 
+// annotationColorToAPI maps the Terraform values of the enum to its API values.
+var annotationColorToAPI = map[string]dashboard_service.AnnotationColor{
+	"default": dashboard_service.AnnotationColor("ANNOTATION_COLOR_DEFAULT"),
+	"green":   dashboard_service.AnnotationColor("ANNOTATION_COLOR_GREEN"),
+	"cyan":    dashboard_service.AnnotationColor("ANNOTATION_COLOR_CYAN"),
+	"blue":    dashboard_service.AnnotationColor("ANNOTATION_COLOR_BLUE"),
+	"purple":  dashboard_service.AnnotationColor("ANNOTATION_COLOR_PURPLE"),
+	"magenta": dashboard_service.AnnotationColor("ANNOTATION_COLOR_MAGENTA"),
+	"red":     dashboard_service.AnnotationColor("ANNOTATION_COLOR_RED"),
+	"orange":  dashboard_service.AnnotationColor("ANNOTATION_COLOR_ORANGE"),
+	"yellow":  dashboard_service.AnnotationColor("ANNOTATION_COLOR_YELLOW"),
+}
+
+// annotationColorFromAPI maps the API values of the enum to its Terraform values.
+var annotationColorFromAPI = map[dashboard_service.AnnotationColor]string{
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_DEFAULT"): "default",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_GREEN"):   "green",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_CYAN"):    "cyan",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_BLUE"):    "blue",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_PURPLE"):  "purple",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_MAGENTA"): "magenta",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_RED"):     "red",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_ORANGE"):  "orange",
+	dashboard_service.AnnotationColor("ANNOTATION_COLOR_YELLOW"):  "yellow",
+}
+
 // v1CommonDataModeTypeToAPI maps the Terraform values of the enum to its API values.
 var v1CommonDataModeTypeToAPI = map[string]dashboard_service.V1CommonDataModeType{
 	"unspecified": dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_HIGH_UNSPECIFIED"),
@@ -37,32 +65,158 @@ var v1CommonDataModeTypeFromAPI = map[dashboard_service.V1CommonDataModeType]str
 	dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_ARCHIVE"):          "archive",
 }
 
+// datasetScopeToAPI maps the Terraform values of the enum to its API values.
+var datasetScopeToAPI = map[string]dashboard_service.DatasetScope{
+	"unspecified": dashboard_service.DatasetScope("DATASET_SCOPE_UNSPECIFIED"),
+	"user_data":   dashboard_service.DatasetScope("DATASET_SCOPE_USER_DATA"),
+	"label":       dashboard_service.DatasetScope("DATASET_SCOPE_LABEL"),
+	"metadata":    dashboard_service.DatasetScope("DATASET_SCOPE_METADATA"),
+}
+
+// datasetScopeFromAPI maps the API values of the enum to its Terraform values.
+var datasetScopeFromAPI = map[dashboard_service.DatasetScope]string{
+	dashboard_service.DatasetScope("DATASET_SCOPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.DatasetScope("DATASET_SCOPE_USER_DATA"):   "user_data",
+	dashboard_service.DatasetScope("DATASET_SCOPE_LABEL"):       "label",
+	dashboard_service.DatasetScope("DATASET_SCOPE_METADATA"):    "metadata",
+}
+
 // annotationOrientationToAPI maps the Terraform values of the enum to its API values.
 var annotationOrientationToAPI = map[string]dashboard_service.AnnotationOrientation{
-	"unspecified":                       dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED"),
-	"annotation_orientation_horizontal": dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_HORIZONTAL"),
+	"vertical":   dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED"),
+	"horizontal": dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_HORIZONTAL"),
 }
 
 // annotationOrientationFromAPI maps the API values of the enum to its Terraform values.
 var annotationOrientationFromAPI = map[dashboard_service.AnnotationOrientation]string{
-	dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED"): "unspecified",
-	dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_HORIZONTAL"):           "annotation_orientation_horizontal",
+	dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED"): "vertical",
+	dashboard_service.AnnotationOrientation("ANNOTATION_ORIENTATION_HORIZONTAL"):           "horizontal",
+}
+
+// weekdayToAPI maps the Terraform values of the enum to its API values.
+var weekdayToAPI = map[string]dashboard_service.Weekday{
+	"unspecified": dashboard_service.Weekday("WEEKDAY_UNSPECIFIED"),
+	"monday":      dashboard_service.Weekday("WEEKDAY_MONDAY"),
+	"tuesday":     dashboard_service.Weekday("WEEKDAY_TUESDAY"),
+	"wednesday":   dashboard_service.Weekday("WEEKDAY_WEDNESDAY"),
+	"thursday":    dashboard_service.Weekday("WEEKDAY_THURSDAY"),
+	"friday":      dashboard_service.Weekday("WEEKDAY_FRIDAY"),
+	"saturday":    dashboard_service.Weekday("WEEKDAY_SATURDAY"),
+	"sunday":      dashboard_service.Weekday("WEEKDAY_SUNDAY"),
+}
+
+// weekdayFromAPI maps the API values of the enum to its Terraform values.
+var weekdayFromAPI = map[dashboard_service.Weekday]string{
+	dashboard_service.Weekday("WEEKDAY_UNSPECIFIED"): "unspecified",
+	dashboard_service.Weekday("WEEKDAY_MONDAY"):      "monday",
+	dashboard_service.Weekday("WEEKDAY_TUESDAY"):     "tuesday",
+	dashboard_service.Weekday("WEEKDAY_WEDNESDAY"):   "wednesday",
+	dashboard_service.Weekday("WEEKDAY_THURSDAY"):    "thursday",
+	dashboard_service.Weekday("WEEKDAY_FRIDAY"):      "friday",
+	dashboard_service.Weekday("WEEKDAY_SATURDAY"):    "saturday",
+	dashboard_service.Weekday("WEEKDAY_SUNDAY"):      "sunday",
+}
+
+// commonUnitToAPI maps the Terraform values of the enum to its API values.
+var commonUnitToAPI = map[string]dashboard_service.CommonUnit{
+	"unspecified":  dashboard_service.CommonUnit("UNIT_UNSPECIFIED"),
+	"microseconds": dashboard_service.CommonUnit("UNIT_MICROSECONDS"),
+	"milliseconds": dashboard_service.CommonUnit("UNIT_MILLISECONDS"),
+	"seconds":      dashboard_service.CommonUnit("UNIT_SECONDS"),
+	"bytes":        dashboard_service.CommonUnit("UNIT_BYTES"),
+	"kbytes":       dashboard_service.CommonUnit("UNIT_KBYTES"),
+	"mbytes":       dashboard_service.CommonUnit("UNIT_MBYTES"),
+	"gbytes":       dashboard_service.CommonUnit("UNIT_GBYTES"),
+	"bytes_iec":    dashboard_service.CommonUnit("UNIT_BYTES_IEC"),
+	"kibytes":      dashboard_service.CommonUnit("UNIT_KIBYTES"),
+	"mibytes":      dashboard_service.CommonUnit("UNIT_MIBYTES"),
+	"gibytes":      dashboard_service.CommonUnit("UNIT_GIBYTES"),
+	"euro_cents":   dashboard_service.CommonUnit("UNIT_EUR_CENTS"),
+	"euro":         dashboard_service.CommonUnit("UNIT_EUR"),
+	"usd_cents":    dashboard_service.CommonUnit("UNIT_USD_CENTS"),
+	"usd":          dashboard_service.CommonUnit("UNIT_USD"),
+	"nanoseconds":  dashboard_service.CommonUnit("UNIT_NANOSECONDS"),
+	"custom":       dashboard_service.CommonUnit("UNIT_CUSTOM"),
+	"percent01":    dashboard_service.CommonUnit("UNIT_PERCENT_ZERO_ONE"),
+	"percent100":   dashboard_service.CommonUnit("UNIT_PERCENT_ZERO_HUNDRED"),
+	"percent":      dashboard_service.CommonUnit("UNIT_PERCENT"),
+	"datetime_iso": dashboard_service.CommonUnit("UNIT_DATETIME_ISO"),
+}
+
+// commonUnitFromAPI maps the API values of the enum to its Terraform values.
+var commonUnitFromAPI = map[dashboard_service.CommonUnit]string{
+	dashboard_service.CommonUnit("UNIT_UNSPECIFIED"):          "unspecified",
+	dashboard_service.CommonUnit("UNIT_MICROSECONDS"):         "microseconds",
+	dashboard_service.CommonUnit("UNIT_MILLISECONDS"):         "milliseconds",
+	dashboard_service.CommonUnit("UNIT_SECONDS"):              "seconds",
+	dashboard_service.CommonUnit("UNIT_BYTES"):                "bytes",
+	dashboard_service.CommonUnit("UNIT_KBYTES"):               "kbytes",
+	dashboard_service.CommonUnit("UNIT_MBYTES"):               "mbytes",
+	dashboard_service.CommonUnit("UNIT_GBYTES"):               "gbytes",
+	dashboard_service.CommonUnit("UNIT_BYTES_IEC"):            "bytes_iec",
+	dashboard_service.CommonUnit("UNIT_KIBYTES"):              "kibytes",
+	dashboard_service.CommonUnit("UNIT_MIBYTES"):              "mibytes",
+	dashboard_service.CommonUnit("UNIT_GIBYTES"):              "gibytes",
+	dashboard_service.CommonUnit("UNIT_EUR_CENTS"):            "euro_cents",
+	dashboard_service.CommonUnit("UNIT_EUR"):                  "euro",
+	dashboard_service.CommonUnit("UNIT_USD_CENTS"):            "usd_cents",
+	dashboard_service.CommonUnit("UNIT_USD"):                  "usd",
+	dashboard_service.CommonUnit("UNIT_NANOSECONDS"):          "nanoseconds",
+	dashboard_service.CommonUnit("UNIT_CUSTOM"):               "custom",
+	dashboard_service.CommonUnit("UNIT_PERCENT_ZERO_ONE"):     "percent01",
+	dashboard_service.CommonUnit("UNIT_PERCENT_ZERO_HUNDRED"): "percent100",
+	dashboard_service.CommonUnit("UNIT_PERCENT"):              "percent",
+	dashboard_service.CommonUnit("UNIT_DATETIME_ISO"):         "datetime_iso",
+}
+
+// metadataFieldToAPI maps the Terraform values of the enum to its API values.
+var metadataFieldToAPI = map[string]dashboard_service.MetadataField{
+	"unspecified":      dashboard_service.MetadataField("METADATA_FIELD_UNSPECIFIED"),
+	"application_name": dashboard_service.MetadataField("METADATA_FIELD_APPLICATION_NAME"),
+	"subsystem_name":   dashboard_service.MetadataField("METADATA_FIELD_SUBSYSTEM_NAME"),
+	"service_name":     dashboard_service.MetadataField("METADATA_FIELD_SERVICE_NAME"),
+	"operation_name":   dashboard_service.MetadataField("METADATA_FIELD_OPERATION_NAME"),
+}
+
+// metadataFieldFromAPI maps the API values of the enum to its Terraform values.
+var metadataFieldFromAPI = map[dashboard_service.MetadataField]string{
+	dashboard_service.MetadataField("METADATA_FIELD_UNSPECIFIED"):      "unspecified",
+	dashboard_service.MetadataField("METADATA_FIELD_APPLICATION_NAME"): "application_name",
+	dashboard_service.MetadataField("METADATA_FIELD_SUBSYSTEM_NAME"):   "subsystem_name",
+	dashboard_service.MetadataField("METADATA_FIELD_SERVICE_NAME"):     "service_name",
+	dashboard_service.MetadataField("METADATA_FIELD_OPERATION_NAME"):   "operation_name",
 }
 
 // spanRelationTypeToAPI maps the Terraform values of the enum to its API values.
 var spanRelationTypeToAPI = map[string]dashboard_service.SpanRelationType{
-	"unspecified":               dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_NONE_UNSPECIFIED"),
-	"span_relation_type_other":  dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_OTHER"),
-	"span_relation_type_parent": dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_PARENT"),
-	"span_relation_type_root":   dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_ROOT"),
+	"unspecified": dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_NONE_UNSPECIFIED"),
+	"other":       dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_OTHER"),
+	"parent":      dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_PARENT"),
+	"root":        dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_ROOT"),
 }
 
 // spanRelationTypeFromAPI maps the API values of the enum to its Terraform values.
 var spanRelationTypeFromAPI = map[dashboard_service.SpanRelationType]string{
 	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_NONE_UNSPECIFIED"): "unspecified",
-	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_OTHER"):            "span_relation_type_other",
-	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_PARENT"):           "span_relation_type_parent",
-	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_ROOT"):             "span_relation_type_root",
+	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_OTHER"):            "other",
+	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_PARENT"):           "parent",
+	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_ROOT"):             "root",
+}
+
+// widgetsBarValueDisplayToAPI maps the Terraform values of the enum to its API values.
+var widgetsBarValueDisplayToAPI = map[string]dashboard_service.WidgetsBarValueDisplay{
+	"unspecified": dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_UNSPECIFIED"),
+	"top":         dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_TOP"),
+	"inside":      dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_INSIDE"),
+	"both":        dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_BOTH"),
+}
+
+// widgetsBarValueDisplayFromAPI maps the API values of the enum to its Terraform values.
+var widgetsBarValueDisplayFromAPI = map[dashboard_service.WidgetsBarValueDisplay]string{
+	dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_UNSPECIFIED"): "unspecified",
+	dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_TOP"):         "top",
+	dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_INSIDE"):      "inside",
+	dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_BOTH"):        "both",
 }
 
 // widgetsCommonDataModeTypeToAPI maps the Terraform values of the enum to its API values.
@@ -77,22 +231,774 @@ var widgetsCommonDataModeTypeFromAPI = map[dashboard_service.WidgetsCommonDataMo
 	dashboard_service.WidgetsCommonDataModeType("DATA_MODE_TYPE_ARCHIVE"):          "archive",
 }
 
+// legendColumnToAPI maps the Terraform values of the enum to its API values.
+var legendColumnToAPI = map[string]dashboard_service.LegendColumn{
+	"unspecified": dashboard_service.LegendColumn("LEGEND_COLUMN_UNSPECIFIED"),
+	"min":         dashboard_service.LegendColumn("LEGEND_COLUMN_MIN"),
+	"max":         dashboard_service.LegendColumn("LEGEND_COLUMN_MAX"),
+	"sum":         dashboard_service.LegendColumn("LEGEND_COLUMN_SUM"),
+	"avg":         dashboard_service.LegendColumn("LEGEND_COLUMN_AVG"),
+	"last":        dashboard_service.LegendColumn("LEGEND_COLUMN_LAST"),
+	"name":        dashboard_service.LegendColumn("LEGEND_COLUMN_NAME"),
+}
+
+// legendColumnFromAPI maps the API values of the enum to its Terraform values.
+var legendColumnFromAPI = map[dashboard_service.LegendColumn]string{
+	dashboard_service.LegendColumn("LEGEND_COLUMN_UNSPECIFIED"): "unspecified",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_MIN"):         "min",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_MAX"):         "max",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_SUM"):         "sum",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_AVG"):         "avg",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_LAST"):        "last",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_NAME"):        "name",
+}
+
+// legendPlacementToAPI maps the Terraform values of the enum to its API values.
+var legendPlacementToAPI = map[string]dashboard_service.LegendPlacement{
+	"unspecified": dashboard_service.LegendPlacement("LEGEND_PLACEMENT_UNSPECIFIED"),
+	"auto":        dashboard_service.LegendPlacement("LEGEND_PLACEMENT_AUTO"),
+	"bottom":      dashboard_service.LegendPlacement("LEGEND_PLACEMENT_BOTTOM"),
+	"side":        dashboard_service.LegendPlacement("LEGEND_PLACEMENT_SIDE"),
+	"hidden":      dashboard_service.LegendPlacement("LEGEND_PLACEMENT_HIDDEN"),
+}
+
+// legendPlacementFromAPI maps the API values of the enum to its Terraform values.
+var legendPlacementFromAPI = map[dashboard_service.LegendPlacement]string{
+	dashboard_service.LegendPlacement("LEGEND_PLACEMENT_UNSPECIFIED"): "unspecified",
+	dashboard_service.LegendPlacement("LEGEND_PLACEMENT_AUTO"):        "auto",
+	dashboard_service.LegendPlacement("LEGEND_PLACEMENT_BOTTOM"):      "bottom",
+	dashboard_service.LegendPlacement("LEGEND_PLACEMENT_SIDE"):        "side",
+	dashboard_service.LegendPlacement("LEGEND_PLACEMENT_HIDDEN"):      "hidden",
+}
+
+// commonAggregationToAPI maps the Terraform values of the enum to its API values.
+var commonAggregationToAPI = map[string]dashboard_service.CommonAggregation{
+	"unspecified": dashboard_service.CommonAggregation("AGGREGATION_UNSPECIFIED"),
+	"last":        dashboard_service.CommonAggregation("AGGREGATION_LAST"),
+	"min":         dashboard_service.CommonAggregation("AGGREGATION_MIN"),
+	"max":         dashboard_service.CommonAggregation("AGGREGATION_MAX"),
+	"avg":         dashboard_service.CommonAggregation("AGGREGATION_AVG"),
+	"sum":         dashboard_service.CommonAggregation("AGGREGATION_SUM"),
+}
+
+// commonAggregationFromAPI maps the API values of the enum to its Terraform values.
+var commonAggregationFromAPI = map[dashboard_service.CommonAggregation]string{
+	dashboard_service.CommonAggregation("AGGREGATION_UNSPECIFIED"): "unspecified",
+	dashboard_service.CommonAggregation("AGGREGATION_LAST"):        "last",
+	dashboard_service.CommonAggregation("AGGREGATION_MIN"):         "min",
+	dashboard_service.CommonAggregation("AGGREGATION_MAX"):         "max",
+	dashboard_service.CommonAggregation("AGGREGATION_AVG"):         "avg",
+	dashboard_service.CommonAggregation("AGGREGATION_SUM"):         "sum",
+}
+
+// metricsQueryEditorModeToAPI maps the Terraform values of the enum to its API values.
+var metricsQueryEditorModeToAPI = map[string]dashboard_service.MetricsQueryEditorMode{
+	"unspecified": dashboard_service.MetricsQueryEditorMode("METRICS_QUERY_EDITOR_MODE_UNSPECIFIED"),
+	"text":        dashboard_service.MetricsQueryEditorMode("METRICS_QUERY_EDITOR_MODE_TEXT"),
+	"builder":     dashboard_service.MetricsQueryEditorMode("METRICS_QUERY_EDITOR_MODE_BUILDER"),
+}
+
+// metricsQueryEditorModeFromAPI maps the API values of the enum to its Terraform values.
+var metricsQueryEditorModeFromAPI = map[dashboard_service.MetricsQueryEditorMode]string{
+	dashboard_service.MetricsQueryEditorMode("METRICS_QUERY_EDITOR_MODE_UNSPECIFIED"): "unspecified",
+	dashboard_service.MetricsQueryEditorMode("METRICS_QUERY_EDITOR_MODE_TEXT"):        "text",
+	dashboard_service.MetricsQueryEditorMode("METRICS_QUERY_EDITOR_MODE_BUILDER"):     "builder",
+}
+
+// promQLQueryTypeToAPI maps the Terraform values of the enum to its API values.
+var promQLQueryTypeToAPI = map[string]dashboard_service.PromQLQueryType{
+	"unspecified": dashboard_service.PromQLQueryType("PROM_QL_QUERY_TYPE_UNSPECIFIED"),
+	"range":       dashboard_service.PromQLQueryType("PROM_QL_QUERY_TYPE_RANGE"),
+	"instant":     dashboard_service.PromQLQueryType("PROM_QL_QUERY_TYPE_INSTANT"),
+}
+
+// promQLQueryTypeFromAPI maps the API values of the enum to its Terraform values.
+var promQLQueryTypeFromAPI = map[dashboard_service.PromQLQueryType]string{
+	dashboard_service.PromQLQueryType("PROM_QL_QUERY_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.PromQLQueryType("PROM_QL_QUERY_TYPE_RANGE"):       "range",
+	dashboard_service.PromQLQueryType("PROM_QL_QUERY_TYPE_INSTANT"):     "instant",
+}
+
+// dimensionAggregationTypeToAPI maps the Terraform values of the enum to its API values.
+var dimensionAggregationTypeToAPI = map[string]dashboard_service.DimensionAggregationType{
+	"unspecified":  dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_UNSPECIFIED"),
+	"unique_count": dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_UNIQUE_COUNT"),
+	"error_count":  dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_ERROR_COUNT"),
+}
+
+// dimensionAggregationTypeFromAPI maps the API values of the enum to its Terraform values.
+var dimensionAggregationTypeFromAPI = map[dashboard_service.DimensionAggregationType]string{
+	dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_UNSPECIFIED"):  "unspecified",
+	dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_UNIQUE_COUNT"): "unique_count",
+	dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_ERROR_COUNT"):  "error_count",
+}
+
+// metricAggregationTypeToAPI maps the Terraform values of the enum to its API values.
+var metricAggregationTypeToAPI = map[string]dashboard_service.MetricAggregationType{
+	"unspecified":   dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_UNSPECIFIED"),
+	"min":           dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_MIN"),
+	"max":           dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_MAX"),
+	"avg":           dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_AVERAGE"),
+	"sum":           dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_SUM"),
+	"percentile_99": dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_99"),
+	"percentile_95": dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_95"),
+	"percentile_50": dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_50"),
+}
+
+// metricAggregationTypeFromAPI maps the API values of the enum to its Terraform values.
+var metricAggregationTypeFromAPI = map[dashboard_service.MetricAggregationType]string{
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_UNSPECIFIED"):   "unspecified",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_MIN"):           "min",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_MAX"):           "max",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_AVERAGE"):       "avg",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_SUM"):           "sum",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_99"): "percentile_99",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_95"): "percentile_95",
+	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_50"): "percentile_50",
+}
+
+// scaleTypeToAPI maps the Terraform values of the enum to its API values.
+var scaleTypeToAPI = map[string]dashboard_service.ScaleType{
+	"unspecified": dashboard_service.ScaleType("SCALE_TYPE_UNSPECIFIED"),
+	"linear":      dashboard_service.ScaleType("SCALE_TYPE_LINEAR"),
+	"logarithmic": dashboard_service.ScaleType("SCALE_TYPE_LOGARITHMIC"),
+}
+
+// scaleTypeFromAPI maps the API values of the enum to its Terraform values.
+var scaleTypeFromAPI = map[dashboard_service.ScaleType]string{
+	dashboard_service.ScaleType("SCALE_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.ScaleType("SCALE_TYPE_LINEAR"):      "linear",
+	dashboard_service.ScaleType("SCALE_TYPE_LOGARITHMIC"): "logarithmic",
+}
+
+// sortByTypeToAPI maps the Terraform values of the enum to its API values.
+var sortByTypeToAPI = map[string]dashboard_service.SortByType{
+	"unspecified": dashboard_service.SortByType("SORT_BY_TYPE_UNSPECIFIED"),
+	"value":       dashboard_service.SortByType("SORT_BY_TYPE_VALUE"),
+	"name":        dashboard_service.SortByType("SORT_BY_TYPE_NAME"),
+}
+
+// sortByTypeFromAPI maps the API values of the enum to its Terraform values.
+var sortByTypeFromAPI = map[dashboard_service.SortByType]string{
+	dashboard_service.SortByType("SORT_BY_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.SortByType("SORT_BY_TYPE_VALUE"):       "value",
+	dashboard_service.SortByType("SORT_BY_TYPE_NAME"):        "name",
+}
+
+// xAxisTimeFormatToAPI maps the Terraform values of the enum to its API values.
+var xAxisTimeFormatToAPI = map[string]dashboard_service.XAxisTimeFormat{
+	"unspecified": dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_UNSPECIFIED"),
+	"auto":        dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_AUTO"),
+	"dd_mm":       dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_DD_MM"),
+	"mm_dd":       dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_MM_DD"),
+	"hh_mm":       dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_HH_MM"),
+	"dd_mm_hh_mm": dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_DD_MM_HH_MM"),
+	"hh_mm_dd_mm": dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_HH_MM_DD_MM"),
+	"mm_dd_hh_mm": dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_MM_DD_HH_MM"),
+	"hh_mm_mm_dd": dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_HH_MM_MM_DD"),
+}
+
+// xAxisTimeFormatFromAPI maps the API values of the enum to its Terraform values.
+var xAxisTimeFormatFromAPI = map[dashboard_service.XAxisTimeFormat]string{
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_UNSPECIFIED"): "unspecified",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_AUTO"):        "auto",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_DD_MM"):       "dd_mm",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_MM_DD"):       "mm_dd",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_HH_MM"):       "hh_mm",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_DD_MM_HH_MM"): "dd_mm_hh_mm",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_HH_MM_DD_MM"): "hh_mm_dd_mm",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_MM_DD_HH_MM"): "mm_dd_hh_mm",
+	dashboard_service.XAxisTimeFormat("X_AXIS_TIME_FORMAT_HH_MM_MM_DD"): "hh_mm_mm_dd",
+}
+
+// orderDirectionToAPI maps the Terraform values of the enum to its API values.
+var orderDirectionToAPI = map[string]dashboard_service.OrderDirection{
+	"unspecified": dashboard_service.OrderDirection("ORDER_DIRECTION_UNSPECIFIED"),
+	"asc":         dashboard_service.OrderDirection("ORDER_DIRECTION_ASC"),
+	"desc":        dashboard_service.OrderDirection("ORDER_DIRECTION_DESC"),
+	"none":        dashboard_service.OrderDirection("ORDER_DIRECTION_NONE"),
+}
+
+// orderDirectionFromAPI maps the API values of the enum to its Terraform values.
+var orderDirectionFromAPI = map[dashboard_service.OrderDirection]string{
+	dashboard_service.OrderDirection("ORDER_DIRECTION_UNSPECIFIED"): "unspecified",
+	dashboard_service.OrderDirection("ORDER_DIRECTION_ASC"):         "asc",
+	dashboard_service.OrderDirection("ORDER_DIRECTION_DESC"):        "desc",
+	dashboard_service.OrderDirection("ORDER_DIRECTION_NONE"):        "none",
+}
+
+// rowStyleToAPI maps the Terraform values of the enum to its API values.
+var rowStyleToAPI = map[string]dashboard_service.RowStyle{
+	"unspecified": dashboard_service.RowStyle("ROW_STYLE_UNSPECIFIED"),
+	"one_line":    dashboard_service.RowStyle("ROW_STYLE_ONE_LINE"),
+	"two_line":    dashboard_service.RowStyle("ROW_STYLE_TWO_LINE"),
+	"condensed":   dashboard_service.RowStyle("ROW_STYLE_CONDENSED"),
+	"json":        dashboard_service.RowStyle("ROW_STYLE_JSON"),
+	"list":        dashboard_service.RowStyle("ROW_STYLE_LIST"),
+}
+
+// rowStyleFromAPI maps the API values of the enum to its Terraform values.
+var rowStyleFromAPI = map[dashboard_service.RowStyle]string{
+	dashboard_service.RowStyle("ROW_STYLE_UNSPECIFIED"): "unspecified",
+	dashboard_service.RowStyle("ROW_STYLE_ONE_LINE"):    "one_line",
+	dashboard_service.RowStyle("ROW_STYLE_TWO_LINE"):    "two_line",
+	dashboard_service.RowStyle("ROW_STYLE_CONDENSED"):   "condensed",
+	dashboard_service.RowStyle("ROW_STYLE_JSON"):        "json",
+	dashboard_service.RowStyle("ROW_STYLE_LIST"):        "list",
+}
+
+// interpretationToAPI maps the Terraform values of the enum to its API values.
+var interpretationToAPI = map[string]dashboard_service.Interpretation{
+	"unspecified":                          dashboard_service.Interpretation("INTERPRETATION_UNSPECIFIED"),
+	"raw_data_table":                       dashboard_service.Interpretation("INTERPRETATION_RAW_DATA_TABLE"),
+	"trend_over_time_line":                 dashboard_service.Interpretation("INTERPRETATION_TREND_OVER_TIME_LINE"),
+	"single_value_kpi":                     dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI"),
+	"multi_value_kpi":                      dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI"),
+	"categorical_analysis_vertical_bars":   dashboard_service.Interpretation("INTERPRETATION_CATEGORICAL_ANALYSIS_VERTICAL_BARS"),
+	"single_value_kpi_stat":                dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI_STAT"),
+	"single_value_kpi_gauge":               dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI_GAUGE"),
+	"multi_value_kpi_stat":                 dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_STAT"),
+	"multi_value_kpi_gauge":                dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_GAUGE"),
+	"multi_value_kpi_hexagon_bins":         dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_HEXAGON_BINS"),
+	"categorical_analysis_pie_chart":       dashboard_service.Interpretation("INTERPRETATION_CATEGORICAL_ANALYSIS_PIE_CHART"),
+	"categorical_analysis_horizontal_bars": dashboard_service.Interpretation("INTERPRETATION_CATEGORICAL_ANALYSIS_HORIZONTAL_BARS"),
+	"single_value_kpi_stat_card":           dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI_STAT_CARD"),
+	"multi_value_kpi_stat_card":            dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_STAT_CARD"),
+}
+
+// interpretationFromAPI maps the API values of the enum to its Terraform values.
+var interpretationFromAPI = map[dashboard_service.Interpretation]string{
+	dashboard_service.Interpretation("INTERPRETATION_UNSPECIFIED"):                          "unspecified",
+	dashboard_service.Interpretation("INTERPRETATION_RAW_DATA_TABLE"):                       "raw_data_table",
+	dashboard_service.Interpretation("INTERPRETATION_TREND_OVER_TIME_LINE"):                 "trend_over_time_line",
+	dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI"):                     "single_value_kpi",
+	dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI"):                      "multi_value_kpi",
+	dashboard_service.Interpretation("INTERPRETATION_CATEGORICAL_ANALYSIS_VERTICAL_BARS"):   "categorical_analysis_vertical_bars",
+	dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI_STAT"):                "single_value_kpi_stat",
+	dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI_GAUGE"):               "single_value_kpi_gauge",
+	dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_STAT"):                 "multi_value_kpi_stat",
+	dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_GAUGE"):                "multi_value_kpi_gauge",
+	dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_HEXAGON_BINS"):         "multi_value_kpi_hexagon_bins",
+	dashboard_service.Interpretation("INTERPRETATION_CATEGORICAL_ANALYSIS_PIE_CHART"):       "categorical_analysis_pie_chart",
+	dashboard_service.Interpretation("INTERPRETATION_CATEGORICAL_ANALYSIS_HORIZONTAL_BARS"): "categorical_analysis_horizontal_bars",
+	dashboard_service.Interpretation("INTERPRETATION_SINGLE_VALUE_KPI_STAT_CARD"):           "single_value_kpi_stat_card",
+	dashboard_service.Interpretation("INTERPRETATION_MULTI_VALUE_KPI_STAT_CARD"):            "multi_value_kpi_stat_card",
+}
+
+// metricsSeriesLimitTypeToAPI maps the Terraform values of the enum to its API values.
+var metricsSeriesLimitTypeToAPI = map[string]dashboard_service.MetricsSeriesLimitType{
+	"unspecified":     dashboard_service.MetricsSeriesLimitType("METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED"),
+	"by_series_count": dashboard_service.MetricsSeriesLimitType("METRICS_SERIES_LIMIT_TYPE_BY_SERIES_COUNT"),
+	"by_point_count":  dashboard_service.MetricsSeriesLimitType("METRICS_SERIES_LIMIT_TYPE_BY_POINT_COUNT"),
+}
+
+// metricsSeriesLimitTypeFromAPI maps the API values of the enum to its Terraform values.
+var metricsSeriesLimitTypeFromAPI = map[dashboard_service.MetricsSeriesLimitType]string{
+	dashboard_service.MetricsSeriesLimitType("METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED"):     "unspecified",
+	dashboard_service.MetricsSeriesLimitType("METRICS_SERIES_LIMIT_TYPE_BY_SERIES_COUNT"): "by_series_count",
+	dashboard_service.MetricsSeriesLimitType("METRICS_SERIES_LIMIT_TYPE_BY_POINT_COUNT"):  "by_point_count",
+}
+
+// legendByToAPI maps the Terraform values of the enum to its API values.
+var legendByToAPI = map[string]dashboard_service.LegendBy{
+	"unspecified": dashboard_service.LegendBy("LEGEND_BY_UNSPECIFIED"),
+	"thresholds":  dashboard_service.LegendBy("LEGEND_BY_THRESHOLDS"),
+	"groups":      dashboard_service.LegendBy("LEGEND_BY_GROUPS"),
+}
+
+// legendByFromAPI maps the API values of the enum to its Terraform values.
+var legendByFromAPI = map[dashboard_service.LegendBy]string{
+	dashboard_service.LegendBy("LEGEND_BY_UNSPECIFIED"): "unspecified",
+	dashboard_service.LegendBy("LEGEND_BY_THRESHOLDS"):  "thresholds",
+	dashboard_service.LegendBy("LEGEND_BY_GROUPS"):      "groups",
+}
+
+// thresholdTypeToAPI maps the Terraform values of the enum to its API values.
+var thresholdTypeToAPI = map[string]dashboard_service.ThresholdType{
+	"unspecified": dashboard_service.ThresholdType("THRESHOLD_TYPE_UNSPECIFIED"),
+	"relative":    dashboard_service.ThresholdType("THRESHOLD_TYPE_RELATIVE"),
+	"absolute":    dashboard_service.ThresholdType("THRESHOLD_TYPE_ABSOLUTE"),
+}
+
+// thresholdTypeFromAPI maps the API values of the enum to its Terraform values.
+var thresholdTypeFromAPI = map[dashboard_service.ThresholdType]string{
+	dashboard_service.ThresholdType("THRESHOLD_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.ThresholdType("THRESHOLD_TYPE_RELATIVE"):    "relative",
+	dashboard_service.ThresholdType("THRESHOLD_TYPE_ABSOLUTE"):    "absolute",
+}
+
+// colorGradientTypeToAPI maps the Terraform values of the enum to its API values.
+var colorGradientTypeToAPI = map[string]dashboard_service.ColorGradientType{
+	"unspecified":        dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_UNSPECIFIED"),
+	"blue":               dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_BLUE"),
+	"green":              dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_GREEN"),
+	"red":                dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_RED"),
+	"threshold":          dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_THRESHOLD"),
+	"blue_reversed":      dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_BLUE_REVERSED"),
+	"green_reversed":     dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_GREEN_REVERSED"),
+	"red_reversed":       dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_RED_REVERSED"),
+	"threshold_reversed": dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_THRESHOLD_REVERSED"),
+}
+
+// colorGradientTypeFromAPI maps the API values of the enum to its Terraform values.
+var colorGradientTypeFromAPI = map[dashboard_service.ColorGradientType]string{
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_UNSPECIFIED"):        "unspecified",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_BLUE"):               "blue",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_GREEN"):              "green",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_RED"):                "red",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_THRESHOLD"):          "threshold",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_BLUE_REVERSED"):      "blue_reversed",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_GREEN_REVERSED"):     "green_reversed",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_RED_REVERSED"):       "red_reversed",
+	dashboard_service.ColorGradientType("COLOR_GRADIENT_TYPE_THRESHOLD_REVERSED"): "threshold_reversed",
+}
+
+// colorSolidTypeToAPI maps the Terraform values of the enum to its API values.
+var colorSolidTypeToAPI = map[string]dashboard_service.ColorSolidType{
+	"unspecified": dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_UNSPECIFIED"),
+	"blue":        dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_BLUE"),
+	"green":       dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_GREEN"),
+	"red":         dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_RED"),
+	"purple":      dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_PURPLE"),
+	"cyan":        dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_CYAN"),
+	"magenta":     dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_MAGENTA"),
+	"orange":      dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_ORANGE"),
+	"yellow":      dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_YELLOW"),
+}
+
+// colorSolidTypeFromAPI maps the API values of the enum to its Terraform values.
+var colorSolidTypeFromAPI = map[dashboard_service.ColorSolidType]string{
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_BLUE"):        "blue",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_GREEN"):       "green",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_RED"):         "red",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_PURPLE"):      "purple",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_CYAN"):        "cyan",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_MAGENTA"):     "magenta",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_ORANGE"):      "orange",
+	dashboard_service.ColorSolidType("COLOR_SOLID_TYPE_YELLOW"):      "yellow",
+}
+
+// heatmapHistogramBucketUnitToAPI maps the Terraform values of the enum to its API values.
+var heatmapHistogramBucketUnitToAPI = map[string]dashboard_service.HeatmapHistogramBucketUnit{
+	"unspecified":  dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_UNSPECIFIED"),
+	"nanoseconds":  dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_NANOSECONDS"),
+	"microseconds": dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MICROSECONDS"),
+	"milliseconds": dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MILLISECONDS"),
+	"seconds":      dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_SECONDS"),
+	"bytes_iec":    dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_BYTES_IEC"),
+	"kibytes":      dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_KIBYTES"),
+	"mibytes":      dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MIBYTES"),
+	"gibytes":      dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_GIBYTES"),
+	"bytes":        dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_BYTES"),
+	"kbytes":       dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_KBYTES"),
+	"mbytes":       dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MBYTES"),
+	"gbytes":       dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_GBYTES"),
+}
+
+// heatmapHistogramBucketUnitFromAPI maps the API values of the enum to its Terraform values.
+var heatmapHistogramBucketUnitFromAPI = map[dashboard_service.HeatmapHistogramBucketUnit]string{
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_UNSPECIFIED"):  "unspecified",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_NANOSECONDS"):  "nanoseconds",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MICROSECONDS"): "microseconds",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MILLISECONDS"): "milliseconds",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_SECONDS"):      "seconds",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_BYTES_IEC"):    "bytes_iec",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_KIBYTES"):      "kibytes",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MIBYTES"):      "mibytes",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_GIBYTES"):      "gibytes",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_BYTES"):        "bytes",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_KBYTES"):       "kbytes",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_MBYTES"):       "mbytes",
+	dashboard_service.HeatmapHistogramBucketUnit("HEATMAP_HISTOGRAM_BUCKET_UNIT_GBYTES"):       "gbytes",
+}
+
+// heatmapColorPresetToAPI maps the Terraform values of the enum to its API values.
+var heatmapColorPresetToAPI = map[string]dashboard_service.HeatmapColorPreset{
+	"unspecified":        dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_UNSPECIFIED"),
+	"blue":               dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_BLUE"),
+	"green":              dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_GREEN"),
+	"red":                dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_RED"),
+	"threshold":          dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_THRESHOLD"),
+	"blue_reversed":      dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_BLUE_REVERSED"),
+	"green_reversed":     dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_GREEN_REVERSED"),
+	"red_reversed":       dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_RED_REVERSED"),
+	"threshold_reversed": dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_THRESHOLD_REVERSED"),
+}
+
+// heatmapColorPresetFromAPI maps the API values of the enum to its Terraform values.
+var heatmapColorPresetFromAPI = map[dashboard_service.HeatmapColorPreset]string{
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_UNSPECIFIED"):        "unspecified",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_BLUE"):               "blue",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_GREEN"):              "green",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_RED"):                "red",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_THRESHOLD"):          "threshold",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_BLUE_REVERSED"):      "blue_reversed",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_GREEN_REVERSED"):     "green_reversed",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_RED_REVERSED"):       "red_reversed",
+	dashboard_service.HeatmapColorPreset("HEATMAP_COLOR_PRESET_THRESHOLD_REVERSED"): "threshold_reversed",
+}
+
+// horizontalBarsYAxisViewByToAPI maps the Terraform values of the enum to its API values.
+var horizontalBarsYAxisViewByToAPI = map[string]dashboard_service.HorizontalBarsYAxisViewBy{
+	"unspecified": dashboard_service.HorizontalBarsYAxisViewBy("Y_AXIS_VIEW_BY_UNSPECIFIED"),
+	"category":    dashboard_service.HorizontalBarsYAxisViewBy("Y_AXIS_VIEW_BY_CATEGORY"),
+	"value":       dashboard_service.HorizontalBarsYAxisViewBy("Y_AXIS_VIEW_BY_VALUE"),
+}
+
+// horizontalBarsYAxisViewByFromAPI maps the API values of the enum to its Terraform values.
+var horizontalBarsYAxisViewByFromAPI = map[dashboard_service.HorizontalBarsYAxisViewBy]string{
+	dashboard_service.HorizontalBarsYAxisViewBy("Y_AXIS_VIEW_BY_UNSPECIFIED"): "unspecified",
+	dashboard_service.HorizontalBarsYAxisViewBy("Y_AXIS_VIEW_BY_CATEGORY"):    "category",
+	dashboard_service.HorizontalBarsYAxisViewBy("Y_AXIS_VIEW_BY_VALUE"):       "value",
+}
+
+// horizontalBarsMultiYAxisViewByToAPI maps the Terraform values of the enum to its API values.
+var horizontalBarsMultiYAxisViewByToAPI = map[string]dashboard_service.HorizontalBarsMultiYAxisViewBy{
+	"unspecified": dashboard_service.HorizontalBarsMultiYAxisViewBy("Y_AXIS_VIEW_BY_UNSPECIFIED"),
+	"category":    dashboard_service.HorizontalBarsMultiYAxisViewBy("Y_AXIS_VIEW_BY_CATEGORY"),
+	"value":       dashboard_service.HorizontalBarsMultiYAxisViewBy("Y_AXIS_VIEW_BY_VALUE"),
+}
+
+// horizontalBarsMultiYAxisViewByFromAPI maps the API values of the enum to its Terraform values.
+var horizontalBarsMultiYAxisViewByFromAPI = map[dashboard_service.HorizontalBarsMultiYAxisViewBy]string{
+	dashboard_service.HorizontalBarsMultiYAxisViewBy("Y_AXIS_VIEW_BY_UNSPECIFIED"): "unspecified",
+	dashboard_service.HorizontalBarsMultiYAxisViewBy("Y_AXIS_VIEW_BY_CATEGORY"):    "category",
+	dashboard_service.HorizontalBarsMultiYAxisViewBy("Y_AXIS_VIEW_BY_VALUE"):       "value",
+}
+
+// visualizationPieChartLabelSourceToAPI maps the Terraform values of the enum to its API values.
+var visualizationPieChartLabelSourceToAPI = map[string]dashboard_service.VisualizationPieChartLabelSource{
+	"unspecified": dashboard_service.VisualizationPieChartLabelSource("LABEL_SOURCE_UNSPECIFIED"),
+	"inner":       dashboard_service.VisualizationPieChartLabelSource("LABEL_SOURCE_INNER"),
+	"stack":       dashboard_service.VisualizationPieChartLabelSource("LABEL_SOURCE_STACK"),
+}
+
+// visualizationPieChartLabelSourceFromAPI maps the API values of the enum to its Terraform values.
+var visualizationPieChartLabelSourceFromAPI = map[dashboard_service.VisualizationPieChartLabelSource]string{
+	dashboard_service.VisualizationPieChartLabelSource("LABEL_SOURCE_UNSPECIFIED"): "unspecified",
+	dashboard_service.VisualizationPieChartLabelSource("LABEL_SOURCE_INNER"):       "inner",
+	dashboard_service.VisualizationPieChartLabelSource("LABEL_SOURCE_STACK"):       "stack",
+}
+
+// commonThresholdByToAPI maps the Terraform values of the enum to its API values.
+var commonThresholdByToAPI = map[string]dashboard_service.CommonThresholdBy{
+	"unspecified": dashboard_service.CommonThresholdBy("THRESHOLD_BY_UNSPECIFIED"),
+	"value":       dashboard_service.CommonThresholdBy("THRESHOLD_BY_VALUE"),
+	"background":  dashboard_service.CommonThresholdBy("THRESHOLD_BY_BACKGROUND"),
+}
+
+// commonThresholdByFromAPI maps the API values of the enum to its Terraform values.
+var commonThresholdByFromAPI = map[dashboard_service.CommonThresholdBy]string{
+	dashboard_service.CommonThresholdBy("THRESHOLD_BY_UNSPECIFIED"): "unspecified",
+	dashboard_service.CommonThresholdBy("THRESHOLD_BY_VALUE"):       "value",
+	dashboard_service.CommonThresholdBy("THRESHOLD_BY_BACKGROUND"):  "background",
+}
+
+// colorApplyTargetToAPI maps the Terraform values of the enum to its API values.
+var colorApplyTargetToAPI = map[string]dashboard_service.ColorApplyTarget{
+	"unspecified": dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_UNSPECIFIED"),
+	"value":       dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_VALUE"),
+	"background":  dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_BACKGROUND"),
+	"row":         dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_ROW"),
+}
+
+// colorApplyTargetFromAPI maps the API values of the enum to its Terraform values.
+var colorApplyTargetFromAPI = map[dashboard_service.ColorApplyTarget]string{
+	dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_UNSPECIFIED"): "unspecified",
+	dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_VALUE"):       "value",
+	dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_BACKGROUND"):  "background",
+	dashboard_service.ColorApplyTarget("COLOR_APPLY_TARGET_ROW"):         "row",
+}
+
+// textAlignmentToAPI maps the Terraform values of the enum to its API values.
+var textAlignmentToAPI = map[string]dashboard_service.TextAlignment{
+	"unspecified": dashboard_service.TextAlignment("TEXT_ALIGNMENT_UNSPECIFIED"),
+	"left":        dashboard_service.TextAlignment("TEXT_ALIGNMENT_LEFT"),
+	"center":      dashboard_service.TextAlignment("TEXT_ALIGNMENT_CENTER"),
+	"right":       dashboard_service.TextAlignment("TEXT_ALIGNMENT_RIGHT"),
+}
+
+// textAlignmentFromAPI maps the API values of the enum to its Terraform values.
+var textAlignmentFromAPI = map[dashboard_service.TextAlignment]string{
+	dashboard_service.TextAlignment("TEXT_ALIGNMENT_UNSPECIFIED"): "unspecified",
+	dashboard_service.TextAlignment("TEXT_ALIGNMENT_LEFT"):        "left",
+	dashboard_service.TextAlignment("TEXT_ALIGNMENT_CENTER"):      "center",
+	dashboard_service.TextAlignment("TEXT_ALIGNMENT_RIGHT"):       "right",
+}
+
+// valuesMappingTypeToAPI maps the Terraform values of the enum to its API values.
+var valuesMappingTypeToAPI = map[string]dashboard_service.ValuesMappingType{
+	"unspecified": dashboard_service.ValuesMappingType("VALUES_MAPPING_TYPE_UNSPECIFIED"),
+	"value":       dashboard_service.ValuesMappingType("VALUES_MAPPING_TYPE_VALUE"),
+	"regex":       dashboard_service.ValuesMappingType("VALUES_MAPPING_TYPE_REGEX"),
+}
+
+// valuesMappingTypeFromAPI maps the API values of the enum to its Terraform values.
+var valuesMappingTypeFromAPI = map[dashboard_service.ValuesMappingType]string{
+	dashboard_service.ValuesMappingType("VALUES_MAPPING_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.ValuesMappingType("VALUES_MAPPING_TYPE_VALUE"):       "value",
+	dashboard_service.ValuesMappingType("VALUES_MAPPING_TYPE_REGEX"):       "regex",
+}
+
+// fieldDataTypeToAPI maps the Terraform values of the enum to its API values.
+var fieldDataTypeToAPI = map[string]dashboard_service.FieldDataType{
+	"unspecified": dashboard_service.FieldDataType("FIELD_DATA_TYPE_UNSPECIFIED"),
+	"number":      dashboard_service.FieldDataType("FIELD_DATA_TYPE_NUMBER"),
+	"string":      dashboard_service.FieldDataType("FIELD_DATA_TYPE_STRING"),
+	"boolean":     dashboard_service.FieldDataType("FIELD_DATA_TYPE_BOOLEAN"),
+	"timestamp":   dashboard_service.FieldDataType("FIELD_DATA_TYPE_TIMESTAMP"),
+	"object":      dashboard_service.FieldDataType("FIELD_DATA_TYPE_OBJECT"),
+	"array":       dashboard_service.FieldDataType("FIELD_DATA_TYPE_ARRAY"),
+	"regex":       dashboard_service.FieldDataType("FIELD_DATA_TYPE_REGEX"),
+	"union":       dashboard_service.FieldDataType("FIELD_DATA_TYPE_UNION"),
+	"enum":        dashboard_service.FieldDataType("FIELD_DATA_TYPE_ENUM"),
+}
+
+// fieldDataTypeFromAPI maps the API values of the enum to its Terraform values.
+var fieldDataTypeFromAPI = map[dashboard_service.FieldDataType]string{
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_NUMBER"):      "number",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_STRING"):      "string",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_BOOLEAN"):     "boolean",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_TIMESTAMP"):   "timestamp",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_OBJECT"):      "object",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_ARRAY"):       "array",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_REGEX"):       "regex",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_UNION"):       "union",
+	dashboard_service.FieldDataType("FIELD_DATA_TYPE_ENUM"):        "enum",
+}
+
+// visualizationBarValueDisplayToAPI maps the Terraform values of the enum to its API values.
+var visualizationBarValueDisplayToAPI = map[string]dashboard_service.VisualizationBarValueDisplay{
+	"unspecified": dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_UNSPECIFIED"),
+	"top":         dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_TOP"),
+	"inside":      dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_INSIDE"),
+	"both":        dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_BOTH"),
+}
+
+// visualizationBarValueDisplayFromAPI maps the API values of the enum to its Terraform values.
+var visualizationBarValueDisplayFromAPI = map[dashboard_service.VisualizationBarValueDisplay]string{
+	dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_UNSPECIFIED"): "unspecified",
+	dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_TOP"):         "top",
+	dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_INSIDE"):      "inside",
+	dashboard_service.VisualizationBarValueDisplay("BAR_VALUE_DISPLAY_BOTH"):        "both",
+}
+
+// visualizationStackedLineToAPI maps the Terraform values of the enum to its API values.
+var visualizationStackedLineToAPI = map[string]dashboard_service.VisualizationStackedLine{
+	"unspecified": dashboard_service.VisualizationStackedLine("STACKED_LINE_UNSPECIFIED"),
+	"absolute":    dashboard_service.VisualizationStackedLine("STACKED_LINE_ABSOLUTE"),
+	"relative":    dashboard_service.VisualizationStackedLine("STACKED_LINE_RELATIVE"),
+}
+
+// visualizationStackedLineFromAPI maps the API values of the enum to its Terraform values.
+var visualizationStackedLineFromAPI = map[dashboard_service.VisualizationStackedLine]string{
+	dashboard_service.VisualizationStackedLine("STACKED_LINE_UNSPECIFIED"): "unspecified",
+	dashboard_service.VisualizationStackedLine("STACKED_LINE_ABSOLUTE"):    "absolute",
+	dashboard_service.VisualizationStackedLine("STACKED_LINE_RELATIVE"):    "relative",
+}
+
+// gaugeAggregationToAPI maps the Terraform values of the enum to its API values.
+var gaugeAggregationToAPI = map[string]dashboard_service.GaugeAggregation{
+	"unspecified": dashboard_service.GaugeAggregation("AGGREGATION_UNSPECIFIED"),
+	"last":        dashboard_service.GaugeAggregation("AGGREGATION_LAST"),
+	"min":         dashboard_service.GaugeAggregation("AGGREGATION_MIN"),
+	"max":         dashboard_service.GaugeAggregation("AGGREGATION_MAX"),
+	"avg":         dashboard_service.GaugeAggregation("AGGREGATION_AVG"),
+	"sum":         dashboard_service.GaugeAggregation("AGGREGATION_SUM"),
+}
+
+// gaugeAggregationFromAPI maps the API values of the enum to its Terraform values.
+var gaugeAggregationFromAPI = map[dashboard_service.GaugeAggregation]string{
+	dashboard_service.GaugeAggregation("AGGREGATION_UNSPECIFIED"): "unspecified",
+	dashboard_service.GaugeAggregation("AGGREGATION_LAST"):        "last",
+	dashboard_service.GaugeAggregation("AGGREGATION_MIN"):         "min",
+	dashboard_service.GaugeAggregation("AGGREGATION_MAX"):         "max",
+	dashboard_service.GaugeAggregation("AGGREGATION_AVG"):         "avg",
+	dashboard_service.GaugeAggregation("AGGREGATION_SUM"):         "sum",
+}
+
+// gaugeThresholdByToAPI maps the Terraform values of the enum to its API values.
+var gaugeThresholdByToAPI = map[string]dashboard_service.GaugeThresholdBy{
+	"unspecified": dashboard_service.GaugeThresholdBy("THRESHOLD_BY_UNSPECIFIED"),
+	"value":       dashboard_service.GaugeThresholdBy("THRESHOLD_BY_VALUE"),
+	"background":  dashboard_service.GaugeThresholdBy("THRESHOLD_BY_BACKGROUND"),
+}
+
+// gaugeThresholdByFromAPI maps the API values of the enum to its Terraform values.
+var gaugeThresholdByFromAPI = map[dashboard_service.GaugeThresholdBy]string{
+	dashboard_service.GaugeThresholdBy("THRESHOLD_BY_UNSPECIFIED"): "unspecified",
+	dashboard_service.GaugeThresholdBy("THRESHOLD_BY_VALUE"):       "value",
+	dashboard_service.GaugeThresholdBy("THRESHOLD_BY_BACKGROUND"):  "background",
+}
+
+// gaugeUnitToAPI maps the Terraform values of the enum to its API values.
+var gaugeUnitToAPI = map[string]dashboard_service.GaugeUnit{
+	"unspecified":  dashboard_service.GaugeUnit("UNIT_UNSPECIFIED"),
+	"none":         dashboard_service.GaugeUnit("UNIT_NUMBER"),
+	"percent":      dashboard_service.GaugeUnit("UNIT_PERCENT"),
+	"microseconds": dashboard_service.GaugeUnit("UNIT_MICROSECONDS"),
+	"milliseconds": dashboard_service.GaugeUnit("UNIT_MILLISECONDS"),
+	"seconds":      dashboard_service.GaugeUnit("UNIT_SECONDS"),
+	"bytes":        dashboard_service.GaugeUnit("UNIT_BYTES"),
+	"kbytes":       dashboard_service.GaugeUnit("UNIT_KBYTES"),
+	"mbytes":       dashboard_service.GaugeUnit("UNIT_MBYTES"),
+	"gbytes":       dashboard_service.GaugeUnit("UNIT_GBYTES"),
+	"bytes_iec":    dashboard_service.GaugeUnit("UNIT_BYTES_IEC"),
+	"kibytes":      dashboard_service.GaugeUnit("UNIT_KIBYTES"),
+	"mibytes":      dashboard_service.GaugeUnit("UNIT_MIBYTES"),
+	"gibytes":      dashboard_service.GaugeUnit("UNIT_GIBYTES"),
+	"euro_cents":   dashboard_service.GaugeUnit("UNIT_EUR_CENTS"),
+	"euro":         dashboard_service.GaugeUnit("UNIT_EUR"),
+	"usd_cents":    dashboard_service.GaugeUnit("UNIT_USD_CENTS"),
+	"usd":          dashboard_service.GaugeUnit("UNIT_USD"),
+	"custom":       dashboard_service.GaugeUnit("UNIT_CUSTOM"),
+	"percent01":    dashboard_service.GaugeUnit("UNIT_PERCENT_ZERO_ONE"),
+	"percent100":   dashboard_service.GaugeUnit("UNIT_PERCENT_ZERO_HUNDRED"),
+	"nanoseconds":  dashboard_service.GaugeUnit("UNIT_NANOSECONDS"),
+	"datetime_iso": dashboard_service.GaugeUnit("UNIT_DATETIME_ISO"),
+}
+
+// gaugeUnitFromAPI maps the API values of the enum to its Terraform values.
+var gaugeUnitFromAPI = map[dashboard_service.GaugeUnit]string{
+	dashboard_service.GaugeUnit("UNIT_UNSPECIFIED"):          "unspecified",
+	dashboard_service.GaugeUnit("UNIT_NUMBER"):               "none",
+	dashboard_service.GaugeUnit("UNIT_PERCENT"):              "percent",
+	dashboard_service.GaugeUnit("UNIT_MICROSECONDS"):         "microseconds",
+	dashboard_service.GaugeUnit("UNIT_MILLISECONDS"):         "milliseconds",
+	dashboard_service.GaugeUnit("UNIT_SECONDS"):              "seconds",
+	dashboard_service.GaugeUnit("UNIT_BYTES"):                "bytes",
+	dashboard_service.GaugeUnit("UNIT_KBYTES"):               "kbytes",
+	dashboard_service.GaugeUnit("UNIT_MBYTES"):               "mbytes",
+	dashboard_service.GaugeUnit("UNIT_GBYTES"):               "gbytes",
+	dashboard_service.GaugeUnit("UNIT_BYTES_IEC"):            "bytes_iec",
+	dashboard_service.GaugeUnit("UNIT_KIBYTES"):              "kibytes",
+	dashboard_service.GaugeUnit("UNIT_MIBYTES"):              "mibytes",
+	dashboard_service.GaugeUnit("UNIT_GIBYTES"):              "gibytes",
+	dashboard_service.GaugeUnit("UNIT_EUR_CENTS"):            "euro_cents",
+	dashboard_service.GaugeUnit("UNIT_EUR"):                  "euro",
+	dashboard_service.GaugeUnit("UNIT_USD_CENTS"):            "usd_cents",
+	dashboard_service.GaugeUnit("UNIT_USD"):                  "usd",
+	dashboard_service.GaugeUnit("UNIT_CUSTOM"):               "custom",
+	dashboard_service.GaugeUnit("UNIT_PERCENT_ZERO_ONE"):     "percent01",
+	dashboard_service.GaugeUnit("UNIT_PERCENT_ZERO_HUNDRED"): "percent100",
+	dashboard_service.GaugeUnit("UNIT_NANOSECONDS"):          "nanoseconds",
+	dashboard_service.GaugeUnit("UNIT_DATETIME_ISO"):         "datetime_iso",
+}
+
+// lineChartStackedLineToAPI maps the Terraform values of the enum to its API values.
+var lineChartStackedLineToAPI = map[string]dashboard_service.LineChartStackedLine{
+	"unspecified": dashboard_service.LineChartStackedLine("STACKED_LINE_UNSPECIFIED"),
+	"absolute":    dashboard_service.LineChartStackedLine("STACKED_LINE_ABSOLUTE"),
+	"relative":    dashboard_service.LineChartStackedLine("STACKED_LINE_RELATIVE"),
+}
+
+// lineChartStackedLineFromAPI maps the API values of the enum to its Terraform values.
+var lineChartStackedLineFromAPI = map[dashboard_service.LineChartStackedLine]string{
+	dashboard_service.LineChartStackedLine("STACKED_LINE_UNSPECIFIED"): "unspecified",
+	dashboard_service.LineChartStackedLine("STACKED_LINE_ABSOLUTE"):    "absolute",
+	dashboard_service.LineChartStackedLine("STACKED_LINE_RELATIVE"):    "relative",
+}
+
+// tooltipTypeToAPI maps the Terraform values of the enum to its API values.
+var tooltipTypeToAPI = map[string]dashboard_service.TooltipType{
+	"unspecified": dashboard_service.TooltipType("TOOLTIP_TYPE_UNSPECIFIED"),
+	"all":         dashboard_service.TooltipType("TOOLTIP_TYPE_ALL"),
+	"single":      dashboard_service.TooltipType("TOOLTIP_TYPE_SINGLE"),
+}
+
+// tooltipTypeFromAPI maps the API values of the enum to its Terraform values.
+var tooltipTypeFromAPI = map[dashboard_service.TooltipType]string{
+	dashboard_service.TooltipType("TOOLTIP_TYPE_UNSPECIFIED"): "unspecified",
+	dashboard_service.TooltipType("TOOLTIP_TYPE_ALL"):         "all",
+	dashboard_service.TooltipType("TOOLTIP_TYPE_SINGLE"):      "single",
+}
+
+// widgetsPieChartLabelSourceToAPI maps the Terraform values of the enum to its API values.
+var widgetsPieChartLabelSourceToAPI = map[string]dashboard_service.WidgetsPieChartLabelSource{
+	"unspecified": dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_UNSPECIFIED"),
+	"inner":       dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_INNER"),
+	"stack":       dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_STACK"),
+}
+
+// widgetsPieChartLabelSourceFromAPI maps the API values of the enum to its Terraform values.
+var widgetsPieChartLabelSourceFromAPI = map[dashboard_service.WidgetsPieChartLabelSource]string{
+	dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_UNSPECIFIED"): "unspecified",
+	dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_INNER"):       "inner",
+	dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_STACK"):       "stack",
+}
+
+// multiSelectRefreshStrategyToAPI maps the Terraform values of the enum to its API values.
+var multiSelectRefreshStrategyToAPI = map[string]dashboard_service.MultiSelectRefreshStrategy{
+	"unspecified":          dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_UNSPECIFIED"),
+	"on_dashboard_load":    dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_ON_DASHBOARD_LOAD"),
+	"on_time_frame_change": dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE"),
+}
+
+// multiSelectRefreshStrategyFromAPI maps the API values of the enum to its Terraform values.
+var multiSelectRefreshStrategyFromAPI = map[dashboard_service.MultiSelectRefreshStrategy]string{
+	dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_UNSPECIFIED"):          "unspecified",
+	dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_ON_DASHBOARD_LOAD"):    "on_dashboard_load",
+	dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE"): "on_time_frame_change",
+}
+
+// variableDisplayTypeToAPI maps the Terraform values of the enum to its API values.
+var variableDisplayTypeToAPI = map[string]dashboard_service.VariableDisplayType{
+	"label_value": dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_LABEL_VALUE"),
+	"value":       dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_VALUE"),
+	"nothing":     dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_NOTHING"),
+}
+
+// variableDisplayTypeFromAPI maps the API values of the enum to its Terraform values.
+var variableDisplayTypeFromAPI = map[dashboard_service.VariableDisplayType]string{
+	dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_LABEL_VALUE"): "label_value",
+	dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_VALUE"):       "value",
+	dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_NOTHING"):     "nothing",
+}
+
+// variableDisplayTypeV2ToAPI maps the Terraform values of the enum to its API values.
+var variableDisplayTypeV2ToAPI = map[string]dashboard_service.VariableDisplayTypeV2{
+	"unspecified": dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED"),
+	"label_value": dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_LABEL_VALUE"),
+	"value":       dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_VALUE"),
+	"nothing":     dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_NOTHING"),
+}
+
+// variableDisplayTypeV2FromAPI maps the API values of the enum to its Terraform values.
+var variableDisplayTypeV2FromAPI = map[dashboard_service.VariableDisplayTypeV2]string{
+	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED"): "unspecified",
+	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_LABEL_VALUE"): "label_value",
+	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_VALUE"):       "value",
+	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_NOTHING"):     "nothing",
+}
+
+// variableSourceV2RefreshStrategyToAPI maps the Terraform values of the enum to its API values.
+var variableSourceV2RefreshStrategyToAPI = map[string]dashboard_service.VariableSourceV2RefreshStrategy{
+	"on_dashboard_load":    dashboard_service.VariableSourceV2RefreshStrategy("REFRESH_STRATEGY_ON_DASHBOARD_LOAD"),
+	"on_time_frame_change": dashboard_service.VariableSourceV2RefreshStrategy("REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE"),
+}
+
+// variableSourceV2RefreshStrategyFromAPI maps the API values of the enum to its Terraform values.
+var variableSourceV2RefreshStrategyFromAPI = map[dashboard_service.VariableSourceV2RefreshStrategy]string{
+	dashboard_service.VariableSourceV2RefreshStrategy("REFRESH_STRATEGY_ON_DASHBOARD_LOAD"):    "on_dashboard_load",
+	dashboard_service.VariableSourceV2RefreshStrategy("REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE"): "on_time_frame_change",
+}
+
 // actionDataSourceTypeToAPI maps the Terraform values of the enum to its API values.
 var actionDataSourceTypeToAPI = map[string]dashboard_service.ActionDataSourceType{
-	"unspecified":                       dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_NONE_UNSPECIFIED"),
-	"action_data_source_type_logs":      dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_LOGS"),
-	"action_data_source_type_spans":     dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_SPANS"),
-	"action_data_source_type_metrics":   dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_METRICS"),
-	"action_data_source_type_dataprime": dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_DATAPRIME"),
+	"logs":      dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_LOGS"),
+	"spans":     dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_SPANS"),
+	"metrics":   dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_METRICS"),
+	"dataprime": dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_DATAPRIME"),
 }
 
 // actionDataSourceTypeFromAPI maps the API values of the enum to its Terraform values.
 var actionDataSourceTypeFromAPI = map[dashboard_service.ActionDataSourceType]string{
-	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_NONE_UNSPECIFIED"): "unspecified",
-	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_LOGS"):             "action_data_source_type_logs",
-	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_SPANS"):            "action_data_source_type_spans",
-	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_METRICS"):          "action_data_source_type_metrics",
-	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_DATAPRIME"):        "action_data_source_type_dataprime",
+	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_LOGS"):      "logs",
+	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_SPANS"):     "spans",
+	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_METRICS"):   "metrics",
+	dashboard_service.ActionDataSourceType("ACTION_DATA_SOURCE_TYPE_DATAPRIME"): "dataprime",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
@@ -108,8 +1014,7 @@ var createFields = []struct {
 	{attr: "description", serverDefault: false},
 	{attr: "auto_refresh", serverDefault: false},
 	{attr: "filters", serverDefault: false},
-	{attr: "folder_id", serverDefault: false},
-	{attr: "folder_path", serverDefault: false},
+	{attr: "folder", serverDefault: false},
 	{attr: "layout", serverDefault: false},
 	{attr: "name", serverDefault: false},
 	{attr: "slug_name", serverDefault: false},
@@ -137,7 +1042,11 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // serverAttrs are the paths of the computed attributes inside the values
 // that a request sends, with list and map steps left out. The server sets
 // them.
-var serverAttrs = map[string]bool{}
+var serverAttrs = map[string]bool{
+	"layout.sections.rows.widgets.created_at":                                                 true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.id": true,
+	"layout.sections.rows.widgets.updated_at":                                                 true,
+}
 
 // defaultAttrs are the nested attributes with a server default, by path. A
 // request does not send an unknown value of one, so the server stores the default.
@@ -224,13 +1133,13 @@ func expandUpdate(ctx context.Context, m *DashboardModel) (*dashboard_service.Re
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *dashboard_service.Dashboard) (*DashboardModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *dashboard_service.Dashboard, prior *DashboardModel) (*DashboardModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no Dashboard.")
 		return nil, diags
 	}
-	out := flattenDashboard(ctx, path.Empty(), v, &diags)
+	out := flattenDashboard(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() || out.Id.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -285,11 +1194,6 @@ var oneOfArms = map[string]bool{
 	"filters.source.spans.operator.equals.selection.list":                                             true,
 	"filters.source.spans.operator.not_equals":                                                        true,
 	"layout.sections.rows.widgets.definition.bar_chart":                                               true,
-	"layout.sections.rows.widgets.definition.bar_chart.colors_by.aggregation":                         true,
-	"layout.sections.rows.widgets.definition.bar_chart.colors_by.category":                            true,
-	"layout.sections.rows.widgets.definition.bar_chart.colors_by.group_by":                            true,
-	"layout.sections.rows.widgets.definition.bar_chart.colors_by.query":                               true,
-	"layout.sections.rows.widgets.definition.bar_chart.colors_by.stack":                               true,
 	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime":                              true,
 	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs":                 true,
 	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.equals": true,
@@ -465,17 +1369,7 @@ var oneOfArms = map[string]bool{
 	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.preset":                                                         true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins":                                                           true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars":                                                        true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by.aggregation":                                  true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by.category":                                     true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by.group_by":                                     true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by.query":                                        true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by.stack":                                        true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi":                                                  true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by.aggregation":                            true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by.category":                               true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by.group_by":                               true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by.query":                                  true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by.stack":                                  true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.category":                     true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.query_value":                  true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart":                                                              true,
@@ -514,17 +1408,7 @@ var oneOfArms = map[string]bool{
 	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines":                                                      true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi":                                                true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars":                                                          true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by.aggregation":                                    true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by.category":                                       true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by.group_by":                                       true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by.query":                                          true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by.stack":                                          true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi":                                                    true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by.aggregation":                              true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by.category":                                 true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by.group_by":                                 true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by.query":                                    true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by.stack":                                    true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.category":                       true,
 	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.query_value":                    true,
 	"layout.sections.rows.widgets.definition.gauge":                                                                                        true,
@@ -644,11 +1528,6 @@ var oneOfArms = map[string]bool{
 	"layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.absolute":                                                      true,
 	"layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.relative.duration":                                             true,
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart":                                                                         true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.colors_by.aggregation":                                                   true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.colors_by.category":                                                      true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.colors_by.group_by":                                                      true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.colors_by.query":                                                         true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.colors_by.stack":                                                         true,
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime":                                                        true,
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs":                                           true,
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.equals":                           true,
@@ -709,8 +1588,6 @@ var oneOfArms = map[string]bool{
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name.tag_field":                                true,
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.absolute":                                         true,
 	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.relative.duration":                                true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.y_axis_view_by.category":                                                 true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.y_axis_view_by.value":                                                    true,
 	"layout.sections.rows.widgets.definition.line_chart":                                                                                   true,
 	"layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.auto":                                        true,
 	"layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.manual":                                      true,
@@ -925,263 +1802,1036 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
+	"annotations.enabled":                             true,
+	"annotations.id":                                  true,
+	"annotations.source.dataprime.data_mode_type":     true,
+	"annotations.source.dataprime.orientation":        true,
+	"annotations.source.logs.data_mode_type":          true,
+	"annotations.source.manual.orientation":           true,
+	"annotations.source.manual.strategy.instant.unit": true,
+	"annotations.source.manual.strategy.range.unit":   true,
+	"annotations.source.metrics.orientation":          true,
+	"annotations.source.spans.data_mode_type":         true,
 	"auto_refresh":      true,
 	"auto_refresh.type": true,
-	"filters.source.logs.operator.selection_type":     true,
-	"filters.source.logs.operator.selected_values":    true,
-	"filters.source.metrics.operator.selection_type":  true,
-	"filters.source.metrics.operator.selected_values": true,
-	"filters.source.spans.operator.selection_type":    true,
-	"filters.source.spans.operator.selected_values":   true,
-	"id": true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.selection_type":                        true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.selected_values":                       true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator.selection_type":                     true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator.selected_values":                    true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator.selection_type":                       true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator.selected_values":                      true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator.selection_type":                                   true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator.selected_values":                                  true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator.selection_type":                                true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator.selected_values":                               true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator.selection_type":                                  true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator.selected_values":                                 true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator.selection_type":                       true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator.selected_values":                      true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator.selection_type":                    true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator.selected_values":                   true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator.selection_type":                      true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator.selected_values":                     true,
-	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator.selection_type":                                  true,
-	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator.selected_values":                                 true,
-	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator.selection_type":                               true,
-	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator.selected_values":                              true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator.selection_type":                                 true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator.selected_values":                                true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator.selection_type":                   true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator.selected_values":                  true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator.selection_type":                  true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator.selected_values":                 true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator.selection_type":                            true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator.selected_values":                           true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator.selection_type":                         true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator.selected_values":                        true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator.selection_type":                           true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator.selected_values":                          true,
-	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator.selection_type":                                       true,
-	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator.selected_values":                                      true,
-	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator.selection_type":                                    true,
-	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator.selected_values":                                   true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator.selection_type":                                      true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator.selected_values":                                     true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator.selection_type":                          true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator.selected_values":                         true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator.selection_type":                       true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator.selected_values":                      true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator.selection_type":                         true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator.selected_values":                        true,
-	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator.selection_type":                                     true,
-	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator.selected_values":                                    true,
-	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator.selection_type":                                  true,
-	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator.selected_values":                                 true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator.selection_type":                                    true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator.selected_values":                                   true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.selection_type":             true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.selected_values":            true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator.selection_type":          true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator.selected_values":         true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator.selection_type":            true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator.selected_values":           true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator.selection_type":                        true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator.selected_values":                       true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator.selection_type":                     true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator.selected_values":                    true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator.selection_type":                       true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator.selected_values":                      true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator.selection_type":     true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator.selected_values":    true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator.selection_type":  true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator.selected_values": true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator.selection_type":    true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator.selected_values":   true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator.selection_type":                true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator.selected_values":               true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator.selection_type":             true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator.selected_values":            true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.promql_query_type":                           true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator.selection_type":               true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator.selected_values":              true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator.selection_type":                        true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator.selected_values":                       true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator.selection_type":                     true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator.selected_values":                    true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator.selection_type":                       true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator.selected_values":                      true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator.selection_type":                                   true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator.selected_values":                                  true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator.selection_type":                                true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator.selected_values":                               true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator.selection_type":                                  true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator.selected_values":                                 true,
-	"layout.sections.rows.widgets.highlighted":                                                                                       true,
-	"variables.definition.multi_select.selected_values":                                                                              true,
+	"filters.collapsed": true,
+	"filters.enabled":   true,
+	"filters.id":        true,
+	"filters.source.logs.operator.selection_type":          true,
+	"filters.source.logs.operator.selected_values":         true,
+	"filters.source.metrics.operator.selection_type":       true,
+	"filters.source.metrics.operator.selected_values":      true,
+	"filters.source.spans.observation_field.relation_type": true,
+	"filters.source.spans.operator.selection_type":         true,
+	"filters.source.spans.operator.selected_values":        true,
+	"id":                                 true,
+	"layout.sections.id":                 true,
+	"layout.sections.rows.id":            true,
+	"layout.sections.rows.widgets.width": true,
+	"layout.sections.rows.widgets.created_at":                                                                                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.bar_value_display":                                                                 true,
+	"layout.sections.rows.widgets.definition.bar_chart.data_mode_type":                                                                    true,
+	"layout.sections.rows.widgets.definition.bar_chart.legend.group_by_query":                                                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.legend.is_visible":                                                                 true,
+	"layout.sections.rows.widgets.definition.bar_chart.legend.placement":                                                                  true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.selection_type":                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.selected_values":                            true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator.selection_type":                          true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator.selected_values":                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.observation_field.relation_type":                    true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator.selection_type":                            true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator.selected_values":                           true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator.selection_type":                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator.selected_values":                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.aggregation":                                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.editor_mode":                                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator.selection_type":                                     true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator.selected_values":                                    true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.promql_query_type":                                                   true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.observation_field.relation_type":                               true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator.selection_type":                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator.selected_values":                                      true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names_fields.relation_type":                                      true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name_field.relation_type":                                true,
+	"layout.sections.rows.widgets.definition.bar_chart.scale_type":                                                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.sort_by":                                                                           true,
+	"layout.sections.rows.widgets.definition.bar_chart.unit":                                                                              true,
+	"layout.sections.rows.widgets.definition.bar_chart.x_axis_time_format":                                                                true,
+	"layout.sections.rows.widgets.definition.data_table.columns.width":                                                                    true,
+	"layout.sections.rows.widgets.definition.data_table.data_mode_type":                                                                   true,
+	"layout.sections.rows.widgets.definition.data_table.order_by.order_direction":                                                         true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator.selection_type":                            true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator.selected_values":                           true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator.selection_type":                         true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator.selected_values":                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.observation_field.relation_type":                   true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator.selection_type":                           true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator.selected_values":                          true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator.selection_type":                                       true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator.selected_values":                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.id":                                              true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.is_visible":                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.editor_mode":                                                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator.selection_type":                                    true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator.selected_values":                                   true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.promql_query_type":                                                  true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.observation_field.relation_type":                              true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator.selection_type":                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator.selected_values":                                     true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.id":                                             true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.is_visible":                                     true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_bys.relation_type":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.interpretation":                                                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.id":                                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.data_prime.data_mode_type":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.data_mode_type":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator.selection_type":                        true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator.selected_values":                       true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.metrics.editor_mode":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.metrics.promql_query_type":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.metrics.series_limit_type":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.data_mode_type":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.observation_field.relation_type":               true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator.selection_type":                       true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator.selected_values":                      true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.group_by.relation_type":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.legend.group_by_query":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.legend.is_visible":                                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.legend.placement":                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.legend_by":                                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.threshold_type":                                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.unit":                                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.unit":                                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.histogram_bucket_unit":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.scale_type":                                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.unit":                                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.x_axis_time_format":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.legend.group_by_query":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.legend.is_visible":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.legend.placement":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.legend_by":                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.threshold_type":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.unit":                                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.legend.group_by_query":                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.legend.is_visible":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.legend.placement":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.scale_type":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.sort_by":                                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.unit":                                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.y_axis_view_by":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.legend.group_by_query":                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.legend.is_visible":                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.legend.placement":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.scale_type":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.order_direction":                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.strategy_type":               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.unit":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.y_axis_view_by":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.label_definition.label_source":                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.legend.group_by_query":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.legend.is_visible":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.legend.placement":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.unit":                                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.legend.group_by_query":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.legend.is_visible":                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.legend.placement":                                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.legend_by":                                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.threshold_by":                                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.threshold_type":                                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.unit":                                                             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.color_by":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.threshold_type":                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.regex.sections.color":                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.value.sections.color":                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.legend.group_by_query":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.legend.is_visible":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.legend.placement":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.legend_by":                                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.unit":                                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.id":                                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link.actions.id":                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.thresholds.type":                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.units.unit":                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.values_mapping.mappings.type":        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.id":                                             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.settings.row_style":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.bar_value_display":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.legend.group_by_query":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.legend.is_visible":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.legend.placement":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.scale_type":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.sort_by":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.unit":                                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.x_axis_time_format":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.legend.group_by_query":                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.legend.is_visible":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.legend.placement":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.scale_type":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.stacked_line":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.unit":                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.x_axis_time_format":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.legend.group_by_query":                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.legend.is_visible":                             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.legend.placement":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.scale_type":             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.unit":                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.stacked_line":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.x_axis_time_format":                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.bar_value_display":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.legend.group_by_query":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.legend.is_visible":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.legend.placement":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.scale_type":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.sort_by":                                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.unit":                                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.bar_value_display":                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.legend.group_by_query":                             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.legend.is_visible":                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.legend.placement":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.scale_type":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.order_direction":                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.strategy_type":                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.unit":                                              true,
+	"layout.sections.rows.widgets.definition.gauge.data_mode_type":                                                                        true,
+	"layout.sections.rows.widgets.definition.gauge.display_series_name":                                                                   true,
+	"layout.sections.rows.widgets.definition.gauge.legend.group_by_query":                                                                 true,
+	"layout.sections.rows.widgets.definition.gauge.legend.is_visible":                                                                     true,
+	"layout.sections.rows.widgets.definition.gauge.legend.placement":                                                                      true,
+	"layout.sections.rows.widgets.definition.gauge.legend_by":                                                                             true,
+	"layout.sections.rows.widgets.definition.gauge.max":                                                                                   true,
+	"layout.sections.rows.widgets.definition.gauge.min":                                                                                   true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator.selection_type":                                 true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator.selected_values":                                true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator.selection_type":                              true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator.selected_values":                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.observation_field.relation_type":                        true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator.selection_type":                                true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator.selected_values":                               true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator.selection_type":                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator.selected_values":                                           true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.aggregation":                                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.editor_mode":                                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator.selection_type":                                         true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator.selected_values":                                        true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.promql_query_type":                                                       true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.observation_field.relation_type":                                   true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator.selection_type":                                           true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator.selected_values":                                          true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.group_bys.relation_type":                                                   true,
+	"layout.sections.rows.widgets.definition.gauge.show_inner_arc":                                                                        true,
+	"layout.sections.rows.widgets.definition.gauge.show_outer_arc":                                                                        true,
+	"layout.sections.rows.widgets.definition.gauge.threshold_by":                                                                          true,
+	"layout.sections.rows.widgets.definition.gauge.threshold_type":                                                                        true,
+	"layout.sections.rows.widgets.definition.hexagon.data_mode_type":                                                                      true,
+	"layout.sections.rows.widgets.definition.hexagon.legend.group_by_query":                                                               true,
+	"layout.sections.rows.widgets.definition.hexagon.legend.is_visible":                                                                   true,
+	"layout.sections.rows.widgets.definition.hexagon.legend.placement":                                                                    true,
+	"layout.sections.rows.widgets.definition.hexagon.legend_by":                                                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator.selection_type":                               true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator.selected_values":                              true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator.selection_type":                            true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator.selected_values":                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.observation_field.relation_type":                      true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator.selection_type":                              true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator.selected_values":                             true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator.selection_type":                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator.selected_values":                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.aggregation":                                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.editor_mode":                                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator.selection_type":                                       true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator.selected_values":                                      true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.promql_query_type":                                                     true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.observation_field.relation_type":                                 true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator.selection_type":                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator.selected_values":                                        true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.group_bys.relation_type":                                                 true,
+	"layout.sections.rows.widgets.definition.hexagon.threshold_type":                                                                      true,
+	"layout.sections.rows.widgets.definition.hexagon.thresholds":                                                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.unit":                                                                                true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.data_mode_type":                                                         true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.display_on_bar":                                                         true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.legend.group_by_query":                                                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.legend.is_visible":                                                      true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.legend.placement":                                                       true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.selection_type":                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.selected_values":                 true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator.selection_type":               true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator.selected_values":              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.observation_field.relation_type":         true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator.selection_type":                 true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator.selected_values":                true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator.selection_type":                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator.selected_values":                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.aggregation":                                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.editor_mode":                                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator.selection_type":                          true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator.selected_values":                         true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.promql_query_type":                                        true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.observation_field.relation_type":                    true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator.selection_type":                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator.selected_values":                           true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names_fields.relation_type":                           true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name_field.relation_type":                     true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.scale_type":                                                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.sort_by":                                                                true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.unit":                                                                   true,
+	"layout.sections.rows.widgets.definition.line_chart.legend.group_by_query":                                                            true,
+	"layout.sections.rows.widgets.definition.line_chart.legend.is_visible":                                                                true,
+	"layout.sections.rows.widgets.definition.line_chart.legend.placement":                                                                 true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.data_mode_type":                                                 true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.id":                                                             true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.is_visible":                                                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator.selection_type":          true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator.selected_values":         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator.selection_type":       true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator.selected_values":      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.observation_field.relation_type": true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator.selection_type":         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator.selected_values":        true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator.selection_type":                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator.selected_values":                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.editor_mode":                                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator.selection_type":                  true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator.selected_values":                 true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.series_limit_type":                                true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.promql_query_type":                                true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.observation_field.relation_type":            true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator.selection_type":                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator.selected_values":                   true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_bys.relation_type":                            true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.scale_type":                                                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.unit":                                                           true,
+	"layout.sections.rows.widgets.definition.line_chart.stacked_line":                                                                     true,
+	"layout.sections.rows.widgets.definition.line_chart.tooltip.show_labels":                                                              true,
+	"layout.sections.rows.widgets.definition.line_chart.x_axis_time_format":                                                               true,
+	"layout.sections.rows.widgets.definition.pie_chart.data_mode_type":                                                                    true,
+	"layout.sections.rows.widgets.definition.pie_chart.label_definition.is_visible":                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.label_definition.label_source":                                                     true,
+	"layout.sections.rows.widgets.definition.pie_chart.label_definition.show_name":                                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.label_definition.show_percentage":                                                  true,
+	"layout.sections.rows.widgets.definition.pie_chart.label_definition.show_value":                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.legend.group_by_query":                                                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.legend.is_visible":                                                                 true,
+	"layout.sections.rows.widgets.definition.pie_chart.legend.placement":                                                                  true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator.selection_type":                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator.selected_values":                            true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator.selection_type":                          true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator.selected_values":                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.observation_field.relation_type":                    true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator.selection_type":                            true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator.selected_values":                           true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator.selection_type":                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator.selected_values":                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.aggregation":                                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.editor_mode":                                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator.selection_type":                                     true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator.selected_values":                                    true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.promql_query_type":                                                   true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.observation_field.relation_type":                               true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator.selection_type":                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator.selected_values":                                      true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names_fields.relation_type":                                      true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name_field.relation_type":                                true,
+	"layout.sections.rows.widgets.definition.pie_chart.show_legend":                                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.unit":                                                                              true,
+	"layout.sections.rows.widgets.highlighted":                                                                                            true,
+	"layout.sections.rows.widgets.id":                                               true,
+	"layout.sections.rows.widgets.updated_at":                                       true,
+	"layout.sections.rows.widgets.custom_actions.id":                                true,
+	"variables.definition.multi_select.selected_values":                             true,
+	"variables.definition.multi_select.source.query.refresh_strategy":               true,
+	"variables_v2.display_type":                                                     true,
+	"variables_v2.id":                                                               true,
+	"variables_v2.source.query.dataprime_query.type.query_text.data_mode_type":      true,
+	"variables_v2.source.query.metrics_query.type.promql_query.promql_query_type":   true,
+	"variables_v2.source.query.values_order_direction":                              true,
+	"variables_v2.source.static.values.label":                                       true,
+	"variables_v2.source.static.values_order_direction":                             true,
+	"variables_v2.source.textbox.default_value.default_lucene_value.data_mode_type": true,
+	"access_policy": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"time_frame.relative.duration":                                   true,
-	"annotations.source.metrics.interval_resolution.manual.interval": true,
-	"filters.source.logs.operator.type":                              true,
-	"filters.source.metrics.operator.type":                           true,
-	"filters.source.spans.field.type":                                true,
-	"filters.source.spans.operator.type":                             true,
-	"layout":                                                         true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.type":                         true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator.type":                      true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.field.type":                           true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator.type":                        true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.relative.duration":                       true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation.type":                                         true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator.type":                                    true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.relative.duration":                             true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator.type":                                 true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.relative.duration":                          true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation.type":                                        true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field.type":                                      true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator.type":                                   true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names.type":                                        true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name.type":                                 true,
-	"layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.relative.duration":                            true,
-	"layout.sections.rows.widgets.definition.bar_chart.xaxis.time_buckets.manual.interval":                                  true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator.type":                        true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator.type":                     true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.field.type":                          true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator.type":                       true,
-	"layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.relative.duration":                      true,
-	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator.type":                                   true,
-	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation.type":                  true,
-	"layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.relative.duration":                            true,
-	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator.type":                                true,
-	"layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.relative.duration":                         true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.field.type":                                     true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator.type":                                  true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.aggregation.type":                 true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_by.type":                                 true,
-	"layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.relative.duration":                           true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.id":                                                  true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query":                                               true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations.type":                        true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator.type":                    true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations.type":                       true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field.type":                      true,
-	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator.type":                   true,
-	"layout.sections.rows.widgets.definition.dynamic.time_frame.relative.duration":                                          true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.query_id":     true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.query_id": true,
-	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.query_id":       true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator.type":                             true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator.type":                          true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.field.type":                               true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator.type":                            true,
-	"layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.relative.duration":                           true,
-	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator.type":                                        true,
-	"layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation.type":                                        true,
-	"layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.relative.duration":                                 true,
-	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator.type":                                     true,
-	"layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.relative.duration":                              true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.field.type":                                          true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator.type":                                       true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.group_by.type":                                               true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.spans_aggregation.type":                                      true,
-	"layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.relative.duration":                                true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator.type":                           true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator.type":                        true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.field.type":                             true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator.type":                          true,
-	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.relative.duration":                         true,
-	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator.type":                                      true,
-	"layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation.type":                                           true,
-	"layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.relative.duration":                               true,
-	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator.type":                                   true,
-	"layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.relative.duration":                            true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field.type":                                        true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator.type":                                     true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.group_by.type":                                             true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation.type":                                          true,
-	"layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.relative.duration":                              true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.type":              true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator.type":           true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.field.type":                true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator.type":             true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.relative.duration":            true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation.type":                              true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator.type":                         true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.relative.duration":                  true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator.type":                      true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.relative.duration":               true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation.type":                             true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field.type":                           true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator.type":                        true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names.type":                             true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name.type":                      true,
-	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.relative.duration":                 true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions":                                                  true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.id":                                               true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.manual.interval":              true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query":                                            true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator.type":      true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator.type":   true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.field.type":        true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator.type":     true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.relative.duration":    true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations.type":                     true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator.type":                 true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.relative.duration":          true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator.type":              true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.relative.duration":       true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations.type":                    true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field.type":                   true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator.type":                true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_by.type":                        true,
-	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.relative.duration":         true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator.type":                         true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator.type":                      true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.field.type":                           true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator.type":                        true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.relative.duration":                       true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation.type":                                         true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator.type":                                    true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.relative.duration":                             true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator.type":                                 true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.relative.duration":                          true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation.type":                                        true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field.type":                                      true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator.type":                                   true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names.type":                                        true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name.type":                                 true,
-	"layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.relative.duration":                            true,
-	"name": true,
+	"time_frame.absolute.start":                                                    true,
+	"time_frame.absolute.end":                                                      true,
+	"time_frame.relative.duration":                                                 true,
+	"annotations.name":                                                             true,
+	"annotations.scope.specific_widgets.widget_ids":                                true,
+	"annotations.source":                                                           true,
+	"annotations.source.dataprime.label_fields.keypath":                            true,
+	"annotations.source.dataprime.label_fields.scope":                              true,
+	"annotations.source.dataprime.query":                                           true,
+	"annotations.source.dataprime.strategy":                                        true,
+	"annotations.source.dataprime.strategy.duration.duration_field":                true,
+	"annotations.source.dataprime.strategy.duration.duration_field.keypath":        true,
+	"annotations.source.dataprime.strategy.duration.duration_field.scope":          true,
+	"annotations.source.dataprime.strategy.duration.start_timestamp_field":         true,
+	"annotations.source.dataprime.strategy.duration.start_timestamp_field.keypath": true,
+	"annotations.source.dataprime.strategy.duration.start_timestamp_field.scope":   true,
+	"annotations.source.dataprime.strategy.instant.timestamp_field":                true,
+	"annotations.source.dataprime.strategy.instant.timestamp_field.keypath":        true,
+	"annotations.source.dataprime.strategy.instant.timestamp_field.scope":          true,
+	"annotations.source.dataprime.strategy.range.end_timestamp_field":              true,
+	"annotations.source.dataprime.strategy.range.end_timestamp_field.keypath":      true,
+	"annotations.source.dataprime.strategy.range.end_timestamp_field.scope":        true,
+	"annotations.source.dataprime.strategy.range.start_timestamp_field":            true,
+	"annotations.source.dataprime.strategy.range.start_timestamp_field.keypath":    true,
+	"annotations.source.dataprime.strategy.range.start_timestamp_field.scope":      true,
+	"annotations.source.event_recurrence.recurrence":                               true,
+	"annotations.source.event_recurrence.recurrence.weekly":                        true,
+	"annotations.source.event_recurrence.recurrence.weekly.days_of_week":           true,
+	"annotations.source.event_recurrence.strategy":                                 true,
+	"annotations.source.event_recurrence.strategy.duration.duration":               true,
+	"annotations.source.event_recurrence.strategy.duration.start_time_hour":        true,
+	"annotations.source.event_recurrence.strategy.instant.start_time_hour":         true,
+	"annotations.source.logs.label_fields.keypath":                                 true,
+	"annotations.source.logs.label_fields.scope":                                   true,
+	"annotations.source.logs.strategy":                                             true,
+	"annotations.source.logs.strategy.duration.duration_field":                     true,
+	"annotations.source.logs.strategy.duration.duration_field.keypath":             true,
+	"annotations.source.logs.strategy.duration.duration_field.scope":               true,
+	"annotations.source.logs.strategy.duration.start_timestamp_field":              true,
+	"annotations.source.logs.strategy.duration.start_timestamp_field.keypath":      true,
+	"annotations.source.logs.strategy.duration.start_timestamp_field.scope":        true,
+	"annotations.source.logs.strategy.instant.timestamp_field":                     true,
+	"annotations.source.logs.strategy.instant.timestamp_field.keypath":             true,
+	"annotations.source.logs.strategy.instant.timestamp_field.scope":               true,
+	"annotations.source.logs.strategy.range.end_timestamp_field":                   true,
+	"annotations.source.logs.strategy.range.end_timestamp_field.keypath":           true,
+	"annotations.source.logs.strategy.range.end_timestamp_field.scope":             true,
+	"annotations.source.logs.strategy.range.start_timestamp_field":                 true,
+	"annotations.source.logs.strategy.range.start_timestamp_field.keypath":         true,
+	"annotations.source.logs.strategy.range.start_timestamp_field.scope":           true,
+	"annotations.source.manual.strategy":                                           true,
+	"annotations.source.metrics.interval_resolution.manual.interval":               true,
+	"annotations.source.metrics.promql_query":                                      true,
+	"annotations.source.metrics.strategy":                                          true,
+	"annotations.source.spans.label_fields.keypath":                                true,
+	"annotations.source.spans.label_fields.scope":                                  true,
+	"annotations.source.spans.strategy":                                            true,
+	"annotations.source.spans.strategy.duration.duration_field":                    true,
+	"annotations.source.spans.strategy.duration.duration_field.keypath":            true,
+	"annotations.source.spans.strategy.duration.duration_field.scope":              true,
+	"annotations.source.spans.strategy.duration.start_timestamp_field":             true,
+	"annotations.source.spans.strategy.duration.start_timestamp_field.keypath":     true,
+	"annotations.source.spans.strategy.duration.start_timestamp_field.scope":       true,
+	"annotations.source.spans.strategy.instant.timestamp_field":                    true,
+	"annotations.source.spans.strategy.instant.timestamp_field.keypath":            true,
+	"annotations.source.spans.strategy.instant.timestamp_field.scope":              true,
+	"annotations.source.spans.strategy.range.end_timestamp_field":                  true,
+	"annotations.source.spans.strategy.range.end_timestamp_field.keypath":          true,
+	"annotations.source.spans.strategy.range.end_timestamp_field.scope":            true,
+	"annotations.source.spans.strategy.range.start_timestamp_field":                true,
+	"annotations.source.spans.strategy.range.start_timestamp_field.keypath":        true,
+	"annotations.source.spans.strategy.range.start_timestamp_field.scope":          true,
+	"filters.scope.specific_widgets.widget_ids":                                    true,
+	"filters.source": true,
+	"filters.source.logs.observation_field.keypath":                            true,
+	"filters.source.logs.observation_field.scope":                              true,
+	"filters.source.logs.operator":                                             true,
+	"filters.source.logs.operator.type":                                        true,
+	"filters.source.metrics.operator":                                          true,
+	"filters.source.metrics.operator.type":                                     true,
+	"filters.source.spans.field.type":                                          true,
+	"filters.source.spans.field.value":                                         true,
+	"filters.source.spans.observation_field.keypath":                           true,
+	"filters.source.spans.observation_field.scope":                             true,
+	"filters.source.spans.operator":                                            true,
+	"filters.source.spans.operator.type":                                       true,
+	"layout.sections.options.repetitive_var.name":                              true,
+	"layout.sections.rows.height":                                              true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.query": true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.observation_field.keypath":                            true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.observation_field.scope":                              true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator":                                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator.type":                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator":                                          true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator.type":                                     true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.field.type":                                          true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.field.value":                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.observation_field.keypath":                           true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.observation_field.scope":                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator":                                            true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator.type":                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.absolute.start":                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.absolute.end":                                           true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.relative.duration":                                      true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation":                                                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation.type":                                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation.observation_field.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation.observation_field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.observation_field.keypath":                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.observation_field.scope":                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator":                                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator.type":                                                   true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.group_names_fields.keypath":                                              true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.group_names_fields.scope":                                                true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.stacked_group_name_field.keypath":                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.stacked_group_name_field.scope":                                          true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.absolute.start":                                               true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.absolute.end":                                                 true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.relative.duration":                                            true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.metric":                                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator":                                                     true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator.type":                                                true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.promql_query":                                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.absolute.start":                                            true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.absolute.end":                                              true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.relative.duration":                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation.type":                                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation.aggregation_type":                                           true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation.field":                                                      true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field.type":                                                     true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field.value":                                                    true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.observation_field.keypath":                                      true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.observation_field.scope":                                        true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator":                                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator.type":                                                  true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names.type":                                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names.value":                                                      true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names_fields.keypath":                                             true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names_fields.scope":                                               true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name.type":                                                true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name.value":                                               true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name_field.keypath":                                       true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name_field.scope":                                         true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.absolute.start":                                              true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.absolute.end":                                                true,
+	"layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.relative.duration":                                           true,
+	"layout.sections.rows.widgets.definition.bar_chart.xaxis.time.interval":                                                                true,
+	"layout.sections.rows.widgets.definition.bar_chart.xaxis.time_buckets.manual.interval":                                                 true,
+	"layout.sections.rows.widgets.definition.data_table.columns.field":                                                                     true,
+	"layout.sections.rows.widgets.definition.data_table.query":                                                                             true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.observation_field.keypath":                           true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.observation_field.scope":                             true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator":                                            true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator.type":                                       true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator":                                         true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator.type":                                    true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.field.type":                                         true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.field.value":                                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.observation_field.keypath":                          true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.observation_field.scope":                            true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator":                                           true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator.type":                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.absolute.start":                                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.absolute.end":                                          true,
+	"layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.relative.duration":                                     true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.observation_field.keypath":                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.observation_field.scope":                                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator":                                                       true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator.type":                                                  true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation":                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation.type":                                 true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation.observation_field.keypath":            true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation.observation_field.scope":              true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.group_bys.keypath":                                             true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.grouping.group_bys.scope":                                               true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.absolute.start":                                              true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.absolute.end":                                                true,
+	"layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.relative.duration":                                           true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.metric":                                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator":                                                    true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator.type":                                               true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.promql_query":                                                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.absolute.start":                                           true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.absolute.end":                                             true,
+	"layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.relative.duration":                                        true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.field.type":                                                    true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.field.value":                                                   true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.observation_field.keypath":                                     true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.observation_field.scope":                                       true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator":                                                      true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator.type":                                                 true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.aggregation.type":                                true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.aggregation.aggregation_type":                    true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.aggregation.field":                               true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_by.type":                                                true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_by.value":                                               true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_bys.keypath":                                            true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_bys.scope":                                              true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.absolute.start":                                             true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.absolute.end":                                               true,
+	"layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.relative.duration":                                          true,
+	"layout.sections.rows.widgets.definition.data_table.results_per_page":                                                                  true,
+	"layout.sections.rows.widgets.definition.data_table.row_style":                                                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions":                                                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query":                                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations.type":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations.observation_field.keypath":                  true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations.observation_field.scope":                    true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.observation_field.keypath":                       true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.observation_field.scope":                         true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator.type":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.group_by.keypath":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.group_by.scope":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.metrics.promql_query":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations.type":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations.observation_field.keypath":                 true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations.observation_field.scope":                   true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field.type":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field.value":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.observation_field.keypath":                      true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.observation_field.scope":                        true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator.type":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.group_by.keypath":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.group_by.scope":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.time_frame.absolute.start":                                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.time_frame.absolute.end":                                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.time_frame.relative.duration":                                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.category_fields.keypath":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.category_fields.scope":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.value_field.keypath":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.value_field.scope":                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.value_fields.keypath":                                             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.gauge.value_fields.scope":                                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.avg.field.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.avg.field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.max.field.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.max.field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.min.field.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.min.field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.sum.field.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.sum.field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config.region_field.keypath":                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config.region_field.scope":                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config.aws_region_field.keypath":               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config.aws_region_field.scope":                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.latitude_field.keypath":                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.latitude_field.scope":                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.longitude_field.keypath":                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.longitude_field.scope":                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config.region_field.keypath":                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config.region_field.scope":                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.tooltip.labels.keypath":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.geomap.tooltip.labels.scope":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip.labels.keypath":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip.labels.scope":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.value_field.keypath":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.value_field.scope":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.x_axis_fields.keypath":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.x_axis_fields.scope":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.y_axis_fields.keypath":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.y_axis_fields.scope":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.category_fields.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.category_fields.scope":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.value_field.keypath":                                       true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.value_field.scope":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.category_fields.keypath":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.category_fields.scope":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.sub_category_fields.keypath":                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.sub_category_fields.scope":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.value_field.keypath":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.value_field.scope":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.category_fields.keypath":                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.category_fields.scope":                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.query_id":                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.value_field.keypath":         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.value_field.scope":           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.category_fields.keypath":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.category_fields.scope":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.sub_category_fields.keypath":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.sub_category_fields.scope":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.value_field.keypath":                                          true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.value_field.scope":                                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.category_fields.keypath":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.category_fields.scope":                                             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_field.keypath":                                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_field.scope":                                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_fields.keypath":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_fields.scope":                                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.category_fields.keypath":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.category_fields.scope":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.observation_field.keypath":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.observation_field.scope":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables.observation_field.keypath":           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables.observation_field.scope":             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.observation_field.keypath":                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.observation_field.scope":                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables.observation_field.keypath":   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables.observation_field.scope":     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.observation_field.keypath":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.observation_field.scope":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables.observation_field.keypath":           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables.observation_field.scope":             true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.value_fields.keypath":                                         true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.value_fields.scope":                                           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.columns.field.scope":                                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.rule_scope.field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.category_fields.keypath":                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.category_fields.scope":                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.temporal_field.keypath":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.temporal_field.scope":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.value_fields.keypath":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.value_fields.scope":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.category_fields.keypath":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.category_fields.scope":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.temporal_field.keypath":                               true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.temporal_field.scope":                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.value_fields.keypath":                                 true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.value_fields.scope":                                   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.category_fields.keypath": true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.category_fields.scope":   true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.query_id":                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.temporal_field.keypath":  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.temporal_field.scope":    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.value_fields.keypath":    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.value_fields.scope":      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.category_fields.keypath":                                  true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.category_fields.scope":                                    true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.sub_category_fields.keypath":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.sub_category_fields.scope":                                true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.value_field.keypath":                                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.value_field.scope":                                        true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.category_fields.keypath":                            true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.category_fields.scope":                              true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.query_id":                      true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.value_field.keypath":           true,
+	"layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.value_field.scope":             true,
+	"layout.sections.rows.widgets.definition.gauge.query":                                                                                  true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.observation_field.keypath":                                true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.observation_field.scope":                                  true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator":                                                 true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator.type":                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator":                                              true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator.type":                                         true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.field.type":                                              true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.field.value":                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.observation_field.keypath":                               true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.observation_field.scope":                                 true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator":                                                true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator.type":                                           true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.absolute.start":                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.absolute.end":                                               true,
+	"layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.relative.duration":                                          true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.observation_field.keypath":                                           true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.observation_field.scope":                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator":                                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator.type":                                                       true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.group_by.keypath":                                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.group_by.scope":                                                              true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation":                                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation.type":                                                       true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation.observation_field.keypath":                                  true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation.observation_field.scope":                                    true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.absolute.start":                                                   true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.absolute.end":                                                     true,
+	"layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.relative.duration":                                                true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.metric":                                                           true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator":                                                         true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator.type":                                                    true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.promql_query":                                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.absolute.start":                                                true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.absolute.end":                                                  true,
+	"layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.relative.duration":                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.field.type":                                                         true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.field.value":                                                        true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.observation_field.keypath":                                          true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.observation_field.scope":                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator":                                                           true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator.type":                                                      true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.group_by.type":                                                              true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.group_by.value":                                                             true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.group_bys.keypath":                                                          true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.group_bys.scope":                                                            true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.spans_aggregation.type":                                                     true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.spans_aggregation.aggregation_type":                                         true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.spans_aggregation.field":                                                    true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.absolute.start":                                                  true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.absolute.end":                                                    true,
+	"layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.relative.duration":                                               true,
+	"layout.sections.rows.widgets.definition.gauge.unit":                                                                                   true,
+	"layout.sections.rows.widgets.definition.hexagon.query":                                                                                true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.observation_field.keypath":                              true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.observation_field.scope":                                true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator":                                               true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator.type":                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator":                                            true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator.type":                                       true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.field.type":                                            true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.field.value":                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.observation_field.keypath":                             true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.observation_field.scope":                               true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator":                                              true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator.type":                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.absolute.start":                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.absolute.end":                                             true,
+	"layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.relative.duration":                                        true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.observation_field.keypath":                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.observation_field.scope":                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator":                                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator.type":                                                     true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.group_by.keypath":                                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.group_by.scope":                                                            true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation":                                                               true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation.type":                                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation.observation_field.keypath":                                     true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation.observation_field.scope":                                       true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.absolute.start":                                                 true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.absolute.end":                                                   true,
+	"layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.relative.duration":                                              true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.metric":                                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator":                                                       true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator.type":                                                  true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.promql_query":                                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.absolute.start":                                              true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.absolute.end":                                                true,
+	"layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.relative.duration":                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field.type":                                                       true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field.value":                                                      true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.observation_field.keypath":                                        true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.observation_field.scope":                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator":                                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator.type":                                                    true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.group_by.type":                                                            true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.group_by.value":                                                           true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.group_bys.keypath":                                                        true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.group_bys.scope":                                                          true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation.type":                                                         true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation.aggregation_type":                                             true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation.field":                                                        true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.absolute.start":                                                true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.absolute.end":                                                  true,
+	"layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.relative.duration":                                             true,
+	"layout.sections.rows.widgets.definition.hexagon.thresholds.from":                                                                      true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.query":                                                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.observation_field.keypath":                 true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.observation_field.scope":                   true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator":                                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator.type":                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator":                               true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator.type":                          true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.field.type":                               true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.field.value":                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.observation_field.keypath":                true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.observation_field.scope":                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator":                                 true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator.type":                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.absolute.start":                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.absolute.end":                                true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.relative.duration":                           true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation":                                                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation.type":                                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation.observation_field.keypath":                        true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation.observation_field.scope":                          true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.observation_field.keypath":                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.observation_field.scope":                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator":                                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator.type":                                        true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.group_names_fields.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.group_names_fields.scope":                                     true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.stacked_group_name_field.keypath":                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.stacked_group_name_field.scope":                               true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.absolute.start":                                    true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.absolute.end":                                      true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.relative.duration":                                 true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.metric":                                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator":                                          true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator.type":                                     true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.promql_query":                                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.absolute.start":                                 true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.absolute.end":                                   true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.relative.duration":                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation.type":                                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation.aggregation_type":                                true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation.field":                                           true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field.type":                                          true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field.value":                                         true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.observation_field.keypath":                           true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.observation_field.scope":                             true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator":                                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator.type":                                       true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names.type":                                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names.value":                                           true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names_fields.keypath":                                  true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names_fields.scope":                                    true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name.type":                                     true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name.value":                                    true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name_field.keypath":                            true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name_field.scope":                              true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.absolute.start":                                   true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.absolute.end":                                     true,
+	"layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.relative.duration":                                true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions":                                                                 true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.manual.interval":                             true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query":                                                           true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.observation_field.keypath":         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.observation_field.scope":           true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator":                          true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator.type":                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator":                       true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator.type":                  true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.field.type":                       true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.field.value":                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.observation_field.keypath":        true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.observation_field.scope":          true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator":                         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator.type":                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.absolute.start":                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.absolute.end":                        true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.relative.duration":                   true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations":                                         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations.type":                                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations.observation_field.keypath":               true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations.observation_field.scope":                 true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.observation_field.keypath":                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.observation_field.scope":                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator":                                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator.type":                                true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.group_bys.keypath":                                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.group_bys.scope":                                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.absolute.start":                            true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.absolute.end":                              true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.relative.duration":                         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.metric":                                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator":                                  true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator.type":                             true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.promql_query":                                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.absolute.start":                         true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.absolute.end":                           true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.relative.duration":                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations.type":                                   true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations.aggregation_type":                       true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations.field":                                  true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field.type":                                  true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field.value":                                 true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.observation_field.keypath":                   true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.observation_field.scope":                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator":                                    true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator.type":                               true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_by.type":                                       true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_by.value":                                      true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_bys.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_bys.scope":                                     true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.absolute.start":                           true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.absolute.end":                             true,
+	"layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.relative.duration":                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.label_definition":                                                                   true,
+	"layout.sections.rows.widgets.definition.pie_chart.query":                                                                              true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.query":                                                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.observation_field.keypath":                            true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.observation_field.scope":                              true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator":                                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator.type":                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator":                                          true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator.type":                                     true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.field.type":                                          true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.field.value":                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.observation_field.keypath":                           true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.observation_field.scope":                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator":                                            true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator.type":                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.absolute.start":                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.absolute.end":                                           true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.relative.duration":                                      true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation":                                                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation.type":                                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation.observation_field.keypath":                                   true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation.observation_field.scope":                                     true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.observation_field.keypath":                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.observation_field.scope":                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator":                                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator.type":                                                   true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.group_names_fields.keypath":                                              true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.group_names_fields.scope":                                                true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.stacked_group_name_field.keypath":                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.stacked_group_name_field.scope":                                          true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.absolute.start":                                               true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.absolute.end":                                                 true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.relative.duration":                                            true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.metric":                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator":                                                     true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator.type":                                                true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.promql_query":                                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.absolute.start":                                            true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.absolute.end":                                              true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.relative.duration":                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation.type":                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation.aggregation_type":                                           true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation.field":                                                      true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field.type":                                                     true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field.value":                                                    true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.observation_field.keypath":                                      true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.observation_field.scope":                                        true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator":                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator.type":                                                  true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names.type":                                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names.value":                                                      true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names_fields.keypath":                                             true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names_fields.scope":                                               true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name.type":                                                true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name.value":                                               true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name_field.keypath":                                       true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name_field.scope":                                         true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.absolute.start":                                              true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.absolute.end":                                                true,
+	"layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.relative.duration":                                           true,
+	"layout.sections.rows.widgets.reference.dashboard_id":                                                                                  true,
+	"layout.sections.rows.widgets.reference.widget_id":                                                                                     true,
+	"layout.sections.rows.widgets.custom_actions.data_source":                                                                              true,
+	"layout.sections.rows.widgets.custom_actions.url":                                                                                      true,
+	"layout.sections.rows.widgets.custom_actions.name":                                                                                     true,
+	"variables.definition": true,
+	"variables.definition.multi_select.source.metric_label.label":                                          true,
+	"variables.definition.multi_select.source.query.query":                                                 true,
+	"variables.definition.multi_select.source.query.query.logs.field_name.log_regex":                       true,
+	"variables.definition.multi_select.source.query.query.logs.field_value.observation_field":              true,
+	"variables.definition.multi_select.source.query.query.logs.field_value.observation_field.keypath":      true,
+	"variables.definition.multi_select.source.query.query.logs.field_value.observation_field.scope":        true,
+	"variables.definition.multi_select.source.query.query.metrics.label_name.metric_regex":                 true,
 	"variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.operator.type": true,
+	"variables.definition.multi_select.source.query.query.metrics.metric_name.metric_regex":                true,
+	"variables.definition.multi_select.source.query.query.spans.field_name.span_regex":                     true,
 	"variables.definition.multi_select.source.query.query.spans.field_value.type":                          true,
+	"variables.definition.multi_select.source.query.query.spans.field_value.value":                         true,
 	"variables.definition.multi_select.source.span_field.type":                                             true,
-	"variables_v2.display_name":                        true,
-	"variables_v2.display_type":                        true,
-	"variables_v2.name":                                true,
-	"variables_v2.source":                              true,
-	"variables_v2.source.query.all_option":             true,
-	"variables_v2.source.query.all_option.include_all": true,
+	"variables.definition.multi_select.source.span_field.value":                                            true,
+	"variables.definition.multi_select.values_order_direction":                                             true,
+	"variables.display_name":                                                               true,
+	"variables_v2.display_name":                                                            true,
+	"variables_v2.name":                                                                    true,
+	"variables_v2.source":                                                                  true,
+	"variables_v2.source.query.all_option":                                                 true,
+	"variables_v2.source.query.all_option.include_all":                                     true,
+	"variables_v2.source.query.dataprime_query.type":                                       true,
+	"variables_v2.source.query.dataprime_query.type.query_text":                            true,
+	"variables_v2.source.query.dataprime_query.type.query_text.query":                      true,
+	"variables_v2.source.query.logs_query.type":                                            true,
+	"variables_v2.source.query.logs_query.type.field_value":                                true,
 	"variables_v2.source.query.logs_query.type.field_value.observation_field":              true,
+	"variables_v2.source.query.logs_query.type.field_value.observation_field.keypath":      true,
+	"variables_v2.source.query.logs_query.type.field_value.observation_field.scope":        true,
+	"variables_v2.source.query.metrics_query.type":                                         true,
+	"variables_v2.source.query.metrics_query.type.label_name.metric_regex":                 true,
 	"variables_v2.source.query.metrics_query.type.label_value.label_filters.operator.type": true,
 	"variables_v2.source.query.metrics_query.type.label_value.label_name":                  true,
+	"variables_v2.source.query.metrics_query.type.metric_name.metric_regex":                true,
+	"variables_v2.source.query.metrics_query.type.promql_query.query":                      true,
+	"variables_v2.source.query.spans_query.type":                                           true,
+	"variables_v2.source.query.spans_query.type.field_value":                               true,
+	"variables_v2.source.query.spans_query.type.field_value.observation_field.keypath":     true,
+	"variables_v2.source.query.spans_query.type.field_value.observation_field.scope":       true,
 	"variables_v2.source.query.spans_query.type.field_value.value.type":                    true,
-	"variables_v2.source.query.values_order_direction":                                     true,
+	"variables_v2.source.query.spans_query.type.field_value.value.value":                   true,
 	"variables_v2.source.static.all_option":                                                true,
 	"variables_v2.source.static.all_option.include_all":                                    true,
 	"variables_v2.source.static.values":                                                    true,
-	"variables_v2.source.static.values.label":                                              true,
 	"variables_v2.source.static.values.value":                                              true,
-	"variables_v2.source.static.values_order_direction":                                    true,
-	"variables_v2.value": true,
+	"variables_v2.source.textbox.default_value.default_interval_value.value":               true,
+	"variables_v2.source.textbox.default_value.default_lucene_value.value":                 true,
+	"variables_v2.source.textbox.default_value.default_numeric_value.value":                true,
+	"variables_v2.source.textbox.default_value.default_regex_value.value":                  true,
+	"variables_v2.source.textbox.default_value.default_string_value.value":                 true,
+	"variables_v2.value":                                      true,
+	"variables_v2.value.interval.value":                       true,
+	"variables_v2.value.lucene.value":                         true,
+	"variables_v2.value.multi_string.list.values":             true,
+	"variables_v2.value.multi_string.list.values.value.value": true,
+	"variables_v2.value.regex.value":                          true,
+	"variables_v2.value.single_numeric.value":                 true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -1393,12 +3043,7 @@ func expandDashboardCreate(ctx context.Context, p path.Path, m *DashboardModel, 
 			out.Filters = append(out.Filters, *expandFiltersFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
-	{
-		var inner *string
-		inner = expandString(m.FolderId)
-		out.FolderId = wrapUUID(inner)
-	}
-	out.FolderPath = expandFolderPath(ctx, p.AtName("folder_path"), m.FolderPath, diags)
+	expandDashboardCreateFolder(ctx, p.AtName("folder"), m.Folder, out, diags)
 	out.Layout = valueOf(expandLayout(ctx, p.AtName("layout"), m.Layout, diags))
 	out.Name = valueOf(expandString(m.Name))
 	out.SlugName = expandString(m.SlugName)
@@ -1459,7 +3104,7 @@ func expandAnnotation(ctx context.Context, p path.Path, m *AnnotationModel, diag
 		return nil
 	}
 	out := &dashboard_service.Annotation{}
-	out.Color = expandEnum[dashboard_service.AnnotationColor](m.Color)
+	out.Color = expandEnumMapped(p.AtName("color"), m.Color, annotationColorToAPI, diags)
 	out.Description = expandString(m.Description)
 	out.Enabled = expandBool(m.Enabled)
 	out.Id = expandString(m.Id)
@@ -1474,7 +3119,12 @@ func flattenAnnotation(ctx context.Context, p path.Path, v *dashboard_service.An
 		return nil
 	}
 	out := &AnnotationModel{}
-	out.Color = flattenEnum(v.Color, "ANNOTATION_COLOR_UNSPECIFIED")
+	if api := v.Color; api != nil && *api == "ANNOTATION_COLOR_UNSPECIFIED" {
+		// The zero value means that the API has no value.
+		out.Color = types.StringNull()
+	} else {
+		out.Color = flattenEnumMapped(p.AtName("color"), api, annotationColorFromAPI, diags)
+	}
 	out.Description = types.StringPointerValue(v.Description)
 	out.Enabled = types.BoolPointerValue(v.Enabled)
 	out.Id = types.StringPointerValue(v.Id)
@@ -1654,7 +3304,7 @@ func expandObservationField(ctx context.Context, p path.Path, m *ObservationFiel
 	}
 	out := &dashboard_service.ObservationField{}
 	out.Keypath = expandStrings[string](ctx, p.AtName("keypath"), m.Keypath, diags)
-	out.Scope = expandEnum[dashboard_service.DatasetScope](m.Scope)
+	out.Scope = expandEnumMapped(p.AtName("scope"), m.Scope, datasetScopeToAPI, diags)
 	return out
 }
 
@@ -1664,7 +3314,7 @@ func flattenObservationField(ctx context.Context, p path.Path, v *dashboard_serv
 	}
 	out := &ObservationFieldModel{}
 	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
-	out.Scope = flattenEnum(v.Scope, "DATASET_SCOPE_UNSPECIFIED")
+	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
 	return out
 }
 
@@ -1842,7 +3492,7 @@ func expandWeeklyRecurrence(ctx context.Context, p path.Path, m *WeeklyRecurrenc
 		return nil
 	}
 	out := &dashboard_service.WeeklyRecurrence{}
-	out.DaysOfWeek = expandStrings[dashboard_service.Weekday](ctx, p.AtName("days_of_week"), m.DaysOfWeek, diags)
+	out.DaysOfWeek = expandEnumsMapped(ctx, p.AtName("days_of_week"), m.DaysOfWeek, weekdayToAPI, false, diags)
 	return out
 }
 
@@ -1851,7 +3501,7 @@ func flattenWeeklyRecurrence(ctx context.Context, p path.Path, v *dashboard_serv
 		return nil
 	}
 	out := &WeeklyRecurrenceModel{}
-	out.DaysOfWeek = flattenEnumsList(ctx, p.AtName("days_of_week"), v.DaysOfWeek, "WEEKDAY_UNSPECIFIED", diags)
+	out.DaysOfWeek = flattenEnumsMappedList(ctx, p.AtName("days_of_week"), v.DaysOfWeek, weekdayFromAPI, diags)
 	return out
 }
 
@@ -1894,7 +3544,7 @@ func expandEventRecurrenceSourceStrategyDuration(ctx context.Context, p path.Pat
 	}
 	out := &dashboard_service.EventRecurrenceSourceStrategyDuration{}
 	out.Duration = expandString(m.Duration)
-	out.StartTimeHour = expandInt32(m.StartTimeHour)
+	out.StartTimeHour = expandInt64AsInt32(p.AtName("start_time_hour"), m.StartTimeHour, diags)
 	return out
 }
 
@@ -1904,14 +3554,14 @@ func flattenEventRecurrenceSourceStrategyDuration(ctx context.Context, p path.Pa
 	}
 	out := &EventRecurrenceSourceStrategyDurationModel{}
 	out.Duration = types.StringPointerValue(v.Duration)
-	out.StartTimeHour = types.Int32PointerValue(v.StartTimeHour)
+	out.StartTimeHour = types.Int64PointerValue(int32AsInt64(v.StartTimeHour))
 	return out
 }
 
 func eventRecurrenceSourceStrategyDurationAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"duration":        types.StringType,
-		"start_time_hour": types.Int32Type,
+		"start_time_hour": types.Int64Type,
 	}
 }
 
@@ -1920,7 +3570,7 @@ func expandEventRecurrenceSourceStrategyInstant(ctx context.Context, p path.Path
 		return nil
 	}
 	out := &dashboard_service.EventRecurrenceSourceStrategyInstant{}
-	out.StartTimeHour = expandInt32(m.StartTimeHour)
+	out.StartTimeHour = expandInt64AsInt32(p.AtName("start_time_hour"), m.StartTimeHour, diags)
 	return out
 }
 
@@ -1929,13 +3579,13 @@ func flattenEventRecurrenceSourceStrategyInstant(ctx context.Context, p path.Pat
 		return nil
 	}
 	out := &EventRecurrenceSourceStrategyInstantModel{}
-	out.StartTimeHour = types.Int32PointerValue(v.StartTimeHour)
+	out.StartTimeHour = types.Int64PointerValue(int32AsInt64(v.StartTimeHour))
 	return out
 }
 
 func eventRecurrenceSourceStrategyInstantAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"start_time_hour": types.Int32Type,
+		"start_time_hour": types.Int64Type,
 	}
 }
 
@@ -2165,7 +3815,7 @@ func expandManualSourceStrategyInstant(ctx context.Context, p path.Path, m *Manu
 	}
 	out := &dashboard_service.ManualSourceStrategyInstant{}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.Value = expandFloat64(m.Value)
 	return out
 }
@@ -2176,7 +3826,7 @@ func flattenManualSourceStrategyInstant(ctx context.Context, p path.Path, v *das
 	}
 	out := &ManualSourceStrategyInstantModel{}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.Value = types.Float64PointerValue(v.Value)
 	return out
 }
@@ -2197,7 +3847,7 @@ func expandManualSourceStrategyRange(ctx context.Context, p path.Path, m *Manual
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.EndValue = expandFloat64(m.EndValue)
 	out.StartValue = expandFloat64(m.StartValue)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	return out
 }
 
@@ -2209,7 +3859,7 @@ func flattenManualSourceStrategyRange(ctx context.Context, p path.Path, v *dashb
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.EndValue = types.Float64PointerValue(v.EndValue)
 	out.StartValue = types.Float64PointerValue(v.StartValue)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	return out
 }
 
@@ -2303,7 +3953,7 @@ func expandAutoIntervalResolution(ctx context.Context, p path.Path, m *AutoInter
 		return nil
 	}
 	out := &dashboard_service.AutoIntervalResolution{}
-	out.MaximumDataPoints = expandInt32(m.MaximumDataPoints)
+	out.MaximumDataPoints = expandInt64AsInt32(p.AtName("maximum_data_points"), m.MaximumDataPoints, diags)
 	out.MinimumInterval = expandString(m.MinimumInterval)
 	return out
 }
@@ -2313,14 +3963,14 @@ func flattenAutoIntervalResolution(ctx context.Context, p path.Path, v *dashboar
 		return nil
 	}
 	out := &AutoIntervalResolutionModel{}
-	out.MaximumDataPoints = types.Int32PointerValue(v.MaximumDataPoints)
+	out.MaximumDataPoints = types.Int64PointerValue(int32AsInt64(v.MaximumDataPoints))
 	out.MinimumInterval = types.StringPointerValue(v.MinimumInterval)
 	return out
 }
 
 func autoIntervalResolutionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"maximum_data_points": types.Int32Type,
+		"maximum_data_points": types.Int64Type,
 		"minimum_interval":    types.StringType,
 	}
 }
@@ -2331,7 +3981,7 @@ func expandManualIntervalResolution(ctx context.Context, p path.Path, m *ManualI
 	}
 	out := &dashboard_service.ManualIntervalResolution{}
 	out.Interval = valueOf(expandString(m.Interval))
-	out.MaximumDataPoints = expandInt32(m.MaximumDataPoints)
+	out.MaximumDataPoints = expandInt64AsInt32(p.AtName("maximum_data_points"), m.MaximumDataPoints, diags)
 	out.MinimumInterval = expandString(m.MinimumInterval)
 	return out
 }
@@ -2342,7 +3992,7 @@ func flattenManualIntervalResolution(ctx context.Context, p path.Path, v *dashbo
 	}
 	out := &ManualIntervalResolutionModel{}
 	out.Interval = types.StringPointerValue(&v.Interval)
-	out.MaximumDataPoints = types.Int32PointerValue(v.MaximumDataPoints)
+	out.MaximumDataPoints = types.Int64PointerValue(int32AsInt64(v.MaximumDataPoints))
 	out.MinimumInterval = types.StringPointerValue(v.MinimumInterval)
 	return out
 }
@@ -2350,7 +4000,7 @@ func flattenManualIntervalResolution(ctx context.Context, p path.Path, v *dashbo
 func manualIntervalResolutionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"interval":            types.StringType,
-		"maximum_data_points": types.Int32Type,
+		"maximum_data_points": types.Int64Type,
 		"minimum_interval":    types.StringType,
 	}
 }
@@ -3068,7 +4718,7 @@ func expandSpanField(ctx context.Context, p path.Path, m *SpanFieldModel, diags 
 	kind := m.Type.ValueString()
 	switch kind {
 	case "metadata":
-		out.MetadataField = expandEnum[dashboard_service.MetadataField](m.Value)
+		out.MetadataField = expandEnumMapped(p.AtName("value"), m.Value, metadataFieldToAPI, diags)
 	case "process_tag":
 		out.ProcessTagField = expandString(m.Value)
 	case "tag":
@@ -3087,12 +4737,12 @@ func flattenSpanField(ctx context.Context, p path.Path, v *dashboard_service.Spa
 	out := &SpanFieldModel{}
 	{
 		v := &dashboard_service.SpanField{}
-		out.Value = flattenEnum(v.MetadataField, "METADATA_FIELD_UNSPECIFIED")
+		out.Value = flattenEnumMapped(p.AtName("value"), v.MetadataField, metadataFieldFromAPI, diags)
 	}
 	switch {
 	case v.MetadataField != nil:
 		out.Type = types.StringValue("metadata")
-		out.Value = flattenEnum(v.MetadataField, "METADATA_FIELD_UNSPECIFIED")
+		out.Value = flattenEnumMapped(p.AtName("value"), v.MetadataField, metadataFieldFromAPI, diags)
 	case v.ProcessTagField != nil:
 		out.Type = types.StringValue("process_tag")
 		out.Value = types.StringPointerValue(v.ProcessTagField)
@@ -3119,7 +4769,7 @@ func expandSpanObservationField(ctx context.Context, p path.Path, m *SpanObserva
 	out := &dashboard_service.SpanObservationField{}
 	out.Keypath = expandStrings[string](ctx, p.AtName("keypath"), m.Keypath, diags)
 	out.RelationType = expandEnumMapped(p.AtName("relation_type"), m.RelationType, spanRelationTypeToAPI, diags)
-	out.Scope = expandEnum[dashboard_service.DatasetScope](m.Scope)
+	out.Scope = expandEnumMapped(p.AtName("scope"), m.Scope, datasetScopeToAPI, diags)
 	return out
 }
 
@@ -3129,8 +4779,12 @@ func flattenSpanObservationField(ctx context.Context, p path.Path, v *dashboard_
 	}
 	out := &SpanObservationFieldModel{}
 	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Keypath) == 0 {
+		out.Keypath = types.ListNull(types.StringType)
+	}
 	out.RelationType = flattenEnumMapped(p.AtName("relation_type"), v.RelationType, spanRelationTypeFromAPI, diags)
-	out.Scope = flattenEnum(v.Scope, "DATASET_SCOPE_UNSPECIFIED")
+	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
 	return out
 }
 
@@ -3142,22 +4796,21 @@ func spanObservationFieldAttrTypes() map[string]attr.Type {
 	}
 }
 
-func expandFolderPath(ctx context.Context, p path.Path, m *FolderPathModel, diags *diag.Diagnostics) *dashboard_service.FolderPath {
+// expandDashboardCreateFolder writes the fields of a group, which the API holds in the parent object, to out.
+func expandDashboardCreateFolder(ctx context.Context, p path.Path, m *DashboardFolderModel, out *dashboard_service.Dashboard, diags *diag.Diagnostics) {
 	if m == nil {
-		return nil
+		return
 	}
-	out := &dashboard_service.FolderPath{}
-	out.Segments = expandStrings[string](ctx, p.AtName("segments"), m.Segments, diags)
-	return out
-}
-
-func flattenFolderPath(ctx context.Context, p path.Path, v *dashboard_service.FolderPath, diags *diag.Diagnostics) *FolderPathModel {
-	if v == nil {
-		return nil
+	{
+		var inner *string
+		inner = expandString(m.FolderId)
+		out.FolderId = wrapUUID(inner)
 	}
-	out := &FolderPathModel{}
-	out.Segments = flattenStringsList(ctx, v.Segments, diags)
-	return out
+	{
+		var inner []string
+		inner = splitText(m.FolderPath, "/")
+		out.FolderPath = wrapFolderPath(inner)
+	}
 }
 
 func expandLayout(ctx context.Context, p path.Path, m *LayoutModel, diags *diag.Diagnostics) *dashboard_service.Layout {
@@ -3174,7 +4827,7 @@ func expandLayout(ctx context.Context, p path.Path, m *LayoutModel, diags *diag.
 	return out
 }
 
-func flattenLayout(ctx context.Context, p path.Path, v *dashboard_service.Layout, diags *diag.Diagnostics) *LayoutModel {
+func flattenLayout(ctx context.Context, p path.Path, v *dashboard_service.Layout, prior *LayoutModel, diags *diag.Diagnostics) *LayoutModel {
 	if v == nil {
 		return nil
 	}
@@ -3182,8 +4835,17 @@ func flattenLayout(ctx context.Context, p path.Path, v *dashboard_service.Layout
 	out.Sections = types.ListNull(types.ObjectType{AttrTypes: sectionAttrTypes()})
 	if v.Sections != nil {
 		items := make([]SectionModel, 0, len(v.Sections))
+		var priorSections []SectionModel
+		if prior != nil {
+			priorSections = priorItems[SectionModel](ctx, prior.Sections)
+		}
 		for i := range v.Sections {
-			items = append(items, *flattenSection(ctx, p.AtName("sections").AtListIndex(i), &v.Sections[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *SectionModel
+			if i < len(priorSections) {
+				priorItem = &priorSections[i]
+			}
+			items = append(items, *flattenSection(ctx, p.AtName("sections").AtListIndex(i), &v.Sections[i], priorItem, diags))
 		}
 		out.Sections = flattenList(ctx, types.ObjectType{AttrTypes: sectionAttrTypes()}, items, diags)
 	}
@@ -3210,7 +4872,7 @@ func expandSection(ctx context.Context, p path.Path, m *SectionModel, diags *dia
 	return out
 }
 
-func flattenSection(ctx context.Context, p path.Path, v *dashboard_service.Section, diags *diag.Diagnostics) *SectionModel {
+func flattenSection(ctx context.Context, p path.Path, v *dashboard_service.Section, prior *SectionModel, diags *diag.Diagnostics) *SectionModel {
 	if v == nil {
 		return nil
 	}
@@ -3223,8 +4885,17 @@ func flattenSection(ctx context.Context, p path.Path, v *dashboard_service.Secti
 	out.Rows = types.ListNull(types.ObjectType{AttrTypes: rowAttrTypes()})
 	if v.Rows != nil {
 		items := make([]RowModel, 0, len(v.Rows))
+		var priorRows []RowModel
+		if prior != nil {
+			priorRows = priorItems[RowModel](ctx, prior.Rows)
+		}
 		for i := range v.Rows {
-			items = append(items, *flattenRow(ctx, p.AtName("rows").AtListIndex(i), &v.Rows[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *RowModel
+			if i < len(priorRows) {
+				priorItem = &priorRows[i]
+			}
+			items = append(items, *flattenRow(ctx, p.AtName("rows").AtListIndex(i), &v.Rows[i], priorItem, diags))
 		}
 		out.Rows = flattenList(ctx, types.ObjectType{AttrTypes: rowAttrTypes()}, items, diags)
 	}
@@ -3329,7 +5000,7 @@ func expandRow(ctx context.Context, p path.Path, m *RowModel, diags *diag.Diagno
 	}
 	out := &dashboard_service.Row{}
 	out.Appearance = &dashboard_service.RowAppearance{} // an inlined object: its fields are top-level attributes
-	out.Appearance.Height = expandInt32(m.Height)
+	out.Appearance.Height = expandInt64AsInt32(p.AtName("height"), m.Height, diags)
 	{
 		var inner *string
 		inner = expandString(m.Id)
@@ -3347,7 +5018,7 @@ func expandRow(ctx context.Context, p path.Path, m *RowModel, diags *diag.Diagno
 	return out
 }
 
-func flattenRow(ctx context.Context, p path.Path, v *dashboard_service.Row, diags *diag.Diagnostics) *RowModel {
+func flattenRow(ctx context.Context, p path.Path, v *dashboard_service.Row, prior *RowModel, diags *diag.Diagnostics) *RowModel {
 	if v == nil {
 		return nil
 	}
@@ -3358,7 +5029,7 @@ func flattenRow(ctx context.Context, p path.Path, v *dashboard_service.Row, diag
 		v.Appearance = &dashboard_service.RowAppearance{}
 	}
 	out := &RowModel{}
-	out.Height = types.Int32PointerValue(v.Appearance.Height)
+	out.Height = types.Int64PointerValue(int32AsInt64(v.Appearance.Height))
 	{
 		inner := unwrapUUID(v.Id)
 		out.Id = types.StringPointerValue(inner)
@@ -3366,8 +5037,17 @@ func flattenRow(ctx context.Context, p path.Path, v *dashboard_service.Row, diag
 	out.Widgets = types.ListNull(types.ObjectType{AttrTypes: widgetAttrTypes()})
 	if v.Widgets != nil {
 		items := make([]WidgetModel, 0, len(v.Widgets))
+		var priorWidgets []WidgetModel
+		if prior != nil {
+			priorWidgets = priorItems[WidgetModel](ctx, prior.Widgets)
+		}
 		for i := range v.Widgets {
-			items = append(items, *flattenWidget(ctx, p.AtName("widgets").AtListIndex(i), &v.Widgets[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *WidgetModel
+			if i < len(priorWidgets) {
+				priorItem = &priorWidgets[i]
+			}
+			items = append(items, *flattenWidget(ctx, p.AtName("widgets").AtListIndex(i), &v.Widgets[i], priorItem, diags))
 		}
 		out.Widgets = flattenList(ctx, types.ObjectType{AttrTypes: widgetAttrTypes()}, items, diags)
 	}
@@ -3376,7 +5056,7 @@ func flattenRow(ctx context.Context, p path.Path, v *dashboard_service.Row, diag
 
 func rowAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"height":  types.Int32Type,
+		"height":  types.Int64Type,
 		"id":      types.StringType,
 		"widgets": types.ListType{ElemType: types.ObjectType{AttrTypes: widgetAttrTypes()}},
 	}
@@ -3388,8 +5068,7 @@ func expandWidget(ctx context.Context, p path.Path, m *WidgetModel, diags *diag.
 	}
 	out := &dashboard_service.Widget{}
 	out.Appearance = &dashboard_service.WidgetAppearance{} // an inlined object: its fields are top-level attributes
-	out.Appearance.Width = expandInt32(m.Width)
-	out.CreatedAt = expandRFC3339(p.AtName("created_at"), m.CreatedAt, diags)
+	out.Appearance.Width = expandInt64AsInt32(p.AtName("width"), m.Width, diags)
 	out.Definition = expandWidgetDefinition(ctx, p.AtName("definition"), m.Definition, diags)
 	out.Description = expandString(m.Description)
 	out.Highlighted = expandBool(m.Highlighted)
@@ -3401,7 +5080,6 @@ func expandWidget(ctx context.Context, p path.Path, m *WidgetModel, diags *diag.
 	out.LayoutColumns = expandInt32(m.LayoutColumns)
 	out.Reference = expandWidgetReference(ctx, p.AtName("reference"), m.Reference, diags)
 	out.Title = expandString(m.Title)
-	out.UpdatedAt = expandRFC3339(p.AtName("updated_at"), m.UpdatedAt, diags)
 	if items := expandElements[DashboardActionModel](ctx, p.AtName("custom_actions"), m.CustomActions, diags); len(items) != 0 {
 		if collected := distributedActionsOf(ctx); collected != nil {
 			// The items name this object by its id, as the request holds it.
@@ -3427,7 +5105,7 @@ func expandWidget(ctx context.Context, p path.Path, m *WidgetModel, diags *diag.
 	return out
 }
 
-func flattenWidget(ctx context.Context, p path.Path, v *dashboard_service.Widget, diags *diag.Diagnostics) *WidgetModel {
+func flattenWidget(ctx context.Context, p path.Path, v *dashboard_service.Widget, prior *WidgetModel, diags *diag.Diagnostics) *WidgetModel {
 	if v == nil {
 		return nil
 	}
@@ -3438,9 +5116,12 @@ func flattenWidget(ctx context.Context, p path.Path, v *dashboard_service.Widget
 		v.Appearance = &dashboard_service.WidgetAppearance{}
 	}
 	out := &WidgetModel{}
-	out.Width = types.Int32PointerValue(v.Appearance.Width)
-	out.CreatedAt = flattenRFC3339(v.CreatedAt)
-	out.Definition = flattenWidgetDefinition(ctx, p.AtName("definition"), v.Definition, diags)
+	out.Width = types.Int64PointerValue(int32AsInt64(v.Appearance.Width))
+	var priorDefinition *WidgetDefinitionModel
+	if prior != nil {
+		priorDefinition = prior.Definition
+	}
+	out.Definition = flattenWidgetDefinition(ctx, p.AtName("definition"), v.Definition, priorDefinition, diags)
 	out.Description = types.StringPointerValue(v.Description)
 	out.Highlighted = types.BoolPointerValue(v.Highlighted)
 	{
@@ -3450,7 +5131,8 @@ func flattenWidget(ctx context.Context, p path.Path, v *dashboard_service.Widget
 	out.LayoutColumns = types.Int32PointerValue(v.LayoutColumns)
 	out.Reference = flattenWidgetReference(ctx, p.AtName("reference"), v.Reference, diags)
 	out.Title = types.StringPointerValue(v.Title)
-	out.UpdatedAt = flattenRFC3339(v.UpdatedAt)
+	out.CreatedAt = flattenTime(v.CreatedAt)
+	out.UpdatedAt = flattenTime(v.UpdatedAt)
 	out.CustomActions = types.ListNull(types.ObjectType{AttrTypes: dashboardActionAttrTypes()})
 	if collected := distributedActionsOf(ctx); collected != nil {
 		if id := unwrapUUID(v.Id); id != nil {
@@ -3468,8 +5150,7 @@ func flattenWidget(ctx context.Context, p path.Path, v *dashboard_service.Widget
 
 func widgetAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"width":          types.Int32Type,
-		"created_at":     timetypes.RFC3339Type{},
+		"width":          types.Int64Type,
 		"definition":     types.ObjectType{AttrTypes: widgetDefinitionAttrTypes()},
 		"description":    types.StringType,
 		"highlighted":    types.BoolType,
@@ -3477,7 +5158,8 @@ func widgetAttrTypes() map[string]attr.Type {
 		"layout_columns": types.Int32Type,
 		"reference":      types.ObjectType{AttrTypes: widgetReferenceAttrTypes()},
 		"title":          types.StringType,
-		"updated_at":     timetypes.RFC3339Type{},
+		"created_at":     types.StringType,
+		"updated_at":     types.StringType,
 		"custom_actions": types.ListType{ElemType: types.ObjectType{AttrTypes: dashboardActionAttrTypes()}},
 	}
 }
@@ -3499,18 +5181,38 @@ func expandWidgetDefinition(ctx context.Context, p path.Path, m *WidgetDefinitio
 	return out
 }
 
-func flattenWidgetDefinition(ctx context.Context, p path.Path, v *dashboard_service.WidgetDefinition, diags *diag.Diagnostics) *WidgetDefinitionModel {
+func flattenWidgetDefinition(ctx context.Context, p path.Path, v *dashboard_service.WidgetDefinition, prior *WidgetDefinitionModel, diags *diag.Diagnostics) *WidgetDefinitionModel {
 	if v == nil {
 		return nil
 	}
 	out := &WidgetDefinitionModel{}
-	out.BarChart = flattenBarChart(ctx, p.AtName("bar_chart"), v.BarChart, diags)
+	var priorBarChart *BarChartModel
+	if prior != nil {
+		priorBarChart = prior.BarChart
+	}
+	out.BarChart = flattenBarChart(ctx, p.AtName("bar_chart"), v.BarChart, priorBarChart, diags)
 	out.DataTable = flattenDataTable(ctx, p.AtName("data_table"), v.DataTable, diags)
-	out.Dynamic = flattenWidgetsDynamic(ctx, p.AtName("dynamic"), v.Dynamic, diags)
+	var priorDynamic *WidgetsDynamicModel
+	if prior != nil {
+		priorDynamic = prior.Dynamic
+	}
+	out.Dynamic = flattenWidgetsDynamic(ctx, p.AtName("dynamic"), v.Dynamic, priorDynamic, diags)
 	out.Gauge = flattenWidgetsGauge(ctx, p.AtName("gauge"), v.Gauge, diags)
-	out.Hexagon = flattenHexagon(ctx, p.AtName("hexagon"), v.Hexagon, diags)
-	out.HorizontalBarChart = flattenHorizontalBarChart(ctx, p.AtName("horizontal_bar_chart"), v.HorizontalBarChart, diags)
-	out.LineChart = flattenLineChart(ctx, p.AtName("line_chart"), v.LineChart, diags)
+	var priorHexagon *HexagonModel
+	if prior != nil {
+		priorHexagon = prior.Hexagon
+	}
+	out.Hexagon = flattenHexagon(ctx, p.AtName("hexagon"), v.Hexagon, priorHexagon, diags)
+	var priorHorizontalBarChart *HorizontalBarChartModel
+	if prior != nil {
+		priorHorizontalBarChart = prior.HorizontalBarChart
+	}
+	out.HorizontalBarChart = flattenHorizontalBarChart(ctx, p.AtName("horizontal_bar_chart"), v.HorizontalBarChart, priorHorizontalBarChart, diags)
+	var priorLineChart *LineChartModel
+	if prior != nil {
+		priorLineChart = prior.LineChart
+	}
+	out.LineChart = flattenLineChart(ctx, p.AtName("line_chart"), v.LineChart, priorLineChart, diags)
 	out.Markdown = flattenMarkdown(ctx, p.AtName("markdown"), v.Markdown, diags)
 	out.PieChart = flattenWidgetsPieChart(ctx, p.AtName("pie_chart"), v.PieChart, diags)
 	return out
@@ -3535,54 +5237,92 @@ func expandBarChart(ctx context.Context, p path.Path, m *BarChartModel, diags *d
 		return nil
 	}
 	out := &dashboard_service.BarChart{}
-	out.BarValueDisplay = expandEnum[dashboard_service.WidgetsBarValueDisplay](m.BarValueDisplay)
+	out.BarValueDisplay = expandEnumMapped(p.AtName("bar_value_display"), m.BarValueDisplay, widgetsBarValueDisplayToAPI, diags)
 	out.ColorScheme = expandString(m.ColorScheme)
-	out.ColorsBy = expandColorsBy(ctx, p.AtName("colors_by"), m.ColorsBy, diags)
+	if v := m.ColorsBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.ColorsBy{}
+		switch v.ValueString() {
+		case "aggregation":
+			fold.Aggregation = map[string]interface{}{}
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "group_by":
+			fold.GroupBy = map[string]interface{}{}
+		case "query":
+			fold.Query = map[string]interface{}{}
+		case "stack":
+			fold.Stack = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("colors_by"), "Unknown value", fmt.Sprintf("%q is not one of aggregation category group_by query stack.", v.ValueString()))
+		}
+		out.ColorsBy = fold
+	}
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
-	out.Decimal = expandInt32(m.Decimal)
+	out.Decimal = expandNumberAsInt32(p.AtName("decimal"), m.Decimal, diags)
 	out.DecimalPrecision = expandBool(m.DecimalPrecision)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxBarsPerChart = expandInt32(m.MaxBarsPerChart)
+	out.MaxBarsPerChart = expandInt64AsInt32(p.AtName("max_bars_per_chart"), m.MaxBarsPerChart, diags)
 	out.Query = expandBarChartQuery(ctx, p.AtName("query"), m.Query, diags)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SortBy = expandEnum[dashboard_service.SortByType](m.SortBy)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SortBy = expandEnumMapped(p.AtName("sort_by"), m.SortBy, sortByTypeToAPI, diags)
 	out.StackDefinition = expandBarChartStackDefinition(ctx, p.AtName("stack_definition"), m.StackDefinition, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.XAxis = expandXAxis(ctx, p.AtName("xaxis"), m.XAxis, diags)
-	out.XAxisTimeFormat = expandEnum[dashboard_service.XAxisTimeFormat](m.XAxisTimeFormat)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.XAxisTimeFormat = expandEnumMapped(p.AtName("x_axis_time_format"), m.XAxisTimeFormat, xAxisTimeFormatToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenBarChart(ctx context.Context, p path.Path, v *dashboard_service.BarChart, diags *diag.Diagnostics) *BarChartModel {
+func flattenBarChart(ctx context.Context, p path.Path, v *dashboard_service.BarChart, prior *BarChartModel, diags *diag.Diagnostics) *BarChartModel {
 	if v == nil {
 		return nil
 	}
 	out := &BarChartModel{}
-	out.BarValueDisplay = flattenEnum(v.BarValueDisplay, "BAR_VALUE_DISPLAY_UNSPECIFIED")
+	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, widgetsBarValueDisplayFromAPI, diags)
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
-	out.ColorsBy = flattenColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
+	out.ColorsBy = types.StringNull()
+	if fold := v.ColorsBy; fold != nil {
+		switch {
+		case fold.Aggregation != nil:
+			out.ColorsBy = types.StringValue("aggregation")
+		case fold.Category != nil:
+			out.ColorsBy = types.StringValue("category")
+		case fold.GroupBy != nil:
+			out.ColorsBy = types.StringValue("group_by")
+		case fold.Query != nil:
+			out.ColorsBy = types.StringValue("query")
+		case fold.Stack != nil:
+			out.ColorsBy = types.StringValue("stack")
+		}
+	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
-	out.Decimal = types.Int32PointerValue(v.Decimal)
+	out.Decimal = int32AsNumber(v.Decimal)
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxBarsPerChart = types.Int32PointerValue(v.MaxBarsPerChart)
+	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
 	out.Query = flattenBarChartQuery(ctx, p.AtName("query"), v.Query, diags)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SortBy = flattenEnum(v.SortBy, "SORT_BY_TYPE_UNSPECIFIED")
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.StackDefinition = flattenBarChartStackDefinition(ctx, p.AtName("stack_definition"), v.StackDefinition, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.XAxis = flattenXAxis(ctx, p.AtName("xaxis"), v.XAxis, diags)
-	out.XAxisTimeFormat = flattenEnum(v.XAxisTimeFormat, "X_AXIS_TIME_FORMAT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -3590,15 +5330,15 @@ func barChartAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"bar_value_display":   types.StringType,
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: colorsByAttrTypes()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
 		"data_mode_type":      types.StringType,
-		"decimal":             types.Int32Type,
+		"decimal":             types.NumberType,
 		"decimal_precision":   types.BoolType,
 		"group_name_template": types.StringType,
 		"hash_colors":         types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_bars_per_chart":  types.Int32Type,
+		"max_bars_per_chart":  types.Int64Type,
 		"query":               types.ObjectType{AttrTypes: barChartQueryAttrTypes()},
 		"scale_type":          types.StringType,
 		"sort_by":             types.StringType,
@@ -3606,64 +5346,8 @@ func barChartAttrTypes() map[string]attr.Type {
 		"unit":                types.StringType,
 		"xaxis":               types.ObjectType{AttrTypes: xAxisAttrTypes()},
 		"x_axis_time_format":  types.StringType,
-		"y_axis_max":          types.Float32Type,
-		"y_axis_min":          types.Float32Type,
-	}
-}
-
-func expandColorsBy(ctx context.Context, p path.Path, m *ColorsByModel, diags *diag.Diagnostics) *dashboard_service.ColorsBy {
-	if m == nil {
-		return nil
-	}
-	out := &dashboard_service.ColorsBy{}
-	if m.Aggregation != nil {
-		out.Aggregation = map[string]interface{}{}
-	}
-	if m.Category != nil {
-		out.Category = map[string]interface{}{}
-	}
-	if m.GroupBy != nil {
-		out.GroupBy = map[string]interface{}{}
-	}
-	if m.Query != nil {
-		out.Query = map[string]interface{}{}
-	}
-	if m.Stack != nil {
-		out.Stack = map[string]interface{}{}
-	}
-	return out
-}
-
-func flattenColorsBy(ctx context.Context, p path.Path, v *dashboard_service.ColorsBy, diags *diag.Diagnostics) *ColorsByModel {
-	if v == nil {
-		return nil
-	}
-	out := &ColorsByModel{}
-	if v.Aggregation != nil {
-		out.Aggregation = &ColorsByAggregationModel{}
-	}
-	if v.Category != nil {
-		out.Category = &ColorsByCategoryModel{}
-	}
-	if v.GroupBy != nil {
-		out.GroupBy = &ColorsByGroupByModel{}
-	}
-	if v.Query != nil {
-		out.Query = &ColorsByQueryModel{}
-	}
-	if v.Stack != nil {
-		out.Stack = &ColorsByStackModel{}
-	}
-	return out
-}
-
-func colorsByAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"aggregation": types.ObjectType{AttrTypes: map[string]attr.Type{}},
-		"category":    types.ObjectType{AttrTypes: map[string]attr.Type{}},
-		"group_by":    types.ObjectType{AttrTypes: map[string]attr.Type{}},
-		"query":       types.ObjectType{AttrTypes: map[string]attr.Type{}},
-		"stack":       types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"y_axis_max":          types.Float64Type,
+		"y_axis_min":          types.Float64Type,
 	}
 }
 
@@ -3672,10 +5356,10 @@ func expandLegend(ctx context.Context, p path.Path, m *LegendModel, diags *diag.
 		return nil
 	}
 	out := &dashboard_service.Legend{}
-	out.Columns = expandStrings[dashboard_service.LegendColumn](ctx, p.AtName("columns"), m.Columns, diags)
+	out.Columns = expandEnumsMapped(ctx, p.AtName("columns"), m.Columns, legendColumnToAPI, false, diags)
 	out.GroupByQuery = expandBool(m.GroupByQuery)
 	out.IsVisible = expandBool(m.IsVisible)
-	out.Placement = expandEnum[dashboard_service.LegendPlacement](m.Placement)
+	out.Placement = expandEnumMapped(p.AtName("placement"), m.Placement, legendPlacementToAPI, diags)
 	return out
 }
 
@@ -3684,10 +5368,10 @@ func flattenLegend(ctx context.Context, p path.Path, v *dashboard_service.Legend
 		return nil
 	}
 	out := &LegendModel{}
-	out.Columns = flattenEnumsList(ctx, p.AtName("columns"), v.Columns, "LEGEND_COLUMN_UNSPECIFIED", diags)
+	out.Columns = flattenEnumsMappedList(ctx, p.AtName("columns"), v.Columns, legendColumnFromAPI, diags)
 	out.GroupByQuery = types.BoolPointerValue(v.GroupByQuery)
 	out.IsVisible = types.BoolPointerValue(v.IsVisible)
-	out.Placement = flattenEnum(v.Placement, "LEGEND_PLACEMENT_UNSPECIFIED")
+	out.Placement = flattenEnumMapped(p.AtName("placement"), v.Placement, legendPlacementFromAPI, diags)
 	return out
 }
 
@@ -4162,12 +5846,12 @@ func expandBarChartMetricsQuery(ctx context.Context, p path.Path, m *BarChartMet
 		return nil
 	}
 	out := &dashboard_service.BarChartMetricsQuery{}
-	out.Aggregation = expandEnum[dashboard_service.CommonAggregation](m.Aggregation)
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.Aggregation = expandEnumMapped(p.AtName("aggregation"), m.Aggregation, commonAggregationToAPI, diags)
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtBarChartMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtBarChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	out.GroupNames = expandStrings[string](ctx, p.AtName("group_names"), m.GroupNames, diags)
@@ -4176,7 +5860,7 @@ func expandBarChartMetricsQuery(ctx context.Context, p path.Path, m *BarChartMet
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	out.StackedGroupName = expandString(m.StackedGroupName)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
@@ -4187,22 +5871,22 @@ func flattenBarChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_
 		return nil
 	}
 	out := &BarChartMetricsQueryModel{}
-	out.Aggregation = flattenEnum(v.Aggregation, "AGGREGATION_UNSPECIFIED")
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtBarChartMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtBarChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtBarChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtBarChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -4212,7 +5896,7 @@ func barChartMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aggregation":        types.StringType,
 		"editor_mode":        types.StringType,
-		"filters":            types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":            types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtBarChartMetricsQueryFiltersAttrTypes()}},
 		"group_names":        types.ListType{ElemType: types.StringType},
 		"promql_query":       types.StringType,
 		"promql_query_type":  types.StringType,
@@ -4221,7 +5905,7 @@ func barChartMetricsQueryAttrTypes() map[string]attr.Type {
 	}
 }
 
-func expandMetricsFilter(ctx context.Context, p path.Path, m *MetricsFilterModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+func expandMetricsFilterAtBarChartMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtBarChartMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
 	if m == nil {
 		return nil
 	}
@@ -4232,18 +5916,18 @@ func expandMetricsFilter(ctx context.Context, p path.Path, m *MetricsFilterModel
 	return out
 }
 
-func flattenMetricsFilter(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterModel {
+func flattenMetricsFilterAtBarChartMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtBarChartMetricsQueryFiltersModel {
 	if v == nil {
 		return nil
 	}
-	out := &MetricsFilterModel{}
+	out := &MetricsFilterAtBarChartMetricsQueryFiltersModel{}
 	out.Label = types.StringPointerValue(v.Label)
 	out.Metric = types.StringPointerValue(v.Metric)
 	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
 	return out
 }
 
-func metricsFilterAttrTypes() map[string]attr.Type {
+func metricsFilterAtBarChartMetricsQueryFiltersAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"label":    types.StringType,
 		"metric":   types.StringType,
@@ -4407,7 +6091,7 @@ func expandDimensionAggregation(ctx context.Context, p path.Path, m *DimensionAg
 		return nil
 	}
 	out := &dashboard_service.DimensionAggregation{}
-	out.AggregationType = expandEnum[dashboard_service.DimensionAggregationType](m.AggregationType)
+	out.AggregationType = expandEnumMapped(p.AtName("aggregation_type"), m.AggregationType, dimensionAggregationTypeToAPI, diags)
 	out.DimensionField = expandEnum[dashboard_service.DimensionField](m.DimensionField)
 	return out
 }
@@ -4417,7 +6101,7 @@ func flattenDimensionAggregation(ctx context.Context, p path.Path, v *dashboard_
 		return nil
 	}
 	out := &DimensionAggregationModel{}
-	out.AggregationType = flattenEnum(v.AggregationType, "DIMENSION_AGGREGATION_TYPE_UNSPECIFIED")
+	out.AggregationType = flattenEnumMapped(p.AtName("aggregation_type"), v.AggregationType, dimensionAggregationTypeFromAPI, diags)
 	out.DimensionField = flattenEnum(v.DimensionField, "DIMENSION_FIELD_UNSPECIFIED")
 	return out
 }
@@ -4427,7 +6111,7 @@ func expandMetricAggregation(ctx context.Context, p path.Path, m *MetricAggregat
 		return nil
 	}
 	out := &dashboard_service.MetricAggregation{}
-	out.AggregationType = expandEnum[dashboard_service.MetricAggregationType](m.AggregationType)
+	out.AggregationType = expandEnumMapped(p.AtName("aggregation_type"), m.AggregationType, metricAggregationTypeToAPI, diags)
 	out.MetricField = expandEnum[dashboard_service.MetricAggregationMetricField](m.MetricField)
 	return out
 }
@@ -4437,7 +6121,7 @@ func flattenMetricAggregation(ctx context.Context, p path.Path, v *dashboard_ser
 		return nil
 	}
 	out := &MetricAggregationModel{}
-	out.AggregationType = flattenEnum(v.AggregationType, "METRIC_AGGREGATION_TYPE_UNSPECIFIED")
+	out.AggregationType = flattenEnumMapped(p.AtName("aggregation_type"), v.AggregationType, metricAggregationTypeFromAPI, diags)
 	out.MetricField = flattenEnum(v.MetricField, "METRIC_FIELD_UNSPECIFIED")
 	return out
 }
@@ -4447,7 +6131,7 @@ func expandBarChartStackDefinition(ctx context.Context, p path.Path, m *BarChart
 		return nil
 	}
 	out := &dashboard_service.BarChartStackDefinition{}
-	out.MaxSlicesPerBar = expandInt32(m.MaxSlicesPerBar)
+	out.MaxSlicesPerBar = expandInt64AsInt32(p.AtName("max_slices_per_bar"), m.MaxSlicesPerBar, diags)
 	out.StackNameTemplate = expandString(m.StackNameTemplate)
 	return out
 }
@@ -4457,14 +6141,14 @@ func flattenBarChartStackDefinition(ctx context.Context, p path.Path, v *dashboa
 		return nil
 	}
 	out := &BarChartStackDefinitionModel{}
-	out.MaxSlicesPerBar = types.Int32PointerValue(v.MaxSlicesPerBar)
+	out.MaxSlicesPerBar = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerBar))
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	return out
 }
 
 func barChartStackDefinitionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"max_slices_per_bar":  types.Int32Type,
+		"max_slices_per_bar":  types.Int64Type,
 		"stack_name_template": types.StringType,
 	}
 }
@@ -4508,7 +6192,7 @@ func expandXAxisByTime(ctx context.Context, p path.Path, m *XAxisByTimeModel, di
 		return nil
 	}
 	out := &dashboard_service.XAxisByTime{}
-	out.BucketsPresented = expandInt32(m.BucketsPresented)
+	out.BucketsPresented = expandInt64AsInt32(p.AtName("buckets_presented"), m.BucketsPresented, diags)
 	out.Interval = expandString(m.Interval)
 	return out
 }
@@ -4518,14 +6202,14 @@ func flattenXAxisByTime(ctx context.Context, p path.Path, v *dashboard_service.X
 		return nil
 	}
 	out := &XAxisByTimeModel{}
-	out.BucketsPresented = types.Int32PointerValue(v.BucketsPresented)
+	out.BucketsPresented = types.Int64PointerValue(int32AsInt64(v.BucketsPresented))
 	out.Interval = types.StringPointerValue(v.Interval)
 	return out
 }
 
 func xAxisByTimeAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"buckets_presented": types.Int32Type,
+		"buckets_presented": types.Int64Type,
 		"interval":          types.StringType,
 	}
 }
@@ -4544,8 +6228,8 @@ func expandDataTable(ctx context.Context, p path.Path, m *DataTableModel, diags 
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
 	out.OrderBy = expandOrderingField(ctx, p.AtName("order_by"), m.OrderBy, diags)
 	out.Query = expandDataTableQuery(ctx, p.AtName("query"), m.Query, diags)
-	out.ResultsPerPage = expandInt32(m.ResultsPerPage)
-	out.RowStyle = expandEnum[dashboard_service.RowStyle](m.RowStyle)
+	out.ResultsPerPage = expandInt64AsInt32(p.AtName("results_per_page"), m.ResultsPerPage, diags)
+	out.RowStyle = expandEnumMapped(p.AtName("row_style"), m.RowStyle, rowStyleToAPI, diags)
 	return out
 }
 
@@ -4565,8 +6249,8 @@ func flattenDataTable(ctx context.Context, p path.Path, v *dashboard_service.Dat
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
 	out.OrderBy = flattenOrderingField(ctx, p.AtName("order_by"), v.OrderBy, diags)
 	out.Query = flattenDataTableQuery(ctx, p.AtName("query"), v.Query, diags)
-	out.ResultsPerPage = types.Int32PointerValue(v.ResultsPerPage)
-	out.RowStyle = flattenEnum(v.RowStyle, "ROW_STYLE_UNSPECIFIED")
+	out.ResultsPerPage = types.Int64PointerValue(int32AsInt64(v.ResultsPerPage))
+	out.RowStyle = flattenEnumMapped(p.AtName("row_style"), v.RowStyle, rowStyleFromAPI, diags)
 	return out
 }
 
@@ -4576,7 +6260,7 @@ func dataTableAttrTypes() map[string]attr.Type {
 		"data_mode_type":   types.StringType,
 		"order_by":         types.ObjectType{AttrTypes: orderingFieldAttrTypes()},
 		"query":            types.ObjectType{AttrTypes: dataTableQueryAttrTypes()},
-		"results_per_page": types.Int32Type,
+		"results_per_page": types.Int64Type,
 		"row_style":        types.StringType,
 	}
 }
@@ -4587,7 +6271,7 @@ func expandDataTableColumn(ctx context.Context, p path.Path, m *DataTableColumnM
 	}
 	out := &dashboard_service.DataTableColumn{}
 	out.Field = expandString(m.Field)
-	out.Width = expandInt32(m.Width)
+	out.Width = expandInt64AsInt32(p.AtName("width"), m.Width, diags)
 	return out
 }
 
@@ -4597,14 +6281,14 @@ func flattenDataTableColumn(ctx context.Context, p path.Path, v *dashboard_servi
 	}
 	out := &DataTableColumnModel{}
 	out.Field = types.StringPointerValue(v.Field)
-	out.Width = types.Int32PointerValue(v.Width)
+	out.Width = types.Int64PointerValue(int32AsInt64(v.Width))
 	return out
 }
 
 func dataTableColumnAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"field": types.StringType,
-		"width": types.Int32Type,
+		"width": types.Int64Type,
 	}
 }
 
@@ -4614,7 +6298,7 @@ func expandOrderingField(ctx context.Context, p path.Path, m *OrderingFieldModel
 	}
 	out := &dashboard_service.OrderingField{}
 	out.Field = expandString(m.Field)
-	out.OrderDirection = expandEnum[dashboard_service.OrderDirection](m.OrderDirection)
+	out.OrderDirection = expandEnumMapped(p.AtName("order_direction"), m.OrderDirection, orderDirectionToAPI, diags)
 	return out
 }
 
@@ -4624,7 +6308,7 @@ func flattenOrderingField(ctx context.Context, p path.Path, v *dashboard_service
 	}
 	out := &OrderingFieldModel{}
 	out.Field = types.StringPointerValue(v.Field)
-	out.OrderDirection = flattenEnum(v.OrderDirection, "ORDER_DIRECTION_UNSPECIFIED")
+	out.OrderDirection = flattenEnumMapped(p.AtName("order_direction"), v.OrderDirection, orderDirectionFromAPI, diags)
 	return out
 }
 
@@ -4804,6 +6488,10 @@ func flattenLogsQueryGrouping(ctx context.Context, p path.Path, v *dashboard_ser
 		out.Aggregations = flattenList(ctx, types.ObjectType{AttrTypes: logsQueryAggregationAttrTypes()}, items, diags)
 	}
 	out.GroupBy = flattenStringsList(ctx, v.GroupBy, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupBy) == 0 {
+		out.GroupBy = types.ListNull(types.StringType)
+	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.GroupBys != nil {
 		items := make([]ObservationFieldModel, 0, len(v.GroupBys))
@@ -4861,11 +6549,11 @@ func expandDataTableMetricsQuery(ctx context.Context, p path.Path, m *DataTableM
 		return nil
 	}
 	out := &dashboard_service.DataTableMetricsQuery{}
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtDataTableMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtDataTableMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	{
@@ -4873,7 +6561,7 @@ func expandDataTableMetricsQuery(ctx context.Context, p path.Path, m *DataTableM
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
 }
@@ -4883,20 +6571,20 @@ func flattenDataTableMetricsQuery(ctx context.Context, p path.Path, v *dashboard
 		return nil
 	}
 	out := &DataTableMetricsQueryModel{}
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtDataTableMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtDataTableMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtDataTableMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtDataTableMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
 }
@@ -4904,10 +6592,40 @@ func flattenDataTableMetricsQuery(ctx context.Context, p path.Path, v *dashboard
 func dataTableMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"editor_mode":       types.StringType,
-		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtDataTableMetricsQueryFiltersAttrTypes()}},
 		"promql_query":      types.StringType,
 		"promql_query_type": types.StringType,
 		"time_frame":        types.ObjectType{AttrTypes: timeFrameSelectAttrTypes()},
+	}
+}
+
+func expandMetricsFilterAtDataTableMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtDataTableMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.MetricsFilter{}
+	out.Label = expandString(m.Label)
+	out.Metric = expandString(m.Metric)
+	out.Operator = expandFilterOperator(ctx, p.AtName("operator"), m.Operator, diags)
+	return out
+}
+
+func flattenMetricsFilterAtDataTableMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtDataTableMetricsQueryFiltersModel {
+	if v == nil {
+		return nil
+	}
+	out := &MetricsFilterAtDataTableMetricsQueryFiltersModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Metric = types.StringPointerValue(v.Metric)
+	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
+	return out
+}
+
+func metricsFilterAtDataTableMetricsQueryFiltersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":    types.StringType,
+		"metric":   types.StringType,
+		"operator": types.ObjectType{AttrTypes: filterOperatorAttrTypes()},
 	}
 }
 
@@ -5011,7 +6729,7 @@ func flattenSpansQueryGrouping(ctx context.Context, p path.Path, v *dashboard_se
 		out.GroupBy = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupBys != nil {
+	if len(v.GroupBys) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupBys))
 		for i := range v.GroupBys {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_bys").AtListIndex(i), &v.GroupBys[i], diags))
@@ -5035,7 +6753,6 @@ func expandSpansQueryAggregation(ctx context.Context, p path.Path, m *SpansQuery
 	}
 	out := &dashboard_service.SpansQueryAggregation{}
 	out.Aggregation = expandSpansAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
-	out.Id = expandString(m.Id)
 	out.IsVisible = expandBool(m.IsVisible)
 	out.Name = expandString(m.Name)
 	return out
@@ -5047,18 +6764,18 @@ func flattenSpansQueryAggregation(ctx context.Context, p path.Path, v *dashboard
 	}
 	out := &SpansQueryAggregationModel{}
 	out.Aggregation = flattenSpansAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
-	out.Id = types.StringPointerValue(v.Id)
 	out.IsVisible = types.BoolPointerValue(v.IsVisible)
 	out.Name = types.StringPointerValue(v.Name)
+	out.Id = types.StringPointerValue(v.Id)
 	return out
 }
 
 func spansQueryAggregationAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aggregation": types.ObjectType{AttrTypes: spansAggregationAttrTypes()},
-		"id":          types.StringType,
 		"is_visible":  types.BoolType,
 		"name":        types.StringType,
+		"id":          types.StringType,
 	}
 }
 
@@ -5067,7 +6784,7 @@ func expandWidgetsDynamic(ctx context.Context, p path.Path, m *WidgetsDynamicMod
 		return nil
 	}
 	out := &dashboard_service.WidgetsDynamic{}
-	out.Interpretation = expandEnum[dashboard_service.Interpretation](m.Interpretation)
+	out.Interpretation = expandEnumMapped(p.AtName("interpretation"), m.Interpretation, interpretationToAPI, diags)
 	if items := expandElements[DynamicQueryDefinitionModel](ctx, p.AtName("query_definitions"), m.QueryDefinitions, diags); items != nil {
 		out.QueryDefinitions = make([]dashboard_service.DynamicQueryDefinition, 0, len(items))
 		for i := range items {
@@ -5079,12 +6796,12 @@ func expandWidgetsDynamic(ctx context.Context, p path.Path, m *WidgetsDynamicMod
 	return out
 }
 
-func flattenWidgetsDynamic(ctx context.Context, p path.Path, v *dashboard_service.WidgetsDynamic, diags *diag.Diagnostics) *WidgetsDynamicModel {
+func flattenWidgetsDynamic(ctx context.Context, p path.Path, v *dashboard_service.WidgetsDynamic, prior *WidgetsDynamicModel, diags *diag.Diagnostics) *WidgetsDynamicModel {
 	if v == nil {
 		return nil
 	}
 	out := &WidgetsDynamicModel{}
-	out.Interpretation = flattenEnum(v.Interpretation, "INTERPRETATION_UNSPECIFIED")
+	out.Interpretation = flattenEnumMapped(p.AtName("interpretation"), v.Interpretation, interpretationFromAPI, diags)
 	out.QueryDefinitions = types.ListNull(types.ObjectType{AttrTypes: dynamicQueryDefinitionAttrTypes()})
 	if v.QueryDefinitions != nil {
 		items := make([]DynamicQueryDefinitionModel, 0, len(v.QueryDefinitions))
@@ -5094,7 +6811,11 @@ func flattenWidgetsDynamic(ctx context.Context, p path.Path, v *dashboard_servic
 		out.QueryDefinitions = flattenList(ctx, types.ObjectType{AttrTypes: dynamicQueryDefinitionAttrTypes()}, items, diags)
 	}
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
-	out.Visualization = flattenVisualization(ctx, p.AtName("visualization"), v.Visualization, diags)
+	var priorVisualization *VisualizationModel
+	if prior != nil {
+		priorVisualization = prior.Visualization
+	}
+	out.Visualization = flattenVisualization(ctx, p.AtName("visualization"), v.Visualization, priorVisualization, diags)
 	return out
 }
 
@@ -5112,7 +6833,7 @@ func expandDynamicQueryDefinition(ctx context.Context, p path.Path, m *DynamicQu
 		return nil
 	}
 	out := &dashboard_service.DynamicQueryDefinition{}
-	out.Id = valueOf(expandString(m.Id))
+	out.Id = valueOf(expandClientUUID(m.Id))
 	out.Name = expandString(m.Name)
 	out.Query = valueOf(expandDynamicQuery(ctx, p.AtName("query"), m.Query, diags))
 	return out
@@ -5288,14 +7009,14 @@ func expandMetrics(ctx context.Context, p path.Path, m *MetricsModel, diags *dia
 		return nil
 	}
 	out := &dashboard_service.Metrics{}
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
 	{
 		var inner *string
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
-	out.SeriesLimitType = expandEnum[dashboard_service.MetricsSeriesLimitType](m.SeriesLimitType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
+	out.SeriesLimitType = expandEnumMapped(p.AtName("series_limit_type"), m.SeriesLimitType, metricsSeriesLimitTypeToAPI, diags)
 	return out
 }
 
@@ -5304,13 +7025,13 @@ func flattenMetrics(ctx context.Context, p path.Path, v *dashboard_service.Metri
 		return nil
 	}
 	out := &MetricsModel{}
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
-	out.SeriesLimitType = flattenEnum(v.SeriesLimitType, "METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	out.SeriesLimitType = flattenEnumMapped(p.AtName("series_limit_type"), v.SeriesLimitType, metricsSeriesLimitTypeFromAPI, diags)
 	return out
 }
 
@@ -5425,26 +7146,58 @@ func expandVisualization(ctx context.Context, p path.Path, m *VisualizationModel
 	return out
 }
 
-func flattenVisualization(ctx context.Context, p path.Path, v *dashboard_service.Visualization, diags *diag.Diagnostics) *VisualizationModel {
+func flattenVisualization(ctx context.Context, p path.Path, v *dashboard_service.Visualization, prior *VisualizationModel, diags *diag.Diagnostics) *VisualizationModel {
 	if v == nil {
 		return nil
 	}
 	out := &VisualizationModel{}
 	out.Gauge = flattenVisualizationGauge(ctx, p.AtName("gauge"), v.Gauge, diags)
 	out.Geomap = flattenGeomap(ctx, p.AtName("geomap"), v.Geomap, diags)
-	out.Heatmap = flattenHeatmap(ctx, p.AtName("heatmap"), v.Heatmap, diags)
+	var priorHeatmap *HeatmapModel
+	if prior != nil {
+		priorHeatmap = prior.Heatmap
+	}
+	out.Heatmap = flattenHeatmap(ctx, p.AtName("heatmap"), v.Heatmap, priorHeatmap, diags)
 	out.HexagonBins = flattenHexagonBins(ctx, p.AtName("hexagon_bins"), v.HexagonBins, diags)
-	out.HorizontalBars = flattenHorizontalBars(ctx, p.AtName("horizontal_bars"), v.HorizontalBars, diags)
-	out.HorizontalBarsMulti = flattenHorizontalBarsMulti(ctx, p.AtName("horizontal_bars_multi"), v.HorizontalBarsMulti, diags)
+	var priorHorizontalBars *HorizontalBarsModel
+	if prior != nil {
+		priorHorizontalBars = prior.HorizontalBars
+	}
+	out.HorizontalBars = flattenHorizontalBars(ctx, p.AtName("horizontal_bars"), v.HorizontalBars, priorHorizontalBars, diags)
+	var priorHorizontalBarsMulti *HorizontalBarsMultiModel
+	if prior != nil {
+		priorHorizontalBarsMulti = prior.HorizontalBarsMulti
+	}
+	out.HorizontalBarsMulti = flattenHorizontalBarsMulti(ctx, p.AtName("horizontal_bars_multi"), v.HorizontalBarsMulti, priorHorizontalBarsMulti, diags)
 	out.PieChart = flattenVisualizationPieChart(ctx, p.AtName("pie_chart"), v.PieChart, diags)
 	out.Stat = flattenStat(ctx, p.AtName("stat"), v.Stat, diags)
 	out.StatCard = flattenStatCard(ctx, p.AtName("stat_card"), v.StatCard, diags)
 	out.Table = flattenTable(ctx, p.AtName("table"), v.Table, diags)
-	out.TimeSeriesBars = flattenTimeSeriesBars(ctx, p.AtName("time_series_bars"), v.TimeSeriesBars, diags)
-	out.TimeSeriesLines = flattenTimeSeriesLines(ctx, p.AtName("time_series_lines"), v.TimeSeriesLines, diags)
-	out.TimeSeriesLinesMulti = flattenTimeSeriesLinesMulti(ctx, p.AtName("time_series_lines_multi"), v.TimeSeriesLinesMulti, diags)
-	out.VerticalBars = flattenVerticalBars(ctx, p.AtName("vertical_bars"), v.VerticalBars, diags)
-	out.VerticalBarsMulti = flattenVerticalBarsMulti(ctx, p.AtName("vertical_bars_multi"), v.VerticalBarsMulti, diags)
+	var priorTimeSeriesBars *TimeSeriesBarsModel
+	if prior != nil {
+		priorTimeSeriesBars = prior.TimeSeriesBars
+	}
+	out.TimeSeriesBars = flattenTimeSeriesBars(ctx, p.AtName("time_series_bars"), v.TimeSeriesBars, priorTimeSeriesBars, diags)
+	var priorTimeSeriesLines *TimeSeriesLinesModel
+	if prior != nil {
+		priorTimeSeriesLines = prior.TimeSeriesLines
+	}
+	out.TimeSeriesLines = flattenTimeSeriesLines(ctx, p.AtName("time_series_lines"), v.TimeSeriesLines, priorTimeSeriesLines, diags)
+	var priorTimeSeriesLinesMulti *TimeSeriesLinesMultiModel
+	if prior != nil {
+		priorTimeSeriesLinesMulti = prior.TimeSeriesLinesMulti
+	}
+	out.TimeSeriesLinesMulti = flattenTimeSeriesLinesMulti(ctx, p.AtName("time_series_lines_multi"), v.TimeSeriesLinesMulti, priorTimeSeriesLinesMulti, diags)
+	var priorVerticalBars *VerticalBarsModel
+	if prior != nil {
+		priorVerticalBars = prior.VerticalBars
+	}
+	out.VerticalBars = flattenVerticalBars(ctx, p.AtName("vertical_bars"), v.VerticalBars, priorVerticalBars, diags)
+	var priorVerticalBarsMulti *VerticalBarsMultiModel
+	if prior != nil {
+		priorVerticalBarsMulti = prior.VerticalBarsMulti
+	}
+	out.VerticalBarsMulti = flattenVerticalBarsMulti(ctx, p.AtName("vertical_bars_multi"), v.VerticalBarsMulti, priorVerticalBarsMulti, diags)
 	return out
 }
 
@@ -5482,23 +7235,23 @@ func expandVisualizationGauge(ctx context.Context, p path.Path, m *Visualization
 		}
 	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.DisplaySeriesName = expandBool(m.DisplaySeriesName)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.LegendBy = expandEnum[dashboard_service.LegendBy](m.LegendBy)
+	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
 	out.Max = expandFloat64(m.Max)
 	out.Min = expandFloat64(m.Min)
 	out.ShowInnerArc = expandBool(m.ShowInnerArc)
 	out.ShowMinMax = expandBool(m.ShowMinMax)
 	out.ShowOuterArc = expandBool(m.ShowOuterArc)
-	out.ThresholdType = expandEnum[dashboard_service.ThresholdType](m.ThresholdType)
+	out.ThresholdType = expandEnumMapped(p.AtName("threshold_type"), m.ThresholdType, thresholdTypeToAPI, diags)
 	if items := expandElements[CommonThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
 		out.Thresholds = make([]dashboard_service.CommonThreshold, 0, len(items))
 		for i := range items {
 			out.Thresholds = append(out.Thresholds, *expandCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
 		out.ValueFields = make([]dashboard_service.ObservationField, 0, len(items))
@@ -5525,16 +7278,16 @@ func flattenVisualizationGauge(ctx context.Context, p path.Path, v *dashboard_se
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.DisplaySeriesName = types.BoolPointerValue(v.DisplaySeriesName)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnum(v.LegendBy, "LEGEND_BY_UNSPECIFIED")
+	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
 	out.ShowInnerArc = types.BoolPointerValue(v.ShowInnerArc)
 	out.ShowMinMax = types.BoolPointerValue(v.ShowMinMax)
 	out.ShowOuterArc = types.BoolPointerValue(v.ShowOuterArc)
-	out.ThresholdType = flattenEnum(v.ThresholdType, "THRESHOLD_TYPE_UNSPECIFIED")
+	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
 	if v.Thresholds != nil {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
@@ -5543,7 +7296,7 @@ func flattenVisualizationGauge(ctx context.Context, p path.Path, v *dashboard_se
 		}
 		out.Thresholds = flattenList(ctx, types.ObjectType{AttrTypes: commonThresholdAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.ValueFields != nil {
@@ -5562,7 +7315,7 @@ func visualizationGaugeAttrTypes() map[string]attr.Type {
 		"arc_display":         types.ObjectType{AttrTypes: arcDisplayAttrTypes()},
 		"category_fields":     types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"custom_unit":         types.StringType,
-		"decimal_precision":   types.Int32Type,
+		"decimal_precision":   types.Int64Type,
 		"display_series_name": types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
 		"legend_by":           types.StringType,
@@ -5646,10 +7399,10 @@ func expandGeomap(ctx context.Context, p path.Path, m *GeomapModel, diags *diag.
 	out.Color = expandGeomapColor(ctx, p.AtName("color"), m.Color, diags)
 	out.Config = expandGeomapFieldConfig(ctx, p.AtName("config"), m.Config, diags)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.MinMax = expandMinMax(ctx, p.AtName("min_max"), m.MinMax, diags)
 	out.Tooltip = expandGeomapTooltip(ctx, p.AtName("tooltip"), m.Tooltip, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	return out
 }
 
@@ -5663,10 +7416,10 @@ func flattenGeomap(ctx context.Context, p path.Path, v *dashboard_service.Geomap
 	out.Color = flattenGeomapColor(ctx, p.AtName("color"), v.Color, diags)
 	out.Config = flattenGeomapFieldConfig(ctx, p.AtName("config"), v.Config, diags)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.MinMax = flattenMinMax(ctx, p.AtName("min_max"), v.MinMax, diags)
 	out.Tooltip = flattenGeomapTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	return out
 }
 
@@ -5677,7 +7430,7 @@ func geomapAttrTypes() map[string]attr.Type {
 		"color":              types.ObjectType{AttrTypes: geomapColorAttrTypes()},
 		"config":             types.ObjectType{AttrTypes: geomapFieldConfigAttrTypes()},
 		"custom_unit":        types.StringType,
-		"decimal_precision":  types.Int32Type,
+		"decimal_precision":  types.Int64Type,
 		"min_max":            types.ObjectType{AttrTypes: minMaxAttrTypes()},
 		"tooltip":            types.ObjectType{AttrTypes: geomapTooltipAttrTypes()},
 		"unit":               types.StringType,
@@ -5690,8 +7443,12 @@ func expandGeomapAggregation(ctx context.Context, p path.Path, m *GeomapAggregat
 	}
 	out := &dashboard_service.GeomapAggregation{}
 	out.Avg = expandGeomapAggregationFieldBased(ctx, p.AtName("avg"), m.Avg, diags)
-	if m.Count != nil {
-		out.Count = map[string]interface{}{}
+	if !m.Count.IsNull() && !m.Count.IsUnknown() {
+		if m.Count.ValueBool() {
+			out.Count = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("count"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
 	}
 	out.Max = expandGeomapAggregationFieldBased(ctx, p.AtName("max"), m.Max, diags)
 	out.Min = expandGeomapAggregationFieldBased(ctx, p.AtName("min"), m.Min, diags)
@@ -5705,8 +7462,9 @@ func flattenGeomapAggregation(ctx context.Context, p path.Path, v *dashboard_ser
 	}
 	out := &GeomapAggregationModel{}
 	out.Avg = flattenGeomapAggregationFieldBased(ctx, p.AtName("avg"), v.Avg, diags)
+	out.Count = types.BoolNull()
 	if v.Count != nil {
-		out.Count = &GeomapAggregationSimpleModel{}
+		out.Count = types.BoolValue(true)
 	}
 	out.Max = flattenGeomapAggregationFieldBased(ctx, p.AtName("max"), v.Max, diags)
 	out.Min = flattenGeomapAggregationFieldBased(ctx, p.AtName("min"), v.Min, diags)
@@ -5717,7 +7475,7 @@ func flattenGeomapAggregation(ctx context.Context, p path.Path, v *dashboard_ser
 func geomapAggregationAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"avg":   types.ObjectType{AttrTypes: geomapAggregationFieldBasedAttrTypes()},
-		"count": types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"count": types.BoolType,
 		"max":   types.ObjectType{AttrTypes: geomapAggregationFieldBasedAttrTypes()},
 		"min":   types.ObjectType{AttrTypes: geomapAggregationFieldBasedAttrTypes()},
 		"sum":   types.ObjectType{AttrTypes: geomapAggregationFieldBasedAttrTypes()},
@@ -5753,8 +7511,8 @@ func expandGeomapColor(ctx context.Context, p path.Path, m *GeomapColorModel, di
 		return nil
 	}
 	out := &dashboard_service.GeomapColor{}
-	out.ColorRange = expandEnum[dashboard_service.ColorGradientType](m.ColorRange)
-	out.Size = expandEnum[dashboard_service.ColorSolidType](m.Size)
+	out.ColorRange = expandEnumMapped(p.AtName("color_range"), m.ColorRange, colorGradientTypeToAPI, diags)
+	out.Size = expandEnumMapped(p.AtName("size"), m.Size, colorSolidTypeToAPI, diags)
 	return out
 }
 
@@ -5763,8 +7521,8 @@ func flattenGeomapColor(ctx context.Context, p path.Path, v *dashboard_service.G
 		return nil
 	}
 	out := &GeomapColorModel{}
-	out.ColorRange = flattenEnum(v.ColorRange, "COLOR_GRADIENT_TYPE_UNSPECIFIED")
-	out.Size = flattenEnum(v.Size, "COLOR_SOLID_TYPE_UNSPECIFIED")
+	out.ColorRange = flattenEnumMapped(p.AtName("color_range"), v.ColorRange, colorGradientTypeFromAPI, diags)
+	out.Size = flattenEnumMapped(p.AtName("size"), v.Size, colorSolidTypeFromAPI, diags)
 	return out
 }
 
@@ -5912,8 +7670,12 @@ func expandMinMax(ctx context.Context, p path.Path, m *MinMaxModel, diags *diag.
 		return nil
 	}
 	out := &dashboard_service.MinMax{}
-	if m.Auto != nil {
-		out.Auto = map[string]interface{}{}
+	if !m.Auto.IsNull() && !m.Auto.IsUnknown() {
+		if m.Auto.ValueBool() {
+			out.Auto = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("auto"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
 	}
 	out.Custom = expandMinMaxCustom(ctx, p.AtName("custom"), m.Custom, diags)
 	return out
@@ -5924,8 +7686,9 @@ func flattenMinMax(ctx context.Context, p path.Path, v *dashboard_service.MinMax
 		return nil
 	}
 	out := &MinMaxModel{}
+	out.Auto = types.BoolNull()
 	if v.Auto != nil {
-		out.Auto = &MinMaxAutoModel{}
+		out.Auto = types.BoolValue(true)
 	}
 	out.Custom = flattenMinMaxCustom(ctx, p.AtName("custom"), v.Custom, diags)
 	return out
@@ -5933,7 +7696,7 @@ func flattenMinMax(ctx context.Context, p path.Path, v *dashboard_service.MinMax
 
 func minMaxAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"auto":   types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"auto":   types.BoolType,
 		"custom": types.ObjectType{AttrTypes: minMaxCustomAttrTypes()},
 	}
 }
@@ -6010,17 +7773,17 @@ func expandHeatmap(ctx context.Context, p path.Path, m *HeatmapModel, diags *dia
 	}
 	out := &dashboard_service.Heatmap{}
 	out.AllowAbbreviation = expandBool(m.AllowAbbreviation)
-	out.ColorAxisMax = expandFloat32(m.ColorAxisMax)
-	out.ColorAxisMin = expandFloat32(m.ColorAxisMin)
-	out.ColorRange = expandEnum[dashboard_service.ColorGradientType](m.ColorRange)
+	out.ColorAxisMax = expandFloat64AsFloat32(m.ColorAxisMax)
+	out.ColorAxisMin = expandFloat64AsFloat32(m.ColorAxisMin)
+	out.ColorRange = expandEnumMapped(p.AtName("color_range"), m.ColorRange, colorGradientTypeToAPI, diags)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
-	out.HistogramBucketUnit = expandEnum[dashboard_service.HeatmapHistogramBucketUnit](m.HistogramBucketUnit)
-	out.Preset = expandEnum[dashboard_service.HeatmapColorPreset](m.Preset)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
+	out.HistogramBucketUnit = expandEnumMapped(p.AtName("histogram_bucket_unit"), m.HistogramBucketUnit, heatmapHistogramBucketUnitToAPI, diags)
+	out.Preset = expandEnumMapped(p.AtName("preset"), m.Preset, heatmapColorPresetToAPI, diags)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
 	out.ShowNumbers = expandBool(m.ShowNumbers)
 	out.Tooltip = expandHeatmapTooltip(ctx, p.AtName("tooltip"), m.Tooltip, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("x_axis_fields"), m.XAxisFields, diags); items != nil {
 		out.XAxisFields = make([]dashboard_service.ObservationField, 0, len(items))
@@ -6028,7 +7791,7 @@ func expandHeatmap(ctx context.Context, p path.Path, m *HeatmapModel, diags *dia
 			out.XAxisFields = append(out.XAxisFields, *expandObservationField(ctx, p.AtName("x_axis_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.XAxisTimeFormat = expandEnum[dashboard_service.XAxisTimeFormat](m.XAxisTimeFormat)
+	out.XAxisTimeFormat = expandEnumMapped(p.AtName("x_axis_time_format"), m.XAxisTimeFormat, xAxisTimeFormatToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("y_axis_fields"), m.YAxisFields, diags); items != nil {
 		out.YAxisFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -6038,23 +7801,29 @@ func expandHeatmap(ctx context.Context, p path.Path, m *HeatmapModel, diags *dia
 	return out
 }
 
-func flattenHeatmap(ctx context.Context, p path.Path, v *dashboard_service.Heatmap, diags *diag.Diagnostics) *HeatmapModel {
+func flattenHeatmap(ctx context.Context, p path.Path, v *dashboard_service.Heatmap, prior *HeatmapModel, diags *diag.Diagnostics) *HeatmapModel {
 	if v == nil {
 		return nil
 	}
 	out := &HeatmapModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
-	out.ColorAxisMax = flattenFloat32(v.ColorAxisMax)
-	out.ColorAxisMin = flattenFloat32(v.ColorAxisMin)
-	out.ColorRange = flattenEnum(v.ColorRange, "COLOR_GRADIENT_TYPE_UNSPECIFIED")
+	out.ColorAxisMax = flattenFloat32AsFloat64(v.ColorAxisMax)
+	if prior != nil {
+		out.ColorAxisMax = keepPriorFloat32(prior.ColorAxisMax, out.ColorAxisMax)
+	}
+	out.ColorAxisMin = flattenFloat32AsFloat64(v.ColorAxisMin)
+	if prior != nil {
+		out.ColorAxisMin = keepPriorFloat32(prior.ColorAxisMin, out.ColorAxisMin)
+	}
+	out.ColorRange = flattenEnumMapped(p.AtName("color_range"), v.ColorRange, colorGradientTypeFromAPI, diags)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
-	out.HistogramBucketUnit = flattenEnum(v.HistogramBucketUnit, "HEATMAP_HISTOGRAM_BUCKET_UNIT_UNSPECIFIED")
-	out.Preset = flattenEnum(v.Preset, "HEATMAP_COLOR_PRESET_UNSPECIFIED")
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
+	out.HistogramBucketUnit = flattenEnumMapped(p.AtName("histogram_bucket_unit"), v.HistogramBucketUnit, heatmapHistogramBucketUnitFromAPI, diags)
+	out.Preset = flattenEnumMapped(p.AtName("preset"), v.Preset, heatmapColorPresetFromAPI, diags)
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
 	out.ShowNumbers = types.BoolPointerValue(v.ShowNumbers)
 	out.Tooltip = flattenHeatmapTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	out.XAxisFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.XAxisFields != nil {
@@ -6064,7 +7833,7 @@ func flattenHeatmap(ctx context.Context, p path.Path, v *dashboard_service.Heatm
 		}
 		out.XAxisFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.XAxisTimeFormat = flattenEnum(v.XAxisTimeFormat, "X_AXIS_TIME_FORMAT_UNSPECIFIED")
+	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
 	out.YAxisFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.YAxisFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.YAxisFields))
@@ -6079,11 +7848,11 @@ func flattenHeatmap(ctx context.Context, p path.Path, v *dashboard_service.Heatm
 func heatmapAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"allow_abbreviation":    types.BoolType,
-		"color_axis_max":        types.Float32Type,
-		"color_axis_min":        types.Float32Type,
+		"color_axis_max":        types.Float64Type,
+		"color_axis_min":        types.Float64Type,
 		"color_range":           types.StringType,
 		"custom_unit":           types.StringType,
-		"decimal_precision":     types.Int32Type,
+		"decimal_precision":     types.Int64Type,
 		"histogram_bucket_unit": types.StringType,
 		"preset":                types.StringType,
 		"scale_type":            types.StringType,
@@ -6149,19 +7918,19 @@ func expandHexagonBins(ctx context.Context, p path.Path, m *HexagonBinsModel, di
 		}
 	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.LegendBy = expandEnum[dashboard_service.LegendBy](m.LegendBy)
+	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
 	out.Max = expandFloat64(m.Max)
 	out.Min = expandFloat64(m.Min)
-	out.ThresholdType = expandEnum[dashboard_service.ThresholdType](m.ThresholdType)
+	out.ThresholdType = expandEnumMapped(p.AtName("threshold_type"), m.ThresholdType, thresholdTypeToAPI, diags)
 	if items := expandElements[CommonThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
 		out.Thresholds = make([]dashboard_service.CommonThreshold, 0, len(items))
 		for i := range items {
 			out.Thresholds = append(out.Thresholds, *expandCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
 	return out
 }
@@ -6181,12 +7950,12 @@ func flattenHexagonBins(ctx context.Context, p path.Path, v *dashboard_service.H
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnum(v.LegendBy, "LEGEND_BY_UNSPECIFIED")
+	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
-	out.ThresholdType = flattenEnum(v.ThresholdType, "THRESHOLD_TYPE_UNSPECIFIED")
+	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
 	if v.Thresholds != nil {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
@@ -6195,7 +7964,7 @@ func flattenHexagonBins(ctx context.Context, p path.Path, v *dashboard_service.H
 		}
 		out.Thresholds = flattenList(ctx, types.ObjectType{AttrTypes: commonThresholdAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	return out
 }
@@ -6205,7 +7974,7 @@ func hexagonBinsAttrTypes() map[string]attr.Type {
 		"allow_abbreviation": types.BoolType,
 		"category_fields":    types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"custom_unit":        types.StringType,
-		"decimal_precision":  types.Int32Type,
+		"decimal_precision":  types.Int64Type,
 		"legend":             types.ObjectType{AttrTypes: legendAttrTypes()},
 		"legend_by":          types.StringType,
 		"max":                types.Float64Type,
@@ -6230,17 +7999,35 @@ func expandHorizontalBars(ctx context.Context, p path.Path, m *HorizontalBarsMod
 		}
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
-	out.ColorsBy = expandColorsBy(ctx, p.AtName("colors_by"), m.ColorsBy, diags)
+	if v := m.ColorsBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.ColorsBy{}
+		switch v.ValueString() {
+		case "aggregation":
+			fold.Aggregation = map[string]interface{}{}
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "group_by":
+			fold.GroupBy = map[string]interface{}{}
+		case "query":
+			fold.Query = map[string]interface{}{}
+		case "stack":
+			fold.Stack = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("colors_by"), "Unknown value", fmt.Sprintf("%q is not one of aggregation category group_by query stack.", v.ValueString()))
+		}
+		out.ColorsBy = fold
+	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.DisplayOnBar = expandBool(m.DisplayOnBar)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxBarsPerChart = expandInt32(m.MaxBarsPerChart)
-	out.MaxSlicesPerBar = expandInt32(m.MaxSlicesPerBar)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SortBy = expandEnum[dashboard_service.SortByType](m.SortBy)
+	out.MaxBarsPerChart = expandInt64AsInt32(p.AtName("max_bars_per_chart"), m.MaxBarsPerChart, diags)
+	out.MaxSlicesPerBar = expandInt64AsInt32(p.AtName("max_slices_per_bar"), m.MaxSlicesPerBar, diags)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SortBy = expandEnumMapped(p.AtName("sort_by"), m.SortBy, sortByTypeToAPI, diags)
 	out.StackNameTemplate = expandString(m.StackNameTemplate)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("sub_category_fields"), m.SubCategoryFields, diags); items != nil {
 		out.SubCategoryFields = make([]dashboard_service.ObservationField, 0, len(items))
@@ -6248,15 +8035,15 @@ func expandHorizontalBars(ctx context.Context, p path.Path, m *HorizontalBarsMod
 			out.SubCategoryFields = append(out.SubCategoryFields, *expandObservationField(ctx, p.AtName("sub_category_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
-	out.YAxisViewBy = expandEnum[dashboard_service.HorizontalBarsYAxisViewBy](m.YAxisViewBy)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
+	out.YAxisViewBy = expandEnumMapped(p.AtName("y_axis_view_by"), m.YAxisViewBy, horizontalBarsYAxisViewByToAPI, diags)
 	return out
 }
 
-func flattenHorizontalBars(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBars, diags *diag.Diagnostics) *HorizontalBarsModel {
+func flattenHorizontalBars(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBars, prior *HorizontalBarsModel, diags *diag.Diagnostics) *HorizontalBarsModel {
 	if v == nil {
 		return nil
 	}
@@ -6271,17 +8058,31 @@ func flattenHorizontalBars(ctx context.Context, p path.Path, v *dashboard_servic
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
-	out.ColorsBy = flattenColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
+	out.ColorsBy = types.StringNull()
+	if fold := v.ColorsBy; fold != nil {
+		switch {
+		case fold.Aggregation != nil:
+			out.ColorsBy = types.StringValue("aggregation")
+		case fold.Category != nil:
+			out.ColorsBy = types.StringValue("category")
+		case fold.GroupBy != nil:
+			out.ColorsBy = types.StringValue("group_by")
+		case fold.Query != nil:
+			out.ColorsBy = types.StringValue("query")
+		case fold.Stack != nil:
+			out.ColorsBy = types.StringValue("stack")
+		}
+	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.DisplayOnBar = types.BoolPointerValue(v.DisplayOnBar)
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxBarsPerChart = types.Int32PointerValue(v.MaxBarsPerChart)
-	out.MaxSlicesPerBar = types.Int32PointerValue(v.MaxSlicesPerBar)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SortBy = flattenEnum(v.SortBy, "SORT_BY_TYPE_UNSPECIFIED")
+	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
+	out.MaxSlicesPerBar = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerBar))
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	out.SubCategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.SubCategoryFields != nil {
@@ -6291,11 +8092,17 @@ func flattenHorizontalBars(ctx context.Context, p path.Path, v *dashboard_servic
 		}
 		out.SubCategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
-	out.YAxisViewBy = flattenEnum(v.YAxisViewBy, "Y_AXIS_VIEW_BY_UNSPECIFIED")
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
+	out.YAxisViewBy = flattenEnumMapped(p.AtName("y_axis_view_by"), v.YAxisViewBy, horizontalBarsYAxisViewByFromAPI, diags)
 	return out
 }
 
@@ -6304,23 +8111,23 @@ func horizontalBarsAttrTypes() map[string]attr.Type {
 		"allow_abbreviation":  types.BoolType,
 		"category_fields":     types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: colorsByAttrTypes()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
-		"decimal_precision":   types.Int32Type,
+		"decimal_precision":   types.Int64Type,
 		"display_on_bar":      types.BoolType,
 		"group_name_template": types.StringType,
 		"hash_colors":         types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_bars_per_chart":  types.Int32Type,
-		"max_slices_per_bar":  types.Int32Type,
+		"max_bars_per_chart":  types.Int64Type,
+		"max_slices_per_bar":  types.Int64Type,
 		"scale_type":          types.StringType,
 		"sort_by":             types.StringType,
 		"stack_name_template": types.StringType,
 		"sub_category_fields": types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"unit":                types.StringType,
 		"value_field":         types.ObjectType{AttrTypes: observationFieldAttrTypes()},
-		"y_axis_max":          types.Float32Type,
-		"y_axis_min":          types.Float32Type,
+		"y_axis_max":          types.Float64Type,
+		"y_axis_min":          types.Float64Type,
 		"y_axis_view_by":      types.StringType,
 	}
 }
@@ -6338,30 +8145,48 @@ func expandHorizontalBarsMulti(ctx context.Context, p path.Path, m *HorizontalBa
 		}
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
-	out.ColorsBy = expandColorsBy(ctx, p.AtName("colors_by"), m.ColorsBy, diags)
+	if v := m.ColorsBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.ColorsBy{}
+		switch v.ValueString() {
+		case "aggregation":
+			fold.Aggregation = map[string]interface{}{}
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "group_by":
+			fold.GroupBy = map[string]interface{}{}
+		case "query":
+			fold.Query = map[string]interface{}{}
+		case "stack":
+			fold.Stack = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("colors_by"), "Unknown value", fmt.Sprintf("%q is not one of aggregation category group_by query stack.", v.ValueString()))
+		}
+		out.ColorsBy = fold
+	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.DisplayOnBar = expandBool(m.DisplayOnBar)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxBarsPerChart = expandInt32(m.MaxBarsPerChart)
+	out.MaxBarsPerChart = expandInt64AsInt32(p.AtName("max_bars_per_chart"), m.MaxBarsPerChart, diags)
 	if items := expandElements[HorizontalBarsMultiQueryFieldSettingsModel](ctx, p.AtName("query_field_settings"), m.QueryFieldSettings, diags); items != nil {
 		out.QueryFieldSettings = make([]dashboard_service.HorizontalBarsMultiQueryFieldSettings, 0, len(items))
 		for i := range items {
 			out.QueryFieldSettings = append(out.QueryFieldSettings, *expandHorizontalBarsMultiQueryFieldSettings(ctx, p.AtName("query_field_settings").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
 	out.SortOrder = expandVisualizationSortOrder(ctx, p.AtName("sort_order"), m.SortOrder, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
-	out.YAxisViewBy = expandEnum[dashboard_service.HorizontalBarsMultiYAxisViewBy](m.YAxisViewBy)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
+	out.YAxisViewBy = expandEnumMapped(p.AtName("y_axis_view_by"), m.YAxisViewBy, horizontalBarsMultiYAxisViewByToAPI, diags)
 	return out
 }
 
-func flattenHorizontalBarsMulti(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBarsMulti, diags *diag.Diagnostics) *HorizontalBarsMultiModel {
+func flattenHorizontalBarsMulti(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBarsMulti, prior *HorizontalBarsMultiModel, diags *diag.Diagnostics) *HorizontalBarsMultiModel {
 	if v == nil {
 		return nil
 	}
@@ -6376,14 +8201,28 @@ func flattenHorizontalBarsMulti(ctx context.Context, p path.Path, v *dashboard_s
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
-	out.ColorsBy = flattenColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
+	out.ColorsBy = types.StringNull()
+	if fold := v.ColorsBy; fold != nil {
+		switch {
+		case fold.Aggregation != nil:
+			out.ColorsBy = types.StringValue("aggregation")
+		case fold.Category != nil:
+			out.ColorsBy = types.StringValue("category")
+		case fold.GroupBy != nil:
+			out.ColorsBy = types.StringValue("group_by")
+		case fold.Query != nil:
+			out.ColorsBy = types.StringValue("query")
+		case fold.Stack != nil:
+			out.ColorsBy = types.StringValue("stack")
+		}
+	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.DisplayOnBar = types.BoolPointerValue(v.DisplayOnBar)
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxBarsPerChart = types.Int32PointerValue(v.MaxBarsPerChart)
+	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
 	out.QueryFieldSettings = types.ListNull(types.ObjectType{AttrTypes: horizontalBarsMultiQueryFieldSettingsAttrTypes()})
 	if v.QueryFieldSettings != nil {
 		items := make([]HorizontalBarsMultiQueryFieldSettingsModel, 0, len(v.QueryFieldSettings))
@@ -6392,12 +8231,18 @@ func flattenHorizontalBarsMulti(ctx context.Context, p path.Path, v *dashboard_s
 		}
 		out.QueryFieldSettings = flattenList(ctx, types.ObjectType{AttrTypes: horizontalBarsMultiQueryFieldSettingsAttrTypes()}, items, diags)
 	}
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
 	out.SortOrder = flattenVisualizationSortOrder(ctx, p.AtName("sort_order"), v.SortOrder, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
-	out.YAxisViewBy = flattenEnum(v.YAxisViewBy, "Y_AXIS_VIEW_BY_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
+	out.YAxisViewBy = flattenEnumMapped(p.AtName("y_axis_view_by"), v.YAxisViewBy, horizontalBarsMultiYAxisViewByFromAPI, diags)
 	return out
 }
 
@@ -6406,20 +8251,20 @@ func horizontalBarsMultiAttrTypes() map[string]attr.Type {
 		"allow_abbreviation":   types.BoolType,
 		"category_fields":      types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":         types.StringType,
-		"colors_by":            types.ObjectType{AttrTypes: colorsByAttrTypes()},
+		"colors_by":            types.StringType,
 		"custom_unit":          types.StringType,
-		"decimal_precision":    types.Int32Type,
+		"decimal_precision":    types.Int64Type,
 		"display_on_bar":       types.BoolType,
 		"group_name_template":  types.StringType,
 		"hash_colors":          types.BoolType,
 		"legend":               types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_bars_per_chart":   types.Int32Type,
+		"max_bars_per_chart":   types.Int64Type,
 		"query_field_settings": types.ListType{ElemType: types.ObjectType{AttrTypes: horizontalBarsMultiQueryFieldSettingsAttrTypes()}},
 		"scale_type":           types.StringType,
 		"sort_order":           types.ObjectType{AttrTypes: visualizationSortOrderAttrTypes()},
 		"unit":                 types.StringType,
-		"y_axis_max":           types.Float32Type,
-		"y_axis_min":           types.Float32Type,
+		"y_axis_max":           types.Float64Type,
+		"y_axis_min":           types.Float64Type,
 		"y_axis_view_by":       types.StringType,
 	}
 }
@@ -6456,7 +8301,7 @@ func expandVisualizationSortOrder(ctx context.Context, p path.Path, m *Visualiza
 		return nil
 	}
 	out := &dashboard_service.VisualizationSortOrder{}
-	out.OrderDirection = expandEnum[dashboard_service.OrderDirection](m.OrderDirection)
+	out.OrderDirection = expandEnumMapped(p.AtName("order_direction"), m.OrderDirection, orderDirectionToAPI, diags)
 	out.Strategy = expandSortStrategy(ctx, p.AtName("strategy"), m.Strategy, diags)
 	return out
 }
@@ -6466,7 +8311,7 @@ func flattenVisualizationSortOrder(ctx context.Context, p path.Path, v *dashboar
 		return nil
 	}
 	out := &VisualizationSortOrderModel{}
-	out.OrderDirection = flattenEnum(v.OrderDirection, "ORDER_DIRECTION_UNSPECIFIED")
+	out.OrderDirection = flattenEnumMapped(p.AtName("order_direction"), v.OrderDirection, orderDirectionFromAPI, diags)
 	out.Strategy = flattenSortStrategy(ctx, p.AtName("strategy"), v.Strategy, diags)
 	return out
 }
@@ -6483,8 +8328,12 @@ func expandSortStrategy(ctx context.Context, p path.Path, m *SortStrategyModel, 
 		return nil
 	}
 	out := &dashboard_service.SortStrategy{}
-	if m.Category != nil {
-		out.Category = map[string]interface{}{}
+	if !m.Category.IsNull() && !m.Category.IsUnknown() {
+		if m.Category.ValueBool() {
+			out.Category = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("category"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
 	}
 	out.QueryValue = expandSortByQueryValue(ctx, p.AtName("query_value"), m.QueryValue, diags)
 	out.StrategyType = expandString(m.StrategyType)
@@ -6496,21 +8345,18 @@ func flattenSortStrategy(ctx context.Context, p path.Path, v *dashboard_service.
 		return nil
 	}
 	out := &SortStrategyModel{}
+	out.Category = types.BoolNull()
 	if v.Category != nil {
-		out.Category = &SortByCategoryModel{}
+		out.Category = types.BoolValue(true)
 	}
 	out.QueryValue = flattenSortByQueryValue(ctx, p.AtName("query_value"), v.QueryValue, diags)
 	out.StrategyType = types.StringPointerValue(v.StrategyType)
-	// A configuration cannot hold the zero value, so a read of it is an omitted value.
-	if out.StrategyType.ValueString() == "" {
-		out.StrategyType = types.StringNull()
-	}
 	return out
 }
 
 func sortStrategyAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"category":      types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"category":      types.BoolType,
 		"query_value":   types.ObjectType{AttrTypes: sortByQueryValueAttrTypes()},
 		"strategy_type": types.StringType,
 	}
@@ -6554,14 +8400,14 @@ func expandVisualizationPieChart(ctx context.Context, p path.Path, m *Visualizat
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.LabelDefinition = expandVisualizationPieChartLabelDefinition(ctx, p.AtName("label_definition"), m.LabelDefinition, diags)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxSlicesPerChart = expandInt32(m.MaxSlicesPerChart)
-	out.MaxSlicesPerStack = expandInt32(m.MaxSlicesPerStack)
-	out.MinSlicePercentage = expandInt32(m.MinSlicePercentage)
+	out.MaxSlicesPerChart = expandInt64AsInt32(p.AtName("max_slices_per_chart"), m.MaxSlicesPerChart, diags)
+	out.MaxSlicesPerStack = expandInt64AsInt32(p.AtName("max_slices_per_stack"), m.MaxSlicesPerStack, diags)
+	out.MinSlicePercentage = expandInt64AsInt32(p.AtName("min_slice_percentage"), m.MinSlicePercentage, diags)
 	out.ShowTotal = expandBool(m.ShowTotal)
 	out.StackNameTemplate = expandString(m.StackNameTemplate)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("sub_category_fields"), m.SubCategoryFields, diags); items != nil {
@@ -6570,7 +8416,7 @@ func expandVisualizationPieChart(ctx context.Context, p path.Path, m *Visualizat
 			out.SubCategoryFields = append(out.SubCategoryFields, *expandObservationField(ctx, p.AtName("sub_category_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
 	return out
 }
@@ -6591,14 +8437,14 @@ func flattenVisualizationPieChart(ctx context.Context, p path.Path, v *dashboard
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.LabelDefinition = flattenVisualizationPieChartLabelDefinition(ctx, p.AtName("label_definition"), v.LabelDefinition, diags)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxSlicesPerChart = types.Int32PointerValue(v.MaxSlicesPerChart)
-	out.MaxSlicesPerStack = types.Int32PointerValue(v.MaxSlicesPerStack)
-	out.MinSlicePercentage = types.Int32PointerValue(v.MinSlicePercentage)
+	out.MaxSlicesPerChart = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerChart))
+	out.MaxSlicesPerStack = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerStack))
+	out.MinSlicePercentage = types.Int64PointerValue(int32AsInt64(v.MinSlicePercentage))
 	out.ShowTotal = types.BoolPointerValue(v.ShowTotal)
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	out.SubCategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
@@ -6609,7 +8455,7 @@ func flattenVisualizationPieChart(ctx context.Context, p path.Path, v *dashboard
 		}
 		out.SubCategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	return out
 }
@@ -6620,14 +8466,14 @@ func visualizationPieChartAttrTypes() map[string]attr.Type {
 		"category_fields":      types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":         types.StringType,
 		"custom_unit":          types.StringType,
-		"decimal_precision":    types.Int32Type,
+		"decimal_precision":    types.Int64Type,
 		"group_name_template":  types.StringType,
 		"hash_colors":          types.BoolType,
 		"label_definition":     types.ObjectType{AttrTypes: visualizationPieChartLabelDefinitionAttrTypes()},
 		"legend":               types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_slices_per_chart": types.Int32Type,
-		"max_slices_per_stack": types.Int32Type,
-		"min_slice_percentage": types.Int32Type,
+		"max_slices_per_chart": types.Int64Type,
+		"max_slices_per_stack": types.Int64Type,
+		"min_slice_percentage": types.Int64Type,
 		"show_total":           types.BoolType,
 		"stack_name_template":  types.StringType,
 		"sub_category_fields":  types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
@@ -6642,7 +8488,7 @@ func expandVisualizationPieChartLabelDefinition(ctx context.Context, p path.Path
 	}
 	out := &dashboard_service.VisualizationPieChartLabelDefinition{}
 	out.IsVisible = expandBool(m.IsVisible)
-	out.LabelSource = expandEnum[dashboard_service.VisualizationPieChartLabelSource](m.LabelSource)
+	out.LabelSource = expandEnumMapped(p.AtName("label_source"), m.LabelSource, visualizationPieChartLabelSourceToAPI, diags)
 	out.ShowName = expandBool(m.ShowName)
 	out.ShowPercentage = expandBool(m.ShowPercentage)
 	out.ShowValue = expandBool(m.ShowValue)
@@ -6655,7 +8501,7 @@ func flattenVisualizationPieChartLabelDefinition(ctx context.Context, p path.Pat
 	}
 	out := &VisualizationPieChartLabelDefinitionModel{}
 	out.IsVisible = types.BoolPointerValue(v.IsVisible)
-	out.LabelSource = flattenEnum(v.LabelSource, "LABEL_SOURCE_UNSPECIFIED")
+	out.LabelSource = flattenEnumMapped(p.AtName("label_source"), v.LabelSource, visualizationPieChartLabelSourceFromAPI, diags)
 	out.ShowName = types.BoolPointerValue(v.ShowName)
 	out.ShowPercentage = types.BoolPointerValue(v.ShowPercentage)
 	out.ShowValue = types.BoolPointerValue(v.ShowValue)
@@ -6685,21 +8531,21 @@ func expandStat(ctx context.Context, p path.Path, m *StatModel, diags *diag.Diag
 		}
 	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.DisplaySeriesName = expandBool(m.DisplaySeriesName)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.LegendBy = expandEnum[dashboard_service.LegendBy](m.LegendBy)
+	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
 	out.Max = expandFloat64(m.Max)
 	out.Min = expandFloat64(m.Min)
-	out.ThresholdBy = expandEnum[dashboard_service.CommonThresholdBy](m.ThresholdBy)
-	out.ThresholdType = expandEnum[dashboard_service.ThresholdType](m.ThresholdType)
+	out.ThresholdBy = expandEnumMapped(p.AtName("threshold_by"), m.ThresholdBy, commonThresholdByToAPI, diags)
+	out.ThresholdType = expandEnumMapped(p.AtName("threshold_type"), m.ThresholdType, thresholdTypeToAPI, diags)
 	if items := expandElements[CommonThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
 		out.Thresholds = make([]dashboard_service.CommonThreshold, 0, len(items))
 		for i := range items {
 			out.Thresholds = append(out.Thresholds, *expandCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
 		out.ValueFields = make([]dashboard_service.ObservationField, 0, len(items))
@@ -6725,14 +8571,14 @@ func flattenStat(ctx context.Context, p path.Path, v *dashboard_service.Stat, di
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.DisplaySeriesName = types.BoolPointerValue(v.DisplaySeriesName)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnum(v.LegendBy, "LEGEND_BY_UNSPECIFIED")
+	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
-	out.ThresholdBy = flattenEnum(v.ThresholdBy, "THRESHOLD_BY_UNSPECIFIED")
-	out.ThresholdType = flattenEnum(v.ThresholdType, "THRESHOLD_TYPE_UNSPECIFIED")
+	out.ThresholdBy = flattenEnumMapped(p.AtName("threshold_by"), v.ThresholdBy, commonThresholdByFromAPI, diags)
+	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
 	if v.Thresholds != nil {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
@@ -6741,7 +8587,7 @@ func flattenStat(ctx context.Context, p path.Path, v *dashboard_service.Stat, di
 		}
 		out.Thresholds = flattenList(ctx, types.ObjectType{AttrTypes: commonThresholdAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.ValueFields != nil {
@@ -6759,7 +8605,7 @@ func statAttrTypes() map[string]attr.Type {
 		"allow_abbreviation":  types.BoolType,
 		"category_fields":     types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"custom_unit":         types.StringType,
-		"decimal_precision":   types.Int32Type,
+		"decimal_precision":   types.Int64Type,
 		"display_series_name": types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
 		"legend_by":           types.StringType,
@@ -6788,13 +8634,13 @@ func expandStatCard(ctx context.Context, p path.Path, m *StatCardModel, diags *d
 	}
 	out.ColorLabelMapping = expandColorLabelMapping(ctx, p.AtName("color_label_mapping"), m.ColorLabelMapping, diags)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.Label = expandStatVisualElement(ctx, p.AtName("label"), m.Label, diags)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.LegendBy = expandEnum[dashboard_service.LegendBy](m.LegendBy)
+	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
 	out.PrimaryValue = expandStatVisualElement(ctx, p.AtName("primary_value"), m.PrimaryValue, diags)
 	out.Title = expandStatVisualElement(ctx, p.AtName("title"), m.Title, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
 		out.ValueFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -6820,13 +8666,13 @@ func flattenStatCard(ctx context.Context, p path.Path, v *dashboard_service.Stat
 	}
 	out.ColorLabelMapping = flattenColorLabelMapping(ctx, p.AtName("color_label_mapping"), v.ColorLabelMapping, diags)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.Label = flattenStatVisualElement(ctx, p.AtName("label"), v.Label, diags)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnum(v.LegendBy, "LEGEND_BY_UNSPECIFIED")
+	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
 	out.PrimaryValue = flattenStatVisualElement(ctx, p.AtName("primary_value"), v.PrimaryValue, diags)
 	out.Title = flattenStatVisualElement(ctx, p.AtName("title"), v.Title, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.ValueFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
@@ -6844,7 +8690,7 @@ func statCardAttrTypes() map[string]attr.Type {
 		"category_fields":     types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_label_mapping": types.ObjectType{AttrTypes: colorLabelMappingAttrTypes()},
 		"custom_unit":         types.StringType,
-		"decimal_precision":   types.Int32Type,
+		"decimal_precision":   types.Int64Type,
 		"label":               types.ObjectType{AttrTypes: statVisualElementAttrTypes()},
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
 		"legend_by":           types.StringType,
@@ -6860,7 +8706,7 @@ func expandColorLabelMapping(ctx context.Context, p path.Path, m *ColorLabelMapp
 		return nil
 	}
 	out := &dashboard_service.ColorLabelMapping{}
-	out.ColorBy = expandEnum[dashboard_service.ColorApplyTarget](m.ColorBy)
+	out.ColorBy = expandEnumMapped(p.AtName("color_by"), m.ColorBy, colorApplyTargetToAPI, diags)
 	out.Range = expandRangeMapping(ctx, p.AtName("range"), m.Range, diags)
 	out.Regex = expandRegexMapping(ctx, p.AtName("regex"), m.Regex, diags)
 	out.Value = expandColorLabelMappingValueMapping(ctx, p.AtName("value"), m.Value, diags)
@@ -6872,7 +8718,7 @@ func flattenColorLabelMapping(ctx context.Context, p path.Path, v *dashboard_ser
 		return nil
 	}
 	out := &ColorLabelMappingModel{}
-	out.ColorBy = flattenEnum(v.ColorBy, "COLOR_APPLY_TARGET_UNSPECIFIED")
+	out.ColorBy = flattenEnumMapped(p.AtName("color_by"), v.ColorBy, colorApplyTargetFromAPI, diags)
 	out.Range = flattenRangeMapping(ctx, p.AtName("range"), v.Range, diags)
 	out.Regex = flattenRegexMapping(ctx, p.AtName("regex"), v.Regex, diags)
 	out.Value = flattenColorLabelMappingValueMapping(ctx, p.AtName("value"), v.Value, diags)
@@ -6894,7 +8740,7 @@ func expandRangeMapping(ctx context.Context, p path.Path, m *RangeMappingModel, 
 	}
 	out := &dashboard_service.RangeMapping{}
 	out.MinMax = expandMinMax(ctx, p.AtName("min_max"), m.MinMax, diags)
-	out.ThresholdType = expandEnum[dashboard_service.ThresholdType](m.ThresholdType)
+	out.ThresholdType = expandEnumMapped(p.AtName("threshold_type"), m.ThresholdType, thresholdTypeToAPI, diags)
 	if items := expandElements[CommonThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
 		out.Thresholds = make([]dashboard_service.CommonThreshold, 0, len(items))
 		for i := range items {
@@ -6910,7 +8756,7 @@ func flattenRangeMapping(ctx context.Context, p path.Path, v *dashboard_service.
 	}
 	out := &RangeMappingModel{}
 	out.MinMax = flattenMinMax(ctx, p.AtName("min_max"), v.MinMax, diags)
-	out.ThresholdType = flattenEnum(v.ThresholdType, "THRESHOLD_TYPE_UNSPECIFIED")
+	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
 	if v.Thresholds != nil {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
@@ -6971,7 +8817,7 @@ func expandMappingSection(ctx context.Context, p path.Path, m *MappingSectionMod
 		return nil
 	}
 	out := &dashboard_service.MappingSection{}
-	out.Color = expandEnum[dashboard_service.ColorSolidType](m.Color)
+	out.Color = expandEnumMapped(p.AtName("color"), m.Color, colorSolidTypeToAPI, diags)
 	out.MapTo = expandString(m.MapTo)
 	out.Value = expandString(m.Value)
 	return out
@@ -6982,7 +8828,7 @@ func flattenMappingSection(ctx context.Context, p path.Path, v *dashboard_servic
 		return nil
 	}
 	out := &MappingSectionModel{}
-	out.Color = flattenEnum(v.Color, "COLOR_SOLID_TYPE_UNSPECIFIED")
+	out.Color = flattenEnumMapped(p.AtName("color"), v.Color, colorSolidTypeFromAPI, diags)
 	out.MapTo = types.StringPointerValue(v.MapTo)
 	out.Value = types.StringPointerValue(v.Value)
 	return out
@@ -7037,8 +8883,12 @@ func expandStatVisualElement(ctx context.Context, p path.Path, m *StatVisualElem
 		return nil
 	}
 	out := &dashboard_service.StatVisualElement{}
-	if m.MappedValues != nil {
-		out.MappedValues = map[string]interface{}{}
+	if !m.MappedValues.IsNull() && !m.MappedValues.IsUnknown() {
+		if m.MappedValues.ValueBool() {
+			out.MappedValues = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("mapped_values"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
 	}
 	out.ObservationField = expandObservationField(ctx, p.AtName("observation_field"), m.ObservationField, diags)
 	out.TemplateText = expandString(m.TemplateText)
@@ -7056,8 +8906,9 @@ func flattenStatVisualElement(ctx context.Context, p path.Path, v *dashboard_ser
 		return nil
 	}
 	out := &StatVisualElementModel{}
+	out.MappedValues = types.BoolNull()
 	if v.MappedValues != nil {
-		out.MappedValues = &MappedValuesModel{}
+		out.MappedValues = types.BoolValue(true)
 	}
 	out.ObservationField = flattenObservationField(ctx, p.AtName("observation_field"), v.ObservationField, diags)
 	out.TemplateText = types.StringPointerValue(v.TemplateText)
@@ -7074,7 +8925,7 @@ func flattenStatVisualElement(ctx context.Context, p path.Path, v *dashboard_ser
 
 func statVisualElementAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"mapped_values":      types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"mapped_values":      types.BoolType,
 		"observation_field":  types.ObjectType{AttrTypes: observationFieldAttrTypes()},
 		"template_text":      types.StringType,
 		"template_variables": types.ListType{ElemType: types.ObjectType{AttrTypes: displayNameTemplateVariableAttrTypes()}},
@@ -7086,8 +8937,12 @@ func expandDisplayNameTemplateVariable(ctx context.Context, p path.Path, m *Disp
 		return nil
 	}
 	out := &dashboard_service.DisplayNameTemplateVariable{}
-	if m.MappedValues != nil {
-		out.MappedValues = map[string]interface{}{}
+	if !m.MappedValues.IsNull() && !m.MappedValues.IsUnknown() {
+		if m.MappedValues.ValueBool() {
+			out.MappedValues = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("mapped_values"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
 	}
 	out.ObservationField = expandObservationField(ctx, p.AtName("observation_field"), m.ObservationField, diags)
 	return out
@@ -7098,8 +8953,9 @@ func flattenDisplayNameTemplateVariable(ctx context.Context, p path.Path, v *das
 		return nil
 	}
 	out := &DisplayNameTemplateVariableModel{}
+	out.MappedValues = types.BoolNull()
 	if v.MappedValues != nil {
-		out.MappedValues = &MappedValuesModel{}
+		out.MappedValues = types.BoolValue(true)
 	}
 	out.ObservationField = flattenObservationField(ctx, p.AtName("observation_field"), v.ObservationField, diags)
 	return out
@@ -7107,7 +8963,7 @@ func flattenDisplayNameTemplateVariable(ctx context.Context, p path.Path, v *das
 
 func displayNameTemplateVariableAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"mapped_values":     types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"mapped_values":     types.BoolType,
 		"observation_field": types.ObjectType{AttrTypes: observationFieldAttrTypes()},
 	}
 }
@@ -7171,7 +9027,7 @@ func expandTableColumn(ctx context.Context, p path.Path, m *TableColumnModel, di
 		return nil
 	}
 	out := &dashboard_service.TableColumn{}
-	out.Field = expandObservationField(ctx, p.AtName("field"), m.Field, diags)
+	out.Field = expandObservationFieldAtTableColumnField(ctx, p.AtName("field"), m.Field, diags)
 	return out
 }
 
@@ -7180,13 +9036,44 @@ func flattenTableColumn(ctx context.Context, p path.Path, v *dashboard_service.T
 		return nil
 	}
 	out := &TableColumnModel{}
-	out.Field = flattenObservationField(ctx, p.AtName("field"), v.Field, diags)
+	out.Field = flattenObservationFieldAtTableColumnField(ctx, p.AtName("field"), v.Field, diags)
 	return out
 }
 
 func tableColumnAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"field": types.ObjectType{AttrTypes: observationFieldAttrTypes()},
+		"field": types.ObjectType{AttrTypes: observationFieldAtTableColumnFieldAttrTypes()},
+	}
+}
+
+func expandObservationFieldAtTableColumnField(ctx context.Context, p path.Path, m *ObservationFieldAtTableColumnFieldModel, diags *diag.Diagnostics) *dashboard_service.ObservationField {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.ObservationField{}
+	out.Keypath = expandStrings[string](ctx, p.AtName("keypath"), m.Keypath, diags)
+	if out.Keypath == nil {
+		// The request requires the list or the map: an empty one, not null.
+		out.Keypath = make([]string, 0)
+	}
+	out.Scope = expandEnumMapped(p.AtName("scope"), m.Scope, datasetScopeToAPI, diags)
+	return out
+}
+
+func flattenObservationFieldAtTableColumnField(ctx context.Context, p path.Path, v *dashboard_service.ObservationField, diags *diag.Diagnostics) *ObservationFieldAtTableColumnFieldModel {
+	if v == nil {
+		return nil
+	}
+	out := &ObservationFieldAtTableColumnFieldModel{}
+	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
+	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
+	return out
+}
+
+func observationFieldAtTableColumnFieldAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"keypath": types.ListType{ElemType: types.StringType},
+		"scope":   types.StringType,
 	}
 }
 
@@ -7284,7 +9171,7 @@ func expandPropertyDefinition(ctx context.Context, p path.Path, m *PropertyDefin
 		return nil
 	}
 	out := &dashboard_service.PropertyDefinition{}
-	out.Alignment = expandEnum[dashboard_service.TextAlignment](m.Alignment)
+	out.Alignment = expandEnumMapped(p.AtName("alignment"), m.Alignment, textAlignmentToAPI, diags)
 	out.ColumnDisplayName = expandString(m.ColumnDisplayName)
 	out.Link = expandPropertyLinks(ctx, p.AtName("link"), m.Link, diags)
 	out.RegexExtract = expandString(m.RegexExtract)
@@ -7300,7 +9187,7 @@ func flattenPropertyDefinition(ctx context.Context, p path.Path, v *dashboard_se
 		return nil
 	}
 	out := &PropertyDefinitionModel{}
-	out.Alignment = flattenEnum(v.Alignment, "TEXT_ALIGNMENT_UNSPECIFIED")
+	out.Alignment = flattenEnumMapped(p.AtName("alignment"), v.Alignment, textAlignmentFromAPI, diags)
 	out.ColumnDisplayName = types.StringPointerValue(v.ColumnDisplayName)
 	out.Link = flattenPropertyLinks(ctx, p.AtName("link"), v.Link, diags)
 	out.RegexExtract = types.StringPointerValue(v.RegexExtract)
@@ -7407,7 +9294,7 @@ func expandPropertyThresholds(ctx context.Context, p path.Path, m *PropertyThres
 	out := &dashboard_service.PropertyThresholds{}
 	out.Max = expandFloat64(m.Max)
 	out.Min = expandFloat64(m.Min)
-	out.Type = expandEnum[dashboard_service.ThresholdType](m.Type)
+	out.Type = expandEnumMapped(p.AtName("type"), m.Type, thresholdTypeToAPI, diags)
 	if items := expandElements[CommonThresholdModel](ctx, p.AtName("values"), m.Values, diags); items != nil {
 		out.Values = make([]dashboard_service.CommonThreshold, 0, len(items))
 		for i := range items {
@@ -7424,7 +9311,7 @@ func flattenPropertyThresholds(ctx context.Context, p path.Path, v *dashboard_se
 	out := &PropertyThresholdsModel{}
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
-	out.Type = flattenEnum(v.Type, "THRESHOLD_TYPE_UNSPECIFIED")
+	out.Type = flattenEnumMapped(p.AtName("type"), v.Type, thresholdTypeFromAPI, diags)
 	out.Values = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
 	if v.Values != nil {
 		items := make([]CommonThresholdModel, 0, len(v.Values))
@@ -7452,10 +9339,10 @@ func expandPropertyUnits(ctx context.Context, p path.Path, m *PropertyUnitsModel
 	out := &dashboard_service.PropertyUnits{}
 	out.AllowAbbreviation = expandBool(m.AllowAbbreviation)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.Max = expandFloat64(m.Max)
 	out.Min = expandFloat64(m.Min)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	return out
 }
 
@@ -7466,10 +9353,10 @@ func flattenPropertyUnits(ctx context.Context, p path.Path, v *dashboard_service
 	out := &PropertyUnitsModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	return out
 }
 
@@ -7477,7 +9364,7 @@ func propertyUnitsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"allow_abbreviation": types.BoolType,
 		"custom_unit":        types.StringType,
-		"decimal_precision":  types.Int32Type,
+		"decimal_precision":  types.Int64Type,
 		"max":                types.Float64Type,
 		"min":                types.Float64Type,
 		"unit":               types.StringType,
@@ -7527,7 +9414,7 @@ func expandPropertyValuesMappingValueMapping(ctx context.Context, p path.Path, m
 	out := &dashboard_service.PropertyValuesMappingValueMapping{}
 	out.InputValue = expandString(m.InputValue)
 	out.ReplaceValue = expandString(m.ReplaceValue)
-	out.Type = expandEnum[dashboard_service.ValuesMappingType](m.Type)
+	out.Type = expandEnumMapped(p.AtName("type"), m.Type, valuesMappingTypeToAPI, diags)
 	return out
 }
 
@@ -7538,7 +9425,7 @@ func flattenPropertyValuesMappingValueMapping(ctx context.Context, p path.Path, 
 	out := &PropertyValuesMappingValueMappingModel{}
 	out.InputValue = types.StringPointerValue(v.InputValue)
 	out.ReplaceValue = types.StringPointerValue(v.ReplaceValue)
-	out.Type = flattenEnum(v.Type, "VALUES_MAPPING_TYPE_UNSPECIFIED")
+	out.Type = flattenEnumMapped(p.AtName("type"), v.Type, valuesMappingTypeFromAPI, diags)
 	return out
 }
 
@@ -7555,8 +9442,8 @@ func expandRuleScope(ctx context.Context, p path.Path, m *RuleScopeModel, diags 
 		return nil
 	}
 	out := &dashboard_service.RuleScope{}
-	out.Field = expandObservationField(ctx, p.AtName("field"), m.Field, diags)
-	out.FieldType = expandEnum[dashboard_service.FieldDataType](m.FieldType)
+	out.Field = expandObservationFieldAtRuleScopeField(ctx, p.AtName("field"), m.Field, diags)
+	out.FieldType = expandEnumMapped(p.AtName("field_type"), m.FieldType, fieldDataTypeToAPI, diags)
 	out.Regex = expandString(m.Regex)
 	return out
 }
@@ -7566,17 +9453,48 @@ func flattenRuleScope(ctx context.Context, p path.Path, v *dashboard_service.Rul
 		return nil
 	}
 	out := &RuleScopeModel{}
-	out.Field = flattenObservationField(ctx, p.AtName("field"), v.Field, diags)
-	out.FieldType = flattenEnum(v.FieldType, "FIELD_DATA_TYPE_UNSPECIFIED")
+	out.Field = flattenObservationFieldAtRuleScopeField(ctx, p.AtName("field"), v.Field, diags)
+	out.FieldType = flattenEnumMapped(p.AtName("field_type"), v.FieldType, fieldDataTypeFromAPI, diags)
 	out.Regex = types.StringPointerValue(v.Regex)
 	return out
 }
 
 func ruleScopeAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"field":      types.ObjectType{AttrTypes: observationFieldAttrTypes()},
+		"field":      types.ObjectType{AttrTypes: observationFieldAtRuleScopeFieldAttrTypes()},
 		"field_type": types.StringType,
 		"regex":      types.StringType,
+	}
+}
+
+func expandObservationFieldAtRuleScopeField(ctx context.Context, p path.Path, m *ObservationFieldAtRuleScopeFieldModel, diags *diag.Diagnostics) *dashboard_service.ObservationField {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.ObservationField{}
+	out.Keypath = expandStrings[string](ctx, p.AtName("keypath"), m.Keypath, diags)
+	if out.Keypath == nil {
+		// The request requires the list or the map: an empty one, not null.
+		out.Keypath = make([]string, 0)
+	}
+	out.Scope = expandEnumMapped(p.AtName("scope"), m.Scope, datasetScopeToAPI, diags)
+	return out
+}
+
+func flattenObservationFieldAtRuleScopeField(ctx context.Context, p path.Path, v *dashboard_service.ObservationField, diags *diag.Diagnostics) *ObservationFieldAtRuleScopeFieldModel {
+	if v == nil {
+		return nil
+	}
+	out := &ObservationFieldAtRuleScopeFieldModel{}
+	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
+	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
+	return out
+}
+
+func observationFieldAtRuleScopeFieldAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"keypath": types.ListType{ElemType: types.StringType},
+		"scope":   types.StringType,
 	}
 }
 
@@ -7591,7 +9509,7 @@ func expandTableSettings(ctx context.Context, p path.Path, m *TableSettingsModel
 			out.ColumnWidths = append(out.ColumnWidths, *expandColumnWidthEntry(ctx, p.AtName("column_widths").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.RowStyle = expandEnum[dashboard_service.RowStyle](m.RowStyle)
+	out.RowStyle = expandEnumMapped(p.AtName("row_style"), m.RowStyle, rowStyleToAPI, diags)
 	return out
 }
 
@@ -7608,7 +9526,7 @@ func flattenTableSettings(ctx context.Context, p path.Path, v *dashboard_service
 		}
 		out.ColumnWidths = flattenList(ctx, types.ObjectType{AttrTypes: columnWidthEntryAttrTypes()}, items, diags)
 	}
-	out.RowStyle = flattenEnum(v.RowStyle, "ROW_STYLE_UNSPECIFIED")
+	out.RowStyle = flattenEnumMapped(p.AtName("row_style"), v.RowStyle, rowStyleFromAPI, diags)
 	return out
 }
 
@@ -7625,7 +9543,7 @@ func expandColumnWidthEntry(ctx context.Context, p path.Path, m *ColumnWidthEntr
 	}
 	out := &dashboard_service.ColumnWidthEntry{}
 	out.ColumnName = expandString(m.ColumnName)
-	out.Width = expandInt32(m.Width)
+	out.Width = expandInt64AsInt32(p.AtName("width"), m.Width, diags)
 	return out
 }
 
@@ -7635,14 +9553,14 @@ func flattenColumnWidthEntry(ctx context.Context, p path.Path, v *dashboard_serv
 	}
 	out := &ColumnWidthEntryModel{}
 	out.ColumnName = types.StringPointerValue(v.ColumnName)
-	out.Width = types.Int32PointerValue(v.Width)
+	out.Width = types.Int64PointerValue(int32AsInt64(v.Width))
 	return out
 }
 
 func columnWidthEntryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"column_name": types.StringType,
-		"width":       types.Int32Type,
+		"width":       types.Int64Type,
 	}
 }
 
@@ -7652,7 +9570,7 @@ func expandTimeSeriesBars(ctx context.Context, p path.Path, m *TimeSeriesBarsMod
 	}
 	out := &dashboard_service.TimeSeriesBars{}
 	out.AllowAbbreviation = expandBool(m.AllowAbbreviation)
-	out.BarValueDisplay = expandEnum[dashboard_service.VisualizationBarValueDisplay](m.BarValueDisplay)
+	out.BarValueDisplay = expandEnumMapped(p.AtName("bar_value_display"), m.BarValueDisplay, visualizationBarValueDisplayToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("category_fields"), m.CategoryFields, diags); items != nil {
 		out.CategoryFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -7661,35 +9579,35 @@ func expandTimeSeriesBars(ctx context.Context, p path.Path, m *TimeSeriesBarsMod
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxSlicesPerBar = expandInt32(m.MaxSlicesPerBar)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
+	out.MaxSlicesPerBar = expandInt64AsInt32(p.AtName("max_slices_per_bar"), m.MaxSlicesPerBar, diags)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
 	out.SeriesNameTemplate = expandString(m.SeriesNameTemplate)
-	out.SortBy = expandEnum[dashboard_service.SortByType](m.SortBy)
+	out.SortBy = expandEnumMapped(p.AtName("sort_by"), m.SortBy, sortByTypeToAPI, diags)
 	out.TemporalField = expandObservationField(ctx, p.AtName("temporal_field"), m.TemporalField, diags)
 	out.Tooltip = expandTimeSeriesTooltip(ctx, p.AtName("tooltip"), m.Tooltip, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
 		out.ValueFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
 			out.ValueFields = append(out.ValueFields, *expandObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.XAxisTimeFormat = expandEnum[dashboard_service.XAxisTimeFormat](m.XAxisTimeFormat)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.XAxisTimeFormat = expandEnumMapped(p.AtName("x_axis_time_format"), m.XAxisTimeFormat, xAxisTimeFormatToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenTimeSeriesBars(ctx context.Context, p path.Path, v *dashboard_service.TimeSeriesBars, diags *diag.Diagnostics) *TimeSeriesBarsModel {
+func flattenTimeSeriesBars(ctx context.Context, p path.Path, v *dashboard_service.TimeSeriesBars, prior *TimeSeriesBarsModel, diags *diag.Diagnostics) *TimeSeriesBarsModel {
 	if v == nil {
 		return nil
 	}
 	out := &TimeSeriesBarsModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
-	out.BarValueDisplay = flattenEnum(v.BarValueDisplay, "BAR_VALUE_DISPLAY_UNSPECIFIED")
+	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, visualizationBarValueDisplayFromAPI, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.CategoryFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
@@ -7700,16 +9618,16 @@ func flattenTimeSeriesBars(ctx context.Context, p path.Path, v *dashboard_servic
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxSlicesPerBar = types.Int32PointerValue(v.MaxSlicesPerBar)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
+	out.MaxSlicesPerBar = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerBar))
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
 	out.SeriesNameTemplate = types.StringPointerValue(v.SeriesNameTemplate)
-	out.SortBy = flattenEnum(v.SortBy, "SORT_BY_TYPE_UNSPECIFIED")
+	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.TemporalField = flattenObservationField(ctx, p.AtName("temporal_field"), v.TemporalField, diags)
 	out.Tooltip = flattenTimeSeriesTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.ValueFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
@@ -7718,9 +9636,15 @@ func flattenTimeSeriesBars(ctx context.Context, p path.Path, v *dashboard_servic
 		}
 		out.ValueFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.XAxisTimeFormat = flattenEnum(v.XAxisTimeFormat, "X_AXIS_TIME_FORMAT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -7731,10 +9655,10 @@ func timeSeriesBarsAttrTypes() map[string]attr.Type {
 		"category_fields":      types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":         types.StringType,
 		"custom_unit":          types.StringType,
-		"decimal_precision":    types.Int32Type,
+		"decimal_precision":    types.Int64Type,
 		"hash_colors":          types.BoolType,
 		"legend":               types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_slices_per_bar":   types.Int32Type,
+		"max_slices_per_bar":   types.Int64Type,
 		"scale_type":           types.StringType,
 		"series_name_template": types.StringType,
 		"sort_by":              types.StringType,
@@ -7743,8 +9667,8 @@ func timeSeriesBarsAttrTypes() map[string]attr.Type {
 		"unit":                 types.StringType,
 		"value_fields":         types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"x_axis_time_format":   types.StringType,
-		"y_axis_max":           types.Float32Type,
-		"y_axis_min":           types.Float32Type,
+		"y_axis_max":           types.Float64Type,
+		"y_axis_min":           types.Float64Type,
 	}
 }
 
@@ -7790,16 +9714,16 @@ func expandTimeSeriesLines(ctx context.Context, p path.Path, m *TimeSeriesLinesM
 	out.ColorScheme = expandString(m.ColorScheme)
 	out.ConnectNulls = expandBool(m.ConnectNulls)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SeriesCountLimit = expandString(m.SeriesCountLimit)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SeriesCountLimit = expandInt64Wire(m.SeriesCountLimit)
 	out.SeriesNameTemplate = expandString(m.SeriesNameTemplate)
-	out.StackedLine = expandEnum[dashboard_service.VisualizationStackedLine](m.StackedLine)
+	out.StackedLine = expandEnumMapped(p.AtName("stacked_line"), m.StackedLine, visualizationStackedLineToAPI, diags)
 	out.TemporalField = expandObservationField(ctx, p.AtName("temporal_field"), m.TemporalField, diags)
 	out.Tooltip = expandTimeSeriesTooltip(ctx, p.AtName("tooltip"), m.Tooltip, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.UseDataTimeRange = expandBool(m.UseDataTimeRange)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
 		out.ValueFields = make([]dashboard_service.ObservationField, 0, len(items))
@@ -7807,13 +9731,13 @@ func expandTimeSeriesLines(ctx context.Context, p path.Path, m *TimeSeriesLinesM
 			out.ValueFields = append(out.ValueFields, *expandObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.XAxisTimeFormat = expandEnum[dashboard_service.XAxisTimeFormat](m.XAxisTimeFormat)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.XAxisTimeFormat = expandEnumMapped(p.AtName("x_axis_time_format"), m.XAxisTimeFormat, xAxisTimeFormatToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenTimeSeriesLines(ctx context.Context, p path.Path, v *dashboard_service.TimeSeriesLines, diags *diag.Diagnostics) *TimeSeriesLinesModel {
+func flattenTimeSeriesLines(ctx context.Context, p path.Path, v *dashboard_service.TimeSeriesLines, prior *TimeSeriesLinesModel, diags *diag.Diagnostics) *TimeSeriesLinesModel {
 	if v == nil {
 		return nil
 	}
@@ -7830,16 +9754,16 @@ func flattenTimeSeriesLines(ctx context.Context, p path.Path, v *dashboard_servi
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.ConnectNulls = types.BoolPointerValue(v.ConnectNulls)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SeriesCountLimit = types.StringPointerValue(v.SeriesCountLimit)
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SeriesCountLimit = flattenInt64Wire(p.AtName("series_count_limit"), v.SeriesCountLimit, diags)
 	out.SeriesNameTemplate = types.StringPointerValue(v.SeriesNameTemplate)
-	out.StackedLine = flattenEnum(v.StackedLine, "STACKED_LINE_UNSPECIFIED")
+	out.StackedLine = flattenEnumMapped(p.AtName("stacked_line"), v.StackedLine, visualizationStackedLineFromAPI, diags)
 	out.TemporalField = flattenObservationField(ctx, p.AtName("temporal_field"), v.TemporalField, diags)
 	out.Tooltip = flattenTimeSeriesTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.UseDataTimeRange = types.BoolPointerValue(v.UseDataTimeRange)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.ValueFields != nil {
@@ -7849,9 +9773,15 @@ func flattenTimeSeriesLines(ctx context.Context, p path.Path, v *dashboard_servi
 		}
 		out.ValueFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.XAxisTimeFormat = flattenEnum(v.XAxisTimeFormat, "X_AXIS_TIME_FORMAT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -7862,11 +9792,11 @@ func timeSeriesLinesAttrTypes() map[string]attr.Type {
 		"color_scheme":         types.StringType,
 		"connect_nulls":        types.BoolType,
 		"custom_unit":          types.StringType,
-		"decimal_precision":    types.Int32Type,
+		"decimal_precision":    types.Int64Type,
 		"hash_colors":          types.BoolType,
 		"legend":               types.ObjectType{AttrTypes: legendAttrTypes()},
 		"scale_type":           types.StringType,
-		"series_count_limit":   types.StringType,
+		"series_count_limit":   types.Int64Type,
 		"series_name_template": types.StringType,
 		"stacked_line":         types.StringType,
 		"temporal_field":       types.ObjectType{AttrTypes: observationFieldAttrTypes()},
@@ -7875,8 +9805,8 @@ func timeSeriesLinesAttrTypes() map[string]attr.Type {
 		"use_data_time_range":  types.BoolType,
 		"value_fields":         types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"x_axis_time_format":   types.StringType,
-		"y_axis_max":           types.Float32Type,
-		"y_axis_min":           types.Float32Type,
+		"y_axis_max":           types.Float64Type,
+		"y_axis_min":           types.Float64Type,
 	}
 }
 
@@ -7893,14 +9823,14 @@ func expandTimeSeriesLinesMulti(ctx context.Context, p path.Path, m *TimeSeriesL
 			out.QueryDisplaySettings = append(out.QueryDisplaySettings, *expandQueryDisplaySettings(ctx, p.AtName("query_display_settings").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.StackedLine = expandEnum[dashboard_service.VisualizationStackedLine](m.StackedLine)
+	out.StackedLine = expandEnumMapped(p.AtName("stacked_line"), m.StackedLine, visualizationStackedLineToAPI, diags)
 	out.Tooltip = expandTimeSeriesTooltip(ctx, p.AtName("tooltip"), m.Tooltip, diags)
 	out.UseDataTimeRange = expandBool(m.UseDataTimeRange)
-	out.XAxisTimeFormat = expandEnum[dashboard_service.XAxisTimeFormat](m.XAxisTimeFormat)
+	out.XAxisTimeFormat = expandEnumMapped(p.AtName("x_axis_time_format"), m.XAxisTimeFormat, xAxisTimeFormatToAPI, diags)
 	return out
 }
 
-func flattenTimeSeriesLinesMulti(ctx context.Context, p path.Path, v *dashboard_service.TimeSeriesLinesMulti, diags *diag.Diagnostics) *TimeSeriesLinesMultiModel {
+func flattenTimeSeriesLinesMulti(ctx context.Context, p path.Path, v *dashboard_service.TimeSeriesLinesMulti, prior *TimeSeriesLinesMultiModel, diags *diag.Diagnostics) *TimeSeriesLinesMultiModel {
 	if v == nil {
 		return nil
 	}
@@ -7910,15 +9840,24 @@ func flattenTimeSeriesLinesMulti(ctx context.Context, p path.Path, v *dashboard_
 	out.QueryDisplaySettings = types.ListNull(types.ObjectType{AttrTypes: queryDisplaySettingsAttrTypes()})
 	if v.QueryDisplaySettings != nil {
 		items := make([]QueryDisplaySettingsModel, 0, len(v.QueryDisplaySettings))
+		var priorQueryDisplaySettings []QueryDisplaySettingsModel
+		if prior != nil {
+			priorQueryDisplaySettings = priorItems[QueryDisplaySettingsModel](ctx, prior.QueryDisplaySettings)
+		}
 		for i := range v.QueryDisplaySettings {
-			items = append(items, *flattenQueryDisplaySettings(ctx, p.AtName("query_display_settings").AtListIndex(i), &v.QueryDisplaySettings[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *QueryDisplaySettingsModel
+			if i < len(priorQueryDisplaySettings) {
+				priorItem = &priorQueryDisplaySettings[i]
+			}
+			items = append(items, *flattenQueryDisplaySettings(ctx, p.AtName("query_display_settings").AtListIndex(i), &v.QueryDisplaySettings[i], priorItem, diags))
 		}
 		out.QueryDisplaySettings = flattenList(ctx, types.ObjectType{AttrTypes: queryDisplaySettingsAttrTypes()}, items, diags)
 	}
-	out.StackedLine = flattenEnum(v.StackedLine, "STACKED_LINE_UNSPECIFIED")
+	out.StackedLine = flattenEnumMapped(p.AtName("stacked_line"), v.StackedLine, visualizationStackedLineFromAPI, diags)
 	out.Tooltip = flattenTimeSeriesTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
 	out.UseDataTimeRange = types.BoolPointerValue(v.UseDataTimeRange)
-	out.XAxisTimeFormat = flattenEnum(v.XAxisTimeFormat, "X_AXIS_TIME_FORMAT_UNSPECIFIED")
+	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
 	return out
 }
 
@@ -7948,26 +9887,26 @@ func expandQueryDisplaySettings(ctx context.Context, p path.Path, m *QueryDispla
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.HashColors = expandBool(m.HashColors)
 	out.QueryId = valueOf(expandString(m.QueryId))
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SeriesCountLimit = expandString(m.SeriesCountLimit)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SeriesCountLimit = expandInt64Wire(m.SeriesCountLimit)
 	out.SeriesNameTemplate = expandString(m.SeriesNameTemplate)
 	out.TemporalField = expandObservationField(ctx, p.AtName("temporal_field"), m.TemporalField, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
 		out.ValueFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
 			out.ValueFields = append(out.ValueFields, *expandObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenQueryDisplaySettings(ctx context.Context, p path.Path, v *dashboard_service.QueryDisplaySettings, diags *diag.Diagnostics) *QueryDisplaySettingsModel {
+func flattenQueryDisplaySettings(ctx context.Context, p path.Path, v *dashboard_service.QueryDisplaySettings, prior *QueryDisplaySettingsModel, diags *diag.Diagnostics) *QueryDisplaySettingsModel {
 	if v == nil {
 		return nil
 	}
@@ -7983,14 +9922,14 @@ func flattenQueryDisplaySettings(ctx context.Context, p path.Path, v *dashboard_
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.QueryId = types.StringPointerValue(&v.QueryId)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SeriesCountLimit = types.StringPointerValue(v.SeriesCountLimit)
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SeriesCountLimit = flattenInt64Wire(p.AtName("series_count_limit"), v.SeriesCountLimit, diags)
 	out.SeriesNameTemplate = types.StringPointerValue(v.SeriesNameTemplate)
 	out.TemporalField = flattenObservationField(ctx, p.AtName("temporal_field"), v.TemporalField, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.ValueFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
@@ -7999,8 +9938,14 @@ func flattenQueryDisplaySettings(ctx context.Context, p path.Path, v *dashboard_
 		}
 		out.ValueFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -8010,17 +9955,17 @@ func queryDisplaySettingsAttrTypes() map[string]attr.Type {
 		"category_fields":      types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":         types.StringType,
 		"custom_unit":          types.StringType,
-		"decimal_precision":    types.Int32Type,
+		"decimal_precision":    types.Int64Type,
 		"hash_colors":          types.BoolType,
 		"query_id":             types.StringType,
 		"scale_type":           types.StringType,
-		"series_count_limit":   types.StringType,
+		"series_count_limit":   types.Int64Type,
 		"series_name_template": types.StringType,
 		"temporal_field":       types.ObjectType{AttrTypes: observationFieldAttrTypes()},
 		"unit":                 types.StringType,
 		"value_fields":         types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
-		"y_axis_max":           types.Float32Type,
-		"y_axis_min":           types.Float32Type,
+		"y_axis_max":           types.Float64Type,
+		"y_axis_min":           types.Float64Type,
 	}
 }
 
@@ -8030,7 +9975,7 @@ func expandVerticalBars(ctx context.Context, p path.Path, m *VerticalBarsModel, 
 	}
 	out := &dashboard_service.VerticalBars{}
 	out.AllowAbbreviation = expandBool(m.AllowAbbreviation)
-	out.BarValueDisplay = expandEnum[dashboard_service.VisualizationBarValueDisplay](m.BarValueDisplay)
+	out.BarValueDisplay = expandEnumMapped(p.AtName("bar_value_display"), m.BarValueDisplay, visualizationBarValueDisplayToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("category_fields"), m.CategoryFields, diags); items != nil {
 		out.CategoryFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -8038,16 +9983,34 @@ func expandVerticalBars(ctx context.Context, p path.Path, m *VerticalBarsModel, 
 		}
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
-	out.ColorsBy = expandColorsBy(ctx, p.AtName("colors_by"), m.ColorsBy, diags)
+	if v := m.ColorsBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.ColorsBy{}
+		switch v.ValueString() {
+		case "aggregation":
+			fold.Aggregation = map[string]interface{}{}
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "group_by":
+			fold.GroupBy = map[string]interface{}{}
+		case "query":
+			fold.Query = map[string]interface{}{}
+		case "stack":
+			fold.Stack = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("colors_by"), "Unknown value", fmt.Sprintf("%q is not one of aggregation category group_by query stack.", v.ValueString()))
+		}
+		out.ColorsBy = fold
+	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxBarsPerChart = expandInt32(m.MaxBarsPerChart)
-	out.MaxSlicesPerBar = expandInt32(m.MaxSlicesPerBar)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SortBy = expandEnum[dashboard_service.SortByType](m.SortBy)
+	out.MaxBarsPerChart = expandInt64AsInt32(p.AtName("max_bars_per_chart"), m.MaxBarsPerChart, diags)
+	out.MaxSlicesPerBar = expandInt64AsInt32(p.AtName("max_slices_per_bar"), m.MaxSlicesPerBar, diags)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SortBy = expandEnumMapped(p.AtName("sort_by"), m.SortBy, sortByTypeToAPI, diags)
 	out.StackNameTemplate = expandString(m.StackNameTemplate)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("sub_category_fields"), m.SubCategoryFields, diags); items != nil {
 		out.SubCategoryFields = make([]dashboard_service.ObservationField, 0, len(items))
@@ -8055,20 +10018,20 @@ func expandVerticalBars(ctx context.Context, p path.Path, m *VerticalBarsModel, 
 			out.SubCategoryFields = append(out.SubCategoryFields, *expandObservationField(ctx, p.AtName("sub_category_fields").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	out.ValueField = expandObservationField(ctx, p.AtName("value_field"), m.ValueField, diags)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenVerticalBars(ctx context.Context, p path.Path, v *dashboard_service.VerticalBars, diags *diag.Diagnostics) *VerticalBarsModel {
+func flattenVerticalBars(ctx context.Context, p path.Path, v *dashboard_service.VerticalBars, prior *VerticalBarsModel, diags *diag.Diagnostics) *VerticalBarsModel {
 	if v == nil {
 		return nil
 	}
 	out := &VerticalBarsModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
-	out.BarValueDisplay = flattenEnum(v.BarValueDisplay, "BAR_VALUE_DISPLAY_UNSPECIFIED")
+	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, visualizationBarValueDisplayFromAPI, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.CategoryFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
@@ -8078,16 +10041,30 @@ func flattenVerticalBars(ctx context.Context, p path.Path, v *dashboard_service.
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
-	out.ColorsBy = flattenColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
+	out.ColorsBy = types.StringNull()
+	if fold := v.ColorsBy; fold != nil {
+		switch {
+		case fold.Aggregation != nil:
+			out.ColorsBy = types.StringValue("aggregation")
+		case fold.Category != nil:
+			out.ColorsBy = types.StringValue("category")
+		case fold.GroupBy != nil:
+			out.ColorsBy = types.StringValue("group_by")
+		case fold.Query != nil:
+			out.ColorsBy = types.StringValue("query")
+		case fold.Stack != nil:
+			out.ColorsBy = types.StringValue("stack")
+		}
+	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxBarsPerChart = types.Int32PointerValue(v.MaxBarsPerChart)
-	out.MaxSlicesPerBar = types.Int32PointerValue(v.MaxSlicesPerBar)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SortBy = flattenEnum(v.SortBy, "SORT_BY_TYPE_UNSPECIFIED")
+	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
+	out.MaxSlicesPerBar = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerBar))
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	out.SubCategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.SubCategoryFields != nil {
@@ -8097,10 +10074,16 @@ func flattenVerticalBars(ctx context.Context, p path.Path, v *dashboard_service.
 		}
 		out.SubCategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -8110,22 +10093,22 @@ func verticalBarsAttrTypes() map[string]attr.Type {
 		"bar_value_display":   types.StringType,
 		"category_fields":     types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: colorsByAttrTypes()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
-		"decimal_precision":   types.Int32Type,
+		"decimal_precision":   types.Int64Type,
 		"group_name_template": types.StringType,
 		"hash_colors":         types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_bars_per_chart":  types.Int32Type,
-		"max_slices_per_bar":  types.Int32Type,
+		"max_bars_per_chart":  types.Int64Type,
+		"max_slices_per_bar":  types.Int64Type,
 		"scale_type":          types.StringType,
 		"sort_by":             types.StringType,
 		"stack_name_template": types.StringType,
 		"sub_category_fields": types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"unit":                types.StringType,
 		"value_field":         types.ObjectType{AttrTypes: observationFieldAttrTypes()},
-		"y_axis_max":          types.Float32Type,
-		"y_axis_min":          types.Float32Type,
+		"y_axis_max":          types.Float64Type,
+		"y_axis_min":          types.Float64Type,
 	}
 }
 
@@ -8135,7 +10118,7 @@ func expandVerticalBarsMulti(ctx context.Context, p path.Path, m *VerticalBarsMu
 	}
 	out := &dashboard_service.VerticalBarsMulti{}
 	out.AllowAbbreviation = expandBool(m.AllowAbbreviation)
-	out.BarValueDisplay = expandEnum[dashboard_service.VisualizationBarValueDisplay](m.BarValueDisplay)
+	out.BarValueDisplay = expandEnumMapped(p.AtName("bar_value_display"), m.BarValueDisplay, visualizationBarValueDisplayToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("category_fields"), m.CategoryFields, diags); items != nil {
 		out.CategoryFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -8143,34 +10126,52 @@ func expandVerticalBarsMulti(ctx context.Context, p path.Path, m *VerticalBarsMu
 		}
 	}
 	out.ColorScheme = expandString(m.ColorScheme)
-	out.ColorsBy = expandColorsBy(ctx, p.AtName("colors_by"), m.ColorsBy, diags)
+	if v := m.ColorsBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.ColorsBy{}
+		switch v.ValueString() {
+		case "aggregation":
+			fold.Aggregation = map[string]interface{}{}
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "group_by":
+			fold.GroupBy = map[string]interface{}{}
+		case "query":
+			fold.Query = map[string]interface{}{}
+		case "stack":
+			fold.Stack = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("colors_by"), "Unknown value", fmt.Sprintf("%q is not one of aggregation category group_by query stack.", v.ValueString()))
+		}
+		out.ColorsBy = fold
+	}
 	out.CustomUnit = expandString(m.CustomUnit)
-	out.DecimalPrecision = expandInt32(m.DecimalPrecision)
+	out.DecimalPrecision = expandInt64AsInt32(p.AtName("decimal_precision"), m.DecimalPrecision, diags)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxBarsPerChart = expandInt32(m.MaxBarsPerChart)
+	out.MaxBarsPerChart = expandInt64AsInt32(p.AtName("max_bars_per_chart"), m.MaxBarsPerChart, diags)
 	if items := expandElements[VerticalBarsMultiQueryFieldSettingsModel](ctx, p.AtName("query_field_settings"), m.QueryFieldSettings, diags); items != nil {
 		out.QueryFieldSettings = make([]dashboard_service.VerticalBarsMultiQueryFieldSettings, 0, len(items))
 		for i := range items {
 			out.QueryFieldSettings = append(out.QueryFieldSettings, *expandVerticalBarsMultiQueryFieldSettings(ctx, p.AtName("query_field_settings").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
 	out.SortOrder = expandVisualizationSortOrder(ctx, p.AtName("sort_order"), m.SortOrder, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenVerticalBarsMulti(ctx context.Context, p path.Path, v *dashboard_service.VerticalBarsMulti, diags *diag.Diagnostics) *VerticalBarsMultiModel {
+func flattenVerticalBarsMulti(ctx context.Context, p path.Path, v *dashboard_service.VerticalBarsMulti, prior *VerticalBarsMultiModel, diags *diag.Diagnostics) *VerticalBarsMultiModel {
 	if v == nil {
 		return nil
 	}
 	out := &VerticalBarsMultiModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
-	out.BarValueDisplay = flattenEnum(v.BarValueDisplay, "BAR_VALUE_DISPLAY_UNSPECIFIED")
+	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, visualizationBarValueDisplayFromAPI, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
 	if v.CategoryFields != nil {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
@@ -8180,13 +10181,27 @@ func flattenVerticalBarsMulti(ctx context.Context, p path.Path, v *dashboard_ser
 		out.CategoryFields = flattenList(ctx, types.ObjectType{AttrTypes: observationFieldAttrTypes()}, items, diags)
 	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
-	out.ColorsBy = flattenColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
+	out.ColorsBy = types.StringNull()
+	if fold := v.ColorsBy; fold != nil {
+		switch {
+		case fold.Aggregation != nil:
+			out.ColorsBy = types.StringValue("aggregation")
+		case fold.Category != nil:
+			out.ColorsBy = types.StringValue("category")
+		case fold.GroupBy != nil:
+			out.ColorsBy = types.StringValue("group_by")
+		case fold.Query != nil:
+			out.ColorsBy = types.StringValue("query")
+		case fold.Stack != nil:
+			out.ColorsBy = types.StringValue("stack")
+		}
+	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
-	out.DecimalPrecision = types.Int32PointerValue(v.DecimalPrecision)
+	out.DecimalPrecision = types.Int64PointerValue(int32AsInt64(v.DecimalPrecision))
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxBarsPerChart = types.Int32PointerValue(v.MaxBarsPerChart)
+	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
 	out.QueryFieldSettings = types.ListNull(types.ObjectType{AttrTypes: verticalBarsMultiQueryFieldSettingsAttrTypes()})
 	if v.QueryFieldSettings != nil {
 		items := make([]VerticalBarsMultiQueryFieldSettingsModel, 0, len(v.QueryFieldSettings))
@@ -8195,11 +10210,17 @@ func flattenVerticalBarsMulti(ctx context.Context, p path.Path, v *dashboard_ser
 		}
 		out.QueryFieldSettings = flattenList(ctx, types.ObjectType{AttrTypes: verticalBarsMultiQueryFieldSettingsAttrTypes()}, items, diags)
 	}
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
 	out.SortOrder = flattenVisualizationSortOrder(ctx, p.AtName("sort_order"), v.SortOrder, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -8209,19 +10230,19 @@ func verticalBarsMultiAttrTypes() map[string]attr.Type {
 		"bar_value_display":    types.StringType,
 		"category_fields":      types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
 		"color_scheme":         types.StringType,
-		"colors_by":            types.ObjectType{AttrTypes: colorsByAttrTypes()},
+		"colors_by":            types.StringType,
 		"custom_unit":          types.StringType,
-		"decimal_precision":    types.Int32Type,
+		"decimal_precision":    types.Int64Type,
 		"group_name_template":  types.StringType,
 		"hash_colors":          types.BoolType,
 		"legend":               types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_bars_per_chart":   types.Int32Type,
+		"max_bars_per_chart":   types.Int64Type,
 		"query_field_settings": types.ListType{ElemType: types.ObjectType{AttrTypes: verticalBarsMultiQueryFieldSettingsAttrTypes()}},
 		"scale_type":           types.StringType,
 		"sort_order":           types.ObjectType{AttrTypes: visualizationSortOrderAttrTypes()},
 		"unit":                 types.StringType,
-		"y_axis_max":           types.Float32Type,
-		"y_axis_min":           types.Float32Type,
+		"y_axis_max":           types.Float64Type,
+		"y_axis_min":           types.Float64Type,
 	}
 }
 
@@ -8260,26 +10281,26 @@ func expandWidgetsGauge(ctx context.Context, p path.Path, m *WidgetsGaugeModel, 
 	out.ArcDisplay = expandArcDisplay(ctx, p.AtName("arc_display"), m.ArcDisplay, diags)
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
-	out.Decimal = expandInt32(m.Decimal)
+	out.Decimal = expandNumberAsInt32(p.AtName("decimal"), m.Decimal, diags)
 	out.DecimalPrecision = expandBool(m.DecimalPrecision)
 	out.DisplaySeriesName = expandBool(m.DisplaySeriesName)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.LegendBy = expandEnum[dashboard_service.LegendBy](m.LegendBy)
+	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
 	out.Max = expandFloat64(m.Max)
 	out.Min = expandFloat64(m.Min)
 	out.Query = expandGaugeQuery(ctx, p.AtName("query"), m.Query, diags)
 	out.ShowInnerArc = expandBool(m.ShowInnerArc)
 	out.ShowMinMax = expandBool(m.ShowMinMax)
 	out.ShowOuterArc = expandBool(m.ShowOuterArc)
-	out.ThresholdBy = expandEnum[dashboard_service.GaugeThresholdBy](m.ThresholdBy)
-	out.ThresholdType = expandEnum[dashboard_service.ThresholdType](m.ThresholdType)
+	out.ThresholdBy = expandEnumMapped(p.AtName("threshold_by"), m.ThresholdBy, gaugeThresholdByToAPI, diags)
+	out.ThresholdType = expandEnumMapped(p.AtName("threshold_type"), m.ThresholdType, thresholdTypeToAPI, diags)
 	if items := expandElements[GaugeThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
 		out.Thresholds = make([]dashboard_service.GaugeThreshold, 0, len(items))
 		for i := range items {
 			out.Thresholds = append(out.Thresholds, *expandGaugeThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.GaugeUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, gaugeUnitToAPI, diags)
 	return out
 }
 
@@ -8291,19 +10312,19 @@ func flattenWidgetsGauge(ctx context.Context, p path.Path, v *dashboard_service.
 	out.ArcDisplay = flattenArcDisplay(ctx, p.AtName("arc_display"), v.ArcDisplay, diags)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
-	out.Decimal = types.Int32PointerValue(v.Decimal)
+	out.Decimal = int32AsNumber(v.Decimal)
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.DisplaySeriesName = types.BoolPointerValue(v.DisplaySeriesName)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnum(v.LegendBy, "LEGEND_BY_UNSPECIFIED")
+	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
 	out.Query = flattenGaugeQuery(ctx, p.AtName("query"), v.Query, diags)
 	out.ShowInnerArc = types.BoolPointerValue(v.ShowInnerArc)
 	out.ShowMinMax = types.BoolPointerValue(v.ShowMinMax)
 	out.ShowOuterArc = types.BoolPointerValue(v.ShowOuterArc)
-	out.ThresholdBy = flattenEnum(v.ThresholdBy, "THRESHOLD_BY_UNSPECIFIED")
-	out.ThresholdType = flattenEnum(v.ThresholdType, "THRESHOLD_TYPE_UNSPECIFIED")
+	out.ThresholdBy = flattenEnumMapped(p.AtName("threshold_by"), v.ThresholdBy, gaugeThresholdByFromAPI, diags)
+	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: gaugeThresholdAttrTypes()})
 	if v.Thresholds != nil {
 		items := make([]GaugeThresholdModel, 0, len(v.Thresholds))
@@ -8312,7 +10333,7 @@ func flattenWidgetsGauge(ctx context.Context, p path.Path, v *dashboard_service.
 		}
 		out.Thresholds = flattenList(ctx, types.ObjectType{AttrTypes: gaugeThresholdAttrTypes()}, items, diags)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, gaugeUnitFromAPI, diags)
 	return out
 }
 
@@ -8321,7 +10342,7 @@ func widgetsGaugeAttrTypes() map[string]attr.Type {
 		"arc_display":         types.ObjectType{AttrTypes: arcDisplayAttrTypes()},
 		"custom_unit":         types.StringType,
 		"data_mode_type":      types.StringType,
-		"decimal":             types.Int32Type,
+		"decimal":             types.NumberType,
 		"decimal_precision":   types.BoolType,
 		"display_series_name": types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
@@ -8493,12 +10514,12 @@ func expandGaugeMetricsQuery(ctx context.Context, p path.Path, m *GaugeMetricsQu
 		return nil
 	}
 	out := &dashboard_service.GaugeMetricsQuery{}
-	out.Aggregation = expandEnum[dashboard_service.GaugeAggregation](m.Aggregation)
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.Aggregation = expandEnumMapped(p.AtName("aggregation"), m.Aggregation, gaugeAggregationToAPI, diags)
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtGaugeMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtGaugeMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	{
@@ -8506,7 +10527,7 @@ func expandGaugeMetricsQuery(ctx context.Context, p path.Path, m *GaugeMetricsQu
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
 }
@@ -8516,21 +10537,21 @@ func flattenGaugeMetricsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 		return nil
 	}
 	out := &GaugeMetricsQueryModel{}
-	out.Aggregation = flattenEnum(v.Aggregation, "AGGREGATION_UNSPECIFIED")
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, gaugeAggregationFromAPI, diags)
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtGaugeMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtGaugeMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtGaugeMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtGaugeMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
 }
@@ -8539,10 +10560,40 @@ func gaugeMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aggregation":       types.StringType,
 		"editor_mode":       types.StringType,
-		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtGaugeMetricsQueryFiltersAttrTypes()}},
 		"promql_query":      types.StringType,
 		"promql_query_type": types.StringType,
 		"time_frame":        types.ObjectType{AttrTypes: timeFrameSelectAttrTypes()},
+	}
+}
+
+func expandMetricsFilterAtGaugeMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtGaugeMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.MetricsFilter{}
+	out.Label = expandString(m.Label)
+	out.Metric = expandString(m.Metric)
+	out.Operator = expandFilterOperator(ctx, p.AtName("operator"), m.Operator, diags)
+	return out
+}
+
+func flattenMetricsFilterAtGaugeMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtGaugeMetricsQueryFiltersModel {
+	if v == nil {
+		return nil
+	}
+	out := &MetricsFilterAtGaugeMetricsQueryFiltersModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Metric = types.StringPointerValue(v.Metric)
+	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
+	return out
+}
+
+func metricsFilterAtGaugeMetricsQueryFiltersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":    types.StringType,
+		"metric":   types.StringType,
+		"operator": types.ObjectType{AttrTypes: filterOperatorAttrTypes()},
 	}
 }
 
@@ -8665,48 +10716,60 @@ func expandHexagon(ctx context.Context, p path.Path, m *HexagonModel, diags *dia
 	out := &dashboard_service.Hexagon{}
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
-	out.Decimal = expandInt32(m.Decimal)
+	out.Decimal = expandNumberAsInt32(p.AtName("decimal"), m.Decimal, diags)
 	out.DecimalPrecision = expandBool(m.DecimalPrecision)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.LegendBy = expandEnum[dashboard_service.LegendBy](m.LegendBy)
-	out.Max = expandFloat64(m.Max)
-	out.Min = expandFloat64(m.Min)
+	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
+	out.Max = expandNumberAsFloat64(p.AtName("max"), m.Max, diags)
+	out.Min = expandNumberAsFloat64(p.AtName("min"), m.Min, diags)
 	out.Query = expandHexagonQuery(ctx, p.AtName("query"), m.Query, diags)
-	out.ThresholdType = expandEnum[dashboard_service.ThresholdType](m.ThresholdType)
-	if items := expandElements[CommonThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
+	out.ThresholdType = expandEnumMapped(p.AtName("threshold_type"), m.ThresholdType, thresholdTypeToAPI, diags)
+	if items := expandElements[CommonThresholdAtHexagonThresholdsModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
 		out.Thresholds = make([]dashboard_service.CommonThreshold, 0, len(items))
 		for i := range items {
-			out.Thresholds = append(out.Thresholds, *expandCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &items[i], diags))
+			out.Thresholds = append(out.Thresholds, *expandCommonThresholdAtHexagonThresholds(ctx, p.AtName("thresholds"), &items[i], diags))
 		}
 	}
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	return out
 }
 
-func flattenHexagon(ctx context.Context, p path.Path, v *dashboard_service.Hexagon, diags *diag.Diagnostics) *HexagonModel {
+func flattenHexagon(ctx context.Context, p path.Path, v *dashboard_service.Hexagon, prior *HexagonModel, diags *diag.Diagnostics) *HexagonModel {
 	if v == nil {
 		return nil
 	}
 	out := &HexagonModel{}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
-	out.Decimal = types.Int32PointerValue(v.Decimal)
+	out.Decimal = int32AsNumber(v.Decimal)
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnum(v.LegendBy, "LEGEND_BY_UNSPECIFIED")
-	out.Max = types.Float64PointerValue(v.Max)
-	out.Min = types.Float64PointerValue(v.Min)
-	out.Query = flattenHexagonQuery(ctx, p.AtName("query"), v.Query, diags)
-	out.ThresholdType = flattenEnum(v.ThresholdType, "THRESHOLD_TYPE_UNSPECIFIED")
-	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
-	if v.Thresholds != nil {
-		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
-		for i := range v.Thresholds {
-			items = append(items, *flattenCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
-		}
-		out.Thresholds = flattenList(ctx, types.ObjectType{AttrTypes: commonThresholdAttrTypes()}, items, diags)
+	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
+	out.Max = float64AsNumber(v.Max)
+	if prior != nil {
+		out.Max = keepPriorNumber(prior.Max, out.Max)
 	}
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Min = float64AsNumber(v.Min)
+	if prior != nil {
+		out.Min = keepPriorNumber(prior.Min, out.Min)
+	}
+	out.Query = flattenHexagonQuery(ctx, p.AtName("query"), v.Query, diags)
+	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
+	out.Thresholds = types.SetNull(types.ObjectType{AttrTypes: commonThresholdAtHexagonThresholdsAttrTypes()})
+	if v.Thresholds != nil {
+		items := make([]CommonThresholdAtHexagonThresholdsModel, 0, len(v.Thresholds))
+		var priorThresholds []CommonThresholdAtHexagonThresholdsModel
+		if prior != nil {
+			priorThresholds = priorItems[CommonThresholdAtHexagonThresholdsModel](ctx, prior.Thresholds)
+		}
+		// A set has no order: the prior item of an API item is the one with the same request value.
+		pairs := pairPrior(ctx, v.Thresholds, priorThresholds, expandCommonThresholdAtHexagonThresholds, sameCommonThresholdAtHexagonThresholds)
+		for i := range v.Thresholds {
+			items = append(items, *flattenCommonThresholdAtHexagonThresholds(ctx, p.AtName("thresholds"), &v.Thresholds[i], pairs[i], diags))
+		}
+		out.Thresholds = flattenSet(ctx, types.ObjectType{AttrTypes: commonThresholdAtHexagonThresholdsAttrTypes()}, items, diags)
+	}
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	return out
 }
 
@@ -8714,15 +10777,15 @@ func hexagonAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"custom_unit":       types.StringType,
 		"data_mode_type":    types.StringType,
-		"decimal":           types.Int32Type,
+		"decimal":           types.NumberType,
 		"decimal_precision": types.BoolType,
 		"legend":            types.ObjectType{AttrTypes: legendAttrTypes()},
 		"legend_by":         types.StringType,
-		"max":               types.Float64Type,
-		"min":               types.Float64Type,
+		"max":               types.NumberType,
+		"min":               types.NumberType,
 		"query":             types.ObjectType{AttrTypes: hexagonQueryAttrTypes()},
 		"threshold_type":    types.StringType,
-		"thresholds":        types.ListType{ElemType: types.ObjectType{AttrTypes: commonThresholdAttrTypes()}},
+		"thresholds":        types.SetType{ElemType: types.ObjectType{AttrTypes: commonThresholdAtHexagonThresholdsAttrTypes()}},
 		"unit":              types.StringType,
 	}
 }
@@ -8881,12 +10944,12 @@ func expandHexagonMetricsQuery(ctx context.Context, p path.Path, m *HexagonMetri
 		return nil
 	}
 	out := &dashboard_service.HexagonMetricsQuery{}
-	out.Aggregation = expandEnum[dashboard_service.CommonAggregation](m.Aggregation)
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.Aggregation = expandEnumMapped(p.AtName("aggregation"), m.Aggregation, commonAggregationToAPI, diags)
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtHexagonMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtHexagonMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	{
@@ -8894,7 +10957,7 @@ func expandHexagonMetricsQuery(ctx context.Context, p path.Path, m *HexagonMetri
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
 }
@@ -8904,21 +10967,21 @@ func flattenHexagonMetricsQuery(ctx context.Context, p path.Path, v *dashboard_s
 		return nil
 	}
 	out := &HexagonMetricsQueryModel{}
-	out.Aggregation = flattenEnum(v.Aggregation, "AGGREGATION_UNSPECIFIED")
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtHexagonMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtHexagonMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtHexagonMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtHexagonMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
 }
@@ -8927,10 +10990,40 @@ func hexagonMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aggregation":       types.StringType,
 		"editor_mode":       types.StringType,
-		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtHexagonMetricsQueryFiltersAttrTypes()}},
 		"promql_query":      types.StringType,
 		"promql_query_type": types.StringType,
 		"time_frame":        types.ObjectType{AttrTypes: timeFrameSelectAttrTypes()},
+	}
+}
+
+func expandMetricsFilterAtHexagonMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtHexagonMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.MetricsFilter{}
+	out.Label = expandString(m.Label)
+	out.Metric = expandString(m.Metric)
+	out.Operator = expandFilterOperator(ctx, p.AtName("operator"), m.Operator, diags)
+	return out
+}
+
+func flattenMetricsFilterAtHexagonMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtHexagonMetricsQueryFiltersModel {
+	if v == nil {
+		return nil
+	}
+	out := &MetricsFilterAtHexagonMetricsQueryFiltersModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Metric = types.StringPointerValue(v.Metric)
+	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
+	return out
+}
+
+func metricsFilterAtHexagonMetricsQueryFiltersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":    types.StringType,
+		"metric":   types.StringType,
+		"operator": types.ObjectType{AttrTypes: filterOperatorAttrTypes()},
 	}
 }
 
@@ -9016,81 +11109,180 @@ func hexagonSpansQueryAttrTypes() map[string]attr.Type {
 	}
 }
 
+func expandCommonThresholdAtHexagonThresholds(ctx context.Context, p path.Path, m *CommonThresholdAtHexagonThresholdsModel, diags *diag.Diagnostics) *dashboard_service.CommonThreshold {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.CommonThreshold{}
+	out.Color = expandString(m.Color)
+	out.From = expandNumberAsFloat64(p.AtName("from"), m.From, diags)
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenCommonThresholdAtHexagonThresholds(ctx context.Context, p path.Path, v *dashboard_service.CommonThreshold, prior *CommonThresholdAtHexagonThresholdsModel, diags *diag.Diagnostics) *CommonThresholdAtHexagonThresholdsModel {
+	if v == nil {
+		return nil
+	}
+	out := &CommonThresholdAtHexagonThresholdsModel{}
+	out.Color = types.StringPointerValue(v.Color)
+	out.From = float64AsNumber(v.From)
+	if prior != nil {
+		out.From = keepPriorNumber(prior.From, out.From)
+	}
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+// sameCommonThresholdAtHexagonThresholds reports whether two SDK values are equal. It compares the fields that the resource
+// manages. A missing value and an empty one are equal.
+func sameCommonThresholdAtHexagonThresholds(a, b *dashboard_service.CommonThreshold) bool {
+	return pointerValue(a.Color) == pointerValue(b.Color) &&
+		pointerValue(a.From) == pointerValue(b.From) &&
+		pointerValue(a.Label) == pointerValue(b.Label)
+}
+
+func commonThresholdAtHexagonThresholdsAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"color": types.StringType,
+		"from":  types.NumberType,
+		"label": types.StringType,
+	}
+}
+
 func expandHorizontalBarChart(ctx context.Context, p path.Path, m *HorizontalBarChartModel, diags *diag.Diagnostics) *dashboard_service.HorizontalBarChart {
 	if m == nil {
 		return nil
 	}
 	out := &dashboard_service.HorizontalBarChart{}
 	out.ColorScheme = expandString(m.ColorScheme)
-	out.ColorsBy = expandColorsBy(ctx, p.AtName("colors_by"), m.ColorsBy, diags)
+	if v := m.ColorsBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.ColorsBy{}
+		switch v.ValueString() {
+		case "aggregation":
+			fold.Aggregation = map[string]interface{}{}
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "group_by":
+			fold.GroupBy = map[string]interface{}{}
+		case "query":
+			fold.Query = map[string]interface{}{}
+		case "stack":
+			fold.Stack = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("colors_by"), "Unknown value", fmt.Sprintf("%q is not one of aggregation category group_by query stack.", v.ValueString()))
+		}
+		out.ColorsBy = fold
+	}
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
-	out.Decimal = expandInt32(m.Decimal)
+	out.Decimal = expandNumberAsInt32(p.AtName("decimal"), m.Decimal, diags)
 	out.DecimalPrecision = expandBool(m.DecimalPrecision)
 	out.DisplayOnBar = expandBool(m.DisplayOnBar)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxBarsPerChart = expandInt32(m.MaxBarsPerChart)
+	out.MaxBarsPerChart = expandInt64AsInt32(p.AtName("max_bars_per_chart"), m.MaxBarsPerChart, diags)
 	out.Query = expandHorizontalBarChartQuery(ctx, p.AtName("query"), m.Query, diags)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SortBy = expandEnum[dashboard_service.SortByType](m.SortBy)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SortBy = expandEnumMapped(p.AtName("sort_by"), m.SortBy, sortByTypeToAPI, diags)
 	out.StackDefinition = expandHorizontalBarChartStackDefinition(ctx, p.AtName("stack_definition"), m.StackDefinition, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
-	out.YAxisViewBy = expandHorizontalBarChartYAxisViewBy(ctx, p.AtName("y_axis_view_by"), m.YAxisViewBy, diags)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
+	if v := m.YAxisViewBy; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &dashboard_service.HorizontalBarChartYAxisViewBy{}
+		switch v.ValueString() {
+		case "category":
+			fold.Category = map[string]interface{}{}
+		case "value":
+			fold.Value = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("y_axis_view_by"), "Unknown value", fmt.Sprintf("%q is not one of category value.", v.ValueString()))
+		}
+		out.YAxisViewBy = fold
+	}
 	return out
 }
 
-func flattenHorizontalBarChart(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBarChart, diags *diag.Diagnostics) *HorizontalBarChartModel {
+func flattenHorizontalBarChart(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBarChart, prior *HorizontalBarChartModel, diags *diag.Diagnostics) *HorizontalBarChartModel {
 	if v == nil {
 		return nil
 	}
 	out := &HorizontalBarChartModel{}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
-	out.ColorsBy = flattenColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
+	out.ColorsBy = types.StringNull()
+	if fold := v.ColorsBy; fold != nil {
+		switch {
+		case fold.Aggregation != nil:
+			out.ColorsBy = types.StringValue("aggregation")
+		case fold.Category != nil:
+			out.ColorsBy = types.StringValue("category")
+		case fold.GroupBy != nil:
+			out.ColorsBy = types.StringValue("group_by")
+		case fold.Query != nil:
+			out.ColorsBy = types.StringValue("query")
+		case fold.Stack != nil:
+			out.ColorsBy = types.StringValue("stack")
+		}
+	}
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
-	out.Decimal = types.Int32PointerValue(v.Decimal)
+	out.Decimal = int32AsNumber(v.Decimal)
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.DisplayOnBar = types.BoolPointerValue(v.DisplayOnBar)
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxBarsPerChart = types.Int32PointerValue(v.MaxBarsPerChart)
+	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
 	out.Query = flattenHorizontalBarChartQuery(ctx, p.AtName("query"), v.Query, diags)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SortBy = flattenEnum(v.SortBy, "SORT_BY_TYPE_UNSPECIFIED")
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.StackDefinition = flattenHorizontalBarChartStackDefinition(ctx, p.AtName("stack_definition"), v.StackDefinition, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
-	out.YAxisViewBy = flattenHorizontalBarChartYAxisViewBy(ctx, p.AtName("y_axis_view_by"), v.YAxisViewBy, diags)
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
+	out.YAxisViewBy = types.StringNull()
+	if fold := v.YAxisViewBy; fold != nil {
+		switch {
+		case fold.Category != nil:
+			out.YAxisViewBy = types.StringValue("category")
+		case fold.Value != nil:
+			out.YAxisViewBy = types.StringValue("value")
+		}
+	}
 	return out
 }
 
 func horizontalBarChartAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: colorsByAttrTypes()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
 		"data_mode_type":      types.StringType,
-		"decimal":             types.Int32Type,
+		"decimal":             types.NumberType,
 		"decimal_precision":   types.BoolType,
 		"display_on_bar":      types.BoolType,
 		"group_name_template": types.StringType,
 		"hash_colors":         types.BoolType,
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_bars_per_chart":  types.Int32Type,
+		"max_bars_per_chart":  types.Int64Type,
 		"query":               types.ObjectType{AttrTypes: horizontalBarChartQueryAttrTypes()},
 		"scale_type":          types.StringType,
 		"sort_by":             types.StringType,
 		"stack_definition":    types.ObjectType{AttrTypes: horizontalBarChartStackDefinitionAttrTypes()},
 		"unit":                types.StringType,
-		"y_axis_max":          types.Float32Type,
-		"y_axis_min":          types.Float32Type,
-		"y_axis_view_by":      types.ObjectType{AttrTypes: horizontalBarChartYAxisViewByAttrTypes()},
+		"y_axis_max":          types.Float64Type,
+		"y_axis_min":          types.Float64Type,
+		"y_axis_view_by":      types.StringType,
 	}
 }
 
@@ -9263,12 +11455,12 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, p path.Path, m *H
 		return nil
 	}
 	out := &dashboard_service.HorizontalBarChartMetricsQuery{}
-	out.Aggregation = expandEnum[dashboard_service.CommonAggregation](m.Aggregation)
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.Aggregation = expandEnumMapped(p.AtName("aggregation"), m.Aggregation, commonAggregationToAPI, diags)
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtHorizontalBarChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	out.GroupNames = expandStrings[string](ctx, p.AtName("group_names"), m.GroupNames, diags)
@@ -9277,7 +11469,7 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, p path.Path, m *H
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	out.StackedGroupName = expandString(m.StackedGroupName)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
@@ -9288,22 +11480,22 @@ func flattenHorizontalBarChartMetricsQuery(ctx context.Context, p path.Path, v *
 		return nil
 	}
 	out := &HorizontalBarChartMetricsQueryModel{}
-	out.Aggregation = flattenEnum(v.Aggregation, "AGGREGATION_UNSPECIFIED")
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtHorizontalBarChartMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtHorizontalBarChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtHorizontalBarChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -9313,12 +11505,42 @@ func horizontalBarChartMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aggregation":        types.StringType,
 		"editor_mode":        types.StringType,
-		"filters":            types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":            types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtHorizontalBarChartMetricsQueryFiltersAttrTypes()}},
 		"group_names":        types.ListType{ElemType: types.StringType},
 		"promql_query":       types.StringType,
 		"promql_query_type":  types.StringType,
 		"stacked_group_name": types.StringType,
 		"time_frame":         types.ObjectType{AttrTypes: timeFrameSelectAttrTypes()},
+	}
+}
+
+func expandMetricsFilterAtHorizontalBarChartMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.MetricsFilter{}
+	out.Label = expandString(m.Label)
+	out.Metric = expandString(m.Metric)
+	out.Operator = expandFilterOperator(ctx, p.AtName("operator"), m.Operator, diags)
+	return out
+}
+
+func flattenMetricsFilterAtHorizontalBarChartMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel {
+	if v == nil {
+		return nil
+	}
+	out := &MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Metric = types.StringPointerValue(v.Metric)
+	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
+	return out
+}
+
+func metricsFilterAtHorizontalBarChartMetricsQueryFiltersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":    types.StringType,
+		"metric":   types.StringType,
+		"operator": types.ObjectType{AttrTypes: filterOperatorAttrTypes()},
 	}
 }
 
@@ -9415,7 +11637,7 @@ func expandHorizontalBarChartStackDefinition(ctx context.Context, p path.Path, m
 		return nil
 	}
 	out := &dashboard_service.HorizontalBarChartStackDefinition{}
-	out.MaxSlicesPerBar = expandInt32(m.MaxSlicesPerBar)
+	out.MaxSlicesPerBar = expandInt64AsInt32(p.AtName("max_slices_per_bar"), m.MaxSlicesPerBar, diags)
 	out.StackNameTemplate = expandString(m.StackNameTemplate)
 	return out
 }
@@ -9425,50 +11647,15 @@ func flattenHorizontalBarChartStackDefinition(ctx context.Context, p path.Path, 
 		return nil
 	}
 	out := &HorizontalBarChartStackDefinitionModel{}
-	out.MaxSlicesPerBar = types.Int32PointerValue(v.MaxSlicesPerBar)
+	out.MaxSlicesPerBar = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerBar))
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	return out
 }
 
 func horizontalBarChartStackDefinitionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"max_slices_per_bar":  types.Int32Type,
+		"max_slices_per_bar":  types.Int64Type,
 		"stack_name_template": types.StringType,
-	}
-}
-
-func expandHorizontalBarChartYAxisViewBy(ctx context.Context, p path.Path, m *HorizontalBarChartYAxisViewByModel, diags *diag.Diagnostics) *dashboard_service.HorizontalBarChartYAxisViewBy {
-	if m == nil {
-		return nil
-	}
-	out := &dashboard_service.HorizontalBarChartYAxisViewBy{}
-	if m.Category != nil {
-		out.Category = map[string]interface{}{}
-	}
-	if m.Value != nil {
-		out.Value = map[string]interface{}{}
-	}
-	return out
-}
-
-func flattenHorizontalBarChartYAxisViewBy(ctx context.Context, p path.Path, v *dashboard_service.HorizontalBarChartYAxisViewBy, diags *diag.Diagnostics) *HorizontalBarChartYAxisViewByModel {
-	if v == nil {
-		return nil
-	}
-	out := &HorizontalBarChartYAxisViewByModel{}
-	if v.Category != nil {
-		out.Category = &YAxisViewByCategoryModel{}
-	}
-	if v.Value != nil {
-		out.Value = &YAxisViewByValueModel{}
-	}
-	return out
-}
-
-func horizontalBarChartYAxisViewByAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"category": types.ObjectType{AttrTypes: map[string]attr.Type{}},
-		"value":    types.ObjectType{AttrTypes: map[string]attr.Type{}},
 	}
 }
 
@@ -9485,14 +11672,14 @@ func expandLineChart(ctx context.Context, p path.Path, m *LineChartModel, diags 
 			out.QueryDefinitions = append(out.QueryDefinitions, *expandLineChartQueryDefinition(ctx, p.AtName("query_definitions").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.StackedLine = expandEnum[dashboard_service.LineChartStackedLine](m.StackedLine)
+	out.StackedLine = expandEnumMapped(p.AtName("stacked_line"), m.StackedLine, lineChartStackedLineToAPI, diags)
 	out.Tooltip = expandTooltip(ctx, p.AtName("tooltip"), m.Tooltip, diags)
 	out.UseDataTimeRange = expandBool(m.UseDataTimeRange)
-	out.XAxisTimeFormat = expandEnum[dashboard_service.XAxisTimeFormat](m.XAxisTimeFormat)
+	out.XAxisTimeFormat = expandEnumMapped(p.AtName("x_axis_time_format"), m.XAxisTimeFormat, xAxisTimeFormatToAPI, diags)
 	return out
 }
 
-func flattenLineChart(ctx context.Context, p path.Path, v *dashboard_service.LineChart, diags *diag.Diagnostics) *LineChartModel {
+func flattenLineChart(ctx context.Context, p path.Path, v *dashboard_service.LineChart, prior *LineChartModel, diags *diag.Diagnostics) *LineChartModel {
 	if v == nil {
 		return nil
 	}
@@ -9502,15 +11689,24 @@ func flattenLineChart(ctx context.Context, p path.Path, v *dashboard_service.Lin
 	out.QueryDefinitions = types.ListNull(types.ObjectType{AttrTypes: lineChartQueryDefinitionAttrTypes()})
 	if v.QueryDefinitions != nil {
 		items := make([]LineChartQueryDefinitionModel, 0, len(v.QueryDefinitions))
+		var priorQueryDefinitions []LineChartQueryDefinitionModel
+		if prior != nil {
+			priorQueryDefinitions = priorItems[LineChartQueryDefinitionModel](ctx, prior.QueryDefinitions)
+		}
 		for i := range v.QueryDefinitions {
-			items = append(items, *flattenLineChartQueryDefinition(ctx, p.AtName("query_definitions").AtListIndex(i), &v.QueryDefinitions[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *LineChartQueryDefinitionModel
+			if i < len(priorQueryDefinitions) {
+				priorItem = &priorQueryDefinitions[i]
+			}
+			items = append(items, *flattenLineChartQueryDefinition(ctx, p.AtName("query_definitions").AtListIndex(i), &v.QueryDefinitions[i], priorItem, diags))
 		}
 		out.QueryDefinitions = flattenList(ctx, types.ObjectType{AttrTypes: lineChartQueryDefinitionAttrTypes()}, items, diags)
 	}
-	out.StackedLine = flattenEnum(v.StackedLine, "STACKED_LINE_UNSPECIFIED")
+	out.StackedLine = flattenEnumMapped(p.AtName("stacked_line"), v.StackedLine, lineChartStackedLineFromAPI, diags)
 	out.Tooltip = flattenTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
 	out.UseDataTimeRange = types.BoolPointerValue(v.UseDataTimeRange)
-	out.XAxisTimeFormat = flattenEnum(v.XAxisTimeFormat, "X_AXIS_TIME_FORMAT_UNSPECIFIED")
+	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
 	return out
 }
 
@@ -9534,25 +11730,25 @@ func expandLineChartQueryDefinition(ctx context.Context, p path.Path, m *LineCha
 	out.ColorScheme = expandString(m.ColorScheme)
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
-	out.Decimal = expandInt32(m.Decimal)
+	out.Decimal = expandNumberAsInt32(p.AtName("decimal"), m.Decimal, diags)
 	out.DecimalPrecision = expandBool(m.DecimalPrecision)
 	out.HashColors = expandBool(m.HashColors)
-	out.Id = valueOf(expandString(m.Id))
+	out.Id = valueOf(expandClientUUID(m.Id))
 	out.IntervalResolution = expandIntervalResolution(ctx, p.AtName("interval_resolution"), m.IntervalResolution, diags)
 	out.IsVisible = expandBool(m.IsVisible)
 	out.Name = expandString(m.Name)
 	out.Query = valueOf(expandLineChartQuery(ctx, p.AtName("query"), m.Query, diags))
 	out.Resolution = expandLineChartResolution(ctx, p.AtName("resolution"), m.Resolution, diags)
-	out.ScaleType = expandEnum[dashboard_service.ScaleType](m.ScaleType)
-	out.SeriesCountLimit = expandString(m.SeriesCountLimit)
+	out.ScaleType = expandEnumMapped(p.AtName("scale_type"), m.ScaleType, scaleTypeToAPI, diags)
+	out.SeriesCountLimit = expandInt64Wire(m.SeriesCountLimit)
 	out.SeriesNameTemplate = expandString(m.SeriesNameTemplate)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
-	out.YAxisMax = expandFloat32(m.YAxisMax)
-	out.YAxisMin = expandFloat32(m.YAxisMin)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
+	out.YAxisMax = expandFloat64AsFloat32(m.YAxisMax)
+	out.YAxisMin = expandFloat64AsFloat32(m.YAxisMin)
 	return out
 }
 
-func flattenLineChartQueryDefinition(ctx context.Context, p path.Path, v *dashboard_service.LineChartQueryDefinition, diags *diag.Diagnostics) *LineChartQueryDefinitionModel {
+func flattenLineChartQueryDefinition(ctx context.Context, p path.Path, v *dashboard_service.LineChartQueryDefinition, prior *LineChartQueryDefinitionModel, diags *diag.Diagnostics) *LineChartQueryDefinitionModel {
 	if v == nil {
 		return nil
 	}
@@ -9560,7 +11756,7 @@ func flattenLineChartQueryDefinition(ctx context.Context, p path.Path, v *dashbo
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
-	out.Decimal = types.Int32PointerValue(v.Decimal)
+	out.Decimal = int32AsNumber(v.Decimal)
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.Id = types.StringPointerValue(&v.Id)
@@ -9569,12 +11765,18 @@ func flattenLineChartQueryDefinition(ctx context.Context, p path.Path, v *dashbo
 	out.Name = types.StringPointerValue(v.Name)
 	out.Query = flattenLineChartQuery(ctx, p.AtName("query"), &v.Query, diags)
 	out.Resolution = flattenLineChartResolution(ctx, p.AtName("resolution"), v.Resolution, diags)
-	out.ScaleType = flattenEnum(v.ScaleType, "SCALE_TYPE_UNSPECIFIED")
-	out.SeriesCountLimit = types.StringPointerValue(v.SeriesCountLimit)
+	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
+	out.SeriesCountLimit = flattenInt64Wire(p.AtName("series_count_limit"), v.SeriesCountLimit, diags)
 	out.SeriesNameTemplate = types.StringPointerValue(v.SeriesNameTemplate)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
-	out.YAxisMax = flattenFloat32(v.YAxisMax)
-	out.YAxisMin = flattenFloat32(v.YAxisMin)
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
+	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
+	if prior != nil {
+		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
+	}
+	out.YAxisMin = flattenFloat32AsFloat64(v.YAxisMin)
+	if prior != nil {
+		out.YAxisMin = keepPriorFloat32(prior.YAxisMin, out.YAxisMin)
+	}
 	return out
 }
 
@@ -9583,7 +11785,7 @@ func lineChartQueryDefinitionAttrTypes() map[string]attr.Type {
 		"color_scheme":         types.StringType,
 		"custom_unit":          types.StringType,
 		"data_mode_type":       types.StringType,
-		"decimal":              types.Int32Type,
+		"decimal":              types.NumberType,
 		"decimal_precision":    types.BoolType,
 		"hash_colors":          types.BoolType,
 		"id":                   types.StringType,
@@ -9593,11 +11795,11 @@ func lineChartQueryDefinitionAttrTypes() map[string]attr.Type {
 		"query":                types.ObjectType{AttrTypes: lineChartQueryAttrTypes()},
 		"resolution":           types.ObjectType{AttrTypes: lineChartResolutionAttrTypes()},
 		"scale_type":           types.StringType,
-		"series_count_limit":   types.StringType,
+		"series_count_limit":   types.Int64Type,
 		"series_name_template": types.StringType,
 		"unit":                 types.StringType,
-		"y_axis_max":           types.Float32Type,
-		"y_axis_min":           types.Float32Type,
+		"y_axis_max":           types.Float64Type,
+		"y_axis_min":           types.Float64Type,
 	}
 }
 
@@ -9770,11 +11972,11 @@ func expandLineChartMetricsQuery(ctx context.Context, p path.Path, m *LineChartM
 		return nil
 	}
 	out := &dashboard_service.LineChartMetricsQuery{}
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtLineChartMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtLineChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	{
@@ -9782,7 +11984,7 @@ func expandLineChartMetricsQuery(ctx context.Context, p path.Path, m *LineChartM
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.SeriesLimitType = expandEnum[dashboard_service.MetricsSeriesLimitType](m.SeriesLimitType)
+	out.SeriesLimitType = expandEnumMapped(p.AtName("series_limit_type"), m.SeriesLimitType, metricsSeriesLimitTypeToAPI, diags)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
 }
@@ -9792,20 +11994,20 @@ func flattenLineChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard
 		return nil
 	}
 	out := &LineChartMetricsQueryModel{}
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtLineChartMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtLineChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtLineChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtLineChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.SeriesLimitType = flattenEnum(v.SeriesLimitType, "METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED")
+	out.SeriesLimitType = flattenEnumMapped(p.AtName("series_limit_type"), v.SeriesLimitType, metricsSeriesLimitTypeFromAPI, diags)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	out.PromqlQueryType = types.StringNull()
 	return out
@@ -9814,11 +12016,41 @@ func flattenLineChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard
 func lineChartMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"editor_mode":       types.StringType,
-		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":           types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtLineChartMetricsQueryFiltersAttrTypes()}},
 		"promql_query":      types.StringType,
 		"series_limit_type": types.StringType,
 		"time_frame":        types.ObjectType{AttrTypes: timeFrameSelectAttrTypes()},
 		"promql_query_type": types.StringType,
+	}
+}
+
+func expandMetricsFilterAtLineChartMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtLineChartMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.MetricsFilter{}
+	out.Label = expandString(m.Label)
+	out.Metric = expandString(m.Metric)
+	out.Operator = expandFilterOperator(ctx, p.AtName("operator"), m.Operator, diags)
+	return out
+}
+
+func flattenMetricsFilterAtLineChartMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtLineChartMetricsQueryFiltersModel {
+	if v == nil {
+		return nil
+	}
+	out := &MetricsFilterAtLineChartMetricsQueryFiltersModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Metric = types.StringPointerValue(v.Metric)
+	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
+	return out
+}
+
+func metricsFilterAtLineChartMetricsQueryFiltersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":    types.StringType,
+		"metric":   types.StringType,
+		"operator": types.ObjectType{AttrTypes: filterOperatorAttrTypes()},
 	}
 }
 
@@ -9921,7 +12153,7 @@ func expandLineChartResolution(ctx context.Context, p path.Path, m *LineChartRes
 		return nil
 	}
 	out := &dashboard_service.LineChartResolution{}
-	out.BucketsPresented = expandInt32(m.BucketsPresented)
+	out.BucketsPresented = expandInt64AsInt32(p.AtName("buckets_presented"), m.BucketsPresented, diags)
 	out.Interval = expandString(m.Interval)
 	return out
 }
@@ -9931,14 +12163,14 @@ func flattenLineChartResolution(ctx context.Context, p path.Path, v *dashboard_s
 		return nil
 	}
 	out := &LineChartResolutionModel{}
-	out.BucketsPresented = types.Int32PointerValue(v.BucketsPresented)
+	out.BucketsPresented = types.Int64PointerValue(int32AsInt64(v.BucketsPresented))
 	out.Interval = types.StringPointerValue(v.Interval)
 	return out
 }
 
 func lineChartResolutionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"buckets_presented": types.Int32Type,
+		"buckets_presented": types.Int64Type,
 		"interval":          types.StringType,
 	}
 }
@@ -9949,7 +12181,7 @@ func expandTooltip(ctx context.Context, p path.Path, m *TooltipModel, diags *dia
 	}
 	out := &dashboard_service.Tooltip{}
 	out.ShowLabels = expandBool(m.ShowLabels)
-	out.Type = expandEnum[dashboard_service.TooltipType](m.Type)
+	out.Type = expandEnumMapped(p.AtName("type"), m.Type, tooltipTypeToAPI, diags)
 	return out
 }
 
@@ -9959,7 +12191,7 @@ func flattenTooltip(ctx context.Context, p path.Path, v *dashboard_service.Toolt
 	}
 	out := &TooltipModel{}
 	out.ShowLabels = types.BoolPointerValue(v.ShowLabels)
-	out.Type = flattenEnum(v.Type, "TOOLTIP_TYPE_UNSPECIFIED")
+	out.Type = flattenEnumMapped(p.AtName("type"), v.Type, tooltipTypeFromAPI, diags)
 	return out
 }
 
@@ -10005,19 +12237,19 @@ func expandWidgetsPieChart(ctx context.Context, p path.Path, m *WidgetsPieChartM
 	out.ColorScheme = expandString(m.ColorScheme)
 	out.CustomUnit = expandString(m.CustomUnit)
 	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, widgetsCommonDataModeTypeToAPI, diags)
-	out.Decimal = expandInt32(m.Decimal)
+	out.Decimal = expandNumberAsInt32(p.AtName("decimal"), m.Decimal, diags)
 	out.DecimalPrecision = expandBool(m.DecimalPrecision)
 	out.GroupNameTemplate = expandString(m.GroupNameTemplate)
 	out.HashColors = expandBool(m.HashColors)
 	out.LabelDefinition = expandWidgetsPieChartLabelDefinition(ctx, p.AtName("label_definition"), m.LabelDefinition, diags)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
-	out.MaxSlicesPerChart = expandInt32(m.MaxSlicesPerChart)
-	out.MinSlicePercentage = expandInt32(m.MinSlicePercentage)
+	out.MaxSlicesPerChart = expandInt64AsInt32(p.AtName("max_slices_per_chart"), m.MaxSlicesPerChart, diags)
+	out.MinSlicePercentage = expandInt64AsInt32(p.AtName("min_slice_percentage"), m.MinSlicePercentage, diags)
 	out.Query = expandPieChartQuery(ctx, p.AtName("query"), m.Query, diags)
 	out.ShowLegend = expandBool(m.ShowLegend)
 	out.ShowTotal = expandBool(m.ShowTotal)
 	out.StackDefinition = expandPieChartStackDefinition(ctx, p.AtName("stack_definition"), m.StackDefinition, diags)
-	out.Unit = expandEnum[dashboard_service.CommonUnit](m.Unit)
+	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	return out
 }
 
@@ -10029,19 +12261,19 @@ func flattenWidgetsPieChart(ctx context.Context, p path.Path, v *dashboard_servi
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.CustomUnit = types.StringPointerValue(v.CustomUnit)
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
-	out.Decimal = types.Int32PointerValue(v.Decimal)
+	out.Decimal = int32AsNumber(v.Decimal)
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.GroupNameTemplate = types.StringPointerValue(v.GroupNameTemplate)
 	out.HashColors = types.BoolPointerValue(v.HashColors)
 	out.LabelDefinition = flattenWidgetsPieChartLabelDefinition(ctx, p.AtName("label_definition"), v.LabelDefinition, diags)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.MaxSlicesPerChart = types.Int32PointerValue(v.MaxSlicesPerChart)
-	out.MinSlicePercentage = types.Int32PointerValue(v.MinSlicePercentage)
+	out.MaxSlicesPerChart = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerChart))
+	out.MinSlicePercentage = types.Int64PointerValue(int32AsInt64(v.MinSlicePercentage))
 	out.Query = flattenPieChartQuery(ctx, p.AtName("query"), v.Query, diags)
 	out.ShowLegend = types.BoolPointerValue(v.ShowLegend)
 	out.ShowTotal = types.BoolPointerValue(v.ShowTotal)
 	out.StackDefinition = flattenPieChartStackDefinition(ctx, p.AtName("stack_definition"), v.StackDefinition, diags)
-	out.Unit = flattenEnum(v.Unit, "UNIT_UNSPECIFIED")
+	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	return out
 }
 
@@ -10050,14 +12282,14 @@ func widgetsPieChartAttrTypes() map[string]attr.Type {
 		"color_scheme":         types.StringType,
 		"custom_unit":          types.StringType,
 		"data_mode_type":       types.StringType,
-		"decimal":              types.Int32Type,
+		"decimal":              types.NumberType,
 		"decimal_precision":    types.BoolType,
 		"group_name_template":  types.StringType,
 		"hash_colors":          types.BoolType,
 		"label_definition":     types.ObjectType{AttrTypes: widgetsPieChartLabelDefinitionAttrTypes()},
 		"legend":               types.ObjectType{AttrTypes: legendAttrTypes()},
-		"max_slices_per_chart": types.Int32Type,
-		"min_slice_percentage": types.Int32Type,
+		"max_slices_per_chart": types.Int64Type,
+		"min_slice_percentage": types.Int64Type,
 		"query":                types.ObjectType{AttrTypes: pieChartQueryAttrTypes()},
 		"show_legend":          types.BoolType,
 		"show_total":           types.BoolType,
@@ -10072,7 +12304,7 @@ func expandWidgetsPieChartLabelDefinition(ctx context.Context, p path.Path, m *W
 	}
 	out := &dashboard_service.WidgetsPieChartLabelDefinition{}
 	out.IsVisible = expandBool(m.IsVisible)
-	out.LabelSource = expandEnum[dashboard_service.WidgetsPieChartLabelSource](m.LabelSource)
+	out.LabelSource = expandEnumMapped(p.AtName("label_source"), m.LabelSource, widgetsPieChartLabelSourceToAPI, diags)
 	out.ShowName = expandBool(m.ShowName)
 	out.ShowPercentage = expandBool(m.ShowPercentage)
 	out.ShowValue = expandBool(m.ShowValue)
@@ -10085,7 +12317,7 @@ func flattenWidgetsPieChartLabelDefinition(ctx context.Context, p path.Path, v *
 	}
 	out := &WidgetsPieChartLabelDefinitionModel{}
 	out.IsVisible = types.BoolPointerValue(v.IsVisible)
-	out.LabelSource = flattenEnum(v.LabelSource, "LABEL_SOURCE_UNSPECIFIED")
+	out.LabelSource = flattenEnumMapped(p.AtName("label_source"), v.LabelSource, widgetsPieChartLabelSourceFromAPI, diags)
 	out.ShowName = types.BoolPointerValue(v.ShowName)
 	out.ShowPercentage = types.BoolPointerValue(v.ShowPercentage)
 	out.ShowValue = types.BoolPointerValue(v.ShowValue)
@@ -10271,12 +12503,12 @@ func expandPieChartMetricsQuery(ctx context.Context, p path.Path, m *PieChartMet
 		return nil
 	}
 	out := &dashboard_service.PieChartMetricsQuery{}
-	out.Aggregation = expandEnum[dashboard_service.CommonAggregation](m.Aggregation)
-	out.EditorMode = expandEnum[dashboard_service.MetricsQueryEditorMode](m.EditorMode)
-	if items := expandElements[MetricsFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+	out.Aggregation = expandEnumMapped(p.AtName("aggregation"), m.Aggregation, commonAggregationToAPI, diags)
+	out.EditorMode = expandEnumMapped(p.AtName("editor_mode"), m.EditorMode, metricsQueryEditorModeToAPI, diags)
+	if items := expandElements[MetricsFilterAtPieChartMetricsQueryFiltersModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
 		out.Filters = make([]dashboard_service.MetricsFilter, 0, len(items))
 		for i := range items {
-			out.Filters = append(out.Filters, *expandMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+			out.Filters = append(out.Filters, *expandMetricsFilterAtPieChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
 	out.GroupNames = expandStrings[string](ctx, p.AtName("group_names"), m.GroupNames, diags)
@@ -10285,7 +12517,7 @@ func expandPieChartMetricsQuery(ctx context.Context, p path.Path, m *PieChartMet
 		inner = expandString(m.PromqlQuery)
 		out.PromqlQuery = wrapPromQlQuery(inner)
 	}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	out.StackedGroupName = expandString(m.StackedGroupName)
 	out.TimeFrame = expandTimeFrameSelect(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	return out
@@ -10296,22 +12528,22 @@ func flattenPieChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_
 		return nil
 	}
 	out := &PieChartMetricsQueryModel{}
-	out.Aggregation = flattenEnum(v.Aggregation, "AGGREGATION_UNSPECIFIED")
-	out.EditorMode = flattenEnum(v.EditorMode, "METRICS_QUERY_EDITOR_MODE_UNSPECIFIED")
-	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAttrTypes()})
+	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtPieChartMetricsQueryFiltersAttrTypes()})
 	if v.Filters != nil {
-		items := make([]MetricsFilterModel, 0, len(v.Filters))
+		items := make([]MetricsFilterAtPieChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
-			items = append(items, *flattenMetricsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+			items = append(items, *flattenMetricsFilterAtPieChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
 		}
-		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAttrTypes()}, items, diags)
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtPieChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -10321,12 +12553,42 @@ func pieChartMetricsQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aggregation":        types.StringType,
 		"editor_mode":        types.StringType,
-		"filters":            types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAttrTypes()}},
+		"filters":            types.ListType{ElemType: types.ObjectType{AttrTypes: metricsFilterAtPieChartMetricsQueryFiltersAttrTypes()}},
 		"group_names":        types.ListType{ElemType: types.StringType},
 		"promql_query":       types.StringType,
 		"promql_query_type":  types.StringType,
 		"stacked_group_name": types.StringType,
 		"time_frame":         types.ObjectType{AttrTypes: timeFrameSelectAttrTypes()},
+	}
+}
+
+func expandMetricsFilterAtPieChartMetricsQueryFilters(ctx context.Context, p path.Path, m *MetricsFilterAtPieChartMetricsQueryFiltersModel, diags *diag.Diagnostics) *dashboard_service.MetricsFilter {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.MetricsFilter{}
+	out.Label = expandString(m.Label)
+	out.Metric = expandString(m.Metric)
+	out.Operator = expandFilterOperator(ctx, p.AtName("operator"), m.Operator, diags)
+	return out
+}
+
+func flattenMetricsFilterAtPieChartMetricsQueryFilters(ctx context.Context, p path.Path, v *dashboard_service.MetricsFilter, diags *diag.Diagnostics) *MetricsFilterAtPieChartMetricsQueryFiltersModel {
+	if v == nil {
+		return nil
+	}
+	out := &MetricsFilterAtPieChartMetricsQueryFiltersModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Metric = types.StringPointerValue(v.Metric)
+	out.Operator = flattenFilterOperator(ctx, p.AtName("operator"), v.Operator, diags)
+	return out
+}
+
+func metricsFilterAtPieChartMetricsQueryFiltersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":    types.StringType,
+		"metric":   types.StringType,
+		"operator": types.ObjectType{AttrTypes: filterOperatorAttrTypes()},
 	}
 }
 
@@ -10423,7 +12685,7 @@ func expandPieChartStackDefinition(ctx context.Context, p path.Path, m *PieChart
 		return nil
 	}
 	out := &dashboard_service.PieChartStackDefinition{}
-	out.MaxSlicesPerStack = expandInt32(m.MaxSlicesPerStack)
+	out.MaxSlicesPerStack = expandInt64AsInt32(p.AtName("max_slices_per_stack"), m.MaxSlicesPerStack, diags)
 	out.StackNameTemplate = expandString(m.StackNameTemplate)
 	return out
 }
@@ -10433,14 +12695,14 @@ func flattenPieChartStackDefinition(ctx context.Context, p path.Path, v *dashboa
 		return nil
 	}
 	out := &PieChartStackDefinitionModel{}
-	out.MaxSlicesPerStack = types.Int32PointerValue(v.MaxSlicesPerStack)
+	out.MaxSlicesPerStack = types.Int64PointerValue(int32AsInt64(v.MaxSlicesPerStack))
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	return out
 }
 
 func pieChartStackDefinitionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"max_slices_per_stack": types.Int32Type,
+		"max_slices_per_stack": types.Int64Type,
 		"stack_name_template":  types.StringType,
 	}
 }
@@ -10495,7 +12757,7 @@ func expandVariable(ctx context.Context, p path.Path, m *VariableModel, diags *d
 	out.Definition = expandVariableDefinition(ctx, p.AtName("definition"), m.Definition, diags)
 	out.Description = expandString(m.Description)
 	out.DisplayName = expandString(m.DisplayName)
-	out.DisplayType = expandEnum[dashboard_service.VariableDisplayType](m.DisplayType)
+	out.DisplayType = expandEnumMapped(p.AtName("display_type"), m.DisplayType, variableDisplayTypeToAPI, diags)
 	out.Name = expandString(m.Name)
 	return out
 }
@@ -10508,7 +12770,12 @@ func flattenVariable(ctx context.Context, p path.Path, v *dashboard_service.Vari
 	out.Definition = flattenVariableDefinition(ctx, p.AtName("definition"), v.Definition, diags)
 	out.Description = types.StringPointerValue(v.Description)
 	out.DisplayName = types.StringPointerValue(v.DisplayName)
-	out.DisplayType = flattenEnum(v.DisplayType, "VARIABLE_DISPLAY_TYPE_UNSPECIFIED")
+	if api := v.DisplayType; api != nil && *api == "VARIABLE_DISPLAY_TYPE_UNSPECIFIED" {
+		// The zero value means that the API has no value.
+		out.DisplayType = types.StringNull()
+	} else {
+		out.DisplayType = flattenEnumMapped(p.AtName("display_type"), api, variableDisplayTypeFromAPI, diags)
+	}
 	out.Name = types.StringPointerValue(v.Name)
 	return out
 }
@@ -10575,7 +12842,7 @@ func expandMultiSelect(ctx context.Context, p path.Path, m *MultiSelectModel, di
 	}
 	out.SelectionOptions.SelectionType = expandEnum[dashboard_service.SelectionType](m.SelectionType)
 	out.Source = expandMultiSelectSource(ctx, p.AtName("source"), m.Source, diags)
-	out.ValuesOrderDirection = expandEnum[dashboard_service.OrderDirection](m.ValuesOrderDirection)
+	out.ValuesOrderDirection = expandEnumMapped(p.AtName("values_order_direction"), m.ValuesOrderDirection, orderDirectionToAPI, diags)
 	if out.SelectionOptions != nil && modelNull(m.SelectionType) {
 		out.SelectionOptions = nil // an optional object that the configuration sets no attribute of is left out
 	}
@@ -10604,7 +12871,7 @@ func flattenMultiSelect(ctx context.Context, p path.Path, v *dashboard_service.M
 	}
 	out.SelectionType = flattenEnum(v.SelectionOptions.SelectionType, "SELECTION_TYPE_UNSPECIFIED")
 	out.Source = flattenMultiSelectSource(ctx, p.AtName("source"), v.Source, diags)
-	out.ValuesOrderDirection = flattenEnum(v.ValuesOrderDirection, "ORDER_DIRECTION_UNSPECIFIED")
+	out.ValuesOrderDirection = flattenEnumMapped(p.AtName("values_order_direction"), v.ValuesOrderDirection, orderDirectionFromAPI, diags)
 	return out
 }
 
@@ -10627,7 +12894,11 @@ func expandMultiSelectSource(ctx context.Context, p path.Path, m *MultiSelectSou
 		inner = expandStrings[string](ctx, p.AtName("constant_list"), m.ConstantList, diags)
 		out.ConstantList = wrapConstantListSource(inner)
 	}
-	out.LogsPath = expandLogsPathSource(ctx, p.AtName("logs_path"), m.LogsPath, diags)
+	{
+		var inner *string
+		inner = expandString(m.LogsPath)
+		out.LogsPath = wrapLogsPathSourceAtMultiSelectSourceLogsPath(inner)
+	}
 	out.MetricLabel = expandMetricLabelSource(ctx, p.AtName("metric_label"), m.MetricLabel, diags)
 	out.Query = expandMultiSelectQuerySource(ctx, p.AtName("query"), m.Query, diags)
 	{
@@ -10647,7 +12918,10 @@ func flattenMultiSelectSource(ctx context.Context, p path.Path, v *dashboard_ser
 		inner := unwrapConstantListSource(v.ConstantList)
 		out.ConstantList = flattenStringsList(ctx, inner, diags)
 	}
-	out.LogsPath = flattenLogsPathSource(ctx, p.AtName("logs_path"), v.LogsPath, diags)
+	{
+		inner := unwrapLogsPathSourceAtMultiSelectSourceLogsPath(v.LogsPath)
+		out.LogsPath = types.StringPointerValue(inner)
+	}
 	out.MetricLabel = flattenMetricLabelSource(ctx, p.AtName("metric_label"), v.MetricLabel, diags)
 	out.Query = flattenMultiSelectQuerySource(ctx, p.AtName("query"), v.Query, diags)
 	{
@@ -10660,37 +12934,10 @@ func flattenMultiSelectSource(ctx context.Context, p path.Path, v *dashboard_ser
 func multiSelectSourceAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"constant_list": types.ListType{ElemType: types.StringType},
-		"logs_path":     types.ObjectType{AttrTypes: logsPathSourceAttrTypes()},
+		"logs_path":     types.StringType,
 		"metric_label":  types.ObjectType{AttrTypes: metricLabelSourceAttrTypes()},
 		"query":         types.ObjectType{AttrTypes: multiSelectQuerySourceAttrTypes()},
 		"span_field":    types.ObjectType{AttrTypes: spanFieldAttrTypes()},
-	}
-}
-
-func expandLogsPathSource(ctx context.Context, p path.Path, m *LogsPathSourceModel, diags *diag.Diagnostics) *dashboard_service.LogsPathSource {
-	if m == nil {
-		return nil
-	}
-	out := &dashboard_service.LogsPathSource{}
-	out.ObservationField = expandObservationField(ctx, p.AtName("observation_field"), m.ObservationField, diags)
-	out.Value = expandString(m.Value)
-	return out
-}
-
-func flattenLogsPathSource(ctx context.Context, p path.Path, v *dashboard_service.LogsPathSource, diags *diag.Diagnostics) *LogsPathSourceModel {
-	if v == nil {
-		return nil
-	}
-	out := &LogsPathSourceModel{}
-	out.ObservationField = flattenObservationField(ctx, p.AtName("observation_field"), v.ObservationField, diags)
-	out.Value = types.StringPointerValue(v.Value)
-	return out
-}
-
-func logsPathSourceAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"observation_field": types.ObjectType{AttrTypes: observationFieldAttrTypes()},
-		"value":             types.StringType,
 	}
 }
 
@@ -10727,7 +12974,7 @@ func expandMultiSelectQuerySource(ctx context.Context, p path.Path, m *MultiSele
 	}
 	out := &dashboard_service.MultiSelectQuerySource{}
 	out.Query = expandMultiSelectQuery(ctx, p.AtName("query"), m.Query, diags)
-	out.RefreshStrategy = expandEnum[dashboard_service.MultiSelectRefreshStrategy](m.RefreshStrategy)
+	out.RefreshStrategy = expandEnumMapped(p.AtName("refresh_strategy"), m.RefreshStrategy, multiSelectRefreshStrategyToAPI, diags)
 	out.ValueDisplayOptions = expandMultiSelectValueDisplayOptions(ctx, p.AtName("value_display_options"), m.ValueDisplayOptions, diags)
 	return out
 }
@@ -10738,7 +12985,7 @@ func flattenMultiSelectQuerySource(ctx context.Context, p path.Path, v *dashboar
 	}
 	out := &MultiSelectQuerySourceModel{}
 	out.Query = flattenMultiSelectQuery(ctx, p.AtName("query"), v.Query, diags)
-	out.RefreshStrategy = flattenEnum(v.RefreshStrategy, "REFRESH_STRATEGY_UNSPECIFIED")
+	out.RefreshStrategy = flattenEnumMapped(p.AtName("refresh_strategy"), v.RefreshStrategy, multiSelectRefreshStrategyFromAPI, diags)
 	out.ValueDisplayOptions = flattenMultiSelectValueDisplayOptions(ctx, p.AtName("value_display_options"), v.ValueDisplayOptions, diags)
 	return out
 }
@@ -11256,7 +13503,7 @@ func expandQuerySpansQueryTypeFieldValue(ctx context.Context, p path.Path, m *Qu
 	kind := m.Type.ValueString()
 	switch kind {
 	case "metadata":
-		out.Value.MetadataField = expandEnum[dashboard_service.MetadataField](m.Value)
+		out.Value.MetadataField = expandEnumMapped(p.AtName("value"), m.Value, metadataFieldToAPI, diags)
 	case "process_tag":
 		out.Value.ProcessTagField = expandString(m.Value)
 	case "tag":
@@ -11282,12 +13529,12 @@ func flattenQuerySpansQueryTypeFieldValue(ctx context.Context, p path.Path, v *d
 	{
 		v := &dashboard_service.QuerySpansQueryTypeFieldValue{}
 		v.Value = &dashboard_service.SpanField{}
-		out.Value = flattenEnum(v.Value.MetadataField, "METADATA_FIELD_UNSPECIFIED")
+		out.Value = flattenEnumMapped(p.AtName("value"), v.Value.MetadataField, metadataFieldFromAPI, diags)
 	}
 	switch {
 	case v.Value.MetadataField != nil:
 		out.Type = types.StringValue("metadata")
-		out.Value = flattenEnum(v.Value.MetadataField, "METADATA_FIELD_UNSPECIFIED")
+		out.Value = flattenEnumMapped(p.AtName("value"), v.Value.MetadataField, metadataFieldFromAPI, diags)
 	case v.Value.ProcessTagField != nil:
 		out.Type = types.StringValue("process_tag")
 		out.Value = types.StringPointerValue(v.Value.ProcessTagField)
@@ -11342,7 +13589,7 @@ func expandVariableV2(ctx context.Context, p path.Path, m *VariableV2Model, diag
 	out.Description = expandString(m.Description)
 	out.DisplayFullRow = expandBool(m.DisplayFullRow)
 	out.DisplayName = valueOf(expandString(m.DisplayName))
-	out.DisplayType = valueOf(expandEnum[dashboard_service.VariableDisplayTypeV2](m.DisplayType))
+	out.DisplayType = valueOf(expandEnumMapped(p.AtName("display_type"), m.DisplayType, variableDisplayTypeV2ToAPI, diags))
 	{
 		var inner *string
 		inner = expandString(m.Id)
@@ -11354,7 +13601,7 @@ func expandVariableV2(ctx context.Context, p path.Path, m *VariableV2Model, diag
 	return out
 }
 
-func flattenVariableV2(ctx context.Context, p path.Path, v *dashboard_service.VariableV2, diags *diag.Diagnostics) *VariableV2Model {
+func flattenVariableV2(ctx context.Context, p path.Path, v *dashboard_service.VariableV2, prior *VariableV2Model, diags *diag.Diagnostics) *VariableV2Model {
 	if v == nil {
 		return nil
 	}
@@ -11362,14 +13609,22 @@ func flattenVariableV2(ctx context.Context, p path.Path, v *dashboard_service.Va
 	out.Description = types.StringPointerValue(v.Description)
 	out.DisplayFullRow = types.BoolPointerValue(v.DisplayFullRow)
 	out.DisplayName = types.StringPointerValue(&v.DisplayName)
-	out.DisplayType = flattenEnum(&v.DisplayType, "VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED")
+	out.DisplayType = flattenEnumMapped(p.AtName("display_type"), &v.DisplayType, variableDisplayTypeV2FromAPI, diags)
 	{
 		inner := unwrapUUID(v.Id)
 		out.Id = types.StringPointerValue(inner)
 	}
 	out.Name = types.StringPointerValue(&v.Name)
-	out.Source = flattenVariableSourceV2(ctx, p.AtName("source"), &v.Source, diags)
-	out.Value = flattenVariableValueV2(ctx, p.AtName("value"), &v.Value, diags)
+	var priorSource *VariableSourceV2Model
+	if prior != nil {
+		priorSource = prior.Source
+	}
+	out.Source = flattenVariableSourceV2(ctx, p.AtName("source"), &v.Source, priorSource, diags)
+	var priorValue *VariableValueV2Model
+	if prior != nil {
+		priorValue = prior.Value
+	}
+	out.Value = flattenVariableValueV2(ctx, p.AtName("value"), &v.Value, priorValue, diags)
 	return out
 }
 
@@ -11397,14 +13652,18 @@ func expandVariableSourceV2(ctx context.Context, p path.Path, m *VariableSourceV
 	return out
 }
 
-func flattenVariableSourceV2(ctx context.Context, p path.Path, v *dashboard_service.VariableSourceV2, diags *diag.Diagnostics) *VariableSourceV2Model {
+func flattenVariableSourceV2(ctx context.Context, p path.Path, v *dashboard_service.VariableSourceV2, prior *VariableSourceV2Model, diags *diag.Diagnostics) *VariableSourceV2Model {
 	if v == nil {
 		return nil
 	}
 	out := &VariableSourceV2Model{}
 	out.Query = flattenVariableSourceV2QuerySource(ctx, p.AtName("query"), v.Query, diags)
 	out.Static = flattenStaticSource(ctx, p.AtName("static"), v.Static, diags)
-	out.Textbox = flattenTextboxSource(ctx, p.AtName("textbox"), v.Textbox, diags)
+	var priorTextbox *TextboxSourceModel
+	if prior != nil {
+		priorTextbox = prior.Textbox
+	}
+	out.Textbox = flattenTextboxSource(ctx, p.AtName("textbox"), v.Textbox, priorTextbox, diags)
 	return out
 }
 
@@ -11425,10 +13684,10 @@ func expandVariableSourceV2QuerySource(ctx context.Context, p path.Path, m *Vari
 	out.DataprimeQuery = expandQuerySourceDataprimeQuery(ctx, p.AtName("dataprime_query"), m.DataprimeQuery, diags)
 	out.LogsQuery = expandQuerySourceLogsQuery(ctx, p.AtName("logs_query"), m.LogsQuery, diags)
 	out.MetricsQuery = expandQuerySourceMetricsQuery(ctx, p.AtName("metrics_query"), m.MetricsQuery, diags)
-	out.RefreshStrategy = expandEnum[dashboard_service.VariableSourceV2RefreshStrategy](m.RefreshStrategy)
+	out.RefreshStrategy = expandEnumMapped(p.AtName("refresh_strategy"), m.RefreshStrategy, variableSourceV2RefreshStrategyToAPI, diags)
 	out.SpansQuery = expandQuerySourceSpansQuery(ctx, p.AtName("spans_query"), m.SpansQuery, diags)
 	out.ValueDisplayOptions = expandVariableSourceV2ValueDisplayOptions(ctx, p.AtName("value_display_options"), m.ValueDisplayOptions, diags)
-	out.ValuesOrderDirection = valueOf(expandEnum[dashboard_service.OrderDirection](m.ValuesOrderDirection))
+	out.ValuesOrderDirection = valueOf(expandEnumMapped(p.AtName("values_order_direction"), m.ValuesOrderDirection, orderDirectionToAPI, diags))
 	return out
 }
 
@@ -11441,10 +13700,15 @@ func flattenVariableSourceV2QuerySource(ctx context.Context, p path.Path, v *das
 	out.DataprimeQuery = flattenQuerySourceDataprimeQuery(ctx, p.AtName("dataprime_query"), v.DataprimeQuery, diags)
 	out.LogsQuery = flattenQuerySourceLogsQuery(ctx, p.AtName("logs_query"), v.LogsQuery, diags)
 	out.MetricsQuery = flattenQuerySourceMetricsQuery(ctx, p.AtName("metrics_query"), v.MetricsQuery, diags)
-	out.RefreshStrategy = flattenEnum(v.RefreshStrategy, "REFRESH_STRATEGY_UNSPECIFIED")
+	if api := v.RefreshStrategy; api != nil && *api == "REFRESH_STRATEGY_UNSPECIFIED" {
+		// The zero value means that the API has no value.
+		out.RefreshStrategy = types.StringNull()
+	} else {
+		out.RefreshStrategy = flattenEnumMapped(p.AtName("refresh_strategy"), api, variableSourceV2RefreshStrategyFromAPI, diags)
+	}
 	out.SpansQuery = flattenQuerySourceSpansQuery(ctx, p.AtName("spans_query"), v.SpansQuery, diags)
 	out.ValueDisplayOptions = flattenVariableSourceV2ValueDisplayOptions(ctx, p.AtName("value_display_options"), v.ValueDisplayOptions, diags)
-	out.ValuesOrderDirection = flattenEnum(&v.ValuesOrderDirection, "ORDER_DIRECTION_UNSPECIFIED")
+	out.ValuesOrderDirection = flattenEnumMapped(p.AtName("values_order_direction"), &v.ValuesOrderDirection, orderDirectionFromAPI, diags)
 	return out
 }
 
@@ -12009,7 +14273,7 @@ func expandPromqlQuery(ctx context.Context, p path.Path, m *PromqlQueryModel, di
 		return nil
 	}
 	out := &dashboard_service.PromqlQuery{}
-	out.PromqlQueryType = expandEnum[dashboard_service.PromQLQueryType](m.PromqlQueryType)
+	out.PromqlQueryType = expandEnumMapped(p.AtName("promql_query_type"), m.PromqlQueryType, promQLQueryTypeToAPI, diags)
 	{
 		var inner *string
 		inner = expandString(m.Query)
@@ -12023,7 +14287,7 @@ func flattenPromqlQuery(ctx context.Context, p path.Path, v *dashboard_service.P
 		return nil
 	}
 	out := &PromqlQueryModel{}
-	out.PromqlQueryType = flattenEnum(v.PromqlQueryType, "PROM_QL_QUERY_TYPE_UNSPECIFIED")
+	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
 	{
 		inner := unwrapPromQlQuery(v.Query)
 		out.Query = types.StringPointerValue(inner)
@@ -12179,7 +14443,7 @@ func expandStaticSource(ctx context.Context, p path.Path, m *StaticSourceModel, 
 			out.Values = append(out.Values, *expandValueLabel(ctx, p.AtName("values").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.ValuesOrderDirection = valueOf(expandEnum[dashboard_service.OrderDirection](m.ValuesOrderDirection))
+	out.ValuesOrderDirection = valueOf(expandEnumMapped(p.AtName("values_order_direction"), m.ValuesOrderDirection, orderDirectionToAPI, diags))
 	return out
 }
 
@@ -12197,7 +14461,7 @@ func flattenStaticSource(ctx context.Context, p path.Path, v *dashboard_service.
 		}
 		out.Values = flattenList(ctx, types.ObjectType{AttrTypes: valueLabelAttrTypes()}, items, diags)
 	}
-	out.ValuesOrderDirection = flattenEnum(&v.ValuesOrderDirection, "ORDER_DIRECTION_UNSPECIFIED")
+	out.ValuesOrderDirection = flattenEnumMapped(p.AtName("values_order_direction"), &v.ValuesOrderDirection, orderDirectionFromAPI, diags)
 	return out
 }
 
@@ -12248,12 +14512,16 @@ func expandTextboxSource(ctx context.Context, p path.Path, m *TextboxSourceModel
 	return out
 }
 
-func flattenTextboxSource(ctx context.Context, p path.Path, v *dashboard_service.TextboxSource, diags *diag.Diagnostics) *TextboxSourceModel {
+func flattenTextboxSource(ctx context.Context, p path.Path, v *dashboard_service.TextboxSource, prior *TextboxSourceModel, diags *diag.Diagnostics) *TextboxSourceModel {
 	if v == nil {
 		return nil
 	}
 	out := &TextboxSourceModel{}
-	out.DefaultValue = flattenTextboxDefaultValue(ctx, p.AtName("default_value"), v.DefaultValue, diags)
+	var priorDefaultValue *TextboxDefaultValueModel
+	if prior != nil {
+		priorDefaultValue = prior.DefaultValue
+	}
+	out.DefaultValue = flattenTextboxDefaultValue(ctx, p.AtName("default_value"), v.DefaultValue, priorDefaultValue, diags)
 	return out
 }
 
@@ -12278,14 +14546,18 @@ func expandTextboxDefaultValue(ctx context.Context, p path.Path, m *TextboxDefau
 	return out
 }
 
-func flattenTextboxDefaultValue(ctx context.Context, p path.Path, v *dashboard_service.TextboxDefaultValue, diags *diag.Diagnostics) *TextboxDefaultValueModel {
+func flattenTextboxDefaultValue(ctx context.Context, p path.Path, v *dashboard_service.TextboxDefaultValue, prior *TextboxDefaultValueModel, diags *diag.Diagnostics) *TextboxDefaultValueModel {
 	if v == nil {
 		return nil
 	}
 	out := &TextboxDefaultValueModel{}
 	out.DefaultIntervalValue = flattenTextboxDefaultIntervalValue(ctx, p.AtName("default_interval_value"), v.DefaultIntervalValue, diags)
 	out.DefaultLuceneValue = flattenTextboxDefaultLuceneValue(ctx, p.AtName("default_lucene_value"), v.DefaultLuceneValue, diags)
-	out.DefaultNumericValue = flattenTextboxDefaultNumericValue(ctx, p.AtName("default_numeric_value"), v.DefaultNumericValue, diags)
+	var priorDefaultNumericValue *TextboxDefaultNumericValueModel
+	if prior != nil {
+		priorDefaultNumericValue = prior.DefaultNumericValue
+	}
+	out.DefaultNumericValue = flattenTextboxDefaultNumericValue(ctx, p.AtName("default_numeric_value"), v.DefaultNumericValue, priorDefaultNumericValue, diags)
 	out.DefaultRegexValue = flattenTextboxDefaultRegexValue(ctx, p.AtName("default_regex_value"), v.DefaultRegexValue, diags)
 	out.DefaultStringValue = flattenTextboxDefaultStringValue(ctx, p.AtName("default_string_value"), v.DefaultStringValue, diags)
 	out.SingleNumeric = flattenFloat32(v.SingleNumeric)
@@ -12362,30 +14634,39 @@ func expandTextboxDefaultNumericValue(ctx context.Context, p path.Path, m *Textb
 	}
 	out := &dashboard_service.TextboxDefaultNumericValue{}
 	out.IsInteger = expandBool(m.IsInteger)
-	out.Max = expandFloat32(m.Max)
-	out.Min = expandFloat32(m.Min)
-	out.Value = expandFloat32(m.Value)
+	out.Max = expandFloat64AsFloat32(m.Max)
+	out.Min = expandFloat64AsFloat32(m.Min)
+	out.Value = expandFloat64AsFloat32(m.Value)
 	return out
 }
 
-func flattenTextboxDefaultNumericValue(ctx context.Context, p path.Path, v *dashboard_service.TextboxDefaultNumericValue, diags *diag.Diagnostics) *TextboxDefaultNumericValueModel {
+func flattenTextboxDefaultNumericValue(ctx context.Context, p path.Path, v *dashboard_service.TextboxDefaultNumericValue, prior *TextboxDefaultNumericValueModel, diags *diag.Diagnostics) *TextboxDefaultNumericValueModel {
 	if v == nil {
 		return nil
 	}
 	out := &TextboxDefaultNumericValueModel{}
 	out.IsInteger = types.BoolPointerValue(v.IsInteger)
-	out.Max = flattenFloat32(v.Max)
-	out.Min = flattenFloat32(v.Min)
-	out.Value = flattenFloat32(v.Value)
+	out.Max = flattenFloat32AsFloat64(v.Max)
+	if prior != nil {
+		out.Max = keepPriorFloat32(prior.Max, out.Max)
+	}
+	out.Min = flattenFloat32AsFloat64(v.Min)
+	if prior != nil {
+		out.Min = keepPriorFloat32(prior.Min, out.Min)
+	}
+	out.Value = flattenFloat32AsFloat64(v.Value)
+	if prior != nil {
+		out.Value = keepPriorFloat32(prior.Value, out.Value)
+	}
 	return out
 }
 
 func textboxDefaultNumericValueAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"is_integer": types.BoolType,
-		"max":        types.Float32Type,
-		"min":        types.Float32Type,
-		"value":      types.Float32Type,
+		"max":        types.Float64Type,
+		"min":        types.Float64Type,
+		"value":      types.Float64Type,
 	}
 }
 
@@ -12451,7 +14732,7 @@ func expandVariableValueV2(ctx context.Context, p path.Path, m *VariableValueV2M
 	return out
 }
 
-func flattenVariableValueV2(ctx context.Context, p path.Path, v *dashboard_service.VariableValueV2, diags *diag.Diagnostics) *VariableValueV2Model {
+func flattenVariableValueV2(ctx context.Context, p path.Path, v *dashboard_service.VariableValueV2, prior *VariableValueV2Model, diags *diag.Diagnostics) *VariableValueV2Model {
 	if v == nil {
 		return nil
 	}
@@ -12460,7 +14741,11 @@ func flattenVariableValueV2(ctx context.Context, p path.Path, v *dashboard_servi
 	out.Lucene = flattenLuceneQueryValue(ctx, p.AtName("lucene"), v.Lucene, diags)
 	out.MultiString = flattenMultiStringValue(ctx, p.AtName("multi_string"), v.MultiString, diags)
 	out.Regex = flattenRegexValue(ctx, p.AtName("regex"), v.Regex, diags)
-	out.SingleNumeric = flattenVariableValueV2SingleNumericValue(ctx, p.AtName("single_numeric"), v.SingleNumeric, diags)
+	var priorSingleNumeric *VariableValueV2SingleNumericValueModel
+	if prior != nil {
+		priorSingleNumeric = prior.SingleNumeric
+	}
+	out.SingleNumeric = flattenVariableValueV2SingleNumericValue(ctx, p.AtName("single_numeric"), v.SingleNumeric, priorSingleNumeric, diags)
 	out.SingleString = flattenSingleStringValueAtVariableValueV2SingleString(ctx, p.AtName("single_string"), v.SingleString, diags)
 	return out
 }
@@ -12719,14 +15004,14 @@ func expandVariableValueV2SingleNumericValue(ctx context.Context, p path.Path, m
 	out := &dashboard_service.VariableValueV2SingleNumericValue{}
 	out.Value = &dashboard_service.NumericValueLabel{} // an inlined object: its fields are top-level attributes
 	out.Value.Label = expandString(m.Label)
-	out.Value.Value = expandFloat32(m.Value)
+	out.Value.Value = expandFloat64AsFloat32(m.Value)
 	if out.Value != nil && modelNull(m.Label) && modelNull(m.Value) {
 		out.Value = nil // an optional object that the configuration sets no attribute of is left out
 	}
 	return out
 }
 
-func flattenVariableValueV2SingleNumericValue(ctx context.Context, p path.Path, v *dashboard_service.VariableValueV2SingleNumericValue, diags *diag.Diagnostics) *VariableValueV2SingleNumericValueModel {
+func flattenVariableValueV2SingleNumericValue(ctx context.Context, p path.Path, v *dashboard_service.VariableValueV2SingleNumericValue, prior *VariableValueV2SingleNumericValueModel, diags *diag.Diagnostics) *VariableValueV2SingleNumericValueModel {
 	if v == nil {
 		return nil
 	}
@@ -12738,14 +15023,17 @@ func flattenVariableValueV2SingleNumericValue(ctx context.Context, p path.Path, 
 	}
 	out := &VariableValueV2SingleNumericValueModel{}
 	out.Label = types.StringPointerValue(v.Value.Label)
-	out.Value = flattenFloat32(v.Value.Value)
+	out.Value = flattenFloat32AsFloat64(v.Value.Value)
+	if prior != nil {
+		out.Value = keepPriorFloat32(prior.Value, out.Value)
+	}
 	return out
 }
 
 func variableValueV2SingleNumericValueAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"label": types.StringType,
-		"value": types.Float32Type,
+		"value": types.Float64Type,
 	}
 }
 
@@ -12819,7 +15107,12 @@ func flattenDashboardAction(ctx context.Context, p path.Path, v *dashboard_servi
 		v.Definition.CustomAction = &dashboard_service.CustomAction{}
 	}
 	out := &DashboardActionModel{}
-	out.DataSource = flattenEnumMapped(p.AtName("data_source"), v.DataSource, actionDataSourceTypeFromAPI, diags)
+	if api := v.DataSource; api != nil && *api == "ACTION_DATA_SOURCE_TYPE_NONE_UNSPECIFIED" {
+		// The zero value means that the API has no value.
+		out.DataSource = types.StringNull()
+	} else {
+		out.DataSource = flattenEnumMapped(p.AtName("data_source"), api, actionDataSourceTypeFromAPI, diags)
+	}
 	out.Url = types.StringPointerValue(v.Definition.CustomAction.Url)
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(v.Name)
@@ -12864,12 +15157,7 @@ func expandDashboardUpdate(ctx context.Context, p path.Path, m *DashboardModel, 
 			out.Filters = append(out.Filters, *expandFiltersFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
 		}
 	}
-	{
-		var inner *string
-		inner = expandString(m.FolderId)
-		out.FolderId = wrapUUID(inner)
-	}
-	out.FolderPath = expandFolderPath(ctx, p.AtName("folder_path"), m.FolderPath, diags)
+	expandDashboardUpdateFolder(ctx, p.AtName("folder"), m.Folder, out, diags)
 	out.Layout = valueOf(expandLayout(ctx, p.AtName("layout"), m.Layout, diags))
 	out.Name = valueOf(expandString(m.Name))
 	out.SlugName = expandString(m.SlugName)
@@ -12921,6 +15209,23 @@ func expandDashboardUpdateAutoRefresh(ctx context.Context, p path.Path, m *Dashb
 	}
 }
 
+// expandDashboardUpdateFolder writes the fields of a group, which the API holds in the parent object, to out.
+func expandDashboardUpdateFolder(ctx context.Context, p path.Path, m *DashboardFolderModel, out *dashboard_service.Dashboard, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	{
+		var inner *string
+		inner = expandString(m.FolderId)
+		out.FolderId = wrapUUID(inner)
+	}
+	{
+		var inner []string
+		inner = splitText(m.FolderPath, "/")
+		out.FolderPath = wrapFolderPath(inner)
+	}
+}
+
 // expandDashboardUpdateTimeFrameRelative writes the fields of a group, which the API holds in the parent object, to out.
 func expandDashboardUpdateTimeFrameRelative(ctx context.Context, p path.Path, m *DashboardTimeFrameRelativeModel, out *dashboard_service.Dashboard, diags *diag.Diagnostics) {
 	if m == nil {
@@ -12929,7 +15234,7 @@ func expandDashboardUpdateTimeFrameRelative(ctx context.Context, p path.Path, m 
 	out.RelativeTimeFrame = expandString(m.RelativeTimeFrame)
 }
 
-func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Dashboard, diags *diag.Diagnostics) *DashboardModel {
+func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Dashboard, prior *DashboardModel, diags *diag.Diagnostics) *DashboardModel {
 	if v == nil {
 		return nil
 	}
@@ -12959,13 +15264,17 @@ func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Das
 		}
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filtersFilterAttrTypes()}, items, diags)
 	}
-	{
-		inner := unwrapUUID(v.FolderId)
-		out.FolderId = types.StringPointerValue(inner)
+	var priorFolder *DashboardFolderModel
+	if prior != nil {
+		priorFolder = prior.Folder
 	}
-	out.FolderPath = flattenFolderPath(ctx, p.AtName("folder_path"), v.FolderPath, diags)
+	out.Folder = flattenDashboardFolder(ctx, p.AtName("folder"), v, priorFolder, diags)
 	out.Id = types.StringPointerValue(v.Id)
-	out.Layout = flattenLayout(ctx, p.AtName("layout"), &v.Layout, diags)
+	var priorLayout *LayoutModel
+	if prior != nil {
+		priorLayout = prior.Layout
+	}
+	out.Layout = flattenLayout(ctx, p.AtName("layout"), &v.Layout, priorLayout, diags)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.SlugName = types.StringPointerValue(v.SlugName)
 	out.Variables = types.ListNull(types.ObjectType{AttrTypes: variableAttrTypes()})
@@ -12979,11 +15288,22 @@ func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Das
 	out.VariablesV2 = types.ListNull(types.ObjectType{AttrTypes: variableV2AttrTypes()})
 	if v.VariablesV2 != nil {
 		items := make([]VariableV2Model, 0, len(v.VariablesV2))
+		var priorVariablesV2 []VariableV2Model
+		if prior != nil {
+			priorVariablesV2 = priorItems[VariableV2Model](ctx, prior.VariablesV2)
+		}
 		for i := range v.VariablesV2 {
-			items = append(items, *flattenVariableV2(ctx, p.AtName("variables_v2").AtListIndex(i), &v.VariablesV2[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *VariableV2Model
+			if i < len(priorVariablesV2) {
+				priorItem = &priorVariablesV2[i]
+			}
+			items = append(items, *flattenVariableV2(ctx, p.AtName("variables_v2").AtListIndex(i), &v.VariablesV2[i], priorItem, diags))
 		}
 		out.VariablesV2 = flattenList(ctx, types.ObjectType{AttrTypes: variableV2AttrTypes()}, items, diags)
 	}
+	out.AccessPolicy = types.StringNull()
+	out.ContentJson = types.StringNull()
 	return out
 }
 
@@ -13040,6 +15360,30 @@ func dashboardAutoRefreshAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"type": types.StringType,
 	}
+}
+
+func flattenDashboardFolder(ctx context.Context, p path.Path, v *dashboard_service.Dashboard, prior *DashboardFolderModel, diags *diag.Diagnostics) *DashboardFolderModel {
+	if v == nil {
+		return nil
+	}
+	if v.FolderId == nil && v.FolderPath == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &DashboardFolderModel{}
+	{
+		inner := unwrapUUID(v.FolderId)
+		out.FolderId = types.StringPointerValue(inner)
+	}
+	{
+		inner := unwrapFolderPath(v.FolderPath)
+		out.FolderPath = joinText(inner, "/")
+	}
+	if prior != nil && otherArm([]bool{!prior.FolderId.IsNull() && !prior.FolderId.IsUnknown(), !prior.FolderPath.IsNull() && !prior.FolderPath.IsUnknown()}, []bool{!out.FolderId.IsNull() && !out.FolderId.IsUnknown(), !out.FolderPath.IsNull() && !out.FolderPath.IsUnknown()}) {
+		// The API answered another arm than the one that the user wrote, so the written arm stays.
+		kept := *prior
+		return &kept
+	}
+	return out
 }
 
 func flattenDashboardTimeFrameRelative(ctx context.Context, p path.Path, v *dashboard_service.Dashboard, diags *diag.Diagnostics) *DashboardTimeFrameRelativeModel {
@@ -13157,6 +15501,22 @@ func unwrapUUID_items(w []dashboard_service.UUID) []string {
 	return out
 }
 
+// wrapFolderPath puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapFolderPath(v []string) *dashboard_service.FolderPath {
+	if v == nil {
+		return nil
+	}
+	return &dashboard_service.FolderPath{Segments: v}
+}
+
+// unwrapFolderPath takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapFolderPath(w *dashboard_service.FolderPath) []string {
+	if w == nil {
+		return nil
+	}
+	return w.Segments
+}
+
 // wrapSectionColor puts the value in its API wrapper objects. A nil value sends no wrapper.
 func wrapSectionColor(v *dashboard_service.SectionPredefinedColor) *dashboard_service.SectionColor {
 	if v == nil {
@@ -13203,6 +15563,22 @@ func unwrapConstantListSource(w *dashboard_service.ConstantListSource) []string 
 		return nil
 	}
 	return w.Values
+}
+
+// wrapLogsPathSourceAtMultiSelectSourceLogsPath puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapLogsPathSourceAtMultiSelectSourceLogsPath(v *string) *dashboard_service.LogsPathSource {
+	if v == nil {
+		return nil
+	}
+	return &dashboard_service.LogsPathSource{Value: v}
+}
+
+// unwrapLogsPathSourceAtMultiSelectSourceLogsPath takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapLogsPathSourceAtMultiSelectSourceLogsPath(w *dashboard_service.LogsPathSource) *string {
+	if w == nil {
+		return nil
+	}
+	return w.Value
 }
 
 // wrapQueryMetricsQuerySelection_QueryMetricsQuerySelectionListSelection puts the value in its API wrapper objects. A nil value sends no wrapper.
@@ -13428,11 +15804,195 @@ func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags
 	return types.StringValue(s)
 }
 
+// expandEnumsMapped returns the API values of a list or set of Terraform values. A value that
+// the map lacks is an error. A set sends each value once.
+func expandEnumsMapped[T ~string](ctx context.Context, p path.Path, v elements, toAPI map[string]T, set bool, diags *diag.Diagnostics) []T {
+	items := expandStrings[string](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make([]T, 0, len(items))
+	seen := make(map[T]struct{}, len(items))
+	for i, item := range items {
+		e, ok := toAPI[item]
+		if !ok {
+			at := p.AtListIndex(i)
+			if set {
+				at = p.AtSetValue(types.StringValue(item))
+			}
+			diags.AddAttributeError(at, "Unsupported value", fmt.Sprintf("The value %q is not supported.", item))
+			continue
+		}
+		if _, dup := seen[e]; set && dup {
+			continue
+		}
+		seen[e] = struct{}{}
+		out = append(out, e)
+	}
+	return out
+}
+
+// flattenEnumsMappedTF returns the Terraform values of API values. A value that the map lacks is an error.
+func flattenEnumsMappedTF[T ~string](p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) []string {
+	out := make([]string, 0, len(v))
+	for i, e := range v {
+		s, ok := fromAPI[e]
+		if !ok {
+			diags.AddAttributeError(p.AtListIndex(i), "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(e)))
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func flattenEnumsMappedList[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
+}
+
+func flattenEnumsMappedSet[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
+}
+
 func flattenEnum[T ~string](v *T, zero string) types.String {
 	if v == nil || string(*v) == zero {
 		return types.StringNull()
 	}
 	return types.StringValue(string(*v))
+}
+
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
+}
+
+// keepOrder returns the items in the order of the prior list, when the API returned the same items in
+// another order. It expands the prior list to SDK values and compares them with same. The prior only
+// keeps an order, so a prior that cannot be read is not an error.
+func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []S {
+	var scratch diag.Diagnostics
+	models := priorItems[M](ctx, prior)
+	var priorSDK []S // nil for a prior list that is null: an empty API list then reads as null, as before
+	if models != nil {
+		priorSDK = make([]S, 0, len(models))
+	}
+	for i := range models {
+		priorSDK = append(priorSDK, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return items
+	}
+	return orderLike(items, priorSDK, same)
+}
+
+// orderLike returns prior when it holds the same items as items, in another order. Otherwise
+// the items really changed, and the API order stays, so the plan shows the change.
+func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
+	if items == nil || len(items) != len(prior) {
+		return items // a missing list stays missing
+	}
+	used := make([]bool, len(prior))
+	for i := range items {
+		found := false
+		for j := range prior {
+			if !used[j] && same(&items[i], &prior[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return items
+		}
+	}
+	return prior
+}
+
+// pairPrior returns, for each item, the prior model that has the same request value as the item, or
+// nil. A set has no order, so the prior item is found by value and not by index. Each prior item pairs
+// with one item. The prior only keeps the text of a value, so a prior that cannot be read is no error.
+func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []*M {
+	out := make([]*M, len(items))
+	var scratch diag.Diagnostics
+	values := make([]S, 0, len(models))
+	for i := range models {
+		values = append(values, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return out
+	}
+	used := make([]bool, len(values))
+	for i := range items {
+		for j := range values {
+			if !used[j] && same(&items[i], &values[j]) {
+				used[j], out[i] = true, &models[j]
+				break
+			}
+		}
+	}
+	return out
+}
+
+// pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
+func pointerValue[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
+}
+
+func sameObject[T any](a, b *T, same func(a, b *T) bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return same(a, b)
+}
+
+func sameList[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !same(&a[i], &b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// sameUnordered reports whether a and b hold the same items, ignoring order. A nested list that
+// keepPriorOrder restores can come back from the API shuffled; matching the parent object must
+// still succeed so flatten can attach the prior nested list.
+func sameUnordered[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	used := make([]bool, len(b))
+	for i := range a {
+		found := false
+		for j := range b {
+			if !used[j] && same(&a[i], &b[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 func flattenTime(v *time.Time) types.String {
@@ -13555,6 +16115,168 @@ func flattenFloat32(v *float32) types.Float32 {
 	return value.(types.Float32)
 }
 
+// expandFloat64AsFloat32 returns the float32 that the API holds for a Float64 attribute.
+func expandFloat64AsFloat32(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+// flattenFloat32AsFloat64 returns a float32 of the API as the shortest decimal that reads back as
+// it: 0.3 and not 0.30000001192092896.
+func flattenFloat32AsFloat64(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, err := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
+	if err != nil {
+		return types.Float64Value(float64(*v))
+	}
+	return types.Float64Value(f)
+}
+
+// keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
+// value that the API stores. A configured 0.123456789 then stays, though the API returns the
+// float32 0.12345679.
+func keepPriorFloat32(prior, v types.Float64) types.Float64 {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() || float32(prior.ValueFloat64()) != float32(v.ValueFloat64()) {
+		return v
+	}
+	return prior
+}
+
+// otherArm reports whether the prior value and the new value each have a field set, and no field is
+// set in both: the new value holds another arm than the prior one.
+func otherArm(prior, now []bool) bool {
+	anyPrior, anyNow := false, false
+	for i := range prior {
+		if prior[i] && now[i] {
+			return false
+		}
+		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
+	}
+	return anyPrior && anyNow
+}
+
+// splitText returns the elements of a text that Terraform shows for a list of strings: the text split
+// at every separator, with no trimming, so "a//b/" is a, an empty text, b, and an empty text. A null
+// or unknown text is no list.
+func splitText(v types.String, sep string) []string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return strings.Split(v.ValueString(), sep)
+}
+
+// joinText returns the elements of a list as one text, joined by the separator. A list that the API
+// does not have is null.
+func joinText(v []string, sep string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strings.Join(v, sep))
+}
+
+// expandClientUUID returns the id that the client makes: the value of a known id, and a new version 4
+// UUID for an id that is unknown. A null id is no id.
+func expandClientUUID(v types.String) *string {
+	if v.IsNull() {
+		return nil
+	}
+	if !v.IsUnknown() {
+		return expandString(v)
+	}
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6], b[8] = b[6]&0x0f|0x40, b[8]&0x3f|0x80
+	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+	return &id
+}
+
+// expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
+// not a whole number, or is outside the int32 range, is an error.
+func expandNumberAsInt32(p path.Path, v types.Number, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, accuracy := v.ValueBigFloat().Int64()
+	if accuracy != big.Exact || n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is not a whole number from %d to %d.", v.ValueBigFloat().Text('g', -1), math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// expandNumberAsFloat64 returns the double that the API holds for a Number attribute.
+func expandNumberAsFloat64(p path.Path, v types.Number, diags *diag.Diagnostics) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f, _ := v.ValueBigFloat().Float64()
+	if math.IsInf(f, 0) {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is outside the range of a double.", v.ValueBigFloat().Text('g', -1)))
+		return nil
+	}
+	return &f
+}
+
+func int32AsNumber(v *int32) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*v)))
+}
+
+func float64AsNumber(v *float64) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*v))
+}
+
+// keepPriorNumber returns the plan or state value prior when it is the same double as v, the value
+// that the API stores. A configured 0.1 then stays, though Terraform holds it with more bits than a
+// double and the API returns the double 0.1000000000000000055.
+func keepPriorNumber(prior, v types.Number) types.Number {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	p, _ := prior.ValueBigFloat().Float64()
+	f, _ := v.ValueBigFloat().Float64()
+	if p != f {
+		return v
+	}
+	return prior
+}
+
+// expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.
+func expandInt64Wire(v types.Int64) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := strconv.FormatInt(v.ValueInt64(), 10)
+	return &s
+}
+
+// flattenInt64Wire parses the decimal string of a signed 64-bit number. A text that is not a
+// number of that range is an error.
+func flattenInt64Wire(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", fmt.Sprintf("The API returned %q, which is not a 64-bit number: %s", *v, err))
+		return types.Int64Null()
+	}
+	return types.Int64Value(n)
+}
+
 // widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain
 // float64(v) shows the rounding of float32 (0.1 → 0.10000000149011612). A Float32 attribute
 // that holds the shortest decimal also matches the configuration after an import.
@@ -13581,6 +16303,57 @@ func widenFloat32Map(v map[string]float32) map[string]float64 {
 	out := make(map[string]float64, len(v))
 	for k, f := range v {
 		out[k] = widenFloat32(f)
+	}
+	return out
+}
+
+// expandInt64AsInt32 returns the int32 that the API holds for an Int64 attribute. A value outside
+// the int32 range is an error.
+func expandInt64AsInt32(p path.Path, v types.Int64, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return int64AsInt32(p, v.ValueInt64(), diags)
+}
+
+func int64AsInt32(p path.Path, n int64, diags *diag.Diagnostics) *int32 {
+	if n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Value out of range", fmt.Sprintf("%d is outside the range that the API stores, %d to %d.", n, math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// int64sAsInt32 returns the int32 values that the API holds for an Int64 list or set.
+func int64sAsInt32(p path.Path, v []int64, diags *diag.Diagnostics) []int32 {
+	if v == nil {
+		return nil
+	}
+	out := make([]int32, 0, len(v))
+	for _, n := range v {
+		if m := int64AsInt32(p, n, diags); m != nil {
+			out = append(out, *m)
+		}
+	}
+	return out
+}
+
+func int32AsInt64(v *int32) *int64 {
+	if v == nil {
+		return nil
+	}
+	out := int64(*v)
+	return &out
+}
+
+func ints32AsInt64(v []int32) []int64 {
+	if v == nil {
+		return nil
+	}
+	out := make([]int64, 0, len(v))
+	for _, n := range v {
+		out = append(out, int64(n))
 	}
 	return out
 }
