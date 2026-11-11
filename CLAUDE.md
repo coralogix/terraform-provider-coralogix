@@ -20,14 +20,16 @@ TF_ACC=1 go test ./internal/provider/alerts/... -run TestAccAlert -v
 
 Acceptance tests use a shared Coralogix team. Jobs in one workflow run can run in parallel. Put tests that change the same account-wide resource collection in one shard. Check both legacy and framework test names when you change shard patterns.
 
-**Which acceptance jobs a pull request runs.** `.github/acceptance-areas.yaml` splits the repo into areas (alerts, dashboards, webhook, …). A pull request that changes only files of some areas runs the jobs that run the tests of those areas, and of the areas that depend on them. A pull request that changes any other file (`.github/**`, `tools/**`, `internal/utils/`, `go.mod`, `provider.go`, a file under `shared`) runs every job. Every push to master and the nightly run always run every job. The table lists no shards: `tools/acceptance-areas` matches the tests of each area against the `-run` and `-skip` patterns of the workflow.
+**Which acceptance jobs a pull request runs.** Two buckets: the dashboard jobs, and every other job. `.github/scripts/detect-test-scope.sh` reads the changed files of the pull request.
 
-```bash
-go run ./tools/acceptance-areas lint     # CI runs this; it fails the pull request
-go run ./tools/acceptance-areas report   # jobs of each area
-go run ./tools/acceptance-areas uses     # files that other areas use
-printf '%s\n' internal/provider/webhook/x.go | go run ./tools/acceptance-areas detect
 ```
+only dashboard files           -> dashboard jobs, plus the jobs that use dashboard code
+only files of other resources  -> every job except the dashboard jobs
+any other file, or both        -> every job   (internal/utils, go.mod, .github/**, provider.go, shared test helpers)
+push to master, nightly        -> every job
+```
+
+When a dashboard test starts to use a helper of a non-dashboard file, add that file to `shared` in the script.
 
 Local end-to-end smoke against examples: `./exec_examples_locally.sh` (rewrites every `examples/resources/*.tf` to point at `locally/debug/coralogix` v1.5, runs `terraform plan`, then reverts).
 
