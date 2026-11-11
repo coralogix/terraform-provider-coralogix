@@ -157,7 +157,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 		PreCheck: func() {
 			testAccRequiredEnvVarsPreCheck(
 				t,
-				"PD_INTEGRATION_ID",
+				"PD_CONNECTOR_KEY",
 			)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -171,7 +171,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationKey",
-						"value":      pagerDutyIntegrationId,
+						"value":      pagerDutyConnectorKey,
 					}),
 				),
 			},
@@ -189,7 +189,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector updated"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationKey",
-						"value":      pagerDutyIntegrationId,
+						"value":      pagerDutyConnectorKey,
 					}),
 				),
 			},
@@ -462,7 +462,7 @@ func testAccResourceCoralogixPagerdutyConnector(name string) string {
        }
      ]
    }
- }`, name, pagerDutyIntegrationId)
+ }`, name, pagerDutyConnectorKey)
 }
 
 func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
@@ -479,7 +479,7 @@ func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
        }
      ]
    }
- }`, name, pagerDutyIntegrationId)
+ }`, name, pagerDutyConnectorKey)
 }
 
 func testAccResourceCoralogixPagerdutyIncidentsConnector(name string) string {

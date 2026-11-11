@@ -33,6 +33,7 @@ var slackIntegrationId = os.Getenv("SLACK_INTEGRATION_ID")
 var slackIntegrationChannel = os.Getenv("SLACK_INTEGRATION_CHANNEL")
 var slackIntegrationChannelUpdated = os.Getenv("SLACK_INTEGRATION_CHANNEL_UPDATED")
 var pagerDutyIntegrationId = os.Getenv("PD_INTEGRATION_ID")
+var pagerDutyConnectorKey = os.Getenv("PD_CONNECTOR_KEY")
 
 func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 	name := uuid.NewString()
@@ -44,7 +45,7 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				"SLACK_INTEGRATION_ID",
 				"SLACK_INTEGRATION_CHANNEL",
 				"SLACK_INTEGRATION_CHANNEL_UPDATED",
-				"PD_INTEGRATION_ID",
+				"PD_CONNECTOR_KEY",
 			)
 			testAccRemoveLeftoverGlobalRouters(t, testAccResourceCoralogixGlobalRouter(name), testAccResourceCoralogixGlobalRouterUpdate(name))
 		},
@@ -468,7 +469,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
         }
       ]
     }
-  `, name, slackIntegrationId, slackIntegrationChannel, pagerDutyIntegrationId)
+  `, name, slackIntegrationId, slackIntegrationChannel, pagerDutyConnectorKey)
 }
 
 func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
@@ -664,5 +665,5 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
         }
       ]
     }
-  `, name, slackIntegrationId, slackIntegrationChannelUpdated, pagerDutyIntegrationId)
+  `, name, slackIntegrationId, slackIntegrationChannelUpdated, pagerDutyConnectorKey)
 }
