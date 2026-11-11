@@ -4,10 +4,15 @@
 package slov2
 
 import (
+	"context"
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -25,18 +30,18 @@ func Schema() schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"sli": schema.SingleNestedAttribute{
 				Required: true,
+				Validators: []validator.Object{
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"apm_sli", "request_based_metric_sli", "window_based_metric_sli"}, Required: true}}},
+				},
 				Attributes: map[string]schema.Attribute{
 					"apm_sli": schema.SingleNestedAttribute{
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("request_based_metric_sli"), path.MatchRelative().AtParent().AtName("window_based_metric_sli")),
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"error_config", "latency_config"}, Required: true}}},
 						},
 						Attributes: map[string]schema.Attribute{
 							"error_config": schema.SingleNestedAttribute{
-								Optional: true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("latency_config")),
-								},
+								Optional:            true,
 								Attributes:          map[string]schema.Attribute{},
 								MarkdownDescription: "Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both.",
 							},
@@ -83,22 +88,16 @@ func Schema() schema.Schema {
 							"latency_config": schema.SingleNestedAttribute{
 								Optional: true,
 								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("error_config")),
+									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"average", "quantile"}, Required: true}}},
 								},
 								Attributes: map[string]schema.Attribute{
 									"average": schema.SingleNestedAttribute{
-										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("quantile")),
-										},
+										Optional:            true,
 										Attributes:          map[string]schema.Attribute{},
 										MarkdownDescription: "Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required.",
 									},
 									"quantile": schema.SingleNestedAttribute{
 										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("average")),
-										},
 										Attributes: map[string]schema.Attribute{
 											"percentile": schema.Float32Attribute{
 												Optional: true,
@@ -142,9 +141,6 @@ func Schema() schema.Schema {
 					},
 					"request_based_metric_sli": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("window_based_metric_sli"), path.MatchRelative().AtParent().AtName("apm_sli")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"good_events": schema.SingleNestedAttribute{
 								Required: true,
@@ -171,9 +167,6 @@ func Schema() schema.Schema {
 					},
 					"window_based_metric_sli": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("request_based_metric_sli"), path.MatchRelative().AtParent().AtName("apm_sli")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"comparison_operator": schema.StringAttribute{
 								Required: true,
@@ -458,4 +451,83 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its
+// attributes, so its cost does not depend on the rest of the configuration. A validator on each arm
+// that names its siblings by a path expression walks the whole configuration for every sibling.
+type oneOfArmsValidator struct {
+	Groups    []oneOfArmGroup
+	Conflicts []oneOfArmConflict
+}
+
+// oneOfArmGroup is the arms of one oneOf. At most one of them can be set, and exactly one when the
+// group is Required.
+type oneOfArmGroup struct {
+	Arms     []string
+	Required bool
+}
+
+// oneOfArmConflict is two sets of attributes: an attribute of Left cannot be set with an attribute
+// of Right.
+type oneOfArmConflict struct {
+	Left, Right []string
+}
+
+func (v oneOfArmsValidator) Description(context.Context) string {
+	return "At most one arm of each one-of group can be set, and exactly one when the group needs an arm."
+}
+
+func (v oneOfArmsValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+// armsSet returns the names of the arms that are set: not null, and known. unknown is true when an
+// arm is unknown, because it can still become set or stay null.
+func armsSet(attributes map[string]attr.Value, names []string) (set []string, unknown bool) {
+	for _, name := range names {
+		value, ok := attributes[name]
+		switch {
+		case !ok || value.IsNull():
+		case value.IsUnknown():
+			unknown = true
+		default:
+			set = append(set, name)
+		}
+	}
+	return set, unknown
+}
+
+// validate reports two arms that are set. With none set, it reports it for a group that needs one,
+// when every arm is known. An unknown arm is checked when it is known.
+func (g oneOfArmGroup) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	set, unknown := armsSet(attributes, g.Arms)
+	switch {
+	case len(set) > 1:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("Only one of these attributes can be configured: `%s`.", strings.Join(set, "`, `")))
+	case len(set) == 0 && g.Required && !unknown:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", "No attribute was configured in this one-of group. Configure exactly one value.")
+	}
+}
+
+// validate reports an attribute of each side that are both set.
+func (c oneOfArmConflict) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	left, _ := armsSet(attributes, c.Left)
+	right, _ := armsSet(attributes, c.Right)
+	if len(left) > 0 && len(right) > 0 {
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("These attributes cannot be configured together: `%s` and `%s`.", left[0], right[0]))
+	}
+}
+
+func (v oneOfArmsValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attributes := req.ConfigValue.Attributes()
+	for _, group := range v.Groups {
+		group.validate(req.Path, attributes, resp)
+	}
+	for _, conflict := range v.Conflicts {
+		conflict.validate(req.Path, attributes, resp)
+	}
 }

@@ -64,9 +64,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\")] | 2 attributes specified when one (and only one) of [sli.apm_sli.<.request_based_metric_sli,sli.apm_sli.<.window_based_metric_sli] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"request_based_metric_sli\")] | 2 attributes specified when one (and only one) of [sli.request_based_metric_sli.<.window_based_metric_sli,sli.request_based_metric_sli.<.apm_sli] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"window_based_metric_sli\")] | 2 attributes specified when one (and only one) of [sli.window_based_metric_sli.<.request_based_metric_sli,sli.window_based_metric_sli.<.apm_sli] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"sli\")] | Only one of these attributes can be configured: `request_based_metric_sli`, `window_based_metric_sli`."
     ],
     "state": null
   },
@@ -160,8 +158,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\").AttributeName(\"average\")] | No attribute specified when one (and only one) of [sli.apm_sli.latency_config.average.<.quantile] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\").AttributeName(\"quantile\")] | No attribute specified when one (and only one) of [sli.apm_sli.latency_config.quantile.<.average] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\")] | No attribute was configured in this one-of group. Configure exactly one value."
     ],
     "state": null
   },
@@ -188,8 +185,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"error_config\")] | 2 attributes specified when one (and only one) of [sli.apm_sli.error_config.<.latency_config] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\")] | 2 attributes specified when one (and only one) of [sli.apm_sli.latency_config.<.error_config] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\")] | Only one of these attributes can be configured: `error_config`, `latency_config`."
     ],
     "state": null
   },

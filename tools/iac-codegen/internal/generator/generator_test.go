@@ -443,7 +443,7 @@ func TestGoldenCanonicalAPIContract(t *testing.T) {
 		`stringvalidator.OneOf("THING_KIND_STANDARD", "THING_KIND_ADVANCED", "THING_KIND_P5_OR_UNSPECIFIED")`,
 		`stringplanmodifier.RequiresReplace()`,
 		`"config": schema.SingleNestedAttribute{`,
-		`objectvalidator.ExactlyOneOf`,
+		`oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms:`,
 		`"destinations": schema.ListAttribute{`,
 		`"tags": schema.SetAttribute{`,
 		`"details": schema.SetNestedAttribute{`,
@@ -1376,9 +1376,41 @@ func TestOptionalOneOfUsesNestedValidators(t *testing.T) {
 	if len(data.ConfigValidators) != 0 {
 		t.Fatalf("optional oneOf has resource validators: %v", data.ConfigValidators)
 	}
-	for _, child := range data.Attributes[0].Attributes {
-		if len(child.Validators) != 1 || !strings.Contains(child.Validators[0], "validator.ExactlyOneOf(path.MatchRelative().AtParent().AtName") {
-			t.Errorf("%s validators = %v, want nested ExactlyOneOf", child.Name, child.Validators)
+	// The arms hold no validator that names a sibling: one validator on the object holds the group.
+	parent := data.Attributes[0]
+	want := `oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"first", "second"}, Required: true}}}`
+	if len(parent.Validators) != 1 || parent.Validators[0] != want {
+		t.Errorf("parent validators = %v, want %s", parent.Validators, want)
+	}
+	for _, child := range parent.Attributes {
+		if len(child.Validators) != 0 {
+			t.Errorf("%s validators = %v, want none: the group is checked on the object", child.Name, child.Validators)
+		}
+	}
+}
+
+// No oneOf group of a nested object writes a validator on each arm that names its siblings by a path
+// expression: each one walks the whole configuration, so the cost of a plan grows with the number of
+// objects, as it did for a dashboard with many widgets. The group is one validator on the parent
+// object. A validator of a field line (alsoRequires, conflictsWith) states one released rule and is
+// not a group.
+func TestNoGoldenGroupWritesAPathValidatorOnEachArm(t *testing.T) {
+	entries, err := filepath.Glob(filepath.Join("testdata", "golden", "*", "schema.go"))
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("no golden schemas: %v", err)
+	}
+	allowed := map[string]bool{ // field-line validators of the fixtures
+		"configthing":    true,
+		"overwritething": true,
+	}
+	for _, file := range entries {
+		name := filepath.Base(filepath.Dir(file))
+		for i, line := range strings.Split(string(mustRead(t, file)), "\n") {
+			if strings.Contains(line, "validator.ExactlyOneOf(path.MatchRelative()") || strings.Contains(line, "validator.ConflictsWith(path.MatchRelative()") {
+				if !allowed[name] {
+					t.Errorf("%s:%d writes a per-arm path validator: %s", file, i+1, strings.TrimSpace(line))
+				}
+			}
 		}
 	}
 }

@@ -111,8 +111,14 @@ type tfAttr struct {
 	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
 	// The acceptance test sets one arm of each group.
 	OneOfGroup string
-	// OneOfRequired says that the group needs one arm (ExactlyOneOf), so every config sets one.
+	// OneOfRequired says that the group needs one arm, so every config sets one.
 	OneOfRequired bool
+	// ArmConflicts are the attribute names of the arms that stay beside the inlined arm that this
+	// field came from (inline line): the field cannot be set with any of them. The conflict is checked by
+	// the validator on the parent object, as the oneOf groups are.
+	ArmConflicts []string
+	// ItemValidators are the validators of the object of each item of a list, set, or map of objects.
+	ItemValidators []string
 	// RootArm: the attribute is an arm of a top-level oneOf, which a resource validator checks.
 	RootArm bool
 	// KeyedObject: the attribute is the object of a keyedBy line, with an attribute per value of
@@ -260,6 +266,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			}
 		}
 	}
+	addArmValidators(out.Attributes)
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
@@ -357,7 +364,7 @@ func (r *tfResource) HasTypedArms() bool {
 // UsesAttr reports whether a static default of an attribute is an empty list or set, whose Go
 // expression names attr.Value. The typedArmValidator also names it.
 func (r *tfResource) UsesAttr() bool {
-	if r.HasTypedArms() {
+	if r.HasTypedArms() || r.HasArmValidators() {
 		return true
 	}
 	var uses func(attrs []*tfAttr) bool
@@ -1152,12 +1159,12 @@ func serverDefaultValue(t *model.Type, value string) (string, error) {
 	}
 }
 
-// addGroupValidators adds a validator to each arm of the oneOf groups of an
-// object: ExactlyOneOf, or ConflictsWith when no arm is allowed, with the
-// other arms. On the arm, Terraform runs it only when the object is set. A
-// resource validator would also run when the object is null, and then
-// "exactly one" fails.
-func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup, name func(string) string) {
+// markOneOfArms marks each arm of the oneOf groups of an object, so that the validator on the parent
+// object can check the group: exactly one arm, or at most one when no arm is allowed. The check
+// is on the parent and reads its attributes. A validator on each arm that names its siblings by a
+// path expression walks the whole configuration for every sibling, which made the plan of a
+// dashboard with many widgets slow.
+func markOneOfArms(attrs []*tfAttr, groups []model.OneOfGroup, name func(string) string) {
 	byName := map[string]*tfAttr{}
 	for _, a := range attrs {
 		byName[a.Name] = a
@@ -1165,16 +1172,6 @@ func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup, name func(st
 	for _, g := range groups {
 		for _, arm := range g.Arms {
 			a := byName[name(arm)]
-			var others []string
-			for _, o := range g.Arms {
-				if o != arm {
-					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name(o)))
-				}
-			}
-			pkg := strings.ToLower(a.ValueKind) + "validator"
-			validator := groupValidator(pkg, g, false) + "(" + strings.Join(others, ", ") + ")"
-			a.Validators = append(a.Validators, validator)
-			a.GroupValidators = append(a.GroupValidators, validator)
 			a.OneOfGroup = strings.Join(g.Arms, ",")
 			a.OneOfRequired = !g.AllowNone
 		}
@@ -1236,17 +1233,11 @@ func (b *tfBuilder) claimModel(name, owner string) error {
 	return nil
 }
 
-// requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
-// allows none, and the released resource required one.
+// requireOneArm makes the group of a oneOf that allows no arm need one arm. The contract allows
+// none, and the released resource required one.
 func requireOneArm(a *tfAttr) {
 	for _, child := range a.Attributes {
 		child.OneOfRequired = true
-		for i, v := range child.Validators {
-			child.Validators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
-		}
-		for i, v := range child.GroupValidators {
-			child.GroupValidators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
-		}
 	}
 }
 
@@ -1720,7 +1711,8 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 
 // keptArmConflicts makes the fields of an inlined oneOf arm conflict with the arms that stay beside
 // them in the object t. The arms exclude each other in the API, and an inline line moved one arm's
-// fields up. The check is a group check: it states the structure of the request, not a limit.
+// fields up. The check is a group check: it states the structure of the request, not a limit. The
+// validator on the parent object makes it.
 func (b *tfBuilder) keptArmConflicts(t *model.Type, attrs []*tfAttr) {
 	for _, a := range attrs {
 		parent := b.file.NestedParent(t.Schema, a.Property)
@@ -1738,9 +1730,7 @@ func (b *tfBuilder) keptArmConflicts(t *model.Type, attrs []*tfAttr) {
 		if len(names) == 0 {
 			continue
 		}
-		expr := strings.ToLower(a.ValueKind) + "validator.ConflictsWith(" + siblingPaths(a.UpSteps, names) + ")"
-		a.Validators = append(a.Validators, expr)
-		a.GroupValidators = append(a.GroupValidators, expr)
+		a.ArmConflicts = names
 	}
 }
 
@@ -1812,10 +1802,7 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(armComponent, arm.Name, arm.Type, model.Normal, false, false))
 	}
-	addGroupValidators(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
-	if !group.AllowNone {
-		oneExactlyOneOf(attrs)
-	}
+	markOneOfArms(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -1874,24 +1861,6 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 	}
 	a.Attributes = nested
 	return a, nil
-}
-
-// oneExactlyOneOf replaces the group validators of the arms with one ExactlyOneOf on the first arm
-// that names every arm, as the released resource had: a rule without an arm, or with two, gets one
-// error, not one per arm.
-func oneExactlyOneOf(attrs []*tfAttr) {
-	if len(attrs) == 0 {
-		return
-	}
-	var all []string
-	for _, a := range attrs {
-		all = append(all, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", a.Name))
-		a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return slices.Contains(a.GroupValidators, v) })
-		a.GroupValidators = nil
-	}
-	v := "objectvalidator.ExactlyOneOf(" + strings.Join(all, ", ") + ")"
-	attrs[0].Validators = append(attrs[0].Validators, v)
-	attrs[0].GroupValidators = []string{v}
 }
 
 // checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, a
@@ -3105,7 +3074,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 			}
 			// The arms are in one group, which is an object: they check each other inside it. An arm
 			// in a group inside the group is checked as that group, the object that stands for it.
-			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string {
+			markOneOfArms(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string {
 				if inner := file.Groups[group].InnerOf(arm); inner != "" {
 					return inner
 				}
@@ -3284,7 +3253,7 @@ func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup)
 			if err := g.checkSingleArmGroups(o); err != nil {
 				return err
 			}
-			addGroupValidators(attrs, []model.OneOfGroup{o}, func(arm string) string {
+			markOneOfArms(attrs, []model.OneOfGroup{o}, func(arm string) string {
 				if in := g.of(arm); in != "" {
 					return in
 				}
@@ -3293,10 +3262,10 @@ func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup)
 			continue
 		}
 		if group == "" {
-			addGroupValidators(attrs, []model.OneOfGroup{o}, name)
+			markOneOfArms(attrs, []model.OneOfGroup{o}, name)
 			continue
 		}
-		addGroupValidators(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
+		markOneOfArms(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
 		if g.lines[group].RequireOne {
 			requireOneArm(g.attrs[group])
 		}
