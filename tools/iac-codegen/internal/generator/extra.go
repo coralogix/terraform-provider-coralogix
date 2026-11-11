@@ -48,8 +48,17 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 		}
 	}
 	if computedExtra {
-		updateExtraPaths(out)
+		updateExtraPaths(out, extraHasObject(file))
 	}
+	// A default that holds the types of the attributes below it is built now: the extra attributes
+	// are part of those types.
+	if err := resolveStructDefaults(out.Attributes, file); err != nil {
+		return err
+	}
+	// An Optional and Computed attribute or a default can need a package that no other attribute
+	// of the schema uses.
+	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
+	out.DefaultPkgs = defaultPackages(out.Attributes)
 	return nil
 }
 
@@ -58,14 +67,11 @@ func attachOneExtra(out *tfResource, file *overrides.File, component string, mod
 	if fieldNamed(model, name) || extraAttrNamed(out, file.Resource, component, parents, name) {
 		return false, fmt.Errorf("%s: the generated object already has this attribute", location)
 	}
-	attribute, field, attrType, nullExpr, err := extraAttr(name, extra)
+	attribute, field, attrType, nullExpr, err := newExtra(name, extra, file)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", location, err)
 	}
-	if err := configureExtraAttribute(attribute, extra, file); err != nil {
-		return false, fmt.Errorf("%s: %w", location, err)
-	}
-	computed := extra.Computed
+	computed := extra.Computed || extra.Type == "object"
 	if component == file.Resource {
 		out.Attributes = append(out.Attributes, attribute)
 	} else {
@@ -79,10 +85,45 @@ func attachOneExtra(out *tfResource, file *overrides.File, component string, mod
 	if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
 		return false, fmt.Errorf("%s: %w", location, err)
 	}
-	if err := attachExtraBehavior(out, file.Resource, component, name, extra); err != nil {
+	if err := attachExtraBehavior(out, file.Resource, component, name, extra, attrType); err != nil {
 		return false, err
 	}
 	return computed, nil
+}
+
+// newExtra returns the schema attribute, the model field, the attr.Type expression, and the typed
+// null of an extra attribute, with its validators, default, plan modifiers, and the attributes of
+// an object.
+func newExtra(name string, extra overrides.ExtraAttribute, file *overrides.File) (*tfAttr, tfModelField, string, string, error) {
+	attribute, field, attrType, nullExpr, err := extraAttr(name, extra)
+	if err != nil {
+		return nil, field, "", "", err
+	}
+	if err := configureExtraAttribute(attribute, extra, file); err != nil {
+		return nil, field, "", "", err
+	}
+	if extra.Type == "object" {
+		if attrType, nullExpr, err = attachObjectChildren(attribute, extra, file); err != nil {
+			return nil, field, "", "", err
+		}
+	}
+	return attribute, field, attrType, nullExpr, nil
+}
+
+// attachObjectChildren adds the attributes of an object extra attribute, in name order, and returns
+// the attr.Type expression and the typed null of the object.
+func attachObjectChildren(object *tfAttr, extra overrides.ExtraAttribute, file *overrides.File) (string, string, error) {
+	typeExprs := make([]string, 0, len(extra.Attributes))
+	for _, name := range extraNames(extra.Attributes) {
+		child, _, childType, _, err := newExtra(name, extra.Attributes[name], file)
+		if err != nil {
+			return "", "", fmt.Errorf("attributes.%s: %w", name, err)
+		}
+		object.Attributes = append(object.Attributes, child)
+		typeExprs = append(typeExprs, fmt.Sprintf("%q: %s", name, childType))
+	}
+	attrTypes := "map[string]attr.Type{" + strings.Join(typeExprs, ", ") + "}"
+	return "types.ObjectType{AttrTypes: " + attrTypes + "}", "types.ObjectNull(" + attrTypes + ")", nil
 }
 
 func configureExtraAttribute(attribute *tfAttr, extra overrides.ExtraAttribute, file *overrides.File) error {
@@ -103,18 +144,34 @@ func configureExtraAttribute(attribute *tfAttr, extra overrides.ExtraAttribute, 
 		}
 		attribute.Validators = append(attribute.Validators, "setvalidator.ValueStringsAre(stringvalidator.OneOf("+strings.Join(quoted, ", ")+"))")
 	}
-	if extra.UseStateForUnknown {
-		if !extra.Computed || attribute.ValueKind != "String" {
-			return fmt.Errorf("useStateForUnknown needs a computed string")
+	if extra.Default != nil {
+		expr, err := defaultExpr(attribute, extra.Default)
+		if err != nil {
+			return fmt.Errorf("default: %w", err)
 		}
-		attribute.Modifiers = append(attribute.Modifiers, "stringplanmodifier.UseStateForUnknown()")
+		attribute.Default, attribute.DefaultRaw = expr, extra.Default
+	}
+	if extra.Equality != "" {
+		// First, as for the equality line of a field.
+		attribute.Modifiers = append([]string{"equivalentDocument{equal: " + extra.Equality + "Equal}"}, attribute.Modifiers...)
+	}
+	if extra.UseStateForUnknown {
+		if !extra.Computed || attribute.Kind == "Dynamic" {
+			return fmt.Errorf("useStateForUnknown needs a computed attribute")
+		}
+		attribute.Modifiers = append(attribute.Modifiers, strings.ToLower(attribute.ValueKind)+"planmodifier.UseStateForUnknown()")
 	}
 	return nil
 }
 
 // buildTFResource computed these paths before extra attributes were attached.
-func updateExtraPaths(out *tfResource) {
+// An object extra attribute has required attributes that keepAPIValue must know after an import;
+// the other extra attributes never were in RequiredPaths, and the released output keeps that.
+func updateExtraPaths(out *tfResource, withRequired bool) {
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	if withRequired {
+		out.RequiredPaths = requiredPaths(nil, "", out.Attributes)
+	}
 	out.ServerPaths = nil
 	for _, a := range out.Attributes {
 		if !computedOnly(a) {
@@ -128,6 +185,9 @@ func addExtraToParents(parents []*tfAttr, attribute *tfAttr, component, name str
 		return false, fmt.Errorf("types.%s.extraAttributes.%s: writeOnly cannot be used inside a computed-only object", component, name)
 	}
 	computed := false
+	if attribute.Kind == "SingleNested" && slices.ContainsFunc(parents, computedOnly) {
+		return false, fmt.Errorf("types.%s.extraAttributes.%s: an object cannot be inside a computed-only object", component, name)
+	}
 	for _, parent := range parents {
 		child := *attribute // each schema path can have different computed flags
 		if computedOnly(parent) {
@@ -139,30 +199,66 @@ func addExtraToParents(parents []*tfAttr, attribute *tfAttr, component, name str
 	return computed, nil
 }
 
-func attachExtraBehavior(out *tfResource, resource, component, name string, extra overrides.ExtraAttribute) error {
-	if extra.Dynamic {
-		if component != resource {
-			return fmt.Errorf("types.%s.extraAttributes.%s: dynamic applies to an attribute of the resource %s: the state keeps the value of a dynamic attribute only at the top level", component, name, resource)
-		}
-		if out.CRUD != nil {
-			out.CRUD.KeptExtras = append(out.CRUD.KeptExtras, keptExtra{TFName: name, Model: camelize(name), Type: "types.Dynamic"})
-		}
+func attachExtraBehavior(out *tfResource, resource, component, name string, extra overrides.ExtraAttribute, attrType string) error {
+	location := fmt.Sprintf("types.%s.extraAttributes.%s", component, name)
+	if extra.Dynamic && component != resource {
+		return fmt.Errorf("%s: dynamic applies to an attribute of the resource %s: the state keeps the value of a dynamic attribute only at the top level", location, resource)
 	}
-	// A configurable string of the resource also keeps the value of the plan or the prior state.
-	// A nested one, or a computed one, gets its value from an AfterFlatten hook.
-	if extra.Type == "string" && !extra.Computed && !extra.WriteOnly && component == resource && out.CRUD != nil {
-		out.CRUD.KeptExtras = append(out.CRUD.KeptExtras, keptExtra{TFName: name, Model: camelize(name), Type: "types.String"})
+	if extra.Equality != "" && component != resource {
+		return fmt.Errorf("%s: equality applies to an attribute of the resource %s: inside the items of a list or set, a plan modifier reads the state and the configuration of another item", location, resource)
+	}
+	if component == resource {
+		keepExtra(out, name, extra, attrType)
+	}
+	if extra.Equality != "" && out.Conv != nil && !slices.Contains(out.Conv.ExtraEquality, extra.Equality) {
+		// The package needs the comparison of that kind, as for an equality line of a field.
+		out.Conv.ExtraEquality = append(out.Conv.ExtraEquality, extra.Equality)
 	}
 	if extra.InUpdate {
 		if component != resource {
-			return fmt.Errorf("types.%s.extraAttributes.%s: inUpdate applies to an attribute of the resource %s", component, name, resource)
+			return fmt.Errorf("%s: inUpdate applies to an attribute of the resource %s", location, resource)
 		}
 		if out.Conv == nil || !out.Conv.Replace {
-			return fmt.Errorf("types.%s.extraAttributes.%s: inUpdate needs an Update that replaces the resource", component, name)
+			return fmt.Errorf("%s: inUpdate needs an Update that replaces the resource", location)
 		}
 		out.Conv.UpdateFields = append(out.Conv.UpdateFields, &maskField{TFName: name})
 	}
 	return nil
+}
+
+// keepExtra makes setState start an extra attribute of the resource with the value of the plan or
+// the prior state, which the API does not hold. A dynamic attribute, a configurable string, and an
+// Optional and Computed one are kept; a read-only string gets its value from an AfterFlatten hook. An
+// object is kept when the prior value has the same type and no unknown value inside.
+func keepExtra(out *tfResource, name string, extra overrides.ExtraAttribute, attrType string) {
+	if out.CRUD == nil {
+		return
+	}
+	kept := keptExtra{TFName: name, Model: camelize(name)}
+	switch {
+	case extra.Dynamic:
+		kept.Type = "types.Dynamic"
+	case extra.Type == "string" && (!extra.Computed || extra.Optional) && !extra.WriteOnly:
+		kept.Type = "types.String"
+	case extra.Type == "object":
+		kept.Type, kept.AttrType = "types.Object", attrType
+		out.CRUD.KeptObjects = true
+	default:
+		return
+	}
+	out.CRUD.KeptExtras = append(out.CRUD.KeptExtras, kept)
+}
+
+// extraHasObject reports whether any extra attribute is an object.
+func extraHasObject(file *overrides.File) bool {
+	for _, t := range file.Types {
+		for _, extra := range t.ExtraAttributes {
+			if extra.Type == "object" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func extraComponents(file *overrides.File) []string {
@@ -242,7 +338,7 @@ func fieldNamed(model *tfModel, name string) bool {
 }
 
 // extraAttr returns the schema attribute, the model field, the attr.Type expression, and the typed
-// null of an extra attribute.
+// null of an extra attribute. The attributes of an object are added by attachObjectChildren.
 func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelField, string, string, error) {
 	if extra.Dynamic {
 		return &tfAttr{
@@ -255,43 +351,45 @@ func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelFie
 			Description: extra.MarkdownDescription,
 		}, tfModelField{Name: camelize(name), Type: "types.Dynamic", TFName: name}, "types.DynamicType", "types.DynamicNull()", nil
 	}
-	if extra.Type == "string" {
-		return &tfAttr{
-			Name: name, Kind: "String", ValueKind: "String",
-			Required: extra.Required, Optional: !extra.Required && !extra.Computed, Computed: extra.Computed,
-			WriteOnly: extra.WriteOnly, Extra: true, Description: extra.MarkdownDescription,
-		}, tfModelField{Name: camelize(name), Type: "types.String", TFName: name}, "types.StringType", "types.StringNull()", nil
+	attribute := &tfAttr{
+		Name: name, Required: extra.Required,
+		// A computed attribute is read-only, unless optional: true makes it Optional and Computed.
+		Optional:  !extra.Required && (!extra.Computed || extra.Optional),
+		Computed:  extra.Computed,
+		WriteOnly: extra.WriteOnly, Extra: true, Description: extra.MarkdownDescription,
 	}
-	if extra.Type == "int64" {
-		return &tfAttr{
-			Name: name, Kind: "Int64", ValueKind: "Int64",
-			Required: extra.Required, Optional: !extra.Required && !extra.Computed, Computed: extra.Computed,
-			WriteOnly: extra.WriteOnly, Extra: true, Description: extra.MarkdownDescription,
-		}, tfModelField{Name: camelize(name), Type: "types.Int64", TFName: name}, "types.Int64Type", "types.Int64Null()", nil
+	field := tfModelField{Name: camelize(name), TFName: name}
+	var attrType, nullExpr string
+	switch extra.Type {
+	case "string":
+		attribute.Kind, field.Type, attrType, nullExpr = "String", "types.String", "types.StringType", "types.StringNull()"
+	case "int64":
+		attribute.Kind, field.Type, attrType, nullExpr = "Int64", "types.Int64", "types.Int64Type", "types.Int64Null()"
+	case "bool":
+		attribute.Kind, field.Type, attrType, nullExpr = "Bool", "types.Bool", "types.BoolType", "types.BoolNull()"
+	case "set":
+		attribute.Kind, attribute.ElementType, field.Type = "Set", "types.StringType", "types.Set"
+		attrType, nullExpr = "types.SetType{ElemType: types.StringType}", "types.SetNull(types.StringType)"
+	case "list":
+		attribute.Kind, attribute.ElementType, field.Type = "List", "types.StringType", "types.List"
+		attrType, nullExpr = "types.ListType{ElemType: types.StringType}", "types.ListNull(types.StringType)"
+	case "object":
+		// The model holds types.Object, which can be unknown, as an Optional and Computed object is
+		// in a plan. attachObjectChildren sets the type and the null of the object.
+		attribute.Kind, field.Type = "SingleNested", "types.Object"
+	default:
+		elem, null, err := extraElem(extra.ElementType)
+		if err != nil {
+			return nil, tfModelField{}, "", "", err
+		}
+		attribute.Kind, attribute.ElementType, field.Type = "Map", elem, "types.Map"
+		attrType, nullExpr = "types.MapType{ElemType: "+elem+"}", null
 	}
-	if extra.Type == "set" {
-		return &tfAttr{
-			Name: name, Kind: "Set", ValueKind: "Set",
-			Required: extra.Required, Optional: !extra.Required && !extra.Computed, Computed: extra.Computed,
-			WriteOnly: extra.WriteOnly, Extra: true, ElementType: "types.StringType", Description: extra.MarkdownDescription,
-		}, tfModelField{Name: camelize(name), Type: "types.Set", TFName: name}, "types.SetType{ElemType: types.StringType}", "types.SetNull(types.StringType)", nil
+	attribute.ValueKind = attribute.Kind
+	if attribute.Kind == "SingleNested" {
+		attribute.ValueKind = "Object"
 	}
-	elem, nullExpr, err := extraElem(extra.ElementType)
-	if err != nil {
-		return nil, tfModelField{}, "", "", err
-	}
-	return &tfAttr{
-		Name:        name,
-		Kind:        "Map",
-		ValueKind:   "Map",
-		Required:    extra.Required,
-		Optional:    !extra.Required && !extra.Computed,
-		Computed:    extra.Computed,
-		WriteOnly:   extra.WriteOnly,
-		Extra:       true,
-		ElementType: elem,
-		Description: extra.MarkdownDescription,
-	}, tfModelField{Name: camelize(name), Type: "types.Map", TFName: name}, "types.MapType{ElemType: " + elem + "}", nullExpr, nil
+	return attribute, field, attrType, nullExpr, nil
 }
 
 func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr string) error {

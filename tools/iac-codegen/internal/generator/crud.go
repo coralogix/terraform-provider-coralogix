@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -18,6 +19,9 @@ type keptExtra struct {
 	TFName string // Terraform attribute in the plan or prior state
 	Model  string // Go field in the resource model
 	Type   string // Framework type of the value, for example types.Dynamic
+	// AttrType is the attr.Type of an object. A prior or plan value is kept only when it has this
+	// type and no unknown value inside: a prior schema can hold an object of another shape.
+	AttrType string
 }
 
 // crudData is the template data for the resource: CRUD, import, and the
@@ -53,6 +57,12 @@ type crudData struct {
 	// Update send the write and read the resource with Get. Delete sends the write with every
 	// list empty.
 	Overwrite bool
+	// GetHooks: the Hooks have Get and AfterGet (getHooks of the behavior-overrides file).
+	// GetResponse is the SDK type that the Get call returns.
+	GetHooks    bool
+	GetResponse string
+	// GetRequest is the SDK type of the Get request builder, which the Get hook receives a factory of.
+	GetRequest string
 	// GetQuery are the query values that Get always sends: the request builder method and the Go
 	// expression of the value.
 	GetQuery []crudQuery
@@ -77,6 +87,8 @@ type crudData struct {
 	// the resource. The API holds no value for them, so setState starts with the plan or prior
 	// state before AfterFlatten can change it.
 	KeptExtras []keptExtra
+	// KeptObjects: a kept extra attribute is an object, so resource.go names attr.Type.
+	KeptObjects bool
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
 	// when the configuration sets another value than the one Create stored, or omits the
 	// attribute and Create stored another value than the declared server default.
@@ -236,7 +248,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 
-	if err := getQuery(ix, r, out); err != nil {
+	if err := getCall(ix, r, file, out); err != nil {
 		return nil, err
 	}
 	ops := []crudSpec{
@@ -524,6 +536,35 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 		}
 		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: terraformName(r.Policy, r.Name, f.Name), Default: value})
 	}
+	return nil
+}
+
+// getCall sets what the Get call needs besides the id: the query values that it always sends, and
+// the SDK type that it returns, for the Get and AfterGet hooks.
+func getCall(ix *refIndex, r *model.Resource, file *overrides.File, out *crudData) error {
+	if err := getQuery(ix, r, out); err != nil {
+		return err
+	}
+	return getHooks(ix, r, file, out)
+}
+
+// getHooks names the SDK type that the Get call returns, for the Get and AfterGet hooks.
+func getHooks(ix *refIndex, r *model.Resource, file *overrides.File, out *crudData) error {
+	if file == nil || !file.GetHooks {
+		return nil
+	}
+	if r.Singleton {
+		return errors.New("getHooks is for a resource whose Get call takes an id: a singleton has none")
+	}
+	response, err := ix.typeRef("get.response")
+	if err != nil {
+		return err
+	}
+	request, err := ix.typeRef("get")
+	if err != nil {
+		return err
+	}
+	out.GetHooks, out.GetResponse, out.GetRequest = true, response.Name, request.Name
 	return nil
 }
 

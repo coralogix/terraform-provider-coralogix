@@ -555,6 +555,11 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 	if v == nil {
 		return nil
 	}
+{{- if .OptionalGroup}}
+	if {{range $i, $f := .Fields}}{{if $i}} && {{end}}v.{{$f.SDK}} == nil{{end}} {
+		return nil // the response has none of the fields: the group is null
+	}
+{{- end}}
 {{- $model := .Model}}
 {{- range .Unsupported}}
 	if v.{{.SDK}} != nil {
@@ -1549,6 +1554,31 @@ func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 	return prior
 }
 {{- end}}
+{{- if .Conv.Uses "int64wire"}}
+
+// expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.
+func expandInt64Wire(v types.Int64) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := strconv.FormatInt(v.ValueInt64(), 10)
+	return &s
+}
+
+// flattenInt64Wire parses the decimal string of a signed 64-bit number. A text that is not a
+// number of that range is an error.
+func flattenInt64Wire(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", fmt.Sprintf("The API returned %q, which is not a 64-bit number: %s", *v, err))
+		return types.Int64Null()
+	}
+	return types.Int64Value(n)
+}
+{{- end}}
 {{- if .Conv.Uses "int64asstring"}}
 
 // expandStringAsInt64 returns the int64 id that a String attribute holds as decimal text.
@@ -1820,6 +1850,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	{{.Dst}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "int64wire"}}
+	{{.Dst}} = {{$l}}expandInt64Wire(m.{{.Model}}){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap .CaseInsensitive}}
 	{{.Dst}} = {{$l}}expandEnumMappedFold({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap}}
@@ -1830,7 +1862,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- $f := .}}
 	switch {
 {{- range .RequestValueBy}}
-	case {{if .ObjectValue}}!m.{{.Model}}.IsNull() && !m.{{.Model}}.IsUnknown(){{else}}m.{{.Model}} != nil{{end}}:
+	case {{if .Group}}m.{{.Group}} != nil && {{end}}{{if .ObjectValue}}!m.{{.Group}}{{if .Group}}.{{end}}{{.Model}}.IsNull() && !m.{{.Group}}{{if .Group}}.{{end}}{{.Model}}.IsUnknown(){{else}}m.{{.Group}}{{if .Group}}.{{end}}{{.Model}} != nil{{end}}:
 		fixed := {{$f.SDKType}}({{printf "%q" .Value}})
 		{{$f.Dst}} = {{if $f.Value}}fixed{{else}}&fixed{{end}}
 {{- end}}
@@ -1848,8 +1880,28 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "foldstring"}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		// A spelling of the enum is the enum arm. Any other text is the string arm.
+		fold := &{{.SDKType}}{}
+		if api, ok := {{.StringFold.Enum.EnumMap.Name}}ToAPI[v.ValueString()]; ok {
+			fold.{{.StringFold.Enum.SDK}} = &api
+		} else {
+			text := v.ValueString()
+			fold.{{.StringFold.Str.SDK}} = &text
+		}
+		{{.Dst}} = {{$l}}fold{{$r}}
+	}
 {{- else if eq .Conv "group"}}
+	{{- if .ObjectValue}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		var nested {{.Object.Model}}
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expand{{.Object.Func}}(ctx, {{$p}}, &nested, out, diags)
+	}
+	{{- else}}
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
+	{{- end}}
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
@@ -2056,6 +2108,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "int64wire"}}
+	out.{{.Model}} = flattenInt64Wire({{$p}}, {{$v}}, diags)
+	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})
 {{- else if eq .Conv "rfc3339"}}
@@ -2112,7 +2167,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- end}}
 	{{- end}}
 {{- else if eq .Conv "group"}}
-	{{- if .Object.NeedsPrior}}
+	{{- if .ObjectValue}}
+	out.{{.Model}} = types.ObjectNull({{.Object.AttrTypesFunc}}())
+	if nested := flatten{{.Object.Func}}(ctx, {{$p}}, v, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, {{.Object.AttrTypesFunc}}(), *nested)
+		diags.Append(valueDiags...)
+		out.{{.Model}} = value
+	}
+	{{- else if .Object.NeedsPrior}}
 	var prior{{.Model}} *{{.Object.Model}}
 	if prior != nil {
 		prior{{.Model}} = prior.{{.Model}}
@@ -2149,6 +2211,18 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 	{{- end}}
+{{- else if eq .Conv "foldstring"}}
+	out.{{.Model}} = types.StringNull()
+	if fold := {{$v}}; fold != nil {
+		switch {
+		case fold.{{.StringFold.Enum.SDK}} != nil && fold.{{.StringFold.Str.SDK}} != nil:
+			diags.AddAttributeError({{$p}}, "Invalid response from server", "The response has both a value of the enum and a text; it must have one.")
+		case fold.{{.StringFold.Enum.SDK}} != nil:
+			out.{{.Model}} = flattenEnumMapped({{$p}}, fold.{{.StringFold.Enum.SDK}}, {{.StringFold.Enum.EnumMap.Name}}FromAPI, diags)
+		case fold.{{.StringFold.Str.SDK}} != nil:
+			out.{{.Model}} = types.StringValue(*fold.{{.StringFold.Str.SDK}})
+		}
+	}
 {{- else if eq .Conv "emptybool"}}
 	out.{{.Model}} = types.BoolNull()
 	if {{.Src}} != nil {

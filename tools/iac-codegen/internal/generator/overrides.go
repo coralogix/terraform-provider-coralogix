@@ -168,7 +168,7 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if err != nil {
 		return wholeLine(fmt.Errorf("component %q: %w", line.Component, err))
 	}
-	if line.Kind == overrides.KindField {
+	if line.Kind == overrides.KindField || line.Kind == overrides.KindGroup {
 		if schema, err = withInlinedFields(schema, file, line.Component); err != nil {
 			return wholeLine(err)
 		}
@@ -498,7 +498,8 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 		// the response, which no request reaches, does not state that Terraform requires it.
 		requiredByContract = false
 	}
-	if line.Required && !responseOnly && requiredByContract && !(shared && requiredLineStatesPresence(schema, line.Field)) {
+	// An inline line with required: true is checked against every schema that it inlines (reshape.go).
+	if line.Required && !line.Inline && !responseOnly && requiredByContract && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
 	if line.Optional && shared && !responseOnly && !slices.Contains(schema.Required, line.Field) {
@@ -618,12 +619,13 @@ func unwrapUsageIssues(r *model.Resource, file *overrides.File) issue.Report {
 }
 
 // hiddenKeys returns the keys of a field line on the property of a wrapper that collapses in
-// every place. An unwrap key still decides the wrapper inside that property.
+// every place. An unwrap key still decides the wrapper inside that property, and a collection
+// key still decides whether the list inside it is a set: the value of the wrapper is that list.
 func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	if !r.HiddenWrappers[line.Component] {
 		return nil
 	}
-	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
+	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" })
 }
 
 // stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum
@@ -671,11 +673,28 @@ func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
 }
 
+// throughAllOf returns the schema that a schema with no type of its own and one allOf entry
+// stands for, as the OpenAPI generator writes an enum or an object that has a description.
+func throughAllOf(s *base.Schema) (*base.Schema, error) {
+	for len(s.Type) == 0 && len(s.Enum) == 0 && len(s.AllOf) == 1 {
+		inner, err := s.AllOf[0].BuildSchema()
+		if err != nil {
+			return nil, err
+		}
+		s = inner
+	}
+	return s, nil
+}
+
 // requestValueByProblem checks a requestValueBy line. The field is a string, each key is an
 // object field of the component, and each value is a value of the enum of the field when the
 // field is an enum.
 func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err == nil {
+		// The OpenAPI generator writes an enum with a description as allOf of one $ref.
+		built, err = throughAllOf(built)
+	}
 	if err != nil {
 		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
 	}
@@ -689,6 +708,9 @@ func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue 
 			return wholeLine(fmt.Errorf("requestValueBy names %q, which component %q does not have", field, line.Component))
 		}
 		s, err := proxy.BuildSchema()
+		if err == nil {
+			s, err = throughAllOf(s)
+		}
 		if err != nil {
 			return wholeLine(fmt.Errorf("field %q: %w", field, err))
 		}

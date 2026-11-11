@@ -163,3 +163,41 @@ func TestServerDefaultInsideANestedSetIsRefused(t *testing.T) {
 		t.Fatalf("generate = %v, want the nested-set server default refused", err)
 	}
 }
+
+// An optional group needs fields whose absence the response can show, and a useStateForUnknown line
+// of a type needs a list or set that holds the type.
+func TestOptionalGroupKeysAreChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "groupsetthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct{ old, new, want string }{
+		"a field that the SDK holds as a value": {
+			"        fields: [periodMinutes]\n", "        fields: [periodMinutes, name]\n", "an optional group needs fields that the SDK holds by pointer",
+		},
+		"a type that no list or set holds": {
+			"  OutGroupThing:\n    # The period", "  InItemThing:\n    useStateForUnknown: true\n  OutGroupThing:\n    # The period", "no list or set of the resource holds objects of InItemThing",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(string(base), test.old) {
+				t.Fatalf("the overrides file has no %q", test.old)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(strings.Replace(string(base), test.old, test.new, 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			options := Options{Resource: "GroupSetThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}

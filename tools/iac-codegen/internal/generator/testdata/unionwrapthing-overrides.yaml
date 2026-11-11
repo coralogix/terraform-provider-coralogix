@@ -1,0 +1,36 @@
+# The behavior-overrides file of the synthetic resource whose fields are in one object of the API,
+# with the arms of a oneOf. The object is inlined, so its fields and its arms are top-level
+# attributes. The contract does not require the object, so the line says that the API always has it.
+resource: UnionWrapThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  updateIDInBody: true
+  serverSetID: true
+  customMethods: true
+  operations:
+    create: UnionWrapThingsService_CreateUnionWrapThing
+    get: UnionWrapThingsService_GetUnionWrapThing
+    update: UnionWrapThingsService_ReplaceUnionWrapThing
+    delete: UnionWrapThingsService_DeleteUnionWrapThing
+
+groups:
+  kind:
+    fields: [armA, armB, armC]
+    requireOne: true
+
+types:
+  UnionWrapThing:
+    fields:
+      thing: {inline: true, required: true}
+      # The API variant follows the arm that is set. The arms are in the group kind.
+      variant: {requestValueBy: {armA: THING_VARIANT_A_OR_UNSPECIFIED, armB: THING_VARIANT_B, armC: THING_VARIANT_C}}
+      id: {readOnly: true}
+
+enums:
+  ThingVariant:
+    zero: a
+    values: [THING_VARIANT_B, THING_VARIANT_C]

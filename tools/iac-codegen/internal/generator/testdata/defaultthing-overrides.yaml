@@ -1,0 +1,56 @@
+# The behavior-overrides file of the synthetic resource whose optional objects and lists plan a
+# static default. The service fills in what the user leaves out, and the plan states the same value.
+resource: DefaultThing
+mode: existing
+
+validators:
+  inferred: false
+
+enums:
+  DefaultUnit:
+    zero: never
+    trimPrefix: UNIT_
+    values: [UNIT_HOURS, UNIT_DAYS]
+  DefaultSeverity:
+    zero: low
+    trimPrefix: SEVERITY_
+    values: [SEVERITY_HIGH]
+
+types:
+  DefaultThing:
+    fields:
+      # An object of nulls: the API returns it with empty lists, which read as null.
+      routing: {computed: true, default: {}}
+      # An object with scalar values and a nested object. Its fields have the same defaults.
+      limits: {computed: true, default: {unit: never, enabled: false, window: {days: 7}}}
+      # A null list of objects, and an empty one.
+      overrides: {computed: true, default: null, readEmptyAs: "null"}
+      rules: {computed: true, default: []}
+  DefaultRouting:
+    # A Terraform-only attribute is part of the type of the object, so the default holds it as null.
+    extraAttributes:
+      note:
+        type: string
+        markdownDescription: A note that no API field holds.
+    fields:
+      targets: {readEmptyAs: "null"}
+      regions: {readEmptyAs: "null"}
+      severities: {readEmptyAs: "null"}
+  DefaultLimits:
+    fields:
+      unit: {computed: true, default: never}
+      enabled: {computed: true, default: false}
+      window: {computed: true, default: {days: 7}}
+  DefaultRemote:
+    fields:
+      # The same defaults inside the items of a list.
+      filters: {computed: true, default: {}}
+      overrides: {computed: true, default: null, readEmptyAs: "null"}
+  DefaultGroup:
+    fields:
+      # And inside the items of a set.
+      filters: {computed: true, default: {}}
+  DefaultFilters:
+    fields:
+      include: {readEmptyAs: "null"}
+      exclude: {readEmptyAs: "null"}

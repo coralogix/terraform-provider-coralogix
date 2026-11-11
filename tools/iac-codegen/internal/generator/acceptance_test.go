@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 func testSynth(t *testing.T, fileText string) *accSynth {
@@ -1032,5 +1033,52 @@ func TestAcceptanceTestIsNamedAfterTheTerraformType(t *testing.T) {
 		if data.Name != c.want {
 			t.Errorf("type %s, SDK type %s: test name TestAccCoralogixResource%sGenerated, want %sGenerated", c.typeName, c.sdk, data.Name, c.want)
 		}
+	}
+}
+
+// An object extra attribute with a required attribute is left out, as every extra attribute is: the
+// required attribute needs a real value, so the acceptance file gives the whole object. An Optional
+// and Computed extra string is left out too, and the minimal config does not check its value.
+func TestAcceptanceObjectAndComputedExtras(t *testing.T) {
+	object, _, _, _, err := newExtra("schedule", overrides.ExtraAttribute{
+		Type: "object", MarkdownDescription: "Schedule.",
+		Attributes: map[string]overrides.ExtraAttribute{
+			"start_time": {Type: "string", Required: true, MarkdownDescription: "Start."},
+		},
+	}, &overrides.File{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, _, _, _, err := newExtra("policy", overrides.ExtraAttribute{
+		Type: "string", Optional: true, Computed: true, UseStateForUnknown: true, MarkdownDescription: "Policy.",
+	}, &overrides.File{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	attrs := append(sampleAttrs(), object, policy)
+	s := testSynth(t, "")
+	body, checks, err := s.attrs(attrs, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(body, "schedule") || strings.Contains(body, "policy") {
+		t.Fatalf("config sets an extra attribute that has no value in the acceptance file:\n%s", body)
+	}
+	for _, c := range checks {
+		if strings.Contains(c.Path, "schedule") || strings.Contains(c.Path, "policy") {
+			t.Fatalf("checks include the extra attribute %s", c.Path)
+		}
+	}
+	if defaults, kept := s.removed(attrs, checks); len(defaults)+len(kept) != 0 {
+		t.Fatalf("the minimal config checks the removed extra attribute: %v %v", defaults, kept)
+	}
+
+	s = testSynth(t, "values:\n  schedule: '{ start_time = \"07:30\" }'\n")
+	body, _, err = s.attrs(attrs, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(body, `schedule = { start_time = "07:30" }`) || strings.Contains(body, "policy") {
+		t.Fatalf("config lacks the object of the acceptance file, or sets the other extra:\n%s", body)
 	}
 }

@@ -1,5 +1,7 @@
 resource: SharedThing
 mode: existing
+# The released resource wrote the accepted values of an enum into its description.
+enumValuesInDescription: true
 typeName: shared_thing_v2
 
 validators:
