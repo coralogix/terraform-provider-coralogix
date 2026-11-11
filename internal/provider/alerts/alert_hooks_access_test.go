@@ -271,6 +271,17 @@ func TestAccessPolicyFromGetResponse(t *testing.T) {
 	if got, readable := accessPolicyFromGetResponse(withoutPolicy); got != nil || !readable {
 		t.Fatalf("access without policy = (%v, %v), want (nil, true): authoritative absence", got, readable)
 	}
+	// The real API answers a key without alerts:ReadAccessPolicy with 200, the access block, and the
+	// permission flags, but no policy. The policy is then unknown, not deleted.
+	canRead, cannotRead := true, false
+	unreadable := &alerts.GetAlertDefResponse{Access: &alerts.AlertDefAccess{Permissions: &alerts.AlertDefPermissions{CanReadAccessPolicy: &cannotRead}}}
+	if got, readable := accessPolicyFromGetResponse(unreadable); got != nil || readable {
+		t.Fatalf("access with canReadAccessPolicy false = (%v, %v), want (nil, false): the policy is unknown", got, readable)
+	}
+	readableWithoutPolicy := &alerts.GetAlertDefResponse{Access: &alerts.AlertDefAccess{Permissions: &alerts.AlertDefPermissions{CanReadAccessPolicy: &canRead}}}
+	if got, readable := accessPolicyFromGetResponse(readableWithoutPolicy); got != nil || !readable {
+		t.Fatalf("access with canReadAccessPolicy true and no policy = (%v, %v), want (nil, true)", got, readable)
+	}
 	if got, readable := accessPolicyFromGetResponse(withPolicy); got == nil || *got != policy || !readable {
 		t.Fatalf("access with policy = (%v, %v), want (%q, true)", got, readable, policy)
 	}

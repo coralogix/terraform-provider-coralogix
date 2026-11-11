@@ -16,6 +16,7 @@
 - FIX: An update that cannot find a retention tag keeps the state and asks for a refresh and a retry. Before, the error said that the refresh removes the retentions and the plan creates them again.
 - CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
 - CHORE: A flow group that lists the same alert twice with the same `not` value (an omitted `not` is false) is rejected at plan with `Duplicate Set Element`. The released provider rejected it at apply, before it called the API.
+- FIX: A key without `alerts:ReadAccessPolicy` keeps the `access_policy` of the state when the alert is read. The API answers such a key with the access block, `canReadAccessPolicy: false`, and no policy (checked on EU2: no 403), and the provider read that as an alert without a policy and cleared the value, so every refresh showed a change that the key could not apply. The data source reads the same way.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. CI runs it in the archive shard, one test at a time.
 
 #### data-source/coralogix_archive_retentions

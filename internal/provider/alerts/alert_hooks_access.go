@@ -58,8 +58,10 @@ func afterGetAlert(ctx context.Context, state *tfsdk.State, response *alertapi.G
 //   - access with a policy: the caller can read policies and one is set;
 //   - access without a policy: the caller can read and the alert has no policy. This is an authoritative
 //     "no policy", and the state clears;
-//   - no access: the caller lacks alerts:ReadAccessPolicy (or the backend omits it), so the policy is
-//     unknown and the state keeps its prior value.
+//   - access without a policy and with canReadAccessPolicy = false: the caller lacks
+//     alerts:ReadAccessPolicy. The API still answers the call, with the access block and the permission
+//     flags but no policy, so the policy is unknown and the state keeps its prior value;
+//   - no access: the backend omits the block, so the policy is unknown and the state keeps its prior value.
 func accessPolicyFromGetResponse(response *alertapi.GetAlertDefResponse) (policy *string, readable bool) {
 	if response == nil {
 		return nil, false
@@ -70,6 +72,12 @@ func accessPolicyFromGetResponse(response *alertapi.GetAlertDefResponse) (policy
 	}
 	p, ok := access.GetAccessPolicyOk()
 	if !ok {
+		// A missing flag keeps the earlier reading: the block answers the question.
+		if permissions, ok := access.GetPermissionsOk(); ok && permissions != nil {
+			if canRead, ok := permissions.GetCanReadAccessPolicyOk(); ok && canRead != nil && !*canRead {
+				return nil, false
+			}
+		}
 		return nil, true
 	}
 	return p, true
