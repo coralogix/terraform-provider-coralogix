@@ -47,6 +47,12 @@ types:
   TypedPercentile:
     fields:
       field: {readEmptyAs: "null"}
+      percentileUnit: {name: unit}
+  # Two arms call their field by different API names, and the released resource shows both as
+  # unit: one attribute.
+  TypedAverage:
+    fields:
+      averageUnit: {name: unit}
   # The last scalar arm needs the prior value for the value that all scalar arms share.
   TypedSpanField:
     fields:

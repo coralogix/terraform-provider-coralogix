@@ -30,14 +30,17 @@ type TypedAverage struct {
 	Field  *string
 	Mode   *TypedMode
 	Weight *float64
+	// AverageUnit and PercentileUnit are one attribute, unit.
+	AverageUnit *string
 }
 
 type TypedPercentile struct {
-	Field   *string
-	Mode    *string
-	Weight  *float64
-	Percent *float64
-	Bucket  *TypedBucket
+	Field          *string
+	Mode           *string
+	Weight         *float64
+	Percent        *float64
+	Bucket         *TypedBucket
+	PercentileUnit *string
 }
 
 // A oneOf: one arm is set. Count is an arm with no fields.

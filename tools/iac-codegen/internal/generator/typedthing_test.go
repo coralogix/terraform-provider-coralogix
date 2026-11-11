@@ -79,6 +79,9 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 			"names: {metadataField: metadata, tagField: tag, processTagField: process_tag}",
 			"field: value\n      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}", "field and value are both"},
 	}
+	cases["two arm fields with one Go name and two Terraform names"] = struct{ from, to, want string }{
+		"      field: {readEmptyAs: \"null\"}\n      percentileUnit: {name: unit}",
+		"      field: {readEmptyAs: \"null\", name: other_field}\n      percentileUnit: {name: unit}", "have one Go name"}
 	// A shared field that is not text has one attribute, so its checks must be the same in every arm.
 	t.Run("a shared number with other limits", func(t *testing.T) {
 		limited := strings.Replace(string(spec), "        weight: {type: number, format: double, x-coralogix-presence: true}\n", "        weight: {type: number, format: double, minimum: 0, x-coralogix-presence: true}\n", 1)

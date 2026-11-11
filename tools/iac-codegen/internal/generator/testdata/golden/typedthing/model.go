@@ -17,9 +17,10 @@ type TypedThingModel struct {
 }
 
 type TypedAverageModel struct {
-	Field  types.String  `tfsdk:"field"`
-	Mode   types.String  `tfsdk:"mode"`
-	Weight types.Float64 `tfsdk:"weight"`
+	Field       types.String  `tfsdk:"field"`
+	Mode        types.String  `tfsdk:"mode"`
+	Weight      types.Float64 `tfsdk:"weight"`
+	AverageUnit types.String  `tfsdk:"unit"`
 }
 
 type TypedBucketModel struct {
@@ -27,20 +28,22 @@ type TypedBucketModel struct {
 }
 
 type TypedPercentileModel struct {
-	Field   types.String      `tfsdk:"field"`
-	Mode    types.String      `tfsdk:"mode"`
-	Weight  types.Float64     `tfsdk:"weight"`
-	Percent types.Float64     `tfsdk:"percent"`
-	Bucket  *TypedBucketModel `tfsdk:"bucket"`
+	Field          types.String      `tfsdk:"field"`
+	Mode           types.String      `tfsdk:"mode"`
+	Weight         types.Float64     `tfsdk:"weight"`
+	Percent        types.Float64     `tfsdk:"percent"`
+	PercentileUnit types.String      `tfsdk:"unit"`
+	Bucket         *TypedBucketModel `tfsdk:"bucket"`
 }
 
 type TypedAggregationModel struct {
-	Type    types.String      `tfsdk:"type"`
-	Field   types.String      `tfsdk:"field"`
-	Mode    types.String      `tfsdk:"mode"`
-	Weight  types.Float64     `tfsdk:"weight"`
-	Percent types.Float64     `tfsdk:"percent"`
-	Bucket  *TypedBucketModel `tfsdk:"bucket"`
+	Type        types.String      `tfsdk:"type"`
+	Field       types.String      `tfsdk:"field"`
+	Mode        types.String      `tfsdk:"mode"`
+	Weight      types.Float64     `tfsdk:"weight"`
+	AverageUnit types.String      `tfsdk:"unit"`
+	Percent     types.Float64     `tfsdk:"percent"`
+	Bucket      *TypedBucketModel `tfsdk:"bucket"`
 }
 
 type TypedListModel struct {

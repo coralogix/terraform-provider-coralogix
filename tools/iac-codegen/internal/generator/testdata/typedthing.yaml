@@ -126,6 +126,7 @@ components:
         field: {type: string, x-coralogix-presence: true}
         mode: {$ref: '#/components/schemas/TypedMode'}
         weight: {type: number, format: double, x-coralogix-presence: true}
+        averageUnit: {type: string, x-coralogix-presence: true}
     TypedPercentile:
       type: object
       properties:
@@ -133,6 +134,7 @@ components:
         mode: {type: string, x-coralogix-presence: true}
         weight: {type: number, format: double, x-coralogix-presence: true}
         percent: {type: number, format: double, x-coralogix-presence: true}
+        percentileUnit: {type: string, x-coralogix-presence: true}
         bucket: {$ref: '#/components/schemas/TypedBucket'}
     TypedBucket:
       type: object

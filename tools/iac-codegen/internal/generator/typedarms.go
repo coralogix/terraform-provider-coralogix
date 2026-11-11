@@ -312,10 +312,18 @@ type convTyped struct {
 	InferFields []*convField
 }
 
+// typedPair is a field of an arm and the field of the merged object that holds it. Two arms can
+// call their fields by different API names and show them as one attribute (a name line), so the
+// Go names can differ.
+type typedPair struct {
+	Arm    string // the Go field of the model of the arm
+	Merged string // the Go field of the model of the typedArms object
+}
+
 // typedInit reads the Fields of Object from an empty value of its SDK type.
 type typedInit struct {
 	Object *convObject
-	Fields []string
+	Fields []typedPair
 }
 
 // typedArm is one arm of a typedArms oneOf.
@@ -332,6 +340,9 @@ type typedArm struct {
 	// own attributes. Inner is that object.
 	Inline *convField
 	Inner  *convObject
+	// Pairs are the fields that the arm adds to the merged fields: the fields of an object arm that
+	// are not carried, or the fields of the inner object of an inline arm.
+	Pairs []typedPair
 	// InitScalar: this arm is the first with the scalar value attribute.
 	InitScalar bool
 	// Fields are the Terraform names of the fields that the arm has, in order.
@@ -366,15 +377,17 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 		if err := b.emptyDefaults(obj, cf, arm, fields); err != nil {
 			return fmt.Errorf("%s: %w", arm.Name, err)
 		}
-		var fresh []string
+		var fresh []typedPair
 		for _, f := range fields {
-			isNew := !slices.ContainsFunc(merged, func(o *convField) bool { return o.Model == f.Model })
-			if merged, err = b.mergeTyped(obj, merged, f); err != nil {
+			isNew := !slices.ContainsFunc(merged, func(o *convField) bool { return o.TFName == f.TFName })
+			var name string
+			if merged, name, err = b.mergeTyped(obj, merged, f); err != nil {
 				return fmt.Errorf("%s: %w", arm.Name, err)
 			}
 			a.Fields = append(a.Fields, f.TFName)
+			a.Pairs = append(a.Pairs, typedPair{Arm: f.Model, Merged: name})
 			if isNew {
-				fresh = append(fresh, f.Model)
+				fresh = append(fresh, typedPair{Arm: f.Model, Merged: name})
 			}
 		}
 		if err := typedInits(a, fresh); err != nil {
@@ -424,29 +437,35 @@ func typedArmOf(cf *convField, value string, line *overrides.TypedArms) (*typedA
 	return a, []*convField{&scalar}
 }
 
-// mergeTyped adds a copy of f to the merged fields. A field that two arms share must have one type.
-func (b *convBuilder) mergeTyped(obj *convObject, merged []*convField, f *convField) ([]*convField, error) {
+// mergeTyped adds a copy of f to the merged fields, and returns the Go name that the merged object
+// has for it. Fields merge by Terraform name: two arms can call a field by different API names and
+// show it as one attribute. The first arm names the merged field. A field that two arms share must
+// have one type.
+func (b *convBuilder) mergeTyped(obj *convObject, merged []*convField, f *convField) ([]*convField, string, error) {
 	c := *f
 	c.Carried = true
-	i := slices.IndexFunc(merged, func(o *convField) bool { return o.Model == c.Model })
+	i := slices.IndexFunc(merged, func(o *convField) bool { return o.TFName == c.TFName })
 	if i < 0 {
-		return append(merged, &c), nil
+		if j := slices.IndexFunc(merged, func(o *convField) bool { return o.Model == c.Model }); j >= 0 {
+			return nil, "", fmt.Errorf("typedArms: the fields %s and %s have one Go name, %s", merged[j].TFName, c.TFName, c.Model)
+		}
+		return append(merged, &c), c.Model, nil
 	}
 	if merged[i].EmptyDefault == "" {
 		merged[i].EmptyDefault = c.EmptyDefault
 	}
 	first, err := b.attrType(obj, merged[i])
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	other, err := b.attrType(obj, &c)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if first != other {
-		return nil, fmt.Errorf("typedArms: the field %s has the type %s in one arm and %s in another", c.TFName, first, other)
+		return nil, "", fmt.Errorf("typedArms: the field %s has the type %s in one arm and %s in another", c.TFName, first, other)
 	}
-	return merged, nil
+	return merged, merged[i].Model, nil
 }
 
 // typedValidator is the Go expression of the typedArmValidator of an object whose merged attributes
@@ -538,7 +557,7 @@ func inlinedTypedField(file *overrides.File, t *model.Type) *model.Field {
 
 // typedInits sets how flatten reads the fresh fields (the merged fields that no earlier arm has) of
 // the arm from an empty value, so a field that the selected arm lacks reads as an absent value.
-func typedInits(a *typedArm, fresh []string) error {
+func typedInits(a *typedArm, fresh []typedPair) error {
 	switch {
 	case a.Scalar != nil:
 		if len(fresh) > 0 {
@@ -549,11 +568,12 @@ func typedInits(a *typedArm, fresh []string) error {
 			if ia.Scalar != nil || ia.Inner != nil {
 				return errors.New("typedArms: an arm that holds a typedArms object with scalar or nested arms is not supported")
 			}
-			var fields []string
+			var fields []typedPair
 			for _, init := range ia.Inits {
 				for _, f := range init.Fields {
-					if slices.Contains(fresh, f) {
-						fields = append(fields, f)
+					// The fresh fields are named after the inner object, which is the arm of this one.
+					if i := slices.IndexFunc(fresh, func(p typedPair) bool { return p.Arm == f.Merged }); i >= 0 {
+						fields = append(fields, typedPair{Arm: f.Arm, Merged: fresh[i].Merged})
 					}
 				}
 			}

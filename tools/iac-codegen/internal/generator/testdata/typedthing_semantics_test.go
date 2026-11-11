@@ -559,3 +559,73 @@ func TestImportReadsEmptyDefaultsOfInactiveArms(t *testing.T) {
 		}
 	}
 }
+
+// Two arms call a field by different API names (averageUnit, percentileUnit), and Terraform shows
+// it as one attribute, unit. Each arm sends its own API field, and the read puts it back.
+func TestFieldsOfTwoArmsWithOneNameShareTheAttribute(t *testing.T) {
+	root := thingRoot(t)
+	for _, c := range []struct {
+		kind string
+		sent func() *string
+	}{
+		{"avg", func() *string { return typed_things_service.Created[0].Aggregation.Average.AverageUnit }},
+		{"percentile", func() *string { return typed_things_service.Created[0].Aggregation.Percentile.PercentileUnit }},
+	} {
+		t.Run(c.kind, func(t *testing.T) {
+			aggregation := map[string]tftypes.Value{"type": str(c.kind), "unit": str("ms")}
+			resp, _, _ := create(t, aggregation)
+			if got := c.sent(); got == nil || *got != "ms" {
+				t.Fatalf("sent unit = %v, want ms", got)
+			}
+			var state map[string]tftypes.Value
+			if err := resp.State.Raw.As(&state); err != nil {
+				t.Fatal(err)
+			}
+			// The second plan: what the read gives is what the configuration said.
+			if want := objectValue(aggregationType(root), aggregation); !state["aggregation"].Equal(want) {
+				t.Fatalf("aggregation = %v, want %v", state["aggregation"], want)
+			}
+			// A configured empty text stays: the prior value reaches the arm.
+			resp, _, _ = create(t, map[string]tftypes.Value{"type": str(c.kind), "unit": str("")})
+			if err := resp.State.Raw.As(&state); err != nil {
+				t.Fatal(err)
+			}
+			if want := objectValue(aggregationType(root), map[string]tftypes.Value{"type": str(c.kind), "unit": str("")}); !state["aggregation"].Equal(want) {
+				t.Fatalf("aggregation = %v, want %v", state["aggregation"], want)
+			}
+		})
+	}
+}
+
+// An import reads with only the id: each arm gives its unit, and the other arm's field stays null.
+func TestImportReadsTheSharedUnitOfEachArm(t *testing.T) {
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	unit := "ms"
+	for kind, aggregation := range map[string]*typed_things_service.TypedAggregation{
+		"avg":        {Average: &typed_things_service.TypedAverage{AverageUnit: &unit}},
+		"percentile": {Percentile: &typed_things_service.TypedPercentile{PercentileUnit: &unit}},
+	} {
+		id := "thing-1"
+		typed_things_service.Stored = typed_things_service.TypedThing{Id: &id, Aggregation: aggregation}
+		r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+		resp := &frameworkresource.ReadResponse{State: state}
+		r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatal(resp.Diagnostics)
+		}
+		var values map[string]tftypes.Value
+		if err := resp.State.Raw.As(&values); err != nil {
+			t.Fatal(err)
+		}
+		var attrs map[string]tftypes.Value
+		if err := values["aggregation"].As(&attrs); err != nil {
+			t.Fatal(err)
+		}
+		if !attrs["type"].Equal(str(kind)) || !attrs["unit"].Equal(str(unit)) {
+			t.Fatalf("%s: type = %v, unit = %v, want %s and %s", kind, attrs["type"], attrs["unit"], kind, unit)
+		}
+	}
+}
