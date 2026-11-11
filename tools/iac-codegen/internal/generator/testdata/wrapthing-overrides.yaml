@@ -5,7 +5,7 @@ mode: existing
 validators:
   inferred: false
 
-unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHolder, Selection, ListSelection]
+unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHolder, Selection, ListSelection, LinkRef]
 
 # The home is one object of two arms: an id or a path, as a released folder is. The API has a
 # UUID wrapper and a path object, and the resource already has an id of its own.
@@ -49,10 +49,19 @@ types:
       values:
         collection: set
   # The segments of the folder path are one text, with the elements joined by a slash.
+  # The hint is skipped at the place of the mark, so the link has one property there and collapses to its
+  # target. The model checks a wrapper by the properties of the contract, so the place line drops the hint
+  # from the copy of the component.
+  LinkRef:
+    at:
+      WrapMark.link:
+        fields: {hint: {skip: true}}
   # The ratio is a Number: a configured 0.1 stays 0.1. The marks are a set, so a prior mark is found by value.
   WrapMark:
     fields:
       ratio: {terraformType: Number}
+      # An omitted title is the label, as a released label was the value.
+      title: {computed: true, defaultFromSibling: label}
   FolderPath:
     fields:
       segments: {join: "/"}

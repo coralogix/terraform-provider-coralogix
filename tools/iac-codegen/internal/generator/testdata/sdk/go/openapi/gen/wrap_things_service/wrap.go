@@ -26,9 +26,16 @@ type Threshold struct {
 	Value float64
 }
 
+type LinkRef struct {
+	Target *string
+	Hint   *string
+}
+
 type WrapMark struct {
 	Label *string
 	Ratio *float64
+	Link  *LinkRef
+	Title *string
 }
 
 type UUID struct {

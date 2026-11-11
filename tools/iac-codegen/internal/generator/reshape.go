@@ -43,7 +43,7 @@ const upsertLocation = "behavior-overrides.yaml:api.operations"
 func reshape(data []byte, component string, ids model.OperationIDs, file *overrides.File, policy model.Policy) ([]byte, model.OperationIDs, issue.Report) {
 	inlined := file.InlinedFields()
 	nested := file.NestedInlined()
-	if file == nil || !file.Upserts() && len(inlined) == 0 && len(nested) == 0 {
+	if file == nil || !file.Upserts() && len(inlined) == 0 && len(nested) == 0 && len(file.PlaceClones) == 0 {
 		return data, ids, nil
 	}
 	var root yaml.Node
@@ -56,6 +56,15 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 	shape := &overrides.Inlined{}
 	if report := h.placeClones(); len(report) != 0 {
 		return data, ids, report
+	}
+	if len(inlined) == 0 && len(nested) == 0 && !file.Upserts() {
+		// Only a place copy changed the contract: no field is inlined, so the bodies keep their shape.
+		written, err := yaml.Marshal(&root)
+		if err != nil {
+			return data, ids, issue.Report{{Code: "OPENAPI_INVALID", Location: "openapi", Message: fmt.Sprintf("write the contract: %v", err), Remediation: "Correct the source OpenAPI document."}}
+		}
+		file.Inlined = shape
+		return written, ids, nil
 	}
 	var needed []*yaml.Node // the schemas of the resource that an inline line with required: true can be needed in
 	if len(inlined) != 0 {

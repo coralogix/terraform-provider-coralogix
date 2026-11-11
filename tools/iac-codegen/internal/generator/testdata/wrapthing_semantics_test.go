@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -1035,6 +1036,72 @@ func TestSetItemsKeepThePriorNumberWhateverTheOrder(t *testing.T) {
 	for _, m := range marks {
 		if m.Label.ValueString() == "a" && m.Ratio.Equal(exact("0.5")) {
 			t.Error("a prior item with another ratio was paired")
+		}
+	}
+}
+
+// A place line that skips a field gives the place a copy of the component without it, so a wrapper with
+// two properties collapses at that place: the link of a mark is its target, a string. The hint is not
+// sent, and it is not read.
+func TestPlaceThatSkipsAFieldUnwrapsTheComponent(t *testing.T) {
+	ctx := context.Background()
+	model := fullModel()
+	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringValue("there"), "title": types.StringNull()}),
+	})
+	body, diags := expandCreate(ctx, model)
+	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].Link == nil || *body.Marks[0].Link.Target != "there" || body.Marks[0].Link.Hint != nil {
+		t.Fatalf("sent marks = %+v (%v), want the link with the target and no hint", body.Marks, diags)
+	}
+	resp := fullResponse()
+	target, hint, label := "there", "never shown", "a"
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &label, Link: &wrap_things_service.LinkRef{Target: &target, Hint: &hint}}}
+	got, diags := flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var marks []WrapMarkModel
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() || len(marks) != 1 || marks[0].Link.ValueString() != "there" {
+		t.Fatalf("read marks = %+v (%v), want the link there", marks, diags)
+	}
+}
+
+// An omitted title is the label of its mark. The plan takes the label, also while the label is unknown,
+// and it does not take a label that is null. A configured title stays.
+func TestSiblingDefaultPlansTheValueOfTheSibling(t *testing.T) {
+	ctx := context.Background()
+	objectType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"label": tftypes.String, "title": tftypes.String}}
+	sch := schema.Schema{Attributes: map[string]schema.Attribute{"mark": schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
+		"label": schema.StringAttribute{Optional: true}, "title": schema.StringAttribute{Optional: true, Computed: true},
+	}}}}
+	rootType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"mark": objectType}}
+	modifier := siblingDefaultModifier{Sibling: "label"}
+	tests := map[string]struct {
+		label  tftypes.Value
+		config types.String
+		want   types.String
+	}{
+		"the label":                   {tftypes.NewValue(tftypes.String, "tag"), types.StringNull(), types.StringValue("tag")},
+		"an unknown label":            {tftypes.NewValue(tftypes.String, tftypes.UnknownValue), types.StringNull(), types.StringUnknown()},
+		"a null label":                {tftypes.NewValue(tftypes.String, nil), types.StringNull(), types.StringNull()},
+		"a configured title":          {tftypes.NewValue(tftypes.String, "tag"), types.StringValue("mine"), types.StringValue("mine")},
+		"an unknown configured title": {tftypes.NewValue(tftypes.String, "tag"), types.StringUnknown(), types.StringUnknown()},
+	}
+	for name, test := range tests {
+		raw := tftypes.NewValue(rootType, map[string]tftypes.Value{"mark": tftypes.NewValue(objectType, map[string]tftypes.Value{
+			"label": test.label, "title": tftypes.NewValue(tftypes.String, tftypes.UnknownValue)})})
+		req := planmodifier.StringRequest{Path: path.Root("mark").AtName("title"), Plan: tfsdk.Plan{Schema: sch, Raw: raw}, ConfigValue: test.config, PlanValue: test.config}
+		if test.config.IsNull() {
+			req.PlanValue = types.StringUnknown()
+		}
+		resp := &planmodifier.StringResponse{PlanValue: req.PlanValue}
+		modifier.PlanModifyString(ctx, req, resp)
+		want := test.want
+		if test.config.IsNull() && test.label.IsNull() {
+			want = types.StringUnknown() // a null label leaves the plan as it was
+		}
+		if resp.Diagnostics.HasError() || !resp.PlanValue.Equal(want) {
+			t.Errorf("%s: plan = %v (%v), want %v", name, resp.PlanValue, resp.Diagnostics, want)
 		}
 	}
 }

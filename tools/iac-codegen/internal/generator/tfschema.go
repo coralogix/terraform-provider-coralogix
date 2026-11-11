@@ -821,6 +821,12 @@ func applyModifiers(a *tfAttr, l overrides.Field) error {
 		// A null state value stays unknown, so the server can fill it in. A known one stays.
 		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseNonNullStateForUnknown()")
 	}
+	if l.DefaultFromSibling != "" {
+		if a.ValueKind != "String" || !a.Computed {
+			return fmt.Errorf("defaultFromSibling needs a computed string attribute, not %s", a.ValueKind)
+		}
+		a.Modifiers = append(a.Modifiers, fmt.Sprintf("siblingDefaultModifier{Sibling: %q}", l.DefaultFromSibling))
+	}
 	if l.Equality != "" {
 		if a.ValueKind != "String" {
 			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)

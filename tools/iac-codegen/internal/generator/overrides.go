@@ -606,6 +606,17 @@ func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	return nil
 }
 
+// unwrapUsedByCopy reports whether a copy of the component at a place decided an unwrap: a place that
+// skips a field has a copy of its own, and the original has no place left that holds it.
+func unwrapUsedByCopy(r *model.Resource, file *overrides.File, name string) bool {
+	for _, c := range file.PlaceClones {
+		if c.Component == name && r.UnwrapUsed["unwrap."+c.Name] {
+			return true
+		}
+	}
+	return false
+}
+
 // unwrapUsageIssues reports each unwrap line that decided no place of the resource: a component of
 // the list that no field holds, an unwrap: true line that the model rejected first, or an
 // unwrap: false line on a field whose component the list does not name. It also reports a field
@@ -617,7 +628,7 @@ func unwrapUsageIssues(r *model.Resource, file *overrides.File) issue.Report {
 	}
 	var report issue.Report
 	for _, name := range file.Unwrap {
-		if !r.UnwrapUsed["unwrap."+name] {
+		if !r.UnwrapUsed["unwrap."+name] && !unwrapUsedByCopy(r, file, name) {
 			report = append(report, issue.Issue{
 				Code:        "OVERRIDE_UNUSED",
 				Location:    overrides.FileName + ":unwrap." + name,

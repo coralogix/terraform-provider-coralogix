@@ -121,6 +121,7 @@ var computedAttrs = map[string]bool{
 	"id":                    true,
 	"panels.id":             true,
 	"panels.panel_notes.id": true,
+	"marks.title":           true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -522,6 +523,12 @@ func expandWrapMark(ctx context.Context, p path.Path, m *WrapMarkModel, diags *d
 	out := &wrap_things_service.WrapMark{}
 	out.Label = expandString(m.Label)
 	out.Ratio = expandNumberAsFloat64(p.AtName("ratio"), m.Ratio, diags)
+	{
+		var inner *string
+		inner = expandString(m.Link)
+		out.Link = wrapLinkRefAtWrapMarkLink(inner)
+	}
+	out.Title = expandString(m.Title)
 	return out
 }
 
@@ -535,6 +542,11 @@ func flattenWrapMark(ctx context.Context, p path.Path, v *wrap_things_service.Wr
 	if prior != nil {
 		out.Ratio = keepPriorNumber(prior.Ratio, out.Ratio)
 	}
+	{
+		inner := unwrapLinkRefAtWrapMarkLink(v.Link)
+		out.Link = types.StringPointerValue(inner)
+	}
+	out.Title = types.StringPointerValue(v.Title)
 	return out
 }
 
@@ -542,13 +554,17 @@ func flattenWrapMark(ctx context.Context, p path.Path, v *wrap_things_service.Wr
 // manages. A missing value and an empty one are equal.
 func sameWrapMark(a, b *wrap_things_service.WrapMark) bool {
 	return pointerValue(a.Label) == pointerValue(b.Label) &&
-		pointerValue(a.Ratio) == pointerValue(b.Ratio)
+		pointerValue(a.Ratio) == pointerValue(b.Ratio) &&
+		pointerValue(unwrapLinkRefAtWrapMarkLink(a.Link)) == pointerValue(unwrapLinkRefAtWrapMarkLink(b.Link)) &&
+		pointerValue(a.Title) == pointerValue(b.Title)
 }
 
 func wrapMarkAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"label": types.StringType,
 		"ratio": types.NumberType,
+		"link":  types.StringType,
+		"title": types.StringType,
 	}
 }
 
@@ -1016,6 +1032,22 @@ func unwrapFolderPath(w *wrap_things_service.FolderPath) []string {
 		return nil
 	}
 	return w.Segments
+}
+
+// wrapLinkRefAtWrapMarkLink puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapLinkRefAtWrapMarkLink(v *string) *wrap_things_service.LinkRef {
+	if v == nil {
+		return nil
+	}
+	return &wrap_things_service.LinkRef{Target: v}
+}
+
+// unwrapLinkRefAtWrapMarkLink takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapLinkRefAtWrapMarkLink(w *wrap_things_service.LinkRef) *string {
+	if w == nil {
+		return nil
+	}
+	return w.Target
 }
 
 // elements is a types.Set or a types.List.

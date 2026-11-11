@@ -185,6 +185,9 @@ func placeCopy(original overrides.Type, c *overrides.PlaceClone) (overrides.Type
 		switch {
 		case line.Inline && original.Fields[field].Inline:
 			return copied, fmt.Errorf("types.%s.at.%s.fields.%s: the line of %s inlines the field in every place already", c.Component, c.Holder, field, c.Component)
+		case line.Skip:
+			// The copy of the component does not have the field: the line of the original has nothing to reach.
+			delete(copied.Fields, field)
 		case line.Inline:
 			// The other keys of an inline line are the keys of the field of the object with the name of the field.
 			copied.Fields[field] = line
@@ -260,9 +263,39 @@ func (h inliner) placeClone(c *overrides.PlaceClone) error {
 	if mapValue(h.schemas, c.Name) != nil {
 		return fmt.Errorf("the contract has a component %s already", c.Name)
 	}
-	setMap(h.schemas, c.Name, cloneNode(original))
+	copied := cloneNode(original)
+	dropSkipped(copied, c.Fields)
+	setMap(h.schemas, c.Name, copied)
 	mapValue(ref, "$ref").Value = "#/components/schemas/" + c.Name
 	return nil
+}
+
+// dropSkipped removes the properties that a place line skips from the copy of the component. The
+// place does not have them, so the copy can be a wrapper of one property (unwrap), which the model
+// checks by the properties of the contract, before it reads any skip line.
+func dropSkipped(schema *yaml.Node, lines map[string]overrides.Field) {
+	properties := mapValue(schema, "properties")
+	if properties == nil {
+		return
+	}
+	var skipped []string
+	for name, line := range lines {
+		if line.Skip {
+			skipped = append(skipped, name)
+		}
+	}
+	slices.Sort(skipped)
+	for _, name := range skipped {
+		for i := 0; i+1 < len(properties.Content); i += 2 {
+			if properties.Content[i].Value == name {
+				properties.Content = slices.Delete(properties.Content, i, i+2)
+				break
+			}
+		}
+	}
+	if required := mapValue(schema, "required"); required != nil {
+		required.Content = slices.DeleteFunc(required.Content, func(n *yaml.Node) bool { return slices.Contains(skipped, n.Value) })
+	}
 }
 
 // refOf returns the node that refers to the component in the schema of a field: the field itself,

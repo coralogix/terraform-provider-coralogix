@@ -894,6 +894,11 @@ type Field struct {
 	// another component, as a released resource showed the custom actions of a widget, which the
 	// API keeps in one list of the dashboard. The list is not an attribute of the resource.
 	DistributeTo *Distribute `yaml:"distributeTo"`
+	// DefaultFromSibling plans the value of a sibling attribute (its Terraform name) for a computed
+	// string that the configuration leaves out, as a released label that was the value when omitted.
+	// A sibling that is unknown makes the plan unknown, and a sibling that is null leaves it unknown
+	// too. It needs computed: true.
+	DefaultFromSibling string `yaml:"defaultFromSibling"`
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
@@ -1575,6 +1580,7 @@ func (l Field) keys() []string {
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.UseNonNullStateForUnknown, "useNonNullStateForUnknown")
+	add(l.DefaultFromSibling != "", "defaultFromSibling")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
@@ -1885,6 +1891,16 @@ func (l Field) checkInlineKeys() error {
 }
 
 func (l Field) checkConflicts() error {
+	if l.DefaultFromSibling != "" {
+		switch {
+		case l.Computed == nil || !*l.Computed:
+			return errors.New("defaultFromSibling needs computed: true: the plan sets the value of an omitted attribute")
+		case l.Default != nil || l.UseStateForUnknown || l.UseNonNullStateForUnknown:
+			return errors.New("defaultFromSibling cannot go with default, useStateForUnknown, or useNonNullStateForUnknown: the plan keeps the state value, but a value that follows its sibling must change with it")
+		case !tfNamePattern.MatchString(l.DefaultFromSibling):
+			return fmt.Errorf("defaultFromSibling %q is not a Terraform attribute name", l.DefaultFromSibling)
+		}
+	}
 	if l.UseStateForUnknown && l.UseNonNullStateForUnknown {
 		return errors.New("useStateForUnknown and useNonNullStateForUnknown cannot both be set")
 	}
@@ -2144,7 +2160,7 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
+	return l.ReadOnly || l.Computed != nil || l.DefaultFromSibling != "" || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
 		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.Join != "" || l.ClientID != "" || l.DistributeTo != nil

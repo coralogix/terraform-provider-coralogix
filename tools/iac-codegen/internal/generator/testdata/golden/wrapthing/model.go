@@ -61,6 +61,8 @@ type WrapPanelModel struct {
 type WrapMarkModel struct {
 	Label types.String `tfsdk:"label"`
 	Ratio types.Number `tfsdk:"ratio"`
+	Link  types.String `tfsdk:"link"`
+	Title types.String `tfsdk:"title"`
 }
 
 type WrapThingHomeModel struct {

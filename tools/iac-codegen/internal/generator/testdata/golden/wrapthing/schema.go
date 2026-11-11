@@ -4,6 +4,7 @@
 package wrapthing
 
 import (
+	"context"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -172,6 +173,18 @@ func Schema() schema.Schema {
 							Optional:            true,
 							MarkdownDescription: "",
 						},
+						"link": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"title": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								siblingDefaultModifier{Sibling: "label"},
+							},
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",
@@ -201,4 +214,36 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// siblingDefaultModifier plans the value of a sibling attribute for a computed string that the
+// configuration leaves out. It does not keep the state value: a value that follows its sibling changes
+// with it.
+type siblingDefaultModifier struct {
+	Sibling string
+}
+
+func (m siblingDefaultModifier) Description(context.Context) string {
+	return "When this is omitted, it is the value of " + m.Sibling + "."
+}
+
+func (m siblingDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m siblingDefaultModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsUnknown() || !req.ConfigValue.IsNull() {
+		return
+	}
+	var sibling types.String
+	if diags := req.Plan.GetAttribute(ctx, req.Path.ParentPath().AtName(m.Sibling), &sibling); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	switch {
+	case sibling.IsUnknown():
+		resp.PlanValue = types.StringUnknown()
+	case !sibling.IsNull():
+		resp.PlanValue = sibling
+	}
 }

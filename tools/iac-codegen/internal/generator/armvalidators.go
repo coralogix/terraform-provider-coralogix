@@ -113,3 +113,27 @@ func (r *tfResource) HasArmValidators() bool {
 	}
 	return uses(r.Attributes)
 }
+
+// siblingDefaultModifierName is the name of the plan modifier type that the generated schema file
+// defines for the attributes with a defaultFromSibling line.
+const siblingDefaultModifierName = "siblingDefaultModifier"
+
+// HasSiblingDefaults reports whether an attribute has the siblingDefaultModifier, which the schema file
+// then defines.
+func (r *tfResource) HasSiblingDefaults() bool {
+	var uses func(attrs []*tfAttr) bool
+	uses = func(attrs []*tfAttr) bool {
+		for _, a := range attrs {
+			for _, m := range a.Modifiers {
+				if strings.HasPrefix(m, siblingDefaultModifierName+"{") {
+					return true
+				}
+			}
+			if uses(a.Attributes) {
+				return true
+			}
+		}
+		return false
+	}
+	return uses(r.Attributes)
+}
