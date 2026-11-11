@@ -28,7 +28,7 @@ concurrency:
 env:
   CI_PREP_EXPERIMENT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' && 'true' || 'false' }}
   PRIVATE_ACC_OUTPUT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' && 'true' || 'false' }}
-  SDK_COMMIT: cc4d767aa24d4831e4e9434e3e53dd384fde7456
+  SDK_COMMIT: cd7ac6a4971b054065fa1b1de45aeb608a11635c
   DASHBOARD_ACC_PATTERN: '^TestAccCoralogix(Resource|DataSource)Dashboards?'
   DASHBOARD_MIGRATION_ACC_PATTERN: '^TestAccCoralogixResourceDashboardMigration'
   DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
@@ -191,7 +191,6 @@ jobs:
           CORALOGIX_SEND_YOUR_DATA_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_SEND_YOUR_DATA_API_KEY }}
           PAGERDUTY_REST_API_KEY: ${{ secrets.CI_PREP_PAGERDUTY_REST_API_KEY }}
           PAGERDUTY_USER_EMAIL: ${{ secrets.CI_PREP_PAGERDUTY_USER_EMAIL }}
-          TEST_TEAM_ID: ${{ secrets.CI_PREP_TEST_TEAM_ID }}
           AWS_TEST_ROLE: ${{ secrets.CI_PREP_AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.CI_PREP_ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.CI_PREP_ARCHIVE_METRICS_BUCKET }}
@@ -200,7 +199,7 @@ jobs:
         run: |
           set -euo pipefail
           set +x
-          for name in CORALOGIX_API_KEY CORALOGIX_SEND_YOUR_DATA_API_KEY PAGERDUTY_REST_API_KEY PAGERDUTY_USER_EMAIL TEST_TEAM_ID AWS_TEST_ROLE ARCHIVE_LOGS_BUCKET ARCHIVE_METRICS_BUCKET SLACK_INTEGRATION_CHANNEL SLACK_INTEGRATION_CHANNEL_UPDATED; do
+          for name in CORALOGIX_API_KEY CORALOGIX_SEND_YOUR_DATA_API_KEY PAGERDUTY_REST_API_KEY PAGERDUTY_USER_EMAIL AWS_TEST_ROLE ARCHIVE_LOGS_BUCKET ARCHIVE_METRICS_BUCKET SLACK_INTEGRATION_CHANNEL SLACK_INTEGRATION_CHANNEL_UPDATED; do
             if [ -z "${!name}" ]; then
               echo 'An experiment input is missing'
               exit 1
@@ -248,7 +247,7 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
-      CI_PREP_LOOKUP: ${{ (matrix.shard == 'alerts-and-scheduler' || matrix.shard == 'notification-center') && 'true' || 'false' }}
+      CI_PREP_LOOKUP: ${{ (matrix.shard == 'alerts-and-scheduler' || matrix.shard == 'notification-center' || matrix.shard == 'access-control') && 'true' || 'false' }}
       FAILED_TESTS_FILE: failed-tests/non-dashboard-${{ matrix.shard }}.txt
       RAN_TESTS_FILE: ran-tests/non-dashboard-${{ matrix.shard }}.txt
     strategy:
@@ -306,7 +305,7 @@ jobs:
         env:
           CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
-          TEST_TEAM_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_TEST_TEAM_ID' || 'TEST_TEAM_ID'] }}
+          TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
           AWS_TEST_ROLE: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_AWS_TEST_ROLE' || 'AWS_TEST_ROLE'] }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_LOGS_BUCKET' || 'ARCHIVE_LOGS_BUCKET'] }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_METRICS_BUCKET' || 'ARCHIVE_METRICS_BUCKET'] }}
@@ -382,7 +381,7 @@ jobs:
         env:
           CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
-          TEST_TEAM_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_TEST_TEAM_ID' || 'TEST_TEAM_ID'] }}
+          TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
           AWS_TEST_ROLE: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_AWS_TEST_ROLE' || 'AWS_TEST_ROLE'] }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_LOGS_BUCKET' || 'ARCHIVE_LOGS_BUCKET'] }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_METRICS_BUCKET' || 'ARCHIVE_METRICS_BUCKET'] }}

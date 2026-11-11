@@ -28,19 +28,23 @@ import sys
 
 with open(sys.argv[1], encoding="utf-8") as file:
     fixtures = json.load(file)
+team_id = fixtures.get("teamId")
 names = ("slackIntegrationId", "pagerDutyIntegrationId", "pagerDutyConnectorKey")
 values = [fixtures.get(name) for name in names]
 uuid = re.compile(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\Z")
-if any(not isinstance(value, str) or not uuid.fullmatch(value) for value in values):
+if (not isinstance(team_id, str) or
+        not re.fullmatch(r"(?:0|[1-9][0-9]*)", team_id) or
+        int(team_id) > 4294967295 or
+        any(not isinstance(value, str) or not uuid.fullmatch(value) for value in values)):
     raise SystemExit(1)
-print("\t".join(values))
+print("\t".join([team_id, *values]))
 PY
     ); then
       echo 'Integration lookup output was invalid'
       exit 1
     fi
-    IFS=$'\t' read -r SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY <<< "$fields"
-    export SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY
+    IFS=$'\t' read -r TEST_TEAM_ID SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY <<< "$fields"
+    export TEST_TEAM_ID SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY
   fi
   if env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH "$@" >/dev/null 2>&1; then
     echo 'Acceptance test passed'
