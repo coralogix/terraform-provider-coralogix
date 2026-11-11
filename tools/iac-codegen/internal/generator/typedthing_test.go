@@ -184,3 +184,56 @@ func TestInlineOfATypedObjectIsChecked(t *testing.T) {
 		})
 	}
 }
+
+// A oneOf of all and a list is shown as one list: [] selects the arm without fields, and values
+// select the list arm. The list arm can say minItems: 1, because an empty list of that arm means
+// nothing. The shown attribute must still accept [], so the minimum size of the arm is no validator
+// of it: the list arm never gets an empty list, as expand sends [] as the other arm. The other
+// limits of the arm stay.
+func TestAsListAcceptsAnEmptyListWhenTheListArmNeedsAnItem(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "typedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "typedthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The list arm needs one value and holds at most three, each of at least two characters; the
+	// contract limits become validators, which the fixture turns off.
+	spec = []byte(replaceOnce(t, string(spec),
+		"    TypedPickList:\n      type: object\n      properties:\n        values:\n          type: array\n          items: {type: string}\n",
+		"    TypedPickList:\n      type: object\n      properties:\n        values:\n          type: array\n          minItems: 1\n          maxItems: 3\n          items: {type: string, minLength: 2}\n"))
+	overrides = []byte(replaceOnce(t, string(overrides), "validators:\n  inferred: false\n", "validators:\n  inferred: true\n"))
+	dir := t.TempDir()
+	path := filepath.Join(dir, "typedthing-overrides.yaml")
+	if err := os.WriteFile(path, overrides, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(dir, "typedthing")
+	if err := generateFromInput(Options{Resource: "TypedThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := strings.Index(string(schema), `"picked_values": schema.ListAttribute{`)
+	if start < 0 {
+		t.Fatal("the schema has no list attribute picked_values")
+	}
+	block := string(schema[start:])
+	if end := strings.Index(block, "\n\t\t\t},"); end > 0 {
+		block = block[:end]
+	}
+	if strings.Contains(block, "SizeAtLeast") {
+		t.Errorf("picked_values has a SizeAtLeast validator, which rejects []:\n%s", block)
+	}
+	for _, want := range []string{"SizeAtMost(3)", "LengthAtLeast(2)"} {
+		if !strings.Contains(block, want) {
+			t.Errorf("picked_values lost the limit %s of the list arm:\n%s", want, block)
+		}
+	}
+}

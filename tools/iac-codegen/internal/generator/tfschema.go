@@ -2956,7 +2956,11 @@ func (b *tfBuilder) asListAttribute(a *tfAttr, p attrPath, t *model.Type) error 
 		return fmt.Errorf("%s: typedArms.asList needs a list arm with one list of strings", t.Schema)
 	}
 	a.Kind, a.ValueKind, a.ElementType = "List", "List", inner[0].ElementType
-	a.Validators = append(a.Validators, inner[0].Validators...)
+	// [] selects the arm without fields, and expand never sends the list arm an empty list, so a
+	// minimum size of the list arm is no limit of the shown list. Its other limits stay.
+	a.Validators = append(a.Validators, slices.DeleteFunc(slices.Clone(inner[0].Validators), func(v string) bool {
+		return strings.HasPrefix(v, "listvalidator.SizeAtLeast(")
+	})...)
 	a.ElemValidators = inner[0].ElemValidators
 	return nil
 }
