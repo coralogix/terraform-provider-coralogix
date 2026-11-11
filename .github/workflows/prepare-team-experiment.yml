@@ -1,0 +1,135 @@
+name: Prepare team experiment
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+# All experiment runs use one EU2 team.
+concurrency:
+  group: prepare-team-experiment-eu2
+  cancel-in-progress: false
+  queue: max
+
+# Exact SDK commit from the preparation command pull request.
+env:
+  SDK_COMMIT: cc4d767aa24d4831e4e9434e3e53dd384fde7456
+
+jobs:
+  prepare-team:
+    name: Prepare EU2 team
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' }}
+    runs-on: ubuntu-latest
+    environment: ci-prep-experiment
+    timeout-minutes: 25
+    steps:
+      - name: Check SDK pin
+        shell: bash
+        run: |
+          if ! [[ "$SDK_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'SDK commit pin is missing'
+            exit 1
+          fi
+      - name: Check out pinned SDK
+        uses: actions/checkout@v4
+        with:
+          repository: coralogix/coralogix-management-sdk
+          ref: ${{ env.SDK_COMMIT }}
+          path: sdk
+          persist-credentials: false
+      - name: Prepare team
+        shell: bash
+        env:
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+          CORALOGIX_SEND_YOUR_DATA_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_SEND_YOUR_DATA_API_KEY }}
+          PAGERDUTY_REST_API_KEY: ${{ secrets.CI_PREP_PAGERDUTY_REST_API_KEY }}
+          PAGERDUTY_USER_EMAIL: ${{ secrets.CI_PREP_PAGERDUTY_USER_EMAIL }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          for name in CORALOGIX_API_KEY CORALOGIX_SEND_YOUR_DATA_API_KEY PAGERDUTY_REST_API_KEY PAGERDUTY_USER_EMAIL; do
+            if [ -z "${!name}" ]; then
+              echo 'A preparation secret is missing'
+              exit 1
+            fi
+          done
+          log=$(mktemp)
+          trap 'rm -f "$log"' EXIT
+          if ! docker build --quiet -t prepare-ci-team:experiment sdk/tools/prepare-ci-team >"$log" 2>&1; then
+            echo 'Preparation image build failed'
+            exit 1
+          fi
+          # Print only the three fixed catalog states. The filter never prints
+          # command errors, response bodies, integration IDs, or credentials.
+          if ! docker run --rm --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777,size=32m \
+            --cap-drop=ALL --security-opt no-new-privileges \
+            -e CORALOGIX_API_KEY \
+            -e CORALOGIX_SEND_YOUR_DATA_API_KEY \
+            -e PAGERDUTY_REST_API_KEY \
+            -e PAGERDUTY_USER_EMAIL \
+            prepare-ci-team:experiment 2>&1 | \
+            awk '/^prepare CI team: catalog check [0-9]+: AI application=(ready|missing|retrying), unused evaluation target=(ready|missing|retrying|not checked), APM service \(V2\)=(ready|missing|retrying)$/ { print; fflush() }'; then
+            echo 'EU2 team preparation failed'
+            exit 1
+          fi
+          echo 'EU2 team preparation passed'
+
+  acceptance:
+    name: Focused acceptance (${{ matrix.case }})
+    needs: prepare-team
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' }}
+    runs-on: ubuntu-latest
+    environment: ci-prep-experiment
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: request-based
+            test: TestAccCoralogixResourceSLOV2RequestBased
+          - case: apm-error
+            test: TestAccCoralogixResourceSLOV2APMError
+          - case: ai-evaluation
+            test: TestAccCoralogixResourceAIEvaluation/allowed_topics
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Run focused acceptance test
+        shell: bash
+        env:
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+          CORALOGIX_ENV: EU2
+          CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+          TEST_NAME: ${{ matrix.test }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          if [ -z "$CORALOGIX_API_KEY" ]; then
+            echo 'An acceptance secret is missing'
+            exit 1
+          fi
+          log=$(mktemp)
+          trap 'rm -f "$log"' EXIT
+          if ! TF_ACC=1 go test \
+            -ldflags '-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn' \
+            ./internal/provider -run "^${TEST_NAME}$" -count=1 -timeout=20m -parallel=1 \
+            >"$log" 2>&1; then
+            echo 'Focused acceptance test failed'
+            exit 1
+          fi
+          echo 'Focused acceptance test passed'

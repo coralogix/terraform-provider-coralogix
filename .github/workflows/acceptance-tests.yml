@@ -135,9 +135,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.head_ref }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          # The dedicated preparation experiment uses separate keys and its own
+          # workflow. Never run the shared-team acceptance jobs for that PR.
+          if [ "$EVENT_NAME" = "pull_request" ] &&
+             [ "$HEAD_REPOSITORY" = "$GITHUB_REPOSITORY" ] &&
+             [ "$HEAD_REF" = "ci/prepare-team-experiment" ]; then
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$EVENT_NAME" != "pull_request" ]; then
             printf '%s\n' code=true dashboards=true rest=true deps=false >> "$GITHUB_OUTPUT"
             exit 0
