@@ -3,6 +3,7 @@
 action: v0.1.0-beta.77
 aievaluation: v0.1.0-beta.77
 alertsscheduler: v0.1.0-beta.77
+apikey: v0.1.0-beta.77
 archivelogs: v0.1.0-beta.77
 archivemetrics: v0.1.0-beta.77
 archiveretentions: v0.1.0-beta.77
