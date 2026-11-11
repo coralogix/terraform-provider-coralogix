@@ -1,0 +1,165 @@
+[
+  {
+    "step": "create with a policy",
+    "config": {
+      "access_policy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+      "name": "policy",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "(unknown)",
+      "name": "policy",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3",
+        "body": {
+          "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+          "keyPermissions": {
+            "permissions": [
+              "livetail:Read"
+            ],
+            "presets": [
+              "APM"
+            ]
+          },
+          "name": "policy",
+          "owner": {
+            "teamId": 4000001
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "policy",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename, and the same policy with other white space and key order",
+    "config": {
+      "access_policy": "{\"rules\":[],\"default\":{\"permissions\":{\"team-custom-api-keys:UpdateAccessPolicy\":\"deny\",\"team-custom-api-keys:ReadAccessPolicy\":\"grant\",\"team-custom-api-keys:Manage\":\"deny\",\"team-custom-api-keys:ReadConfig\":\"grant\"}},\"version\":\"2025-01-01\"}",
+      "name": "policy-renamed",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "policy-renamed",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "body": {
+          "isActive": true,
+          "newName": "policy-renamed",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "policy-renamed",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    },
+    "replanEmpty": true
+  }
+]

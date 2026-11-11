@@ -16,6 +16,8 @@ package aaa
 
 import (
 	"context"
+	"encoding/json"
+	"reflect"
 
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 
@@ -70,20 +72,44 @@ func rejectHashedKey(_ context.Context, key *apiKeys.KeyInfo) diag.Diagnostics {
 	return diags
 }
 
-// omitUnconfiguredAccessPolicy leaves access_policy out of an Update when the configuration does not
-// set it. The attribute keeps the policy of the state, so the plan holds it, but the API checks a
-// permission on the key for any request that carries accessPolicy, also an empty one: a caller that
-// may rename, deactivate, or change the lists of a key gets a 403 for the whole request. The released
-// resource sent the policy only when it changed.
-func omitUnconfiguredAccessPolicy(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+// sendAccessPolicyKey carries to the BeforeWrite hook whether the update changes access_policy.
+type sendAccessPolicyKey struct{}
+
+// accessPolicyChanged reports whether the plan holds an access_policy that differs from the stored
+// one. Two JSON texts that mean the same count as equal, and an unknown plan value counts as
+// unchanged, as in the released resource.
+func accessPolicyChanged(ctx context.Context, plan tfsdk.Plan, state tfsdk.State) bool {
+	var planned, stored types.String
+	if plan.GetAttribute(ctx, path.Root("access_policy"), &planned).HasError() ||
+		state.GetAttribute(ctx, path.Root("access_policy"), &stored).HasError() {
+		return false
+	}
+	if planned.IsUnknown() || planned.Equal(stored) {
+		return false
+	}
+	if planned.IsNull() || stored.IsNull() {
+		return true
+	}
+	var a, b any
+	if json.Unmarshal([]byte(planned.ValueString()), &a) == nil && json.Unmarshal([]byte(stored.ValueString()), &b) == nil {
+		return !reflect.DeepEqual(a, b)
+	}
+	return true
+}
+
+// omitUnchangedAccessPolicy leaves access_policy out of an Update that does not change it. The
+// attribute keeps the policy of the state, so every plan holds it, but the API checks a permission on
+// the key for any request that carries accessPolicy, also an empty one: a caller that may rename,
+// deactivate, or change the lists of a key gets a 403 for the whole request. The released resource
+// sent the policy only when it changed. An Update that carries no decision, the one that follows
+// Create, leaves it out too: Create has stored it.
+func omitUnchangedAccessPolicy(ctx context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
 	update, ok := body.(*apiKeys.UpdateApiKeyRequest)
 	if !ok {
 		return nil
 	}
-	var policy types.String
-	diags := config.GetAttribute(ctx, path.Root("access_policy"), &policy)
-	if !diags.HasError() && policy.IsNull() {
+	if send, _ := ctx.Value(sendAccessPolicyKey{}).(bool); !send {
 		update.AccessPolicy = nil
 	}
-	return diags
+	return nil
 }

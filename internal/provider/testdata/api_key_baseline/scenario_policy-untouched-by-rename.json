@@ -120,7 +120,6 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
           "isActive": true,
           "newName": "policy-renamed",
           "permissions": {

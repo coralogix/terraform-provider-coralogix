@@ -299,6 +299,10 @@ var apiKeyScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create with a policy", h.null(), apiKeyConfig("policy", j{"access_policy": apiKeyPolicyComplete}))
 		h.Apply("update: rename", s, apiKeyConfig("policy-renamed", j{"access_policy": apiKeyPolicyComplete}))
 	},
+	"policy-reformatted-with-rename": func(h *grHarness) {
+		s := h.Apply("create with a policy", h.null(), apiKeyConfig("policy", j{"access_policy": apiKeyPolicyComplete}))
+		h.Apply("update: rename, and the same policy with other white space and key order", s, apiKeyConfig("policy-renamed", j{"access_policy": apiKeyPolicyCompleteReformatted}))
+	},
 	"policy-invalid-on-update": func(h *grHarness) {
 		s := h.Apply("create", h.null(), apiKeyConfig("policy", nil))
 		h.Apply("update: a policy that is no JSON", s, apiKeyConfig("policy", j{"access_policy": "not json"}))

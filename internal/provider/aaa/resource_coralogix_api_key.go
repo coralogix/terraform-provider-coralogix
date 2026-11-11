@@ -43,7 +43,7 @@ import (
 // it translates the roles of that version to permissions, and it makes no call to the API, so a
 // hashed key keeps the value that only its state holds.
 func NewApiKeyResource() resource.Resource {
-	return &apiKeyResource{Resource: apikey.NewResource(apikey.Hooks{AfterRead: keepStoredKeyValue, BeforeWrite: omitUnconfiguredAccessPolicy}).(*apikey.Resource)}
+	return &apiKeyResource{Resource: apikey.NewResource(apikey.Hooks{AfterRead: keepStoredKeyValue, BeforeWrite: omitUnchangedAccessPolicy}).(*apikey.Resource)}
 }
 
 type apiKeyResource struct {
@@ -51,6 +51,12 @@ type apiKeyResource struct {
 }
 
 var _ resource.ResourceWithUpgradeState = &apiKeyResource{}
+
+// Update tells the BeforeWrite hook whether the plan changes access_policy, which the generated
+// Update cannot tell, because a hook sees the configuration and the body only.
+func (r *apiKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	r.Resource.Update(context.WithValue(ctx, sendAccessPolicyKey{}, accessPolicyChanged(ctx, req.Plan, req.State)), req, resp)
+}
 
 func resourceSchemaV0() schema.Schema {
 	return schema.Schema{
