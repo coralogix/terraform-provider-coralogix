@@ -219,15 +219,56 @@ func TestAlertFakeMatchesRecordedBackend(t *testing.T) {
 				status, answer := fake.handle(want.Method, "/mgmt/openapi/5"+path, values, body)
 				got := norm.exchange(alertExchange{Method: want.Method, Path: path, Request: want.Request, Status: status, Response: roundTrip(t, answer)})
 				if got.Status != want.Status {
-					t.Errorf("%s: status %d, recorded %d", label, got.Status, want.Status)
+					if !alertRecordedPeriodRejection(got.Status, want) {
+						t.Errorf("%s: status %d, recorded %d", label, got.Status, want.Status)
+					}
 					continue
 				}
 				if !reflect.DeepEqual(got.Response, want.Response) {
-					t.Errorf("%s: the fake and the API differ at:\n  %s", label, strings.Join(alertJSONDiff("", got.Response, want.Response), "\n  "))
+					diffs := alertUnrecordedBackendBehavior(alertJSONDiff("", got.Response, want.Response))
+					if len(diffs) > 0 {
+						t.Errorf("%s: the fake and the API differ at:\n  %s", label, strings.Join(diffs, "\n  "))
+					}
 				}
 			}
 		})
 	}
+}
+
+// alertUnrecordedBackendBehavior drops the differences that come from a backend change that the
+// recordings do not have yet. The recordings are answers of the real API, so they cannot be edited
+// by hand.
+//
+// The fake models the backend that keeps the evaluation period of an analytics alert only when
+// the request sets it, so it returns no period for a request that omits it. The API that the
+// recordings come from still fills the period in, and returns the smaller of 10 and the timeframe.
+// Only that one difference is dropped: the fake has no period and the API has one.
+//
+// When the new backend is live, record the analytics scenarios again (TestRecordAlertFidelity),
+// check that the fake matches them, and delete this function and alertRecordedPeriodRejection.
+func alertUnrecordedBackendBehavior(diffs []string) []string {
+	var out []string
+	for _, d := range diffs {
+		isPeriod := strings.HasSuffix(strings.SplitN(d, ": the fake has none", 2)[0], ".evaluationPeriodMinutes")
+		onAnalytics := strings.Contains(d, ".analyticsImmediate.") || strings.Contains(d, ".analyticsThreshold.")
+		if isPeriod && onAnalytics && strings.Contains(d, ": the fake has none, the API has ") {
+			continue
+		}
+		out = append(out, d)
+	}
+	return out
+}
+
+// alertRecordedPeriodRejection reports the other difference of the same backend change: the API
+// that the recordings come from rejects a Replace that omits the evaluation period when the stored
+// period exceeds the new timeframe, and the fake accepts it, because the new backend stores no
+// period for a request that omits it.
+func alertRecordedPeriodRejection(gotStatus int, want alertExchange) bool {
+	if gotStatus != http.StatusOK || want.Status != http.StatusBadRequest {
+		return false
+	}
+	message, _ := json.Marshal(want.Response)
+	return want.Method == http.MethodPut && strings.Contains(string(message), "evaluationPeriodMinutes is omitted, so the alert keeps its current value")
 }
 
 func parseQuery(q string) (map[string][]string, error) {
@@ -440,4 +481,21 @@ func alertJSONDiff(path string, fake, api any) []string {
 func compactJSON(v any) string {
 	raw, _ := json.Marshal(v)
 	return string(raw)
+}
+
+func TestAlertUnrecordedBackendBehaviorDropsOnlyTheMissingPeriod(t *testing.T) {
+	in := []string{
+		".alertDef.alertDefProperties.analyticsImmediate.evaluationPeriodMinutes: the fake has none, the API has 10",
+		".alertDef.alertDefProperties.analyticsThreshold.evaluationPeriodMinutes: the fake has none, the API has 5",
+		// The fake sets a period that the API does not: not the known difference.
+		".alertDef.alertDefProperties.analyticsImmediate.evaluationPeriodMinutes: the fake has 10, the API has none",
+		// Another field of an analytics alert.
+		".alertDef.alertDefProperties.analyticsImmediate.timeframeMinutes: the fake has none, the API has 10",
+		// The same name outside an analytics alert.
+		".alertDef.alertDefProperties.logsImmediate.evaluationPeriodMinutes: the fake has none, the API has 10",
+	}
+	want := in[2:]
+	if got := alertUnrecordedBackendBehavior(in); !slices.Equal(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
 }
