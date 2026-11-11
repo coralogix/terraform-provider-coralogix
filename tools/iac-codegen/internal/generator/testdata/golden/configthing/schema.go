@@ -55,6 +55,18 @@ func Schema() schema.Schema {
 				Computed:            true,
 				MarkdownDescription: "",
 			},
+			"ratio": schema.Float64Attribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
+			"retries": schema.NumberAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
+			"scale": schema.NumberAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
 			"remotes": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{

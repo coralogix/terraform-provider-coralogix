@@ -600,7 +600,7 @@ func typedArmNeedsPrior(t *convTyped) bool {
 
 // scalarNeedsPrior reports whether the read of a scalar field needs the prior value (markPriorFields).
 func scalarNeedsPrior(f *convField) bool {
-	return f.Equality != "" || f.Conv == convFloat64AsFloat32 || f.CaseInsensitive || f.ReadEmptyAsNull && f.Conv == convString
+	return f.Equality != "" || f.Conv == convFloat64AsFloat32 || f.Conv == convFloat32AsFloat64 || f.CaseInsensitive || f.ReadEmptyAsNull && f.Conv == convString
 }
 
 // emptyDefaults sets EmptyDefault on the fields of an object arm whose line has default: []. The

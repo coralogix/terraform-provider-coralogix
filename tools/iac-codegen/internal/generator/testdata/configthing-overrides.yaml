@@ -18,6 +18,11 @@ types:
         equality: json
       remotes:
         keepPriorOrder: true
+      # Released types that differ from the contract: a float32 is a Float64, an int32 and a double
+      # are a Number.
+      ratio: {terraformType: Float64}
+      retries: {terraformType: Number}
+      scale: {terraformType: Number}
       # A released map validator: each key of the map matches the pattern.
       metadata:
         validators:

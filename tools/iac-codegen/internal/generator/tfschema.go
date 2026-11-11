@@ -1392,8 +1392,13 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 // contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
 // String keeps an integer as decimal text.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
-	if l.TerraformType == "" {
+	switch l.TerraformType {
+	case "":
 		return nil
+	case "Float64":
+		return applyFloat64Type(a)
+	case "Number":
+		return applyNumberType(a)
 	}
 	if l.TerraformType == "String" {
 		// The released attribute is the decimal text of an integer, such as the id or a team id. An
@@ -1443,6 +1448,60 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	}
 	a.Validators, a.GroupValidators = retype(a.Validators), retype(a.GroupValidators)
 	return nil
+}
+
+// applyFloat64Type keeps the released Float64 type of a float32 attribute. The validators and the plan
+// modifiers follow the type.
+func applyFloat64Type(a *tfAttr) error {
+	if a.Kind != "Float32" {
+		return fmt.Errorf("terraformType Float64 needs a float32 attribute, not a %s", a.Kind)
+	}
+	retype := strings.NewReplacer("float32validator.", "float64validator.", "float32planmodifier.", "float64planmodifier.")
+	for _, list := range []*[]string{&a.Validators, &a.GroupValidators, &a.Modifiers} {
+		for i, v := range *list {
+			(*list)[i] = retype.Replace(v)
+		}
+	}
+	a.Kind, a.ValueKind = "Float64", "Float64"
+	return nil
+}
+
+// applyNumberType keeps the released Number type of an int32 or a double attribute. A validator over
+// the value (AtLeast, Between, ...) has no Number counterpart, so only a validator over other
+// attributes stays.
+func applyNumberType(a *tfAttr) error {
+	if a.Kind != "Int32" && a.Kind != "Float64" {
+		return fmt.Errorf("terraformType Number needs an int32 or a double attribute, not a %s", a.Kind)
+	}
+	valueKind := strings.ToLower(a.Kind)
+	for _, list := range []*[]string{&a.Validators, &a.GroupValidators} {
+		for i, v := range *list {
+			rest, ok := strings.CutPrefix(v, valueKind+"validator.")
+			if !ok {
+				continue
+			}
+			if !crossAttributeValidator(rest) {
+				return fmt.Errorf("terraformType Number cannot keep the validator %s of the contract: remove the limit with validators.inferred: false", v)
+			}
+			(*list)[i] = "numbervalidator." + rest
+		}
+	}
+	for i, m := range a.Modifiers {
+		a.Modifiers[i] = strings.Replace(m, valueKind+"planmodifier.", "numberplanmodifier.", 1)
+	}
+	a.Kind, a.ValueKind = "Number", "Number"
+	return nil
+}
+
+// crossAttributeValidator reports whether the call of a validator, such as ConflictsWith(...), is
+// over other attributes. It has the same arguments for every type.
+func crossAttributeValidator(call string) bool {
+	for _, name := range []string{"ConflictsWith(", "ExactlyOneOf(", "AlsoRequires(", "AtLeastOneOf("} {
+		if strings.HasPrefix(call, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // applyValueNames makes a list or set of integers a list or set of the names of its values. Only
@@ -2106,8 +2165,15 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 			goType = "*" + typeModelName(t)
 		}
 	}
-	if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
-		goType = "types.String"
+	if b.file != nil {
+		switch b.file.Types[component].Fields[name].TerraformType {
+		case "String":
+			goType = "types.String"
+		case "Float64":
+			goType = "types.Float64"
+		case "Number":
+			goType = "types.Number"
+		}
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: terraformName(b.policy, component, name)}
 }

@@ -3,6 +3,7 @@ package configthing
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -965,6 +967,79 @@ func TestExtraObjectKeepsTheObjectOfThePlan(t *testing.T) {
 		}
 		if got := at(t, state.Raw, "schedule"); !got.Equal(test.want) {
 			t.Errorf("%s: schedule = %v, want %v", name, got, test.want)
+		}
+	}
+}
+
+func number(v float64) types.Number { return types.NumberValue(big.NewFloat(v)) }
+
+// A float32 field is a Float64 attribute, and an int32 and a double field are Number attributes, as
+// the released resource had them. Each value goes to the API as the type that the API holds and
+// reads back as the value that the configuration has: set, change, remove, and import.
+func TestFloatAndNumberAttributesKeepTheReleasedTypes(t *testing.T) {
+	ctx := context.Background()
+	var schemaResp frameworkresource.SchemaResponse
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	for name, want := range map[string]tftypes.Type{"ratio": tftypes.Number, "retries": tftypes.Number, "scale": tftypes.Number} {
+		if got := objectType.AttributeTypes[name]; !got.Equal(want) {
+			t.Fatalf("%s has the type %v, want %v", name, got, want)
+		}
+	}
+	if _, ok := schemaResp.Schema.Attributes["ratio"].(schema.Float64Attribute); !ok {
+		t.Fatalf("ratio is %T, want a Float64Attribute", schemaResp.Schema.Attributes["ratio"])
+	}
+
+	set := &ConfigThingModel{Ratio: types.Float64Value(0.3), Retries: number(5), Scale: number(2.5)}
+	req, diags := expandCreate(ctx, set)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if req.Ratio == nil || *req.Ratio != float32(0.3) || req.Retries == nil || *req.Retries != 5 || req.Scale == nil || *req.Scale != 2.5 {
+		t.Fatalf("request = %+v, want 0.3, 5, 2.5", req)
+	}
+
+	// The API holds the float32 0.3, which is 0.30000001192092896 as a float64: it reads back as 0.3.
+	api := &config_things_service.ConfigThing{Id: "thing-1", Ratio: req.Ratio, Retries: req.Retries, Scale: req.Scale}
+	for name, prior := range map[string]*ConfigThingModel{"with the prior": set, "import, no prior": nil} {
+		got, diags := flatten(ctx, api, prior)
+		if diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		if !got.Ratio.Equal(set.Ratio) || !got.Retries.Equal(set.Retries) || !got.Scale.Equal(set.Scale) {
+			t.Errorf("%s: read %v, %v, %v, want %v, %v, %v", name, got.Ratio, got.Retries, got.Scale, set.Ratio, set.Retries, set.Scale)
+		}
+	}
+
+	// A configured value that the API stores as another float32 stays as configured.
+	long := float32(0.123456789)
+	got, diags := flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1", Ratio: &long}, &ConfigThingModel{Ratio: types.Float64Value(0.123456789)})
+	if diags.HasError() || got.Ratio.ValueFloat64() != 0.123456789 {
+		t.Errorf("ratio = %v, %v, want the configured 0.123456789 to stay", got.Ratio, diags)
+	}
+
+	// Remove: a null value sends nothing, and an absent value reads as null. So does an unknown one.
+	for name, m := range map[string]*ConfigThingModel{
+		"null":    {Ratio: types.Float64Null(), Retries: types.NumberNull(), Scale: types.NumberNull()},
+		"unknown": {Ratio: types.Float64Unknown(), Retries: types.NumberUnknown(), Scale: types.NumberUnknown()},
+	} {
+		req, diags := expandCreate(ctx, m)
+		if diags.HasError() || req.Ratio != nil || req.Retries != nil || req.Scale != nil {
+			t.Errorf("%s: request = %+v, %v, want no value", name, req, diags)
+		}
+	}
+	got, diags = flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1"}, set)
+	if diags.HasError() || !got.Ratio.IsNull() || !got.Retries.IsNull() || !got.Scale.IsNull() {
+		t.Errorf("read = %v, %v, %v, %v, want null", got.Ratio, got.Retries, got.Scale, diags)
+	}
+}
+
+// An int32 Number holds a whole number in the int32 range. Another value is an error at apply, not
+// a cut value that reads back as another number.
+func TestNumberOverAnInt32RejectsWhatTheAPICannotHold(t *testing.T) {
+	for name, v := range map[string]float64{"a fraction": 2.5, "too large": 3e10, "too small": -3e10} {
+		if _, diags := expandCreate(context.Background(), &ConfigThingModel{Retries: number(v)}); !diags.HasError() {
+			t.Errorf("%s: no error for %v", name, v)
 		}
 	}
 }

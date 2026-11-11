@@ -317,6 +317,12 @@ const (
 	// the shortest decimal of the float32.
 	convFloat64AsFloat32 = "float64asfloat32" // types.Float64 ↔ *float64
 	convInts32AsInt64    = "ints32asint64"    // types.List/Set of types.Int64Type ↔ []int32
+	// convFloat32AsFloat64 keeps the released Float64 type of a float32 field (terraformType:
+	// Float64). convInt32AsNumber and convFloat64AsNumber keep the released Number type of an
+	// int32 or a double field (terraformType: Number).
+	convFloat32AsFloat64 = "float32asfloat64" // types.Float64 ↔ *float32
+	convInt32AsNumber    = "int32asnumber"    // types.Number ↔ *int32
+	convFloat64AsNumber  = "float64asnumber"  // types.Number ↔ *float64
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -1138,8 +1144,10 @@ func (f *convField) ValueKind() string {
 		return "Int32"
 	case convFloat32:
 		return "Float32"
-	case convFloat64, convFloat64AsFloat32:
+	case convFloat64, convFloat64AsFloat32, convFloat32AsFloat64:
 		return "Float64"
+	case convInt32AsNumber, convFloat64AsNumber:
+		return "Number"
 	case convInt64AsString:
 		return "String"
 	}
@@ -1537,6 +1545,13 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string, 
 		}
 		return nil
 	}
+	if conv, ok := floatOrNumberType(line.TerraformType, cf.Conv); ok {
+		cf.Conv = conv
+		return nil
+	}
+	if line.TerraformType == "Float64" || line.TerraformType == "Number" {
+		return fmt.Errorf("%s: terraformType %s needs %s", cf.TFName, line.TerraformType, floatOrNumberNeeds[line.TerraformType])
+	}
 	if terraformType(b.resource.Policy, component, name) == "" {
 		return nil
 	}
@@ -1550,6 +1565,26 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string, 
 		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, a 64-bit number that the API sends as a string, or a list or set of int32", cf.TFName)
 	}
 	return nil
+}
+
+// floatOrNumberNeeds is what terraformType Float64 and Number each need, for an error text.
+var floatOrNumberNeeds = map[string]string{
+	"Float64": "a float32 field",
+	"Number":  "an int32 or a double field",
+}
+
+// floatOrNumberType returns the conversion that terraformType Float64 (a float32 field) or Number
+// (an int32 or a double field) gives to a field with the conversion conv.
+func floatOrNumberType(terraformType, conv string) (string, bool) {
+	switch {
+	case terraformType == "Float64" && conv == convFloat32:
+		return convFloat32AsFloat64, true
+	case terraformType == "Number" && conv == convInt32:
+		return convInt32AsNumber, true
+	case terraformType == "Number" && conv == convFloat64:
+		return convFloat64AsNumber, true
+	}
+	return "", false
 }
 
 // applyValueNames converts a list or set of integers to the names of its values and back.
@@ -2596,7 +2631,8 @@ var scalarAttrTypes = map[string]string{
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convFoldString: "types.StringType", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convIntegerAsString: "types.StringType",
-	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type",
+	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type", convFloat32AsFloat64: "types.Float64Type",
+	convInt32AsNumber: "types.NumberType", convFloat64AsNumber: "types.NumberType",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
@@ -2860,7 +2896,7 @@ func markPriorFields(d *convData) error {
 				obj.NeedsPrior = true
 			}
 			// A double that the API stores as a float32 keeps the prior value of the same float32.
-			if f.Conv == convFloat64AsFloat32 {
+			if f.Conv == convFloat64AsFloat32 || f.Conv == convFloat32AsFloat64 {
 				obj.NeedsPrior = true
 			}
 			// An enum read in any case keeps the spelling of the prior value.
@@ -2982,7 +3018,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convInt64Wire, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convFloat32AsFloat64, convInt32, convInt32AsInt64, convInt32AsNumber, convFloat64AsNumber, convInt64, convInt64AsString, convUint64, convInt64Wire, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}

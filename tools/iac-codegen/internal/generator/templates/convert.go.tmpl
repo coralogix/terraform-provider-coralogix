@@ -1543,6 +1543,32 @@ func flattenFloat64AsFloat32(v *float64) types.Float64 {
 	}
 	return types.Float64Value(f)
 }
+{{- end}}
+{{- if .Conv.Uses "float32asfloat64"}}
+
+// expandFloat64AsFloat32 returns the float32 that the API holds for a Float64 attribute.
+func expandFloat64AsFloat32(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+// flattenFloat32AsFloat64 returns a float32 of the API as the shortest decimal that reads back as
+// it: 0.3 and not 0.30000001192092896.
+func flattenFloat32AsFloat64(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, err := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
+	if err != nil {
+		return types.Float64Value(float64(*v))
+	}
+	return types.Float64Value(f)
+}
+{{- end}}
+{{- if or (.Conv.Uses "float64asfloat32") (.Conv.Uses "float32asfloat64")}}
 
 // keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
 // value that the API stores. A configured 0.123456789 then stays, though the API returns the
@@ -1552,6 +1578,50 @@ func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 		return v
 	}
 	return prior
+}
+{{- end}}
+{{- if or (.Conv.Uses "int32asnumber") (.Conv.Uses "float64asnumber")}}
+
+// expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
+// not a whole number, or is outside the int32 range, is an error.
+func expandNumberAsInt32(p path.Path, v types.Number, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, accuracy := v.ValueBigFloat().Int64()
+	if accuracy != big.Exact || n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is not a whole number from %d to %d.", v.ValueBigFloat().Text('g', -1), math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// expandNumberAsFloat64 returns the double that the API holds for a Number attribute.
+func expandNumberAsFloat64(p path.Path, v types.Number, diags *diag.Diagnostics) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f, _ := v.ValueBigFloat().Float64()
+	if math.IsInf(f, 0) {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is outside the range of a double.", v.ValueBigFloat().Text('g', -1)))
+		return nil
+	}
+	return &f
+}
+
+func int32AsNumber(v *int32) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*v)))
+}
+
+func float64AsNumber(v *float64) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*v))
 }
 {{- end}}
 {{- if .Conv.Uses "int64wire"}}
@@ -1830,6 +1900,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandInt64(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "int32asint64"}}
 	{{.Dst}} = {{$l}}expandInt64AsInt32({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "float32asfloat64"}}
+	{{.Dst}} = {{$l}}expandFloat64AsFloat32(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int32asnumber"}}
+	{{.Dst}} = {{$l}}expandNumberAsInt32({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "float64asnumber"}}
+	{{.Dst}} = {{$l}}expandNumberAsFloat64({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "ints32asint64"}}
 	{{- if eq .Collection "Set"}}
 	{{.Dst}} = int64sAsInt32({{$p}}, expandSet[int64](ctx, {{$p}}, m.{{.Model}}, diags), diags)
@@ -2026,7 +2102,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "readZeroAsNull"}}
 	{{- if .ReadZeroAsNull}}
 	// A configuration cannot hold the zero value, so a read of it is an omitted value.
-	if out.{{.Model}}.Value{{.ValueKind}}() == {{if eq .Conv "string"}}{{printf "%q" .Zero}}{{else}}0{{end}} {
+	if {{if eq .ValueKind "Number"}}out.{{.Model}}.ValueBigFloat() != nil && out.{{.Model}}.ValueBigFloat().Sign() == 0{{else}}out.{{.Model}}.Value{{.ValueKind}}() == {{if eq .Conv "string"}}{{printf "%q" .Zero}}{{else}}0{{end}}{{end}} {
 		out.{{.Model}} = types.{{.ValueKind}}Null()
 	}
 	{{- end}}
@@ -2093,6 +2169,18 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "int32asint64"}}
 	out.{{.Model}} = types.Int64PointerValue(int32AsInt64({{$v}}))
+	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "float32asfloat64"}}
+	out.{{.Model}} = flattenFloat32AsFloat64({{$v}})
+	{{- template "readZeroAsNull" .}}
+	if prior != nil {
+		out.{{.Model}} = keepPriorFloat32(prior.{{.Model}}, out.{{.Model}})
+	}
+{{- else if eq .Conv "int32asnumber"}}
+	out.{{.Model}} = int32AsNumber({{$v}})
+	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "float64asnumber"}}
+	out.{{.Model}} = float64AsNumber({{$v}})
 	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "ints32asint64"}}
 	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, types.Int64Type, ints32AsInt64({{.Src}}), diags)

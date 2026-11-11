@@ -1405,8 +1405,8 @@ func (l Field) check() error {
 	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
 	}
-	if l.TerraformType != "" && l.TerraformType != "Int64" && l.TerraformType != "String" {
-		return fmt.Errorf("terraformType is %q, want \"Int64\" or \"String\"", l.TerraformType)
+	if l.TerraformType != "" && !slices.Contains([]string{"Int64", "String", "Float64", "Number"}, l.TerraformType) {
+		return fmt.Errorf("terraformType is %q, want \"Int64\", \"String\", \"Float64\", or \"Number\"", l.TerraformType)
 	}
 	if l.StoredAs != "" && l.StoredAs != "float32" {
 		return fmt.Errorf("storedAs is %q, want \"float32\"", l.StoredAs)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"math/big"
 	"sort"
 	"strconv"
 	"time"
@@ -33,6 +34,9 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "settings", serverDefault: false},
 	{attr: "template", serverDefault: false},
+	{attr: "ratio", serverDefault: false},
+	{attr: "retries", serverDefault: false},
+	{attr: "scale", serverDefault: false},
 	{attr: "remotes", serverDefault: false},
 	{attr: "labels", serverDefault: false},
 	{attr: "metadata", serverDefault: false},
@@ -328,6 +332,9 @@ func expandCreateConfigThingRequest(ctx context.Context, p path.Path, m *ConfigT
 	out.Name = expandString(m.Name)
 	out.Settings = expandString(m.Settings)
 	out.Template = expandString(m.Template)
+	out.Ratio = expandFloat64AsFloat32(m.Ratio)
+	out.Retries = expandNumberAsInt32(p.AtName("retries"), m.Retries, diags)
+	out.Scale = expandNumberAsFloat64(p.AtName("scale"), m.Scale, diags)
 	if items := expandElements[ConfigRemoteModel](ctx, p.AtName("remotes"), m.Remotes, diags); items != nil {
 		out.Remotes = make([]config_things_service.ConfigRemoteCreate, 0, len(items))
 		for i := range items {
@@ -380,6 +387,9 @@ func expandReplaceConfigThingRequest(ctx context.Context, p path.Path, m *Config
 	out := &config_things_service.ReplaceConfigThingRequest{}
 	out.Name = expandString(m.Name)
 	out.Settings = expandString(m.Settings)
+	out.Ratio = expandFloat64AsFloat32(m.Ratio)
+	out.Retries = expandNumberAsInt32(p.AtName("retries"), m.Retries, diags)
+	out.Scale = expandNumberAsFloat64(p.AtName("scale"), m.Scale, diags)
 	if items := expandElements[ConfigRemoteModel](ctx, p.AtName("remotes"), m.Remotes, diags); items != nil {
 		out.Remotes = make([]config_things_service.ConfigRemoteCreate, 0, len(items))
 		for i := range items {
@@ -407,6 +417,12 @@ func flattenConfigThing(ctx context.Context, p path.Path, v *config_things_servi
 		out.Template = keepEquivalentText(prior.Template, out.Template, jsonEqual)
 	}
 	out.Version = types.StringPointerValue(v.Version)
+	out.Ratio = flattenFloat32AsFloat64(v.Ratio)
+	if prior != nil {
+		out.Ratio = keepPriorFloat32(prior.Ratio, out.Ratio)
+	}
+	out.Retries = int32AsNumber(v.Retries)
+	out.Scale = float64AsNumber(v.Scale)
 	out.Remotes = types.ListNull(types.ObjectType{AttrTypes: configRemoteAttrTypes()})
 	srcRemotes := v.Remotes
 	if prior != nil {
@@ -917,4 +933,78 @@ func flattenEnumMap[T ~string](ctx context.Context, p path.Path, v map[string]T,
 		invalidEnumElement(p.AtMapKey(key), items[key], zero, diags)
 	}
 	return flattenMap(ctx, types.StringType, items, diags)
+}
+
+// expandFloat64AsFloat32 returns the float32 that the API holds for a Float64 attribute.
+func expandFloat64AsFloat32(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+// flattenFloat32AsFloat64 returns a float32 of the API as the shortest decimal that reads back as
+// it: 0.3 and not 0.30000001192092896.
+func flattenFloat32AsFloat64(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, err := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
+	if err != nil {
+		return types.Float64Value(float64(*v))
+	}
+	return types.Float64Value(f)
+}
+
+// keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
+// value that the API stores. A configured 0.123456789 then stays, though the API returns the
+// float32 0.12345679.
+func keepPriorFloat32(prior, v types.Float64) types.Float64 {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() || float32(prior.ValueFloat64()) != float32(v.ValueFloat64()) {
+		return v
+	}
+	return prior
+}
+
+// expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
+// not a whole number, or is outside the int32 range, is an error.
+func expandNumberAsInt32(p path.Path, v types.Number, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, accuracy := v.ValueBigFloat().Int64()
+	if accuracy != big.Exact || n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is not a whole number from %d to %d.", v.ValueBigFloat().Text('g', -1), math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// expandNumberAsFloat64 returns the double that the API holds for a Number attribute.
+func expandNumberAsFloat64(p path.Path, v types.Number, diags *diag.Diagnostics) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f, _ := v.ValueBigFloat().Float64()
+	if math.IsInf(f, 0) {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is outside the range of a double.", v.ValueBigFloat().Text('g', -1)))
+		return nil
+	}
+	return &f
+}
+
+func int32AsNumber(v *int32) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*v)))
+}
+
+func float64AsNumber(v *float64) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*v))
 }
