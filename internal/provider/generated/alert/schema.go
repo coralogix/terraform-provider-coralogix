@@ -71,7 +71,7 @@ func Schema() schema.Schema {
 							},
 							"evaluation_period_minutes": schema.Int32Attribute{
 								Optional:            true,
-								MarkdownDescription: "How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`.",
+								MarkdownDescription: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.",
 							},
 							"no_data_policy": schema.SingleNestedAttribute{
 								Optional: true,
@@ -141,7 +141,7 @@ func Schema() schema.Schema {
 							},
 							"evaluation_period_minutes": schema.Int32Attribute{
 								Optional:            true,
-								MarkdownDescription: "How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`.",
+								MarkdownDescription: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.",
 							},
 							"no_data_policy": schema.SingleNestedAttribute{
 								Optional: true,

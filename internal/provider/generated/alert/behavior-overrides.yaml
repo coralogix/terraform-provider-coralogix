@@ -219,14 +219,12 @@ types:
     fields:
       dataprimeQuery: {required: true}
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
-      evaluationPeriodMinutes: {markdownDescription: "How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`."}
       noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
       timeframeMinutes: {required: true, validators: [{atLeast: 1}]}
   AnalyticsThresholdType:
     fields:
       dataprimeQuery: {required: true}
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
-      evaluationPeriodMinutes: {markdownDescription: "How often the alert is evaluated, in minutes (preview). When omitted, the API uses the smaller of 10 and `timeframe_minutes` and the attribute stays null; removing the line from the configuration resets the period to that default. The API checks the range and that the value does not exceed `timeframe_minutes`."}
       noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
       operator: {required: true, validators: [{enum: true}]}
       rules: {required: true, validators: [{sizeAtLeast: 1}], markdownDescription: "The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID."}
