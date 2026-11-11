@@ -201,3 +201,41 @@ func TestOptionalGroupKeysAreChecked(t *testing.T) {
 		})
 	}
 }
+
+// A group inside a group of the resource stands for one arm of a oneOf whose other arms are fields
+// of the group. The generator reports a group that is not optional, one that holds more than that
+// arm, a field that the resource does not have, and a name that another attribute of the group has.
+func TestGroupInsideAGroupIsChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "groupsetthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const inner = "      relative: {fields: [relativeWindow], optional: true}\n"
+	tests := map[string]struct{ new, want string }{
+		"not optional":                          {"      relative: {fields: [relativeWindow]}\n", "groups.window.groups.relative: the group holds an arm of a oneOf, so the other arms can be set instead: add optional: true"},
+		"a field that is no arm":                {"      relative: {fields: [relativeWindow, name], optional: true}\n", "groups.window.groups.relative: a group inside a group holds one arm of a oneOf and no other field"},
+		"a field that is no top-level field":    {inner + "      ghost: {fields: [missing], optional: true}\n", "groups.window.groups.ghost: missing is no top-level field of GroupSetThing"},
+		"the name of an attribute of the group": {inner + "      absolute: {fields: [name], optional: true}\n", "groups.window.groups.absolute: the name is also the attribute absolute of window"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(string(base), inner) {
+				t.Fatalf("the overrides file has no %q", inner)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(strings.Replace(string(base), inner, test.new, 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			options := Options{Resource: "GroupSetThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}

@@ -156,6 +156,42 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"window": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"absolute": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"start": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+							"end": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+					"relative": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"duration": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "The window of the set.",
+			},
 			"document": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{

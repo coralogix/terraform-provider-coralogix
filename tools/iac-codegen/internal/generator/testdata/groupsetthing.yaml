@@ -19,10 +19,20 @@ paths:
             schema:
               title: CreateGroupSetThing
               type: object
+              oneOf:
+                - {required: [absoluteWindow], type: object}
+                - {required: [relativeWindow], type: object}
+                - type: object
+                  not:
+                    anyOf:
+                      - {required: [absoluteWindow], type: object}
+                      - {required: [relativeWindow], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
                 groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
                 schedule: {$ref: '#/components/schemas/Schedule'}
+                absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+                relativeWindow: {type: string, minLength: 1}
       responses:
         '200':
           description: ok
@@ -51,10 +61,20 @@ paths:
             schema:
               title: UpdateGroupSetThing
               type: object
+              oneOf:
+                - {required: [absoluteWindow], type: object}
+                - {required: [relativeWindow], type: object}
+                - type: object
+                  not:
+                    anyOf:
+                      - {required: [absoluteWindow], type: object}
+                      - {required: [relativeWindow], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
                 groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
                 schedule: {$ref: '#/components/schemas/Schedule'}
+                absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+                relativeWindow: {type: string, minLength: 1}
       responses:
         '200':
           description: ok
@@ -80,11 +100,21 @@ components:
     GroupSetThing:
       type: object
       required: [id, name, groups]
+      oneOf:
+        - {required: [absoluteWindow], type: object}
+        - {required: [relativeWindow], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [absoluteWindow], type: object}
+              - {required: [relativeWindow], type: object}
       properties:
         id: {type: string, minLength: 1}
         name: {type: string, minLength: 1}
         groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/OutGroupThing'}}
         schedule: {$ref: '#/components/schemas/Schedule'}
+        absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+        relativeWindow: {type: string, minLength: 1}
     InGroupThing:
       type: object
       required: [name]

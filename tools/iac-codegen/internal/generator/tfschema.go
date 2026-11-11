@@ -219,7 +219,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if err := b.rootOneOfs(out, r, file, groups); err != nil {
 		return nil, err
 	}
-	if err := groups.check(out.Attributes); err != nil {
+	if err := groups.check(r, out.Attributes); err != nil {
 		return nil, err
 	}
 	if err := b.checkPlacesUsed(); err != nil {
@@ -418,8 +418,8 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singleton
 
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
-func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, group string) (*tfAttr, error) {
-	a, err := b.attribute(rootPath(group, terraformName(r.Policy, r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, groups []string) (*tfAttr, error) {
+	a, err := b.attribute(rootPath(groups, terraformName(r.Policy, r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +460,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		}
 	case f.Behavior == model.Immutable || clientSetID:
 		// The path holds the group, as the server paths of the request do.
-		b.requiresReplace(a, rootPath(group, a.Name).dotted())
+		b.requiresReplace(a, rootPath(groups, a.Name).dotted())
 	}
 	return a, nil
 }
@@ -2465,12 +2465,9 @@ func tfName(property string) string {
 }
 
 // rootPath is the attribute path of a top-level attribute with the Terraform name name: below
-// its group, when a behavior-overrides group holds it.
-func rootPath(group, name string) attrPath {
-	if group == "" {
-		return attrPath{"root", name}
-	}
-	return attrPath{"root", group, name}
+// its groups, when behavior-overrides groups hold it.
+func rootPath(groups []string, name string) attrPath {
+	return append(append(attrPath{"root"}, groups...), name)
 }
 
 // tfGroups builds the groups of the behavior-overrides file: required objects that hold
@@ -2482,20 +2479,49 @@ type tfGroups struct {
 	models   map[string]*tfModel
 }
 
-// add puts the attribute and the model field of a top-level field in its group. It reports
-// whether the group is new.
-func (g *tfGroups) add(group string, a *tfAttr, field tfModelField) bool {
-	attr, found := g.attrs[group]
-	if !found {
-		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true,
-			Description: g.file.Groups[group].MarkdownDescription}
-		g.attrs[group] = attr
-		g.models[group] = &tfModel{Name: groupModelName(g.resource, group)}
+// addToRootGroup puts the attribute and the model field of a top-level field in its group, or in the
+// group inside it. A group is made on its first field: the outer group goes into the resource, and a group
+// inside it into its outer group.
+func (b *tfBuilder) addToRootGroup(out *tfResource, root *tfModel, g *tfGroups, path []string, a *tfAttr, field tfModelField) error {
+	outer := path[0]
+	line := g.file.Groups[outer]
+	if g.attrs[outer] == nil {
+		attr := &tfAttr{Name: outer, Kind: "SingleNested", ValueKind: "Object", Required: !line.Optional, Optional: line.Optional,
+			Description: line.MarkdownDescription}
+		g.attrs[outer] = attr
+		g.models[outer] = &tfModel{Name: groupModelName(g.resource, outer)}
+		if err := b.claimModel(g.models[outer].Name, "groups."+outer); err != nil {
+			return err
+		}
+		out.Attributes = append(out.Attributes, attr)
+		root.Fields = append(root.Fields, tfModelField{Name: camelize(outer), Type: "*" + g.models[outer].Name, TFName: outer})
+		b.models = append(b.models, g.models[outer])
 	}
-	attr.Attributes = append(attr.Attributes, a)
-	g.models[group].Fields = append(g.models[group].Fields, field)
-	return !found
+	if len(path) == 1 {
+		g.attrs[outer].Attributes = append(g.attrs[outer].Attributes, a)
+		g.models[outer].Fields = append(g.models[outer].Fields, field)
+		return nil
+	}
+	key := innerKey(path[0], path[1])
+	if g.attrs[key] == nil {
+		inner := line.Groups[path[1]]
+		attr := &tfAttr{Name: path[1], Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: inner.MarkdownDescription}
+		g.attrs[key] = attr
+		g.models[key] = &tfModel{Name: groupModelName(g.resource, outer+"_"+path[1])}
+		if err := b.claimModel(g.models[key].Name, "groups."+outer+".groups."+path[1]); err != nil {
+			return err
+		}
+		g.attrs[outer].Attributes = append(g.attrs[outer].Attributes, attr)
+		g.models[outer].Fields = append(g.models[outer].Fields, tfModelField{Name: camelize(path[1]), Type: "*" + g.models[key].Name, TFName: path[1]})
+		b.models = append(b.models, g.models[key])
+	}
+	g.attrs[key].Attributes = append(g.attrs[key].Attributes, a)
+	g.models[key].Fields = append(g.models[key].Fields, field)
+	return nil
 }
+
+// innerKey is the key of a group inside a group in the maps of the groups.
+func innerKey(outer, inner string) string { return outer + "." + inner }
 
 // oneOf returns the group that holds every arm of the top-level oneOf g, or "" when no group
 // holds an arm. A group cannot hold some of the arms only.
@@ -2509,24 +2535,55 @@ func (g *tfGroups) oneOf(o model.OneOfGroup) (string, error) {
 	return group, nil
 }
 
-// check reports a group field that is no top-level field of the resource, and a group whose
-// Terraform or Go name is also the name of another top-level attribute.
-func (g *tfGroups) check(root []*tfAttr) error {
+// check reports a group field that is no top-level field of the resource, a group whose Terraform
+// or Go name is also the name of another top-level attribute, and a group inside a group that is
+// not the one arm of a oneOf.
+func (g *tfGroups) check(r *model.Resource, root []*tfAttr) error {
 	for _, name := range g.file.GroupNames() {
+		line := g.file.Groups[name]
 		for _, a := range root {
 			if a != g.attrs[name] && (a.Name == name || camelize(a.Name) == camelize(name)) {
 				return fmt.Errorf("groups.%s: the name is also the top-level attribute %s", name, a.Name)
 			}
 		}
-		if g.file.Groups[name].RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
+		for _, field := range line.Fields {
+			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("groups.%s: %s is no top-level field of %s that Terraform shows", name, field, g.resource)
+			}
+		}
+		if err := g.checkInner(r, name); err != nil {
+			return err
+		}
+		if line.RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
 			// Flatten checks that the response has one of the fields of the group, so every
 			// field must be an arm of the same oneOf.
 			return fmt.Errorf("groups.%s: requireOne needs the arms of one oneOf of the resource, and no other field", name)
 		}
-		for _, field := range g.file.Groups[name].Fields {
-			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
-				return fmt.Errorf("groups.%s: %s is no top-level field of %s that Terraform shows", name, field, g.resource)
+	}
+	return nil
+}
+
+// checkInner checks the groups inside the group name. A group inside a group stands for one arm of a
+// oneOf whose other arms are fields of the outer group, so it is optional, and it holds that arm only.
+func (g *tfGroups) checkInner(r *model.Resource, name string) error {
+	for _, inner := range sortedGroupNames(g.file.Groups[name].Groups) {
+		line := g.file.Groups[name].Groups[inner]
+		at := "groups." + name + ".groups." + inner
+		for _, a := range g.attrs[name].attrsOrNil() {
+			if a != g.attrs[innerKey(name, inner)] && (a.Name == inner || camelize(a.Name) == camelize(inner)) {
+				return fmt.Errorf("%s: the name is also the attribute %s of %s", at, a.Name, name)
 			}
+		}
+		for _, field := range line.Fields {
+			if !slices.ContainsFunc(g.attrs[innerKey(name, inner)].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("%s: %s is no top-level field of %s that Terraform shows", at, field, g.resource)
+			}
+			if len(line.Fields) != 1 || !slices.ContainsFunc(r.Groups, func(o model.OneOfGroup) bool { return slices.Contains(o.Arms, field) }) {
+				return fmt.Errorf("%s: a group inside a group holds one arm of a oneOf and no other field", at)
+			}
+		}
+		if !line.Optional {
+			return fmt.Errorf("%s: the group holds an arm of a oneOf, so the other arms can be set instead: add optional: true", at)
 		}
 	}
 	return nil
@@ -2673,11 +2730,15 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			}
 			continue
 		}
-		group := file.GroupOf(f.Name)
+		path := file.GroupPath(f.Name)
+		group := ""
+		if len(path) != 0 {
+			group = path[0]
+		}
 		if err := checkGroupField(r, f, group); err != nil {
 			return err
 		}
-		a, err := b.resourceAttribute(out, r, f, group)
+		a, err := b.resourceAttribute(out, r, f, path)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -2687,13 +2748,8 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			root.Fields = append(root.Fields, field)
 			continue
 		}
-		if groups.add(group, a, field) {
-			if err := b.claimModel(groups.models[group].Name, "groups."+group); err != nil {
-				return err
-			}
-			out.Attributes = append(out.Attributes, groups.attrs[group])
-			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
-			b.models = append(b.models, groups.models[group])
+		if err := b.addToRootGroup(out, root, groups, path, a, field); err != nil {
+			return err
 		}
 	}
 	return checkSplitNames(out, root, r, file)
@@ -2900,7 +2956,7 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 		}
 		armType := &model.Type{Kind: t.Kind, Elem: arm.Type}
 		name := terraformName(b.policy, component, arm.Name)
-		a, err := b.attribute(rootPath("", name), component, arm.Name, arm.Description, armType, model.Attrs{}, false)
+		a, err := b.attribute(rootPath(nil, name), component, arm.Name, arm.Description, armType, model.Attrs{}, false)
 		if err != nil {
 			return err
 		}
@@ -2930,8 +2986,14 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		if group, err := groups.oneOf(g); err != nil {
 			return err
 		} else if group != "" {
-			// The arms are in one group, which is an object: they check each other inside it.
-			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return terraformName(r.Policy, r.Name, arm) })
+			// The arms are in one group, which is an object: they check each other inside it. An arm
+			// in a group inside the group is checked as that group, the object that stands for it.
+			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string {
+				if inner := file.Groups[group].InnerOf(arm); inner != "" {
+					return inner
+				}
+				return terraformName(r.Policy, r.Name, arm)
+			})
 			if file.Groups[group].RequireOne {
 				requireOneArm(groups.attrs[group])
 			}
@@ -2940,7 +3002,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		var arms []string
 		for _, arm := range g.Arms {
 			name := terraformName(r.Policy, r.Name, arm)
-			arms = append(arms, rootPath(file.GroupOf(arm), name).expr())
+			arms = append(arms, rootPath(file.GroupPath(arm), name).expr())
 			if file.Types[r.Name].Fields[arm].RequireOne {
 				// The released resource required one arm although the contract allows none.
 				g.AllowNone = false

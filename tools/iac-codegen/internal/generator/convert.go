@@ -855,7 +855,7 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
-			out = append(out, rootPath(file.GroupOf(arm), terraformName(r.Policy, r.Name, arm)).dotted())
+			out = append(out, rootPath(file.GroupPath(arm), terraformName(r.Policy, r.Name, arm)).dotted())
 		}
 	}
 	for _, f := range r.Fields {
@@ -863,7 +863,7 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 			// The arms are collections of values, or the arms of a string, not objects of the state.
 			continue
 		}
-		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupPath(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
@@ -1077,8 +1077,8 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		if err != nil {
 			return err
 		}
-		if group := b.file.GroupOf(f.Name); group != "" {
-			b.addToGroup(obj, groups, group, cf)
+		if path := b.file.GroupPath(f.Name); path != nil {
+			b.addToGroup(obj, groups, path, cf)
 			continue
 		}
 		obj.Fields = append(obj.Fields, cf)
@@ -1935,7 +1935,7 @@ func checkOptionalGroups(objects []*convObject) error {
 			continue
 		}
 		for _, f := range obj.Fields {
-			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj) || f.Value || f.Wrap != nil {
+			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj && f.Conv != convGroup) || f.Value || f.Wrap != nil {
 				return fmt.Errorf("%s: an optional group needs fields that the SDK holds by pointer (a scalar or an object), so that a missing value tells the group is absent; %s is not one", obj.Model, f.TFName)
 			}
 		}
@@ -3292,18 +3292,48 @@ func idGuard(r *model.Resource) string {
 	return camelize(r.ID())
 }
 
-// addToGroup puts the field cf of the root object in its group. The group is an object of its
-// own in Terraform, and its fields are fields of the SDK struct of the root.
-func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject, group string, cf *convField) {
-	g, found := groups[group]
+// addToGroup puts the field cf of the root object in its group, or in the group inside it (path is
+// the group names, outer first). The group is an object of its own in Terraform, and its fields are
+// fields of the SDK struct of the root.
+func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject, path []string, cf *convField) {
+	outer := path[0]
+	line := b.file.Groups[outer]
+	g, found := groups[outer]
 	if !found {
-		g = &convObject{Func: root.Func + camelize(group), Model: groupModelName(b.resource.Name, group), SDK: root.SDK, Group: true, RequireOne: b.file.Groups[group].RequireOne}
+		g = &convObject{Func: root.Func + camelize(outer), Model: groupModelName(b.resource.Name, outer), SDK: root.SDK, Group: true,
+			RequireOne: line.RequireOne, OptionalGroup: line.Optional}
 		g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
-		groups[group] = g
+		groups[outer] = g
 		b.objects = append(b.objects, g)
-		root.Fields = append(root.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+		root.Fields = append(root.Fields, &convField{TFName: outer, Model: camelize(outer), Conv: convGroup, Object: g})
 	}
-	g.Fields = append(g.Fields, cf)
+	if len(path) == 1 {
+		g.Fields = append(g.Fields, cf)
+		return
+	}
+	key := innerKey(outer, path[1])
+	inner, found := groups[key]
+	if !found {
+		inner = &convObject{Func: g.Func + camelize(path[1]), Model: groupModelName(b.resource.Name, outer+"_"+path[1]), SDK: root.SDK, Group: true, OptionalGroup: true}
+		inner.AttrTypesFunc = lowerFirst(inner.Func) + "AttrTypes"
+		groups[key] = inner
+		b.objects = append(b.objects, inner)
+		g.Fields = append(g.Fields, &convField{TFName: path[1], Model: camelize(path[1]), Conv: convGroup, Object: inner})
+	}
+	inner.Fields = append(inner.Fields, cf)
+}
+
+// LeafSDK returns the SDK fields that the fields of the object hold, also inside its groups.
+func (o *convObject) LeafSDK() []string {
+	var out []string
+	for _, f := range o.Fields {
+		if f.Conv == convGroup {
+			out = append(out, f.Object.LeafSDK()...)
+			continue
+		}
+		out = append(out, f.SDK)
+	}
+	return out
 }
 
 // addMissingFields adds the fields of t that obj does not have yet. A field that no request

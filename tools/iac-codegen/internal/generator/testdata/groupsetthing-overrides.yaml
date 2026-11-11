@@ -21,11 +21,25 @@ api:
     update: GroupSets_Update
     delete: GroupSets_Delete
   createResponseOnlyIDProperty: id
+# The window is optional, as the released attribute is. It holds the absolute arm of a oneOf next
+# to the group relative, which stands for the other arm, a plain duration: window = {absolute = {
+# start, end}} or window = {relative = {duration}}.
+groups:
+  window:
+    fields: [absoluteWindow]
+    optional: true
+    requireOne: true
+    markdownDescription: The window of the set.
+    groups:
+      relative: {fields: [relativeWindow], optional: true}
+
 types:
   GroupSetThing:
     fields:
       name: {computed: true, useStateForUnknown: true}
       groups: {computed: true, useStateForUnknown: true}
+      absoluteWindow: {name: absolute}
+      relativeWindow: {name: duration, required: true}
     extraAttributes:
       # An equality line of an extra attribute is a plan modifier only: the resource has a server
       # default, which the ModifyPlan of an equality line of a field does not allow.

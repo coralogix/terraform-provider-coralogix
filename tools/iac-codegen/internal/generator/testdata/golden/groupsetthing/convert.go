@@ -33,6 +33,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "groups", serverDefault: false},
 	{attr: "schedule", serverDefault: false},
+	{attr: "window", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -165,6 +166,8 @@ func flatten(ctx context.Context, v *group_set_things_service.GroupSetThing) (*G
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
+	"window.absolute":            true,
+	"window.relative.duration":   true,
 	"schedule.absolute":          true,
 	"schedule.relative.duration": true,
 }
@@ -189,6 +192,8 @@ var requiredAttrs = map[string]bool{
 	"groups.items.key":             true,
 	"schedule.absolute.start":      true,
 	"schedule.relative.duration":   true,
+	"window.absolute.start":        true,
+	"window.relative.duration":     true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -360,6 +365,7 @@ func expandCreateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThin
 		}
 	}
 	out.Schedule = expandSchedule(ctx, p.AtName("schedule"), m.Schedule, diags)
+	expandCreateGroupSetThingWindow(ctx, p.AtName("window"), m.Window, out, diags)
 	return out
 }
 
@@ -489,6 +495,23 @@ func flattenScheduleRelative(ctx context.Context, p path.Path, v *group_set_thin
 	return out
 }
 
+// expandCreateGroupSetThingWindow writes the fields of a group, which the API holds in the parent object, to out.
+func expandCreateGroupSetThingWindow(ctx context.Context, p path.Path, m *GroupSetThingWindowModel, out *group_set_things_service.CreateGroupSetThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.AbsoluteWindow = expandAbsoluteWindow(ctx, p.AtName("absolute"), m.AbsoluteWindow, diags)
+	expandCreateGroupSetThingWindowRelative(ctx, p.AtName("relative"), m.Relative, out, diags)
+}
+
+// expandCreateGroupSetThingWindowRelative writes the fields of a group, which the API holds in the parent object, to out.
+func expandCreateGroupSetThingWindowRelative(ctx context.Context, p path.Path, m *GroupSetThingWindowRelativeModel, out *group_set_things_service.CreateGroupSetThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.RelativeWindow = expandString(m.RelativeWindow)
+}
+
 func expandUpdateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThingModel, diags *diag.Diagnostics) *group_set_things_service.UpdateGroupSetThing {
 	if m == nil {
 		return nil
@@ -502,7 +525,25 @@ func expandUpdateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThin
 		}
 	}
 	out.Schedule = expandSchedule(ctx, p.AtName("schedule"), m.Schedule, diags)
+	expandUpdateGroupSetThingWindow(ctx, p.AtName("window"), m.Window, out, diags)
 	return out
+}
+
+// expandUpdateGroupSetThingWindow writes the fields of a group, which the API holds in the parent object, to out.
+func expandUpdateGroupSetThingWindow(ctx context.Context, p path.Path, m *GroupSetThingWindowModel, out *group_set_things_service.UpdateGroupSetThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.AbsoluteWindow = expandAbsoluteWindow(ctx, p.AtName("absolute"), m.AbsoluteWindow, diags)
+	expandUpdateGroupSetThingWindowRelative(ctx, p.AtName("relative"), m.Relative, out, diags)
+}
+
+// expandUpdateGroupSetThingWindowRelative writes the fields of a group, which the API holds in the parent object, to out.
+func expandUpdateGroupSetThingWindowRelative(ctx context.Context, p path.Path, m *GroupSetThingWindowRelativeModel, out *group_set_things_service.UpdateGroupSetThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.RelativeWindow = expandString(m.RelativeWindow)
 }
 
 func flattenGroupSetThing(ctx context.Context, p path.Path, v *group_set_things_service.GroupSetThing, diags *diag.Diagnostics) *GroupSetThingModel {
@@ -521,6 +562,7 @@ func flattenGroupSetThing(ctx context.Context, p path.Path, v *group_set_things_
 		out.Groups = flattenSet(ctx, types.ObjectType{AttrTypes: outGroupThingAttrTypes()}, items, diags)
 	}
 	out.Schedule = flattenSchedule(ctx, p.AtName("schedule"), v.Schedule, diags)
+	out.Window = flattenGroupSetThingWindow(ctx, p.AtName("window"), v, diags)
 	out.Document = types.StringNull()
 	return out
 }
@@ -593,6 +635,41 @@ func outItemThingAttrTypes() map[string]attr.Type {
 		"key":    types.StringType,
 		"labels": types.MapType{ElemType: types.StringType},
 	}
+}
+
+func flattenGroupSetThingWindow(ctx context.Context, p path.Path, v *group_set_things_service.GroupSetThing, diags *diag.Diagnostics) *GroupSetThingWindowModel {
+	if v == nil {
+		return nil
+	}
+	if v.AbsoluteWindow == nil && v.RelativeWindow == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &GroupSetThingWindowModel{}
+	out.AbsoluteWindow = flattenAbsoluteWindow(ctx, p.AtName("absolute"), v.AbsoluteWindow, diags)
+	out.Relative = flattenGroupSetThingWindowRelative(ctx, p.AtName("relative"), v, diags)
+	arms := 0
+	if v.AbsoluteWindow != nil {
+		arms++
+	}
+	if v.RelativeWindow != nil {
+		arms++
+	}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of absolute, relative; it must have exactly one.", arms))
+	}
+	return out
+}
+
+func flattenGroupSetThingWindowRelative(ctx context.Context, p path.Path, v *group_set_things_service.GroupSetThing, diags *diag.Diagnostics) *GroupSetThingWindowRelativeModel {
+	if v == nil {
+		return nil
+	}
+	if v.RelativeWindow == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &GroupSetThingWindowRelativeModel{}
+	out.RelativeWindow = types.StringPointerValue(v.RelativeWindow)
+	return out
 }
 
 // valueOf returns the value of p, or the zero value for nil. It fills an SDK

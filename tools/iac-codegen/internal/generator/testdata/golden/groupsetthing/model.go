@@ -8,11 +8,12 @@ import (
 )
 
 type GroupSetThingModel struct {
-	Id       types.String   `tfsdk:"id"`
-	Name     types.String   `tfsdk:"name"`
-	Groups   types.Set      `tfsdk:"groups"`
-	Schedule *ScheduleModel `tfsdk:"schedule"`
-	Document types.String   `tfsdk:"document"`
+	Id       types.String              `tfsdk:"id"`
+	Name     types.String              `tfsdk:"name"`
+	Groups   types.Set                 `tfsdk:"groups"`
+	Schedule *ScheduleModel            `tfsdk:"schedule"`
+	Window   *GroupSetThingWindowModel `tfsdk:"window"`
+	Document types.String              `tfsdk:"document"`
 }
 
 type OutGroupThingPeriodModel struct {
@@ -45,4 +46,13 @@ type ScheduleModel struct {
 	AbsoluteWindow *AbsoluteWindowModel   `tfsdk:"absolute"`
 	Relative       *ScheduleRelativeModel `tfsdk:"relative"`
 	Mode           types.String           `tfsdk:"mode"`
+}
+
+type GroupSetThingWindowModel struct {
+	AbsoluteWindow *AbsoluteWindowModel              `tfsdk:"absolute"`
+	Relative       *GroupSetThingWindowRelativeModel `tfsdk:"relative"`
+}
+
+type GroupSetThingWindowRelativeModel struct {
+	RelativeWindow types.String `tfsdk:"duration"`
 }

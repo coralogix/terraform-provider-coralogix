@@ -283,6 +283,9 @@ type Group struct {
 	// UseStateForUnknown, with computed, keeps the state value of the object when the
 	// configuration leaves it out.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// Groups, in a group of the resource, are groups inside the group: each holds one arm of a
+	// oneOf whose other arms are fields of the group itself.
+	Groups map[string]Group `yaml:"groups"`
 }
 
 // check checks the keys of a group that change its mode.
@@ -292,25 +295,57 @@ func (g Group) check() error {
 		return errors.New("computed needs optional: true: a required object cannot be computed")
 	case g.UseStateForUnknown && !g.Computed:
 		return errors.New("useStateForUnknown needs computed: true: only a computed object is unknown in a plan")
-	case g.Optional && g.RequireOne:
-		return errors.New("requireOne needs an object that the user sets, so it cannot be optional")
+	}
+	return nil
+}
+
+// checkInner checks a group inside a group of the resource: it holds the one arm of a oneOf,
+// so the keys that give a group a mode of its own do not apply.
+func (g Group) checkInner() error {
+	switch {
+	case g.Computed || g.UseStateForUnknown || g.RequireOne || len(g.Groups) != 0:
+		return errors.New("a group inside a group takes fields, optional, and markdownDescription only")
 	}
 	return nil
 }
 
 var tfNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
-// GroupOf returns the group that holds the top-level field, or "".
+// GroupOf returns the group that holds the top-level field, or "". A field of a group inside a
+// group is held by the outer group too.
 func (f *File) GroupOf(field string) string {
 	if f == nil {
 		return ""
 	}
-	for name, g := range f.Groups {
-		if slices.Contains(g.Fields, field) {
+	for _, name := range sortedKeys(f.Groups) {
+		g := f.Groups[name]
+		if slices.Contains(g.Fields, field) || g.InnerOf(field) != "" {
 			return name
 		}
 	}
 	return ""
+}
+
+// InnerOf returns the group inside the group that holds the field, or "".
+func (g Group) InnerOf(field string) string {
+	for _, name := range sortedKeys(g.Groups) {
+		if slices.Contains(g.Groups[name].Fields, field) {
+			return name
+		}
+	}
+	return ""
+}
+
+// GroupPath returns the names of the groups that hold the top-level field, outer first, or nil.
+func (f *File) GroupPath(field string) []string {
+	group := f.GroupOf(field)
+	if group == "" {
+		return nil
+	}
+	if inner := f.Groups[group].InnerOf(field); inner != "" {
+		return []string{group, inner}
+	}
+	return []string{group}
 }
 
 // GroupNames returns the group names in order.
@@ -329,13 +364,42 @@ func (f *File) checkGroups() error {
 		return err
 	}
 	for _, name := range sortedKeys(f.Groups) {
-		if g := f.Groups[name]; g.Optional || g.Computed || g.UseStateForUnknown {
-			return fmt.Errorf("groups.%s: optional, computed, and useStateForUnknown are keys of types.<Type>.groups, not of a group of the resource", name)
+		g := f.Groups[name]
+		if g.Computed || g.UseStateForUnknown {
+			return fmt.Errorf("groups.%s: computed and useStateForUnknown are keys of types.<Type>.groups, not of a group of the resource", name)
+		}
+		if err := checkInnerGroups("groups."+name, g); err != nil {
+			return err
 		}
 	}
 	for _, name := range sortedKeys(f.Types) {
 		if err := checkGroupMap("types."+name+".groups", f.Types[name].Groups); err != nil {
 			return err
+		}
+		for _, group := range sortedKeys(f.Types[name].Groups) {
+			if len(f.Types[name].Groups[group].Groups) != 0 {
+				return fmt.Errorf("types.%s.groups.%s: a group inside a group is a key of a group of the resource", name, group)
+			}
+		}
+	}
+	return nil
+}
+
+// checkInnerGroups checks the groups inside the group at prefix: Terraform names, keys, and that no
+// field is in the group and in a group inside it, or in two of them.
+func checkInnerGroups(prefix string, g Group) error {
+	if err := checkGroupMap(prefix+".groups", g.Groups); err != nil {
+		return err
+	}
+	for _, name := range sortedKeys(g.Groups) {
+		inner := g.Groups[name]
+		if err := inner.checkInner(); err != nil {
+			return fmt.Errorf("%s.groups.%s: %w", prefix, name, err)
+		}
+		for _, field := range inner.Fields {
+			if slices.Contains(g.Fields, field) {
+				return fmt.Errorf("%s.groups.%s: field %s is also in %s", prefix, name, field, prefix)
+			}
 		}
 	}
 	return nil

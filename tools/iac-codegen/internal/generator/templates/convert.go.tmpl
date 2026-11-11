@@ -602,7 +602,7 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 		return nil
 	}
 {{- if .OptionalGroup}}
-	if {{range $i, $f := .Fields}}{{if $i}} && {{end}}v.{{$f.SDK}} == nil{{end}} {
+	if {{range $i, $f := .LeafSDK}}{{if $i}} && {{end}}v.{{$f}} == nil{{end}} {
 		return nil // the response has none of the fields: the group is null
 	}
 {{- end}}
@@ -637,8 +637,8 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 {{- end}}
 {{- if .RequireOne}}
 	arms := 0
-{{- range .Fields}}
-	if v.{{.SDK}} != nil {
+{{- range .LeafSDK}}
+	if v.{{.}} != nil {
 		arms++
 	}
 {{- end}}

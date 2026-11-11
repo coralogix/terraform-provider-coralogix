@@ -67,6 +67,7 @@ func plannedSet(root tftypes.Object) tftypes.Value {
 		"groups":   tftypes.NewValue(groups, []tftypes.Value{groupValue}),
 		"document": tftypes.NewValue(tftypes.String, "doc"),
 		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
 	})
 }
 
@@ -186,6 +187,7 @@ func thingWithGroups(root tftypes.Object, groups ...tftypes.Value) tftypes.Value
 		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
 		"document": tftypes.NewValue(tftypes.String, nil),
 		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
 	})
 }
 
@@ -662,6 +664,7 @@ func TestSetItemStateModifierTakesTheMatchingItem(t *testing.T) {
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, map[string]tftypes.Value{
 		"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
 		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
 		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], []tftypes.Value{stateGroup("b", 7, 0), stateGroup("a", 3, 0)}),
 	})}
 	for _, test := range []struct {
@@ -722,6 +725,7 @@ func TestSetItemStateModifierKeepsAnUnknownConfigurationUnknown(t *testing.T) {
 		return tftypes.NewValue(root, map[string]tftypes.Value{
 			"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
 			"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+			"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
 			"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
 		})
 	}
@@ -868,6 +872,96 @@ func TestSingleArmGroupIsTheObjectOfItsArm(t *testing.T) {
 			{ResourceName: res, ImportState: true, ImportStateVerify: true},
 		},
 	})
+}
+
+// The window is an optional group of the resource. It holds the absolute arm of a oneOf, and the
+// group relative stands for the other arm, a plain duration: window = { relative = { duration } }.
+// Each arm reads back as it was sent, the plan after each apply is empty (the test framework checks
+// it), a change of arm replaces the other, removing the window sends no arm, and two arms, or none
+// in a window, are an error at plan. An import reads the arm that the API has.
+func TestGroupInAnOptionalTopLevelGroupHoldsOneArm(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	group_set_things_service.Created, group_set_things_service.Updated = nil, nil
+	sent := func(check func(absolute *group_set_things_service.AbsoluteWindow, relative *string) bool, what string) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			var absolute *group_set_things_service.AbsoluteWindow
+			var relative *string
+			if n := len(group_set_things_service.Updated); n > 0 {
+				absolute, relative = group_set_things_service.Updated[n-1].AbsoluteWindow, group_set_things_service.Updated[n-1].RelativeWindow
+			} else {
+				created := group_set_things_service.Created[len(group_set_things_service.Created)-1]
+				absolute, relative = created.AbsoluteWindow, created.RelativeWindow
+			}
+			if !check(absolute, relative) {
+				return fmt.Errorf("sent absolute = %+v, relative = %v, want %s", absolute, relative, what)
+			}
+			return nil
+		}
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			{
+				Config: scheduleConfig("  window = { relative = { duration = \"15m\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "window.relative.duration", "15m"),
+					resource.TestCheckNoResourceAttr(res, "window.absolute.start"),
+					sent(func(a *group_set_things_service.AbsoluteWindow, r *string) bool {
+						return a == nil && r != nil && *r == "15m"
+					}, "only the relative 15m"),
+				),
+			},
+			{
+				Config: scheduleConfig("  window = { absolute = { start = \"a\", end = \"b\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "window.absolute.start", "a"),
+					resource.TestCheckResourceAttr(res, "window.absolute.end", "b"),
+					resource.TestCheckNoResourceAttr(res, "window.relative.duration"),
+					sent(func(a *group_set_things_service.AbsoluteWindow, r *string) bool {
+						return a != nil && a.Start == "a" && r == nil
+					}, "only the absolute window"),
+				),
+			},
+			// An import reads the arm that the API has, so the state matches the configuration.
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+			{
+				Config: scheduleConfig(""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(res, "window.absolute.start"),
+					resource.TestCheckNoResourceAttr(res, "window.relative.duration"),
+					sent(func(a *group_set_things_service.AbsoluteWindow, r *string) bool { return a == nil && r == nil }, "no arm"),
+				),
+			},
+			{
+				Config:      scheduleConfig("  window = { absolute = { start = \"a\" }, relative = { duration = \"15m\" } }\n"),
+				ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`),
+			},
+			{Config: scheduleConfig("  window = {}\n"), ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`)},
+			{Config: scheduleConfig("  window = { relative = {} }\n"), ExpectError: regexp.MustCompile(`duration`)},
+			{Config: scheduleConfig("  window = { relative = { duration = \"1h\" } }\n")},
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
+}
+
+// A response that has both arms is an error, and one that has none is a null window.
+func TestWindowOfAResponseHasOneArmOrNone(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	if got := flattenGroupSetThingWindow(ctx, path.Root("window"), &group_set_things_service.GroupSetThing{}, &diags); got != nil || diags.HasError() {
+		t.Fatalf("flatten without an arm = %+v, %v, want a null window", got, diags)
+	}
+	relative := "15m"
+	got := flattenGroupSetThingWindow(ctx, path.Root("window"), &group_set_things_service.GroupSetThing{RelativeWindow: &relative}, &diags)
+	if got == nil || got.AbsoluteWindow != nil || got.Relative == nil || got.Relative.RelativeWindow.ValueString() != "15m" || diags.HasError() {
+		t.Fatalf("flatten with the relative arm = %+v, %v", got, diags)
+	}
+	flattenGroupSetThingWindow(ctx, path.Root("window"), &group_set_things_service.GroupSetThing{RelativeWindow: &relative,
+		AbsoluteWindow: &group_set_things_service.AbsoluteWindow{Start: "a"}}, &diags)
+	if !diags.HasError() {
+		t.Fatal("flatten with both arms gave no error")
+	}
 }
 
 // A oneOf of arms without fields is a string that names the arm that is set. A name line gives the

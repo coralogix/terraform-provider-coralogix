@@ -25,15 +25,19 @@ type Schedule struct {
 }
 
 type CreateGroupSetThing struct {
-	Groups   []InGroupThing
-	Name     *string
-	Schedule *Schedule
+	AbsoluteWindow *AbsoluteWindow
+	Groups         []InGroupThing
+	Name           *string
+	RelativeWindow *string
+	Schedule       *Schedule
 }
 
 type UpdateGroupSetThing struct {
-	Groups   []InGroupThing
-	Name     *string
-	Schedule *Schedule
+	AbsoluteWindow *AbsoluteWindow
+	Groups         []InGroupThing
+	Name           *string
+	RelativeWindow *string
+	Schedule       *Schedule
 }
 
 type CreateGroupSetThingResult struct {
@@ -41,10 +45,12 @@ type CreateGroupSetThingResult struct {
 }
 
 type GroupSetThing struct {
-	Groups   []OutGroupThing
-	Id       string
-	Name     string
-	Schedule *Schedule
+	AbsoluteWindow *AbsoluteWindow
+	Groups         []OutGroupThing
+	Id             string
+	Name           string
+	RelativeWindow *string
+	Schedule       *Schedule
 }
 
 type InGroupThing struct {
@@ -126,8 +132,8 @@ func (r ApiGroupSetsUpdateRequest) UpdateGroupSetThing(updateGroupSetThing Updat
 	return r
 }
 
-func store(id string, name *string, groups []InGroupThing, schedule *Schedule) {
-	Stored = GroupSetThing{Id: id, Name: id, Schedule: schedule}
+func store(id string, name *string, groups []InGroupThing, schedule *Schedule, absolute *AbsoluteWindow, relative *string) {
+	Stored = GroupSetThing{Id: id, Name: id, Schedule: schedule, AbsoluteWindow: absolute, RelativeWindow: relative}
 	if name != nil {
 		Stored.Name = *name
 	}
@@ -153,7 +159,7 @@ func store(id string, name *string, groups []InGroupThing, schedule *Schedule) {
 
 func (r ApiGroupSetsCreateRequest) Execute() (*CreateGroupSetThingResult, *http.Response, error) {
 	Created = append(Created, r.body)
-	store("set-1", r.body.Name, r.body.Groups, r.body.Schedule)
+	store("set-1", r.body.Name, r.body.Groups, r.body.Schedule, r.body.AbsoluteWindow, r.body.RelativeWindow)
 	return &CreateGroupSetThingResult{Id: "set-1"}, nil, nil
 }
 
@@ -168,7 +174,7 @@ func (r ApiGroupSetsUpdateRequest) Execute() (map[string]interface{}, *http.Resp
 	if r.body.Name != nil {
 		name = r.body.Name
 	}
-	store(r.id, name, r.body.Groups, r.body.Schedule)
+	store(r.id, name, r.body.Groups, r.body.Schedule, r.body.AbsoluteWindow, r.body.RelativeWindow)
 	return map[string]interface{}{}, nil, nil
 }
 
