@@ -159,3 +159,57 @@ func TestRequestValueByIsRefusedForAnObjectInANestedGroup(t *testing.T) {
 		t.Fatalf("err = %v, want requestValueBy refused for a field in a nested group", err)
 	}
 }
+
+// A nested component can inline an object that its schema does not require, an object that has a
+// field with its own name, and an arm that stays beside another arm. An optional object cannot have
+// a required field: Terraform could not leave it out with the object.
+func TestInlineOfAnOptionalObjectAndAKeptArm(t *testing.T) {
+	tests := map[string]struct {
+		change  func(t *testing.T, spec, overrides string) (string, string)
+		message string // empty when the contract is eligible
+	}{
+		"the contract as it is": {},
+		"the line states the object as required": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return s, replaceOnce(t, o, "extra: {inline: true}", "extra: {inline: true, required: true}")
+			},
+		},
+		"an optional object with a required field": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return replaceOnce(t, s, "    ItemExtra:\n      type: object\n", "    ItemExtra:\n      type: object\n      required: [note]\n"), o
+			},
+			message: "so its fields must be optional too, but it requires note",
+		},
+		"an arm beside another arm with a required field": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return replaceOnce(t, s, "    CustomOptions:\n      type: object\n", "    CustomOptions:\n      type: object\n      required: [title]\n"), o
+			},
+			message: "so its fields must be optional too, but it requires title",
+		},
+		// With the other arm skipped, the arm is the object as before, and a request does not always send it.
+		"an arm beside a skipped arm in a request": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return s, replaceOnce(t, o, "  ItemOptions:\n    fields:\n      custom: {inline: true}\n", "  ItemOptions:\n    fields:\n      custom: {inline: true}\n      internal: {skip: true}\n")
+			},
+			message: "is an arm of a oneOf group of a request",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec, overrides := unionWrapThingInputs(t)
+			if test.change != nil {
+				spec, overrides = test.change(t, spec, overrides)
+			}
+			_, err := validateOpenAPIWith([]byte(spec), "UnionWrapThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, overrides))
+			if test.message == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			if report := eligibilityReport(t, err); !strings.Contains(fmt.Sprint(report), test.message) {
+				t.Fatalf("report = %v, want the message %q", report, test.message)
+			}
+		})
+	}
+}

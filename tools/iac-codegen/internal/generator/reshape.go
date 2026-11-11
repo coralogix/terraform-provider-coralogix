@@ -283,6 +283,9 @@ type inliner struct {
 	// relied has, for each schema that inline changed, the inlined fields that the schema does not
 	// require and that the inline line states as required: the line is needed there.
 	relied map[*yaml.Node][]string
+	// nested: the line is on a nested component. Its object can be optional, and an arm can be
+	// inlined while the other arms stay.
+	nested bool
 }
 
 // inline replaces each inlined object of s by its fields, in place and in order. An inlined object
@@ -299,7 +302,7 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 		return nil, fmt.Errorf("inline: an object with allOf or anyOf is not supported")
 	}
 	required := stringList(mapValue(s, "required"))
-	arm, err := h.inlinedArm(s, response)
+	arm, kept, err := h.inlinedArm(s, response)
 	if err != nil {
 		return nil, err
 	}
@@ -344,21 +347,30 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 			return nil, err
 		}
 		isArm := name == arm
-		if !isArm && !slices.Contains(required, name) {
+		optional := h.optionalObject(s, name, isArm, kept, required)
+		if !isArm && !slices.Contains(required, name) && !optional {
 			if err := h.requireObject(s, name); err != nil {
 				return nil, err
 			}
 		}
 		objectRequired := stringList(mapValue(object, "required"))
+		if optional && len(objectRequired) != 0 {
+			return nil, fmt.Errorf("inline: %s is optional, so its fields must be optional too, but it requires %s", name, strings.Join(objectRequired, ", "))
+		}
+		// A field of the object has the name of the object: every field of it moves out of an object
+		// whose reference needs a path of its own.
+		same := mapValue(objectProps, name) != nil
 		for j := 0; j+1 < len(objectProps.Content); j += 2 {
 			child := objectProps.Content[j].Value
-			if slices.Contains(h.fields, child) {
+			// The inlined field leaves its place, so on a nested component a field of its object can
+			// take its name.
+			if slices.Contains(h.fields, child) && !(h.nested && child == name) {
 				return nil, fmt.Errorf("inline: %s.%s is inlined too, but only a field of the resource can be", name, child)
 			}
 			if err := add(objectProps.Content[j], objectProps.Content[j+1], slices.Contains(objectRequired, child)); err != nil {
 				return nil, err
 			}
-			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: isArm}
+			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: isArm && len(kept) == 0, Kept: strings.Join(kept, ","), Same: same}
 		}
 	}
 	setMap(s, "properties", flat)
@@ -386,6 +398,20 @@ func carryOneOf(s, object *yaml.Node, name string, carried *yaml.Node) (*yaml.No
 	return oneOf, nil
 }
 
+// optionalObject reports whether the inlined object name of s is optional. On a nested component an
+// object that the schema does not require and that the line does not state as required is optional:
+// a request sends it only when a field of it is set, and a response without it reads as nulls. An
+// arm that stays beside other arms is optional too.
+func (h inliner) optionalObject(s *yaml.Node, name string, isArm bool, kept, required []string) bool {
+	if !h.nested || slices.Contains(required, name) {
+		return false
+	}
+	if isArm {
+		return len(kept) != 0
+	}
+	return !h.file.Types[h.resource].Fields[name].Required
+}
+
 // requireObject checks an inlined object that s does not require. The line states that the API
 // always has it, when the contract cannot say so, and the line is then needed for s.
 func (h inliner) requireObject(s *yaml.Node, name string) error {
@@ -399,10 +425,10 @@ func (h inliner) requireObject(s *yaml.Node, name string) error {
 // inlinedArm returns the inlined field that is an arm of the oneOf group of s, or "". The other
 // arms must be skipped, so that the group means that the inlined arm is set, or that the resource
 // does not exist. A request cannot have an inlined arm: the request must always send the object.
-func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, error) {
+func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, []string, error) {
 	group := mapValue(s, "oneOf")
 	if group == nil {
-		return "", nil
+		return "", nil, nil
 	}
 	var arms []string
 	for _, entry := range group.Content {
@@ -415,17 +441,25 @@ func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, error) {
 		}
 	}
 	if arm == "" {
-		return "", nil
+		return "", nil, nil
 	}
-	if !response {
-		return "", fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it", arm)
-	}
+	var kept []string
 	for _, other := range arms {
 		if other != arm && !h.file.Types[h.resource].Fields[other].Skip {
-			return "", fmt.Errorf("inline: %s is an arm of a oneOf group; skip the other arm %s, or the resource could be that arm", arm, other)
+			kept = append(kept, other)
 		}
 	}
-	return arm, nil
+	if h.nested && len(kept) != 0 {
+		// The other arms stay. The fields of the arm join the object, and conflict with them.
+		return arm, kept, nil
+	}
+	if !response {
+		return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it", arm)
+	}
+	if len(kept) != 0 {
+		return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group; skip the other arm %s, or the resource could be that arm", arm, kept[0])
+	}
+	return arm, nil, nil
 }
 
 // upsertSDKNames gives the SDK names of the PUT and the DELETE that reshape added the names of the
@@ -514,7 +548,7 @@ func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.
 			}
 			typ := model.GoName(parent.Schema)
 			out[i].Owner = typ
-			path := ref.Path[:at] + "." + parent.Field
+			path := parent.ObjectPath(ref.Path[:at] + "." + parent.Field)
 			if added[path] {
 				continue
 			}
@@ -687,7 +721,7 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 				counterparts[component] = name
 			}
 			slices.Sort(fields)
-			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done, relied: h.relied}
+			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done, relied: h.relied, nested: true}
 			parents, err := nestedInliner.inline(schema, responses[name] && !requests[name])
 			if err != nil {
 				return nil, issue.Report{inlineIssue(name, name+": "+err.Error())}

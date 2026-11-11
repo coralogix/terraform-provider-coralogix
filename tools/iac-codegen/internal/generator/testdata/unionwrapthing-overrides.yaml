@@ -30,6 +30,16 @@ types:
       variant: {requestValueBy: {armA: THING_VARIANT_A_OR_UNSPECIFIED, armB: THING_VARIANT_B, armC: THING_VARIANT_C}}
       id: {readOnly: true}
 
+  # The items hold three objects that their lines inline: an optional one, one with a field of the
+  # name of its own field, and an arm of a oneOf that stays beside the other arm.
+  UnionItem:
+    fields:
+      extra: {inline: true}
+      value: {inline: true}
+  ItemOptions:
+    fields:
+      custom: {inline: true}
+
 enums:
   ThingVariant:
     zero: a

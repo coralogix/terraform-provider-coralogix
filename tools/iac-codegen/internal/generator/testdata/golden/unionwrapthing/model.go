@@ -12,6 +12,7 @@ type UnionWrapThingModel struct {
 	Name        types.String             `tfsdk:"name"`
 	Description types.String             `tfsdk:"description"`
 	Kind        *UnionWrapThingKindModel `tfsdk:"kind"`
+	Items       types.List               `tfsdk:"items"`
 }
 
 type ArmAModel struct {
@@ -30,4 +31,21 @@ type ArmBModel struct {
 
 type ArmCModel struct {
 	Label types.String `tfsdk:"label"`
+}
+
+type InternalOptionsModel struct {
+}
+
+type ItemOptionsModel struct {
+	Title     types.String          `tfsdk:"title"`
+	Collapsed types.Bool            `tfsdk:"collapsed"`
+	Internal  *InternalOptionsModel `tfsdk:"internal"`
+}
+
+type UnionItemModel struct {
+	Name    types.String      `tfsdk:"name"`
+	Note    types.String      `tfsdk:"note"`
+	Value   types.String      `tfsdk:"value"`
+	Label   types.String      `tfsdk:"label"`
+	Options *ItemOptionsModel `tfsdk:"options"`
 }

@@ -5,7 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/union_wrap_things_service"
 )
@@ -106,5 +112,213 @@ func TestVariantFollowsTheArmThatIsSet(t *testing.T) {
 	got, diags := flatten(ctx, &union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{Name: "n", Variant: &variant, ArmA: &union_wrap_things_service.ArmA{Value: "v"}}})
 	if diags.HasError() || got.Kind == nil || got.Kind.ArmA == nil {
 		t.Fatalf("flatten = %+v (%v), want the arm of the response, not the variant", got, diags)
+	}
+}
+
+func itemList(t *testing.T, items ...UnionItemModel) types.List {
+	t.Helper()
+	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: unionItemAttrTypes()}, items)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return list
+}
+
+func sentItems(t *testing.T, items ...UnionItemModel) []union_wrap_things_service.UnionItem {
+	t.Helper()
+	m := &UnionWrapThingModel{Name: types.StringValue("n"), Kind: &UnionWrapThingKindModel{ArmC: &ArmCModel{Label: types.StringValue("l")}}, Items: itemList(t, items...)}
+	for name, expand := range map[string]func(context.Context, *UnionWrapThingModel) ([]union_wrap_things_service.UnionItem, diagsOf){
+		"create": func(ctx context.Context, m *UnionWrapThingModel) ([]union_wrap_things_service.UnionItem, diagsOf) {
+			r, d := expandCreate(ctx, m)
+			return r.Thing.Items, d
+		},
+		"update": func(ctx context.Context, m *UnionWrapThingModel) ([]union_wrap_things_service.UnionItem, diagsOf) {
+			r, d := expandUpdate(ctx, m)
+			return r.Thing.Items, d
+		},
+	} {
+		if got, diags := expand(context.Background(), m); diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		} else if name == "update" {
+			return got
+		}
+	}
+	return nil
+}
+
+// An object that the contract does not require is sent only when an attribute of it is set. The
+// inlined fields of three objects are attributes of the item: note (optional object), value and
+// label (an object that has a field named value), and title and collapsed (an arm of a oneOf).
+func TestOptionalInlinedObjectIsSentOnlyWhenAFieldIsSet(t *testing.T) {
+	null := types.StringNull()
+	got := sentItems(t,
+		UnionItemModel{Name: types.StringValue("none"), Note: null, Value: null, Label: null},
+		UnionItemModel{Name: types.StringValue("note"), Note: types.StringValue("n"), Value: null, Label: null},
+		UnionItemModel{Name: types.StringValue("value"), Note: null, Value: types.StringValue("v"), Label: null},
+		UnionItemModel{Name: types.StringValue("label"), Note: null, Value: null, Label: types.StringValue("l")},
+	)
+	if len(got) != 4 {
+		t.Fatalf("sent %d items, want 4", len(got))
+	}
+	if got[0].Extra != nil || got[0].Value != nil || got[0].Options != nil {
+		t.Errorf("item none = %+v, want no object", got[0])
+	}
+	if got[1].Extra == nil || *got[1].Extra.Note != "n" || got[1].Value != nil {
+		t.Errorf("item note = %+v, want only extra", got[1])
+	}
+	if got[2].Value == nil || *got[2].Value.Value != "v" || got[2].Value.Label != nil || got[2].Extra != nil {
+		t.Errorf("item value = %+v, want only the value of the object", got[2])
+	}
+	if got[3].Value == nil || got[3].Value.Value != nil || *got[3].Value.Label != "l" {
+		t.Errorf("item label = %+v, want only the label of the object", got[3])
+	}
+}
+
+// The arm that an inline line moves up is sent when one of its attributes is set. The other arm is
+// sent as it is. Neither set sends no options.
+func TestInlinedArmAndKeptArmAreSentSeparately(t *testing.T) {
+	null := types.StringNull()
+	got := sentItems(t,
+		UnionItemModel{Name: types.StringValue("custom"), Note: null, Value: null, Label: null, Options: &ItemOptionsModel{Title: types.StringValue("t"), Collapsed: types.BoolNull()}},
+		UnionItemModel{Name: types.StringValue("internal"), Note: null, Value: null, Label: null, Options: &ItemOptionsModel{Title: null, Collapsed: types.BoolNull(), Internal: &InternalOptionsModel{}}},
+		UnionItemModel{Name: types.StringValue("neither"), Note: null, Value: null, Label: null, Options: &ItemOptionsModel{Title: null, Collapsed: types.BoolNull()}},
+	)
+	if got[0].Options == nil || got[0].Options.Custom == nil || *got[0].Options.Custom.Title != "t" || got[0].Options.Internal != nil {
+		t.Errorf("custom options = %+v, want only custom", got[0].Options)
+	}
+	if got[1].Options == nil || got[1].Options.Internal == nil || got[1].Options.Custom != nil {
+		t.Errorf("internal options = %+v, want only internal", got[1].Options)
+	}
+	if got[2].Options == nil || got[2].Options.Custom != nil || got[2].Options.Internal != nil {
+		t.Errorf("empty options = %+v, want an empty oneOf", got[2].Options)
+	}
+}
+
+// A response without an object reads its attributes as null, also after an import, so the second
+// plan has nothing to change. An object that the API returns reads as its values.
+func TestInlinedObjectsReadAsNullWhenTheAPIHasNone(t *testing.T) {
+	ctx := context.Background()
+	id, note, v, l, title := "thing-1", "n", "v", "l", "t"
+	read := func(items ...union_wrap_things_service.UnionItem) []UnionItemModel {
+		got, diags := flatten(ctx, &union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{Name: "n", ArmC: &union_wrap_things_service.ArmC{}, Items: items}})
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		var out []UnionItemModel
+		if diags := got.Items.ElementsAs(ctx, &out, false); diags.HasError() {
+			t.Fatal(diags)
+		}
+		return out
+	}
+	got := read(
+		union_wrap_things_service.UnionItem{Name: "bare"},
+		union_wrap_things_service.UnionItem{Name: "full", Extra: &union_wrap_things_service.ItemExtra{Note: &note}, Value: &union_wrap_things_service.Labelled{Value: &v, Label: &l},
+			Options: &union_wrap_things_service.ItemOptions{Custom: &union_wrap_things_service.CustomOptions{Title: &title}}},
+		union_wrap_things_service.UnionItem{Name: "internal", Options: &union_wrap_things_service.ItemOptions{Internal: map[string]interface{}{}}},
+		union_wrap_things_service.UnionItem{Name: "empty", Options: &union_wrap_things_service.ItemOptions{}},
+	)
+	if !got[0].Note.IsNull() || !got[0].Value.IsNull() || !got[0].Label.IsNull() || got[0].Options != nil {
+		t.Errorf("bare item = %+v, want null attributes", got[0])
+	}
+	if got[1].Note.ValueString() != "n" || got[1].Value.ValueString() != "v" || got[1].Label.ValueString() != "l" || got[1].Options.Title.ValueString() != "t" || got[1].Options.Internal != nil {
+		t.Errorf("full item = %+v, want the values", got[1])
+	}
+	if got[2].Options == nil || got[2].Options.Internal == nil || !got[2].Options.Title.IsNull() {
+		t.Errorf("internal item options = %+v, want only internal", got[2].Options)
+	}
+	if got[3].Options == nil || got[3].Options.Internal != nil || !got[3].Options.Title.IsNull() || !got[3].Options.Collapsed.IsNull() {
+		t.Errorf("empty item options = %+v, want no value", got[3].Options)
+	}
+	// The expand of what was read sends what the API had: the round trip changes nothing.
+	again := sentItems(t, got...)
+	if again[1].Extra == nil || *again[1].Extra.Note != "n" || again[2].Options.Internal == nil || again[0].Extra != nil {
+		t.Errorf("sent again = %+v", again)
+	}
+}
+
+type diagsOf = interface{ HasError() bool }
+
+type testProvider struct{}
+
+func (testProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "test"
+}
+func (testProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {}
+func (testProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {
+}
+func (testProvider) Resources(context.Context) []func() frameworkresource.Resource {
+	return []func() frameworkresource.Resource{func() frameworkresource.Resource { return NewResource(Hooks{}) }}
+}
+func (testProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
+
+// The fields of the inlined arm conflict with the arm that stays: a configuration that sets both is
+// an error at plan, as the released resource said.
+func TestInlinedArmConflictsWithTheKeptArm(t *testing.T) {
+	ctx := context.Background()
+	server, err := providerserver.NewProtocol6WithError(testProvider{})()
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemaResp, err := server.GetProviderSchema(ctx, &tfprotov6.GetProviderSchemaRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectType := schemaResp.ResourceSchemas["test_union_wrap_thing"].ValueType().(tftypes.Object)
+	itemType := objectType.AttributeTypes["items"].(tftypes.List).ElementType.(tftypes.Object)
+	optionsType := itemType.AttributeTypes["options"].(tftypes.Object)
+	internalType := optionsType.AttributeTypes["internal"]
+	options := func(title tftypes.Value, internal bool) tftypes.Value {
+		internalValue := tftypes.NewValue(internalType, nil)
+		if internal {
+			internalValue = tftypes.NewValue(internalType, map[string]tftypes.Value{})
+		}
+		return tftypes.NewValue(optionsType, map[string]tftypes.Value{"title": title, "collapsed": tftypes.NewValue(tftypes.Bool, nil), "internal": internalValue})
+	}
+	config := func(opts tftypes.Value) tftypes.Value {
+		values := map[string]tftypes.Value{}
+		for name, typ := range objectType.AttributeTypes {
+			values[name] = tftypes.NewValue(typ, nil)
+		}
+		nullString := tftypes.NewValue(tftypes.String, nil)
+		item := tftypes.NewValue(itemType, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, "i"), "note": nullString, "value": nullString, "label": nullString, "options": opts})
+		values["name"] = tftypes.NewValue(tftypes.String, "n")
+		kindType := objectType.AttributeTypes["kind"].(tftypes.Object)
+		armValues := map[string]tftypes.Value{}
+		for arm, typ := range kindType.AttributeTypes {
+			armValues[arm] = tftypes.NewValue(typ, nil)
+		}
+		armCType := kindType.AttributeTypes["arm_c"].(tftypes.Object)
+		armValues["arm_c"] = tftypes.NewValue(armCType, map[string]tftypes.Value{"label": tftypes.NewValue(tftypes.String, "l")})
+		values["kind"] = tftypes.NewValue(kindType, armValues)
+		values["items"] = tftypes.NewValue(tftypes.List{ElementType: itemType}, []tftypes.Value{item})
+		return tftypes.NewValue(objectType, values)
+	}
+	title := tftypes.NewValue(tftypes.String, "t")
+	none := tftypes.NewValue(tftypes.String, nil)
+	for name, test := range map[string]struct {
+		opts tftypes.Value
+		bad  bool
+	}{
+		"custom only":   {options(title, false), false},
+		"internal only": {options(none, true), false},
+		"both":          {options(title, true), true},
+	} {
+		dv, err := tfprotov6.NewDynamicValue(objectType, config(test.opts))
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := server.ValidateResourceConfig(ctx, &tfprotov6.ValidateResourceConfigRequest{TypeName: "test_union_wrap_thing", Config: &dv})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got string
+		for _, d := range resp.Diagnostics {
+			if d.Severity == tfprotov6.DiagnosticSeverityError {
+				got += d.Summary + " " + d.Detail
+			}
+		}
+		if (got != "") != test.bad {
+			t.Errorf("%s: errors %q, want an error: %v", name, got, test.bad)
+		}
 	}
 }

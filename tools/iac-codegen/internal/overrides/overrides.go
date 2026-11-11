@@ -144,6 +144,31 @@ type Parent struct {
 	// Arm: the object is an arm of a oneOf group of the resource response, and the file skips the
 	// other arms. When Get returns no such object, the resource does not exist.
 	Arm bool
+	// Kept are the API properties of the other arms of that oneOf group, joined by a comma, which
+	// stay beside the fields of the inlined arm (a nested component only). The fields of the arm
+	// conflict with them. A string, so that a Parent stays comparable.
+	Kept string
+	// Same: a field of the object has the name of the object (a nested component only), so the
+	// reference of the object needs a path of its own.
+	Same bool
+}
+
+// ObjectPath is the SDK reference path of the object that holds the moved fields, next to the field
+// at path. A field of the object that has the name of the object takes the plain path, so the
+// object gets another one.
+func (p Parent) ObjectPath(path string) string {
+	if p.Same {
+		return path + "#object"
+	}
+	return path
+}
+
+// KeptArms are the API properties of the arms that stay beside the inlined arm.
+func (p Parent) KeptArms() []string {
+	if p.Kept == "" {
+		return nil
+	}
+	return strings.Split(p.Kept, ",")
 }
 
 // Upserts reports whether the resource is a singleton that one call sets: api.operations with

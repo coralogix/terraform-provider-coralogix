@@ -1621,6 +1621,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if err := groups.check(attrs); err != nil {
 		return nil, err
 	}
+	b.keptArmConflicts(t, attrs)
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -1638,6 +1639,32 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 	}
 	return attrs, nil
+}
+
+// keptArmConflicts makes the fields of an inlined oneOf arm conflict with the arms that stay beside
+// them in the object t. The arms exclude each other in the API, and an inline line moved one arm's
+// fields up. The check is a group check: it states the structure of the request, not a limit.
+func (b *tfBuilder) keptArmConflicts(t *model.Type, attrs []*tfAttr) {
+	for _, a := range attrs {
+		parent := b.file.NestedParent(t.Schema, a.Property)
+		if parent == nil || parent.Kept == "" {
+			continue
+		}
+		var names []string
+		for _, kept := range parent.KeptArms() {
+			for _, k := range attrs {
+				if k.Property == kept {
+					names = append(names, k.Name)
+				}
+			}
+		}
+		if len(names) == 0 {
+			continue
+		}
+		expr := strings.ToLower(a.ValueKind) + "validator.ConflictsWith(" + siblingPaths(names) + ")"
+		a.Validators = append(a.Validators, expr)
+		a.GroupValidators = append(a.GroupValidators, expr)
+	}
 }
 
 // carryField returns the field of t whose line has carrySiblings, or nil.

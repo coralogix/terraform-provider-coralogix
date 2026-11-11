@@ -25,6 +25,33 @@ type ArmC struct {
 	Label *string
 }
 
+type ItemExtra struct {
+	Note *string
+}
+
+type Labelled struct {
+	Value *string
+	Label *string
+}
+
+type CustomOptions struct {
+	Title     *string
+	Collapsed *bool
+}
+
+// ItemOptions is a oneOf: Custom, or Internal, which has no fields.
+type ItemOptions struct {
+	Custom   *CustomOptions
+	Internal map[string]interface{}
+}
+
+type UnionItem struct {
+	Name    string
+	Extra   *ItemExtra
+	Value   *Labelled
+	Options *ItemOptions
+}
+
 // Thing holds the common fields and the arms of the oneOf. The requests and the response hold it
 // in a pointer, because the contract does not require it.
 type Thing struct {
@@ -34,6 +61,7 @@ type Thing struct {
 	ArmA        *ArmA
 	ArmB        *ArmB
 	ArmC        *ArmC
+	Items       []UnionItem
 }
 
 type UnionWrapThing struct {

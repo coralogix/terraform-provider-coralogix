@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"sort"
 	"strconv"
 	"time"
@@ -31,6 +32,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "description", serverDefault: false},
 	{attr: "kind", serverDefault: false},
+	{attr: "items", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -104,6 +106,7 @@ var requiredAttrs = map[string]bool{
 	"name":             true,
 	"kind":             true,
 	"kind.arm_a.value": true,
+	"items.name":       true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -265,6 +268,12 @@ func expandCreateUnionWrapThingRequest(ctx context.Context, p path.Path, m *Unio
 		out.Thing.Variant = &fixed
 	}
 	expandCreateUnionWrapThingRequestKind(ctx, p.AtName("kind"), m.Kind, out, diags)
+	if items := expandElements[UnionItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+		out.Thing.Items = make([]union_wrap_things_service.UnionItem, 0, len(items))
+		for i := range items {
+			out.Thing.Items = append(out.Thing.Items, *expandUnionItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+		}
+	}
 	return out
 }
 
@@ -332,6 +341,103 @@ func flattenArmC(ctx context.Context, p path.Path, v *union_wrap_things_service.
 	return out
 }
 
+func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags *diag.Diagnostics) *union_wrap_things_service.UnionItem {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.UnionItem{}
+	out.Extra = &union_wrap_things_service.ItemExtra{} // an inlined object: its fields are top-level attributes
+	out.Value = &union_wrap_things_service.Labelled{}  // an inlined object: its fields are top-level attributes
+	out.Name = valueOf(expandString(m.Name))
+	out.Extra.Note = expandString(m.Note)
+	out.Value.Value = expandString(m.Value)
+	out.Value.Label = expandString(m.Label)
+	out.Options = expandItemOptions(ctx, p.AtName("options"), m.Options, diags)
+	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
+		out.Value = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	if out.Extra != nil && modelNull(m.Note) {
+		out.Extra = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenUnionItem(ctx context.Context, p path.Path, v *union_wrap_things_service.UnionItem, diags *diag.Diagnostics) *UnionItemModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Extra == nil {
+		v.Extra = &union_wrap_things_service.ItemExtra{}
+	}
+	if v.Value == nil {
+		v.Value = &union_wrap_things_service.Labelled{}
+	}
+	out := &UnionItemModel{}
+	out.Name = types.StringPointerValue(&v.Name)
+	out.Note = types.StringPointerValue(v.Extra.Note)
+	out.Value = types.StringPointerValue(v.Value.Value)
+	out.Label = types.StringPointerValue(v.Value.Label)
+	out.Options = flattenItemOptions(ctx, p.AtName("options"), v.Options, diags)
+	return out
+}
+
+func unionItemAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name":    types.StringType,
+		"note":    types.StringType,
+		"value":   types.StringType,
+		"label":   types.StringType,
+		"options": types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
+	}
+}
+
+func expandItemOptions(ctx context.Context, p path.Path, m *ItemOptionsModel, diags *diag.Diagnostics) *union_wrap_things_service.ItemOptions {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.ItemOptions{}
+	out.Custom = &union_wrap_things_service.CustomOptions{} // an inlined object: its fields are top-level attributes
+	out.Custom.Title = expandString(m.Title)
+	out.Custom.Collapsed = expandBool(m.Collapsed)
+	if m.Internal != nil {
+		out.Internal = map[string]interface{}{}
+	}
+	if out.Custom != nil && modelNull(m.Title) && modelNull(m.Collapsed) {
+		out.Custom = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenItemOptions(ctx context.Context, p path.Path, v *union_wrap_things_service.ItemOptions, diags *diag.Diagnostics) *ItemOptionsModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Custom == nil {
+		v.Custom = &union_wrap_things_service.CustomOptions{}
+	}
+	out := &ItemOptionsModel{}
+	out.Title = types.StringPointerValue(v.Custom.Title)
+	out.Collapsed = types.BoolPointerValue(v.Custom.Collapsed)
+	if v.Internal != nil {
+		out.Internal = &InternalOptionsModel{}
+	}
+	return out
+}
+
+func itemOptionsAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"title":     types.StringType,
+		"collapsed": types.BoolType,
+		"internal":  types.ObjectType{AttrTypes: map[string]attr.Type{}},
+	}
+}
+
 func expandReplaceUnionWrapThingRequest(ctx context.Context, p path.Path, m *UnionWrapThingModel, diags *diag.Diagnostics) *union_wrap_things_service.ReplaceUnionWrapThingRequest {
 	if m == nil {
 		return nil
@@ -352,6 +458,12 @@ func expandReplaceUnionWrapThingRequest(ctx context.Context, p path.Path, m *Uni
 		out.Thing.Variant = &fixed
 	}
 	expandReplaceUnionWrapThingRequestKind(ctx, p.AtName("kind"), m.Kind, out, diags)
+	if items := expandElements[UnionItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+		out.Thing.Items = make([]union_wrap_things_service.UnionItem, 0, len(items))
+		for i := range items {
+			out.Thing.Items = append(out.Thing.Items, *expandUnionItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+		}
+	}
 	return out
 }
 
@@ -380,6 +492,14 @@ func flattenUnionWrapThing(ctx context.Context, p path.Path, v *union_wrap_thing
 	out.Name = types.StringPointerValue(&v.Thing.Name)
 	out.Description = types.StringPointerValue(v.Thing.Description)
 	out.Kind = flattenUnionWrapThingKind(ctx, p.AtName("kind"), v, diags)
+	out.Items = types.ListNull(types.ObjectType{AttrTypes: unionItemAttrTypes()})
+	if v.Thing.Items != nil {
+		items := make([]UnionItemModel, 0, len(v.Thing.Items))
+		for i := range v.Thing.Items {
+			items = append(items, *flattenUnionItem(ctx, p.AtName("items").AtListIndex(i), &v.Thing.Items[i], diags))
+		}
+		out.Items = flattenList(ctx, types.ObjectType{AttrTypes: unionItemAttrTypes()}, items, diags)
+	}
 	return out
 }
 
@@ -502,6 +622,19 @@ func expandBool(v types.Bool) *bool {
 	}
 	b := v.ValueBool()
 	return &b
+}
+
+// modelNull reports whether the configuration leaves a model field out: a null value, or a nil
+// object, list, or map.
+func modelNull(v any) bool {
+	if a, ok := v.(attr.Value); ok {
+		return a.IsNull()
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return rv.IsNil()
+	}
+	return false
 }
 
 func expandFloat64(v types.Float64) *float64 {

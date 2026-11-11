@@ -103,6 +103,9 @@ components:
         armA: {$ref: '#/components/schemas/ArmA'}
         armB: {$ref: '#/components/schemas/ArmB'}
         armC: {$ref: '#/components/schemas/ArmC'}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/UnionItem'}
       oneOf:
         - required: [armA]
         - required: [armB]
@@ -130,3 +133,45 @@ components:
       required: []
       properties:
         label: {type: string, x-coralogix-presence: true}
+    # An item with three objects that its lines inline: an optional object (extra), an object that has
+    # a field of the name of its own field (value.value), and an arm of a oneOf that stays beside
+    # another arm (options.custom beside options.internal).
+    UnionItem:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1}
+        extra: {$ref: '#/components/schemas/ItemExtra'}
+        value:
+          allOf: [{$ref: '#/components/schemas/Labelled'}]
+          description: The value, held in an object with the same field.
+        options: {$ref: '#/components/schemas/ItemOptions'}
+    ItemExtra:
+      type: object
+      properties:
+        note: {type: string, x-coralogix-presence: true}
+    Labelled:
+      type: object
+      properties:
+        value: {type: string, x-coralogix-presence: true}
+        label: {type: string, x-coralogix-presence: true}
+    ItemOptions:
+      type: object
+      oneOf:
+        - required: [custom]
+        - required: [internal]
+        - not:
+            anyOf:
+              - required: [custom]
+              - required: [internal]
+      properties:
+        custom: {allOf: [{$ref: '#/components/schemas/CustomOptions'}]}
+        internal: {$ref: '#/components/schemas/InternalOptions'}
+    CustomOptions:
+      type: object
+      properties:
+        title: {type: string, x-coralogix-presence: true}
+        collapsed: {type: boolean, x-coralogix-presence: true}
+    InternalOptions:
+      type: object
+      additionalProperties: false

@@ -3159,6 +3159,12 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 			if err := b.mergeNested(f.Type); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
+			// The component is a request and a response. The first pass made one list of parents.
+			if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
+				if err := b.nestedParentOfBoth(obj, sdkPath, parent); err != nil {
+					return fmt.Errorf("%s: %w", f.Name, err)
+				}
+			}
 			continue
 		}
 		responseOnly := b.sent.responseOnly(component, f)
@@ -3401,11 +3407,12 @@ func (b *convBuilder) nestedRequestPath(obj *convObject, sdkPath string, f *mode
 // object at sdkPath, at the field of that object. A request allocates an SDK pointer before it writes
 // the field; a response reads a missing one as empty.
 func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parent *overrides.Parent, cf *convField, requiredScalar bool) error {
-	ref, err := b.ix.fieldRef(sdkPath + "." + parent.Field)
+	objectPath := parent.ObjectPath(sdkPath + "." + parent.Field)
+	ref, err := b.ix.fieldRef(objectPath)
 	if err != nil {
 		return err
 	}
-	typ, err := b.ix.typeRef(sdkPath + "." + parent.Field)
+	typ, err := b.ix.typeRef(objectPath)
 	if err != nil {
 		return err
 	}
@@ -3438,6 +3445,32 @@ func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, reques
 		if !slices.Contains(obj.FlattenParents, read) {
 			obj.FlattenParents = append(obj.FlattenParents, read)
 		}
+	}
+	return nil
+}
+
+// nestedParentOfBoth makes the SDK pointer that holds an inlined object a parent of both the
+// request and the response conversion of obj: a component that a request and a response share has
+// one object. An object that the SDK holds as a value needs nothing.
+func (b *convBuilder) nestedParentOfBoth(obj *convObject, sdkPath string, parent *overrides.Parent) error {
+	objectPath := parent.ObjectPath(sdkPath + "." + parent.Field)
+	ref, err := b.ix.fieldRef(objectPath)
+	if err != nil {
+		return err
+	}
+	typ, err := b.ix.typeRef(objectPath)
+	if err != nil {
+		return err
+	}
+	if ref.Want != "*"+typ.Name {
+		return nil
+	}
+	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name)}
+	if q := (convParent{SDK: ref.Name, Type: p.Type, DropEmpty: true}); !slices.Contains(obj.Parents, q) {
+		obj.Parents = append(obj.Parents, q)
+	}
+	if !slices.Contains(obj.FlattenParents, p) {
+		obj.FlattenParents = append(obj.FlattenParents, p)
 	}
 	return nil
 }
