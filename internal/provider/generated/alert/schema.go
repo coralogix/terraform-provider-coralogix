@@ -69,6 +69,10 @@ func Schema() schema.Schema {
 								},
 								MarkdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.",
 							},
+							"evaluation_period_minutes": schema.Int32Attribute{
+								Optional:            true,
+								MarkdownDescription: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.",
+							},
 							"no_data_policy": schema.SingleNestedAttribute{
 								Optional: true,
 								Computed: true,
@@ -134,6 +138,10 @@ func Schema() schema.Schema {
 									int32validator.AtLeast(0),
 								},
 								MarkdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.",
+							},
+							"evaluation_period_minutes": schema.Int32Attribute{
+								Optional:            true,
+								MarkdownDescription: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.",
 							},
 							"no_data_policy": schema.SingleNestedAttribute{
 								Optional: true,

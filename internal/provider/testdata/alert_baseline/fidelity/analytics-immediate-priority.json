@@ -11,11 +11,8 @@
           "timeframeMinutes": 10
         },
         "enabled": true,
-        "groupByKeys": [],
         "name": "tfbaseline-analytics-immediate-prio",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P1",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -29,7 +26,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
@@ -71,16 +68,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate-prio",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P2",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -95,11 +90,12 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -137,16 +133,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate-prio",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P3",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -161,11 +155,12 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -203,16 +198,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate-prio",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P4",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -227,11 +220,12 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -269,16 +263,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate-prio",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -293,11 +285,12 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -343,11 +336,12 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],

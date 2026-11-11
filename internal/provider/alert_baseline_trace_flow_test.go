@@ -1152,10 +1152,39 @@ func init() {
 			s = h.Apply("timeframe_minutes 100000", s, cfg(body(j{"timeframe_minutes": float64(100000)})))
 			s = h.RefreshPlan("refresh", s)
 			s = h.Apply("timeframe_minutes 2147483647", s, cfg(body(j{"timeframe_minutes": float64(2147483647)})))
-			// The server keeps an evaluation period of 10 minutes that the provider cannot set.
-			h.Apply("update: timeframe_minutes 9, below that period", s, cfg(body(j{"timeframe_minutes": float64(9)})))
+			// The period is omitted, so a timeframe below the default of 10 is accepted.
+			h.Apply("update: timeframe_minutes 9, below the default period", s, cfg(body(j{"timeframe_minutes": float64(9)})))
 			h.Apply("create with timeframe_minutes 9 on a new alert", h.null(), cfg(body(j{"timeframe_minutes": float64(9)})))
 			h.Apply("create with timeframe_minutes 1 on a new alert", h.null(), cfg(body(j{"timeframe_minutes": float64(1)})))
+		})
+
+		addAlertScenario("analytics-"+kind+"-evaluation-period", func(h *grHarness) {
+			period := func(timeframe, minutes float64) j {
+				return j{"timeframe_minutes": timeframe, "evaluation_period_minutes": minutes}
+			}
+			s := h.Apply("create without it", h.null(), cfg(body(j{"timeframe_minutes": float64(20)})))
+			s = h.RefreshPlan("refresh", s)
+			s = h.Apply("evaluation_period_minutes 5", s, cfg(body(period(20, 5))))
+			s = h.RefreshPlan("refresh", s)
+			imported := h.Import("import by id", idOf(s))
+			h.Plan("plan the same config on the imported state", imported, cfg(body(period(20, 5))))
+			s = h.Apply("evaluation_period_minutes 1", s, cfg(body(period(20, 1))))
+			s = h.Apply("evaluation_period_minutes equal to timeframe_minutes", s, cfg(body(period(20, 20))))
+			s = h.RefreshPlan("refresh", s)
+			s = h.Apply("evaluation_period_minutes removed", s, cfg(body(j{"timeframe_minutes": float64(20)})))
+			s = h.RefreshPlan("refresh after the removal", s)
+			s = h.Apply("evaluation_period_minutes 5 again", s, cfg(body(period(20, 5))))
+			s = h.Apply("update: timeframe_minutes 3, period removed", s, cfg(body(j{"timeframe_minutes": float64(3)})))
+			s = h.RefreshPlan("refresh", s)
+			s = h.Apply("update: period above timeframe_minutes", s, cfg(body(period(3, 5))))
+			s = h.Apply("update: period 1440 with timeframe_minutes 1440", s, cfg(body(period(1440, 1440))))
+			s = h.RefreshPlan("refresh", s)
+			s = h.Apply("update: period above the largest value", s, cfg(body(period(100000, 1441))))
+			s = h.Apply("update: period 0", s, cfg(body(period(20, 0))))
+			s = h.Apply("update: a negative period", s, cfg(body(period(20, -1))))
+			h.Apply("create with a period on a new alert", h.null(), cfg(body(period(20, 5))))
+			h.Apply("create with a period above timeframe_minutes on a new alert", h.null(), cfg(body(period(5, 10))))
+			h.Destroy("destroy", s)
 		})
 
 		addAlertScenario("analytics-"+kind+"-group-by", func(h *grHarness) {
@@ -1393,56 +1422,24 @@ func init() {
 }
 
 func init() {
-	// Recorded: the server has an evaluation period of its own for an analytics alert. A new alert
-	// gets the smaller of 10 and its timeframe, and a Replace keeps the stored value, so a Replace
-	// with a timeframe below the stored period fails. The provider cannot set the period.
+	// Recorded: the API keeps evaluationPeriodMinutes of an analytics alert only when the request sets
+	// it, and a Replace that omits it stores none. The period that the alert runs with is returned
+	// apart, in effectiveEvaluationPeriodMinutes: the period when it is set, otherwise the smaller of
+	// 10 and the timeframe. The server ignores an effective value that a request sends.
 	addAlertFill(func(props map[string]any) {
 		for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
 			body := atfObj(props, arm)
 			if body == nil {
 				continue
 			}
-			minutes, _ := body["timeframeMinutes"].(float64)
-			setDefault(body, "evaluationPeriodMinutes", math.Min(minutes, 10))
+			effective, set := body["evaluationPeriodMinutes"].(float64)
+			if !set {
+				minutes, _ := body["timeframeMinutes"].(float64)
+				effective = math.Min(minutes, 10)
+			}
+			body["effectiveEvaluationPeriodMinutes"] = effective
 		}
 	})
-	addAlertStoreCheck(func(f *alertFake, id string, props map[string]any) (int, any) {
-		stored, found := f.alerts[id]
-		if !found {
-			return 0, nil
-		}
-		for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
-			body := atfObj(props, arm)
-			oldBody := atfObj(atfObj(stored, "alertDefProperties"), arm)
-			if body == nil || oldBody == nil {
-				continue
-			}
-			period, _ := oldBody["evaluationPeriodMinutes"].(float64)
-			minutes, _ := body["timeframeMinutes"].(float64)
-			if _, sent := body["evaluationPeriodMinutes"]; !sent && period > minutes {
-				message := fmt.Sprintf("evaluationPeriodMinutes is omitted, so the alert keeps its current value (%s), which exceeds the new timeframeMinutes (%s); set evaluationPeriodMinutes to at most %s",
-					strconv.FormatFloat(period, 'f', -1, 64), strconv.FormatFloat(minutes, 'f', -1, 64), strconv.FormatFloat(minutes, 'f', -1, 64))
-				return http.StatusBadRequest, map[string]any{"code": 400, "message": "Bad Request: " + atfCustom(message, atfPath(arm, "evaluationPeriodMinutes")...)}
-			}
-		}
-		return 0, nil
-	})
-}
-
-func init() { addAlertKeepRule(atfKeepOnReplace) }
-
-// atfKeepOnReplace keeps what the server keeps when a Replace does not send it: the evaluation
-// period of an analytics alert.
-func atfKeepOnReplace(oldProps, newProps map[string]any) {
-	for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
-		oldBody, newBody := atfObj(oldProps, arm), atfObj(newProps, arm)
-		if oldBody == nil || newBody == nil {
-			continue
-		}
-		if period, ok := oldBody["evaluationPeriodMinutes"]; ok {
-			newBody["evaluationPeriodMinutes"] = period
-		}
-	}
 }
 
 // atfIssue is the text of one validation error of the API. fields holds the keys and the JSON
@@ -1471,6 +1468,33 @@ func atfIssue(fields [][2]string, path ...any) string {
 	return sb.String()
 }
 
+// atfCheckEvaluationPeriod is the validation of an evaluation period that a request sets: from 1
+// to 1440, and not above the timeframe. The path comes before the message in the answer of the
+// check against the timeframe, and after it in the answers for the limits.
+func atfCheckEvaluationPeriod(arm string, period float64, timeframe any) string {
+	path := atfPath(arm, "evaluationPeriodMinutes")
+	if period < 1 {
+		return atfIssue([][2]string{{"code", `"too_small"`}, {"minimum", "1"}, {"type", `"number"`}, {"inclusive", "true"}, {"exact", "false"}, {"message", `"Number must be greater than or equal to 1"`}}, path...)
+	}
+	if period > 1440 {
+		return atfIssue([][2]string{{"code", `"too_big"`}, {"type", `"number"`}, {"maximum", "1440"}, {"inclusive", "true"}, {"message", `"evaluationPeriodMinutes must be at most 1440"`}}, path...)
+	}
+	if minutes, ok := timeframe.(float64); ok && period > minutes {
+		var sb strings.Builder
+		sb.WriteString("[\n  {\n    \"code\": \"custom\",\n    \"path\": [")
+		for i, name := range path {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString("\n      \"" + name.(string) + "\"")
+		}
+		sb.WriteString("\n    ],\n    \"message\": \"evaluationPeriodMinutes (" + strconv.FormatFloat(period, 'f', -1, 64) +
+			") must not exceed timeframeMinutes (" + strconv.FormatFloat(minutes, 'f', -1, 64) + ")\"\n  }\n]")
+		return sb.String()
+	}
+	return ""
+}
+
 func init() {
 	// Recorded for both analytics types: the limits of the numbers, and the check of the query.
 	addAlertCheck(func(props map[string]any) string {
@@ -1478,6 +1502,11 @@ func init() {
 			body := atfObj(props, arm)
 			if body == nil {
 				continue
+			}
+			if period, ok := body["evaluationPeriodMinutes"].(float64); ok {
+				if msg := atfCheckEvaluationPeriod(arm, period, body["timeframeMinutes"]); msg != "" {
+					return msg
+				}
 			}
 			if delay, ok := body["evaluationDelayMs"].(float64); ok && delay > 10800000 {
 				return atfIssue([][2]string{{"code", `"too_big"`}, {"maximum", "10800000"}, {"type", `"number"`}, {"inclusive", "true"}, {"exact", "false"}, {"message", `"Number must be less than or equal to 10800000"`}},

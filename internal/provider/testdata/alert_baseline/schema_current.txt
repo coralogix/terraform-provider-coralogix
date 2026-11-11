@@ -193,6 +193,8 @@ type_definition.analytics_immediate.dataprime_query.query  StringAttribute requi
     markdown: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."
     validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
     validator: stringvalidator.lengthAtMostValidator string length must be at most 65535
+type_definition.analytics_immediate.evaluation_period_minutes  Int32Attribute optional
+    markdown: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes."
 type_definition.analytics_immediate.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
@@ -219,6 +221,8 @@ type_definition.analytics_threshold.dataprime_query.query  StringAttribute requi
     markdown: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."
     validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
     validator: stringvalidator.lengthAtMostValidator string length must be at most 65535
+type_definition.analytics_threshold.evaluation_period_minutes  Int32Attribute optional
+    markdown: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes."
 type_definition.analytics_threshold.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

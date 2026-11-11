@@ -23,13 +23,9 @@
           "timeframeMinutes": 10
         },
         "enabled": true,
-        "groupByKeys": [],
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
-        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
       }
     },
@@ -41,7 +37,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -103,7 +99,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -169,6 +165,7 @@
           "targetColumn": "c",
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "coralogix.metadata.applicationName"
@@ -178,9 +175,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -195,7 +190,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -212,6 +207,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -259,7 +255,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -276,6 +272,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -327,6 +324,7 @@
           "targetColumn": "c",
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "coralogix.metadata.applicationName",
@@ -337,9 +335,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -354,7 +350,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -371,6 +367,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -423,16 +420,14 @@
           "targetColumn": "c",
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -447,7 +442,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -464,6 +459,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -509,7 +505,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -526,6 +522,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -575,6 +572,7 @@
           "targetColumn": "c",
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [],
         "incidentsSettings": {
@@ -582,9 +580,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -599,7 +595,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -616,6 +612,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -661,7 +658,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -678,6 +675,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -727,6 +725,7 @@
           "targetColumn": "c",
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "coralogix.metadata.applicationName"
@@ -736,9 +735,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -753,7 +750,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -770,6 +767,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -821,6 +819,7 @@
           "targetColumn": "c",
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [],
         "incidentsSettings": {
@@ -828,9 +827,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -845,7 +842,7 @@
             "dataprimeQuery": {
               "query": "source logs | count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -862,6 +859,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -912,6 +910,7 @@
           "timeframeMinutes": 10,
           "useRowsAsPermutations": true
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "app"
@@ -921,9 +920,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -938,7 +935,7 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -956,6 +953,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -1003,7 +1001,7 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -1021,6 +1019,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -1073,6 +1072,7 @@
           "timeframeMinutes": 10,
           "useRowsAsPermutations": true
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "app",
@@ -1083,9 +1083,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -1100,7 +1098,7 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -1118,6 +1116,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -1171,6 +1170,7 @@
           "timeframeMinutes": 10,
           "useRowsAsPermutations": true
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "app",
@@ -1181,9 +1181,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -1220,6 +1218,7 @@
           "timeframeMinutes": 10,
           "useRowsAsPermutations": true
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "zzz",
@@ -1230,9 +1229,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -1269,6 +1266,7 @@
           "timeframeMinutes": 10,
           "useRowsAsPermutations": false
         },
+        "description": "",
         "enabled": true,
         "groupByKeys": [
           "zzz"
@@ -1278,9 +1276,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -1295,7 +1291,7 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -1313,6 +1309,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [
@@ -1365,16 +1362,14 @@
           "timeframeMinutes": 10,
           "useRowsAsPermutations": true
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-threshold",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -1389,7 +1384,7 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -1407,6 +1402,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -1452,7 +1448,7 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
             "rules": [
               {
@@ -1470,6 +1466,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],

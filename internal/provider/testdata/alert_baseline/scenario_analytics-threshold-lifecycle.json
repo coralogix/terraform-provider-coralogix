@@ -52,6 +52,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": "(unknown)",
           "operator": "MORE_THAN",
           "rules": [
@@ -150,6 +151,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [
@@ -239,6 +241,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [

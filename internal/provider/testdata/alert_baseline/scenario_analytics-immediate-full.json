@@ -53,6 +53,7 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -143,6 +144,7 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -225,6 +227,7 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
