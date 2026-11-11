@@ -89,7 +89,7 @@ func Schema() schema.Schema {
 						},
 						"value": schema.StringAttribute{
 							Optional:            true,
-							MarkdownDescription: "",
+							MarkdownDescription: "The value of the item.",
 						},
 						"label": schema.StringAttribute{
 							Optional:            true,
@@ -131,8 +131,8 @@ func Schema() schema.Schema {
 							Optional: true,
 							Attributes: map[string]schema.Attribute{
 								"label": schema.StringAttribute{
-									Optional:            true,
-									MarkdownDescription: "",
+									Required:            true,
+									MarkdownDescription: "The label of the second tag.",
 								},
 							},
 							MarkdownDescription: "",
@@ -190,7 +190,7 @@ func Schema() schema.Schema {
 								},
 								"url": schema.StringAttribute{
 									Optional:            true,
-									MarkdownDescription: "",
+									MarkdownDescription: "The url of the action.",
 								},
 							},
 							MarkdownDescription: "",

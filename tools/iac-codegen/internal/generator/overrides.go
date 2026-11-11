@@ -302,16 +302,11 @@ func createOptionalFields(doc *v3.Document, component string, ids model.Operatio
 }
 
 // withInlinedFields returns the component with the fields of its inlined objects: they are
-// attributes of the component, so their lines are lines of the component. The model checks that an
-// inlined field is an object.
+// attributes of the component, so their lines are lines of the component. An inlined object can
+// inline an object of its own (its lines inline a field), and the fields of that one are attributes of
+// the component too. The model checks that an inlined field is an object.
 func withInlinedFields(schema *base.Schema, file *overrides.File, component string) (*base.Schema, error) {
-	var inlined []string
-	for _, line := range file.Lines() {
-		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
-			inlined = append(inlined, line.Field)
-		}
-	}
-	if len(inlined) == 0 || schema.Properties == nil {
+	if schema.Properties == nil || len(inlinedFieldsOf(file, component)) == 0 {
 		return schema, nil
 	}
 	out := *schema
@@ -320,31 +315,72 @@ func withInlinedFields(schema *base.Schema, file *overrides.File, component stri
 	for name, proxy := range schema.Properties.FromOldest() {
 		out.Properties.Set(name, proxy)
 	}
-	for _, name := range inlined {
-		proxy := schema.Properties.GetOrZero(name)
+	if err := addInlinedFields(&out, schema, file, component, 0); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// inlinedFieldsOf returns the fields of the component that the file inlines.
+func inlinedFieldsOf(file *overrides.File, component string) []string {
+	var inlined []string
+	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
+			inlined = append(inlined, line.Field)
+		}
+	}
+	return inlined
+}
+
+// addInlinedFields adds the fields of the objects that the lines of holder inline to out, and then the
+// fields of the objects that those objects inline, to a depth of 8 levels.
+func addInlinedFields(out *base.Schema, holder *base.Schema, file *overrides.File, component string, depth int) error {
+	if depth > 8 || holder.Properties == nil {
+		return nil
+	}
+	for _, name := range inlinedFieldsOf(file, component) {
+		proxy := holder.Properties.GetOrZero(name)
 		if proxy == nil {
 			continue // the line of the inlined field reports it
 		}
 		object, err := proxy.BuildSchema()
 		if err != nil {
-			return nil, fmt.Errorf("field %q: %w", name, err)
+			return fmt.Errorf("field %q: %w", name, err)
 		}
+		objectComponent := refComponent(proxy)
 		if len(object.AllOf) == 1 {
+			objectComponent = refComponent(object.AllOf[0])
 			if object, err = object.AllOf[0].BuildSchema(); err != nil {
-				return nil, fmt.Errorf("field %q: %w", name, err)
+				return fmt.Errorf("field %q: %w", name, err)
 			}
 		}
 		if object.Properties == nil {
 			continue
 		}
 		for child, childProxy := range object.Properties.FromOldest() {
-			if out.Properties.GetOrZero(child) == nil {
+			// A field of the object with the name of the inlined field takes its place, and the other
+			// keys of the line of the inlined field are its keys.
+			if out.Properties.GetOrZero(child) == nil || child == name {
 				out.Properties.Set(child, childProxy)
 			}
 		}
 		out.Required = append(out.Required, object.Required...)
+		if objectComponent != "" {
+			if err := addInlinedFields(out, object, file, objectComponent, depth+1); err != nil {
+				return err
+			}
+		}
 	}
-	return &out, nil
+	return nil
+}
+
+// refComponent returns the name of the component that the schema proxy refers to, or "".
+func refComponent(proxy *base.SchemaProxy) string {
+	ref := proxy.GetReference()
+	if i := strings.LastIndex(ref, "/"); i >= 0 {
+		return ref[i+1:]
+	}
+	return ""
 }
 
 // enumLineProblem checks an enums line. Each value that the file names must be in the contract,

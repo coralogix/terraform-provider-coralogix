@@ -468,6 +468,9 @@ type convField struct {
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
 	Value bool
+	// SetPrior: a set of objects whose items need the prior model. Flatten pairs each API item with the
+	// prior item that has the same request value.
+	SetPrior bool
 	// Wrap is set when the API holds the value in wrapper objects that Terraform does not show.
 	Wrap *fieldWrap
 	// FlattenOnly is a field that no request sends, of an object that a request holds, such as
@@ -3051,6 +3054,7 @@ func markPrior(d *convData) error {
 		return err
 	}
 	propagatePrior(d)
+	markSetPriors(d)
 	if err := checkPriorContainers(d); err != nil {
 		return err
 	}
@@ -3147,6 +3151,24 @@ func sortedFieldNames(obj *convObject) []string {
 	return names
 }
 
+// markSetPriors marks the objects that a set of objects holds, when they need the prior model: flatten
+// pairs each API item with the prior item that is the same value (same<Func>), because a set has no
+// order, so the prior item at the same index is not the same item. Their nested objects are compared too.
+func markSetPriors(d *convData) {
+	marked := false
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Conv == convObjects && f.Collection == "Set" && f.Object != nil && f.Object.NeedsPrior && f.Object.Expand {
+				marked = marked || !f.Object.Same
+				f.Object.Same, f.SetPrior = true, true
+			}
+		}
+	}
+	if marked {
+		propagatePrior(d)
+	}
+}
+
 // errPriorContainer reports a field that needs the prior model in a container whose flatten has no
 // prior value to pass: a map of objects, or a computed object stored as types.Object. A set of
 // objects has no order, so the prior item at the same index is not the same item.
@@ -3155,7 +3177,7 @@ var errPriorContainer = errors.New("equality, keepPriorOrder, and readEmptyAs on
 func checkPriorContainers(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set") {
+			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set" && !f.SetPrior) {
 				return fmt.Errorf("%s.%s holds %s: %w", obj.Model, f.TFName, f.Object.Model, errPriorContainer)
 			}
 		}
@@ -3252,6 +3274,18 @@ func (d *convData) UsesPrior() bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.KeepPriorOrder {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesSetPrior reports whether a set of objects pairs its items with prior items.
+func (d *convData) UsesSetPrior() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.SetPrior {
 				return true
 			}
 		}

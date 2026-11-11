@@ -358,10 +358,10 @@ func TestPlaceInlineIsChecked(t *testing.T) {
 			overrides: [2]string{"UnionItem.choice:", "Orphan.pick:"}, want: "the resource does not hold Orphan.pick, so the at line of Pick changes nothing"},
 		"the same field inlined in every place by the component": {
 			overrides: [2]string{"  Pick:\n    at:", "  Pick:\n    fields:\n      value: {inline: true}\n    at:"}, want: "the line of Pick inlines the field in every place already"},
-		"a name with inline": {
-			overrides: [2]string{"value: {inline: true}\n          note:", "value: {inline: true, name: other}\n          note:"}, want: "takes no name"},
 		"neither a name nor inline": {
-			overrides: [2]string{"note: {name: remark}", "note: {}"}, want: "has no name or inline"},
+			overrides: [2]string{"note: {name: remark}", "note: {}"}, want: "sets nothing"},
+		"a key of a field line that the field cannot take": {
+			overrides: [2]string{"note: {name: remark}", "note: {name: remark, terraformType: Int64}"}, want: "terraformType"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

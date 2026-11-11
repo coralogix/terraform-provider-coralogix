@@ -26,6 +26,11 @@ type Threshold struct {
 	Value float64
 }
 
+type WrapMark struct {
+	Label *string
+	Ratio *float64
+}
+
 type UUID struct {
 	Value *string
 }
@@ -110,6 +115,7 @@ type WrapThing struct {
 	Panels     []WrapPanel
 	Notes      []WrapNote
 	FolderPath *FolderPath
+	Marks      []WrapMark
 	HomeId     *UUID
 	HomePath   *FolderPath
 	Offset     *string
@@ -131,6 +137,7 @@ type CreateWrapThingRequest struct {
 	Panels     []WrapPanel
 	Notes      []WrapNote
 	FolderPath *FolderPath
+	Marks      []WrapMark
 	HomeId     *UUID
 	HomePath   *FolderPath
 	Offset     *string
@@ -152,6 +159,7 @@ type ReplaceWrapThingRequest struct {
 	Panels     []WrapPanel
 	Notes      []WrapNote
 	FolderPath *FolderPath
+	Marks      []WrapMark
 	HomeId     *UUID
 	HomePath   *FolderPath
 	Offset     *string

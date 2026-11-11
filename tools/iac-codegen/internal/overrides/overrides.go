@@ -631,18 +631,16 @@ type Type struct {
 	At map[string]Place `yaml:"at"`
 }
 
-// Place holds the field lines of a component at one place. Only a name and inline are place lines:
-// the model struct of the place has them, and the other keys do not depend on the place.
+// Place holds the field lines of a component at one place. A line is a field line: it can rename a
+// field, inline it, or set any other key of a field line (required, terraformType, validators, ...)
+// for this place only. A key that a line sets replaces the same key of the line of the field of the
+// component.
 type Place struct {
 	Fields map[string]PlaceField `yaml:"fields"`
 }
 
-// PlaceField is a line of a field at a place: its Terraform name, or inline: true, which shows the
-// fields of its object as attributes of the component at that place only. A field has one of them.
-type PlaceField struct {
-	Name   string `yaml:"name"`
-	Inline bool   `yaml:"inline"`
-}
+// PlaceField is a line of a field at a place. It has the keys of a field line.
+type PlaceField = Field
 
 // PlaceClone is a component at a place where an at line inlines a field. The generator gives the
 // place a copy of the component, so that the inline line does not reach the other places. It is not
@@ -670,10 +668,11 @@ func (f *File) PlaceCloneOf(name string) *PlaceClone {
 // IsPlaceClone reports whether name is the name of the copy of a component at a place.
 func (f *File) IsPlaceClone(name string) bool { return f.PlaceCloneOf(name) != nil }
 
-// IsInline reports whether the place inlines a field, so that its component needs a copy.
-func (p Place) IsInline() bool {
+// NeedsCopy reports whether the place needs a copy of its component: a line inlines a field, or
+// sets a key other than the name. A line with a name only changes the model struct of the place.
+func (p Place) NeedsCopy() bool {
 	for _, f := range p.Fields {
-		if f.Inline {
+		if f.Inline || len(f.keys()) > 1 || len(f.keys()) == 1 && f.Name == "" {
 			return true
 		}
 	}
@@ -1397,12 +1396,13 @@ func (t Type) checkPlaces() error {
 		for _, field := range sortedKeys(t.At[place].Fields) {
 			line := t.At[place].Fields[field]
 			switch {
-			case line.Inline && line.Name != "":
-				return fmt.Errorf("at.%s.fields.%s: an inlined field has no attribute of its own, so it takes no name", place, field)
 			case line.Inline:
-			case line.Name == "":
-				return fmt.Errorf("at.%s.fields.%s has no name or inline", place, field)
-			case !tfNamePattern.MatchString(line.Name):
+				if err := line.checkInlineKeys(); err != nil {
+					return fmt.Errorf("at.%s.fields.%s: %w", place, field, err)
+				}
+			case len(line.keys()) == 0:
+				return fmt.Errorf("at.%s.fields.%s sets nothing", place, field)
+			case line.Name != "" && !tfNamePattern.MatchString(line.Name):
 				return fmt.Errorf("at.%s.fields.%s.name %q must be lower case letters, digits, and _", place, field, line.Name)
 			}
 		}
@@ -1858,10 +1858,30 @@ func (l Field) check() error {
 	if err := checkValueNames(l.ValueNames); err != nil {
 		return err
 	}
-	if l.Inline && !slices.Equal(l.keys(), []string{"required", "inline"}) && len(l.keys()) != 1 {
-		return errors.New("an inlined field has no attribute of its own, so the line sets only inline, and required when the API always has the object: put the other keys on the lines of its fields")
+	if err := l.checkInlineKeys(); err != nil {
+		return err
 	}
+
 	return checkValidators(l.Validators)
+}
+
+// inlineKeys are the keys that an inline line can have besides inline. required says that the API
+// always has the object. The others state the type, the checks, or the text of the field of the object
+// that has the name of the inlined field, when there is one: the line of an inlined field has no
+// attribute of its own, and that field takes its name.
+var inlineKeys = map[string]bool{"inline": true, "required": true, "terraformType": true, "validators": true, "description": true, "markdownDescription": true, "deprecation": true}
+
+// checkInlineKeys checks the keys of an inline line.
+func (l Field) checkInlineKeys() error {
+	if !l.Inline {
+		return nil
+	}
+	for _, key := range l.keys() {
+		if !inlineKeys[key] {
+			return errors.New("an inlined field has no attribute of its own, so the line sets only inline, and required when the API always has the object: put the other keys on the lines of its fields. An object that has a field of the same name takes terraformType, validators, description, markdownDescription, and deprecation for that field")
+		}
+	}
+	return nil
 }
 
 func (l Field) checkConflicts() error {

@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +59,7 @@ var createFields = []struct {
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
 	{attr: "folder_path", serverDefault: false},
+	{attr: "marks", serverDefault: false},
 	{attr: "home", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }
@@ -377,6 +379,12 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		inner = splitText(m.FolderPath, "/")
 		out.FolderPath = wrapFolderPath(inner)
 	}
+	if items := expandElements[WrapMarkModel](ctx, p.AtName("marks"), m.Marks, diags); items != nil {
+		out.Marks = make([]wrap_things_service.WrapMark, 0, len(items))
+		for i := range items {
+			out.Marks = append(out.Marks, *expandWrapMark(ctx, p.AtName("marks"), &items[i], diags))
+		}
+	}
 	expandCreateWrapThingRequestHome(ctx, p.AtName("home"), m.Home, out, diags)
 	out.Offset = expandInt64Wire(m.Offset)
 	out.Notes = collectedNotes.items
@@ -504,6 +512,43 @@ func wrapPanelAttrTypes() map[string]attr.Type {
 		"id":          types.StringType,
 		"title":       types.StringType,
 		"panel_notes": types.ListType{ElemType: types.ObjectType{AttrTypes: wrapNoteAttrTypes()}},
+	}
+}
+
+func expandWrapMark(ctx context.Context, p path.Path, m *WrapMarkModel, diags *diag.Diagnostics) *wrap_things_service.WrapMark {
+	if m == nil {
+		return nil
+	}
+	out := &wrap_things_service.WrapMark{}
+	out.Label = expandString(m.Label)
+	out.Ratio = expandNumberAsFloat64(p.AtName("ratio"), m.Ratio, diags)
+	return out
+}
+
+func flattenWrapMark(ctx context.Context, p path.Path, v *wrap_things_service.WrapMark, prior *WrapMarkModel, diags *diag.Diagnostics) *WrapMarkModel {
+	if v == nil {
+		return nil
+	}
+	out := &WrapMarkModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Ratio = float64AsNumber(v.Ratio)
+	if prior != nil {
+		out.Ratio = keepPriorNumber(prior.Ratio, out.Ratio)
+	}
+	return out
+}
+
+// sameWrapMark reports whether two SDK values are equal. It compares the fields that the resource
+// manages. A missing value and an empty one are equal.
+func sameWrapMark(a, b *wrap_things_service.WrapMark) bool {
+	return pointerValue(a.Label) == pointerValue(b.Label) &&
+		pointerValue(a.Ratio) == pointerValue(b.Ratio)
+}
+
+func wrapMarkAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label": types.StringType,
+		"ratio": types.NumberType,
 	}
 }
 
@@ -649,6 +694,12 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		inner = splitText(m.FolderPath, "/")
 		out.FolderPath = wrapFolderPath(inner)
 	}
+	if items := expandElements[WrapMarkModel](ctx, p.AtName("marks"), m.Marks, diags); items != nil {
+		out.Marks = make([]wrap_things_service.WrapMark, 0, len(items))
+		for i := range items {
+			out.Marks = append(out.Marks, *expandWrapMark(ctx, p.AtName("marks"), &items[i], diags))
+		}
+	}
 	expandReplaceWrapThingRequestHome(ctx, p.AtName("home"), m.Home, out, diags)
 	out.Offset = expandInt64Wire(m.Offset)
 	out.Notes = collectedNotes.items
@@ -736,6 +787,20 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapFolderPath(v.FolderPath)
 		out.FolderPath = joinText(inner, "/")
+	}
+	out.Marks = types.SetNull(types.ObjectType{AttrTypes: wrapMarkAttrTypes()})
+	if v.Marks != nil {
+		items := make([]WrapMarkModel, 0, len(v.Marks))
+		var priorMarks []WrapMarkModel
+		if prior != nil {
+			priorMarks = priorItems[WrapMarkModel](ctx, prior.Marks)
+		}
+		// A set has no order: the prior item of an API item is the one with the same request value.
+		pairs := pairPrior(ctx, v.Marks, priorMarks, expandWrapMark, sameWrapMark)
+		for i := range v.Marks {
+			items = append(items, *flattenWrapMark(ctx, p.AtName("marks"), &v.Marks[i], pairs[i], diags))
+		}
+		out.Marks = flattenSet(ctx, types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, items, diags)
 	}
 	var priorHome *WrapThingHomeModel
 	if prior != nil {
@@ -1122,6 +1187,134 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 	return types.StringValue(string(*v))
 }
 
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
+}
+
+// keepOrder returns the items in the order of the prior list, when the API returned the same items in
+// another order. It expands the prior list to SDK values and compares them with same. The prior only
+// keeps an order, so a prior that cannot be read is not an error.
+func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []S {
+	var scratch diag.Diagnostics
+	models := priorItems[M](ctx, prior)
+	var priorSDK []S // nil for a prior list that is null: an empty API list then reads as null, as before
+	if models != nil {
+		priorSDK = make([]S, 0, len(models))
+	}
+	for i := range models {
+		priorSDK = append(priorSDK, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return items
+	}
+	return orderLike(items, priorSDK, same)
+}
+
+// orderLike returns prior when it holds the same items as items, in another order. Otherwise
+// the items really changed, and the API order stays, so the plan shows the change.
+func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
+	if items == nil || len(items) != len(prior) {
+		return items // a missing list stays missing
+	}
+	used := make([]bool, len(prior))
+	for i := range items {
+		found := false
+		for j := range prior {
+			if !used[j] && same(&items[i], &prior[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return items
+		}
+	}
+	return prior
+}
+
+// pairPrior returns, for each item, the prior model that has the same request value as the item, or
+// nil. A set has no order, so the prior item is found by value and not by index. Each prior item pairs
+// with one item. The prior only keeps the text of a value, so a prior that cannot be read is no error.
+func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []*M {
+	out := make([]*M, len(items))
+	var scratch diag.Diagnostics
+	values := make([]S, 0, len(models))
+	for i := range models {
+		values = append(values, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return out
+	}
+	used := make([]bool, len(values))
+	for i := range items {
+		for j := range values {
+			if !used[j] && same(&items[i], &values[j]) {
+				used[j], out[i] = true, &models[j]
+				break
+			}
+		}
+	}
+	return out
+}
+
+// pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
+func pointerValue[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
+}
+
+func sameObject[T any](a, b *T, same func(a, b *T) bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return same(a, b)
+}
+
+func sameList[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !same(&a[i], &b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// sameUnordered reports whether a and b hold the same items, ignoring order. A nested list that
+// keepPriorOrder restores can come back from the API shuffled; matching the parent object must
+// still succeed so flatten can attach the prior nested list.
+func sameUnordered[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	used := make([]bool, len(b))
+	for i := range a {
+		found := false
+		for j := range b {
+			if !used[j] && same(&a[i], &b[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 func flattenTime(v *time.Time) types.String {
 	if v == nil {
 		return types.StringNull()
@@ -1248,6 +1441,63 @@ func expandClientUUID(v types.String) *string {
 	b[6], b[8] = b[6]&0x0f|0x40, b[8]&0x3f|0x80
 	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 	return &id
+}
+
+// expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
+// not a whole number, or is outside the int32 range, is an error.
+func expandNumberAsInt32(p path.Path, v types.Number, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, accuracy := v.ValueBigFloat().Int64()
+	if accuracy != big.Exact || n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is not a whole number from %d to %d.", v.ValueBigFloat().Text('g', -1), math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// expandNumberAsFloat64 returns the double that the API holds for a Number attribute.
+func expandNumberAsFloat64(p path.Path, v types.Number, diags *diag.Diagnostics) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f, _ := v.ValueBigFloat().Float64()
+	if math.IsInf(f, 0) {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is outside the range of a double.", v.ValueBigFloat().Text('g', -1)))
+		return nil
+	}
+	return &f
+}
+
+func int32AsNumber(v *int32) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*v)))
+}
+
+func float64AsNumber(v *float64) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*v))
+}
+
+// keepPriorNumber returns the plan or state value prior when it is the same double as v, the value
+// that the API stores. A configured 0.1 then stays, though Terraform holds it with more bits than a
+// double and the API returns the double 0.1000000000000000055.
+func keepPriorNumber(prior, v types.Number) types.Number {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	p, _ := prior.ValueBigFloat().Float64()
+	f, _ := v.ValueBigFloat().Float64()
+	if p != f {
+		return v
+	}
+	return prior
 }
 
 // expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.

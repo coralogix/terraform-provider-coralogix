@@ -23,6 +23,7 @@ type WrapThingModel struct {
 	ExtraLabel *LabelModel         `tfsdk:"extra_label"`
 	Panels     types.List          `tfsdk:"panels"`
 	FolderPath types.String        `tfsdk:"folder_path"`
+	Marks      types.Set           `tfsdk:"marks"`
 	Home       *WrapThingHomeModel `tfsdk:"home"`
 	Offset     types.Int64         `tfsdk:"offset"`
 }
@@ -55,6 +56,11 @@ type WrapPanelModel struct {
 	Id         types.String `tfsdk:"id"`
 	Title      types.String `tfsdk:"title"`
 	PanelNotes types.List   `tfsdk:"panel_notes"`
+}
+
+type WrapMarkModel struct {
+	Label types.String `tfsdk:"label"`
+	Ratio types.Number `tfsdk:"ratio"`
 }
 
 type WrapThingHomeModel struct {

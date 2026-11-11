@@ -39,6 +39,7 @@ var updateFields = []struct {
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
 	{attr: "folder_path", serverDefault: false},
+	{attr: "marks", serverDefault: false},
 	{attr: "home", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }

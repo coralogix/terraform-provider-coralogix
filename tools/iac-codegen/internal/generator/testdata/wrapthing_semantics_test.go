@@ -2,6 +2,7 @@ package wrapthing
 
 import (
 	"context"
+	"math/big"
 	"reflect"
 	"regexp"
 	"strings"
@@ -56,6 +57,7 @@ func fullModel() *WrapThingModel {
 		Selection:  stringList("x", "y"),
 		Tags:       stringSet("p", "q"),
 		Panels:     types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()}),
+		Marks:      types.SetNull(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}),
 		FolderPath: types.StringNull(),
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
@@ -976,5 +978,63 @@ func TestEmptyDistributedListKeepsItsFormInTheState(t *testing.T) {
 				t.Errorf("panel_notes = %s, want null=%t", notes, test.wantNull)
 			}
 		})
+	}
+}
+
+// The marks are a set of objects with a Number: a configured 0.1 has more bits than a double, and the
+// API answers the double. Flatten pairs each API item with the prior item that has the same request
+// value, so the configured number stays, whatever the order of the items is.
+func TestSetItemsKeepThePriorNumberWhateverTheOrder(t *testing.T) {
+	ctx := context.Background()
+	exact := func(text string) types.Number {
+		f, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return types.NumberValue(f)
+	}
+	markType := types.ObjectType{AttrTypes: wrapMarkAttrTypes()}
+	set := func(marks ...WrapMarkModel) types.Set {
+		v, diags := types.SetValueFrom(ctx, markType, marks)
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		return v
+	}
+	prior := fullModel()
+	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.1")}, WrapMarkModel{Label: types.StringValue("b"), Ratio: exact("0.3")})
+	resp := fullResponse()
+	a, b, one, three := "a", "b", 0.1, 0.3
+	// The API returns the items in another order.
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &b, Ratio: &three}, {Label: &a, Ratio: &one}}
+	got, diags := flatten(ctx, resp, prior)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var marks []WrapMarkModel
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, m := range marks {
+		want := map[string]types.Number{"a": exact("0.1"), "b": exact("0.3")}[m.Label.ValueString()]
+		if !m.Ratio.Equal(want) {
+			t.Errorf("mark %s ratio = %v, want the configured %v", m.Label.ValueString(), m.Ratio, want)
+		}
+	}
+	// With no prior value (an import), the API number is read as it is.
+	got, _ = flatten(ctx, resp, nil)
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() || len(marks) != 2 {
+		t.Fatalf("import marks = %v (%v)", marks, diags)
+	}
+	// A prior item with another value is not paired: the API value wins.
+	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.5")})
+	got, _ = flatten(ctx, resp, prior)
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, m := range marks {
+		if m.Label.ValueString() == "a" && m.Ratio.Equal(exact("0.5")) {
+			t.Error("a prior item with another ratio was paired")
+		}
 	}
 }

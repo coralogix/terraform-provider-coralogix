@@ -44,6 +44,7 @@ paths:
                   type: array
                   items: {$ref: '#/components/schemas/WrapNote'}
                 folderPath: {$ref: '#/components/schemas/FolderPath'}
+                marks: {type: array, items: {$ref: '#/components/schemas/WrapMark'}}
                 homeId: {$ref: '#/components/schemas/UUID'}
                 homePath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
@@ -98,6 +99,7 @@ paths:
                   type: array
                   items: {$ref: '#/components/schemas/WrapNote'}
                 folderPath: {$ref: '#/components/schemas/FolderPath'}
+                marks: {type: array, items: {$ref: '#/components/schemas/WrapMark'}}
                 homeId: {$ref: '#/components/schemas/UUID'}
                 homePath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
@@ -152,6 +154,7 @@ components:
           type: array
           items: {$ref: '#/components/schemas/WrapNote'}
         folderPath: {$ref: '#/components/schemas/FolderPath'}
+        marks: {type: array, items: {$ref: '#/components/schemas/WrapMark'}}
         homeId: {$ref: '#/components/schemas/UUID'}
         homePath: {$ref: '#/components/schemas/FolderPath'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
@@ -255,6 +258,13 @@ components:
       required: []
       properties:
         url: {type: string, x-coralogix-presence: true}
+    # A mark is an item of a set. Its ratio is a double that Terraform shows as a Number, so the
+    # configured decimal (0.1) must stay in the state: flatten pairs each item with the prior item.
+    WrapMark:
+      type: object
+      properties:
+        label: {type: string, x-coralogix-presence: true}
+        ratio: {type: number, format: double, x-coralogix-presence: true}
     # A folder path: the segments, held in an object, which Terraform shows as one text "Team/Sub".
     FolderPath:
       type: object

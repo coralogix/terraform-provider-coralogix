@@ -1167,7 +1167,7 @@ func priorItems[T any](ctx context.Context, v elements) []T {
 	return items
 }
 {{- end}}
-{{- if .Conv.UsesPrior}}
+{{- if or .Conv.UsesPrior .Conv.UsesSetPrior}}
 
 // keepOrder returns the items in the order of the prior list, when the API returned the same items in
 // another order. It expands the prior list to SDK values and compares them with same. The prior only
@@ -1209,6 +1209,33 @@ func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
 	}
 	return prior
 }
+{{- if .Conv.UsesSetPrior}}
+
+// pairPrior returns, for each item, the prior model that has the same request value as the item, or
+// nil. A set has no order, so the prior item is found by value and not by index. Each prior item pairs
+// with one item. The prior only keeps the text of a value, so a prior that cannot be read is no error.
+func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []*M {
+	out := make([]*M, len(items))
+	var scratch diag.Diagnostics
+	values := make([]S, 0, len(models))
+	for i := range models {
+		values = append(values, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return out
+	}
+	used := make([]bool, len(values))
+	for i := range items {
+		for j := range values {
+			if !used[j] && same(&items[i], &values[j]) {
+				used[j], out[i] = true, &models[j]
+				break
+			}
+		}
+	}
+	return out
+}
+{{- end}}
 {{- if .Conv.UsesPriorVia}}
 
 // keepOrderVia is keepOrder for a list whose response items the request does not send. It
@@ -2677,9 +2704,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			prior{{.Model}} = priorItems[{{.Object.Model}}](ctx, prior.{{.Model}})
 		}
 		{{- end}}
+		{{- if .SetPrior}}
+		// A set has no order: the prior item of an API item is the one with the same request value.
+		pairs := pairPrior(ctx, {{$src}}, prior{{.Model}}, expand{{.Object.Func}}, same{{.Object.Func}})
+		{{- end}}
 		for i := range {{$src}} {
 			{{- if eq .Collection "Set"}}
-			{{- if .Object.NeedsPrior}}
+			{{- if .SetPrior}}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], pairs[i], diags))
+			{{- else if .Object.NeedsPrior}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], nil, diags))
 			{{- else}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], diags))

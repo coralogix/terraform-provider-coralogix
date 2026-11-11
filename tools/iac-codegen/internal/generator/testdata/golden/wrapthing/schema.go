@@ -160,6 +160,22 @@ func Schema() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "",
 			},
+			"marks": schema.SetNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"label": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"ratio": schema.NumberAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+					},
+				},
+				MarkdownDescription: "",
+			},
 			"home": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{

@@ -27,6 +27,7 @@ types:
           as: panel_notes
           by: {listField: panelId, itemField: id}
           keep: detail.url
+      marks: {collection: set}
       homeId: {name: id}
       homePath: {name: path}
       rawQuery:
@@ -48,6 +49,10 @@ types:
       values:
         collection: set
   # The segments of the folder path are one text, with the elements joined by a slash.
+  # The ratio is a Number: a configured 0.1 stays 0.1. The marks are a set, so a prior mark is found by value.
+  WrapMark:
+    fields:
+      ratio: {terraformType: Number}
   FolderPath:
     fields:
       segments: {join: "/"}
