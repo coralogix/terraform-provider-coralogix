@@ -3305,6 +3305,12 @@ func flattenAlertDefWebhooksSettings(ctx context.Context, p path.Path, v *alert_
 	if v == nil {
 		return nil
 	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Integration == nil {
+		v.Integration = &alert_definitions_service.V3IntegrationType{}
+	}
 	out := &AlertDefWebhooksSettingsModel{}
 	out.IntegrationId = types.Int64PointerValue(v.Integration.IntegrationId)
 	{
@@ -3969,6 +3975,12 @@ func expandReplaceAlertDefinitionRequestTypeDefinition(ctx context.Context, p pa
 func flattenAlertDef(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDef, diags *diag.Diagnostics) *AlertDefModel {
 	if v == nil {
 		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.AlertDefProperties == nil {
+		v.AlertDefProperties = &alert_definitions_service.AlertDefProperties{}
 	}
 	out := &AlertDefModel{}
 	out.TypeDefinition = flattenAlertDefTypeDefinition(ctx, p.AtName("type_definition"), v, diags)

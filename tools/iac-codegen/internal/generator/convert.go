@@ -893,7 +893,8 @@ func (b *convBuilder) arms(out *convData) error {
 }
 
 // parentField returns the Go field of the root that holds an inlined object. A request body that
-// holds it in a pointer gets it set by expand.
+// holds it in a pointer gets it set by expand. A response that holds it in a pointer can leave it
+// out, so flatten reads a missing one as an empty object, and its fields are null.
 func (b *convBuilder) parentField(obj *convObject, root convRoot, parent *overrides.Parent) (string, error) {
 	ref, err := b.ix.fieldRef(root.path + "." + parent.Field)
 	if err != nil {
@@ -906,8 +907,12 @@ func (b *convBuilder) parentField(obj *convObject, root convRoot, parent *overri
 	switch ref.Want {
 	case typ.Name:
 	case "*" + typ.Name:
-		if root.expand && !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == ref.Name }) {
-			obj.Parents = append(obj.Parents, convParent{SDK: ref.Name, Type: b.qualify(typ.Name)})
+		list := &obj.FlattenParents
+		if root.expand {
+			list = &obj.Parents
+		}
+		if !slices.ContainsFunc(*list, func(p convParent) bool { return p.SDK == ref.Name }) {
+			*list = append(*list, convParent{SDK: ref.Name, Type: b.qualify(typ.Name)})
 		}
 	default:
 		return "", fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
@@ -3389,6 +3394,14 @@ func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, reques
 	}
 	if !slices.Contains(*list, p) {
 		*list = append(*list, p)
+	}
+	if request {
+		// The same object is flattened: a response can leave the object out, as expand does when no
+		// attribute of it is set, and flatten reads a missing one as an empty object, with null fields.
+		read := convParent{SDK: ref.Name, Type: b.qualify(typ.Name)}
+		if !slices.Contains(obj.FlattenParents, read) {
+			obj.FlattenParents = append(obj.FlattenParents, read)
+		}
 	}
 	return nil
 }
