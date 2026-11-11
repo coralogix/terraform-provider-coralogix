@@ -92,6 +92,10 @@ type tfAttr struct {
 	// CustomType is the Terraform type of a scalar attribute that is not the plain type of its
 	// kind, for example rfc3339Type, or "".
 	CustomType string
+	// UpSteps are the path steps that each object level above the attribute takes, the nearest last:
+	// 1 for a single object, and 2 for an item of a list, set, or map (the element and the name of
+	// the collection). A "../" in a validator target goes up one level, so it removes that many steps.
+	UpSteps []int
 	// ElemValidators are the validators of one element of a collection of plain values, the
 	// arguments of its Value<Kind>sAre validator. The acceptance test makes an element that passes.
 	ElemValidators []string
@@ -488,9 +492,10 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 		}
 	}
 	collect(out.Attributes)
-	var walk func(attrs []*tfAttr, above [][]*tfAttr) error
-	walk = func(attrs []*tfAttr, above [][]*tfAttr) error {
+	var walk func(attrs []*tfAttr, above [][]*tfAttr, steps []int) error
+	walk = func(attrs []*tfAttr, above [][]*tfAttr, steps []int) error {
 		for _, a := range attrs {
+			a.UpSteps = steps
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
@@ -548,13 +553,13 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
 			}
-			if err := walk(a.Attributes, append(slices.Clone(above), attrs)); err != nil {
+			if err := walk(a.Attributes, append(slices.Clone(above), attrs), append(slices.Clone(steps), levelSteps(a))); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	if err := walk(out.Attributes, nil); err != nil {
+	if err := walk(out.Attributes, nil, nil); err != nil {
 		return err
 	}
 	// Field lines run after markComputed, so they can put validators and document
@@ -948,13 +953,13 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 	case len(v.Between) == 2 && slices.Contains([]string{"Float32", "Float64", "Int32", "Int64"}, a.ValueKind):
 		return betweenExpr(a, v.Between)
 	case len(v.ExactlyOneOf) != 0:
-		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
+		return pkg + ".ExactlyOneOf(" + siblingPaths(a.UpSteps, v.ExactlyOneOf) + ")", nil
 	case len(v.AtLeastOneOf) != 0:
-		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
+		return pkg + ".AtLeastOneOf(" + siblingPaths(a.UpSteps, v.AtLeastOneOf) + ")", nil
 	case len(v.AlsoRequires) != 0:
-		return pkg + ".AlsoRequires(" + siblingPaths(v.AlsoRequires) + ")", nil
+		return pkg + ".AlsoRequires(" + siblingPaths(a.UpSteps, v.AlsoRequires) + ")", nil
 	case len(v.ConflictsWith) != 0:
-		return pkg + ".ConflictsWith(" + siblingPaths(v.ConflictsWith) + ")", nil
+		return pkg + ".ConflictsWith(" + siblingPaths(a.UpSteps, v.ConflictsWith) + ")", nil
 	case v.Equals != nil && a.ValueKind == "Bool":
 		return fmt.Sprintf("boolvalidator.Equals(%t)", *v.Equals), nil
 	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
@@ -1733,7 +1738,7 @@ func (b *tfBuilder) keptArmConflicts(t *model.Type, attrs []*tfAttr) {
 		if len(names) == 0 {
 			continue
 		}
-		expr := strings.ToLower(a.ValueKind) + "validator.ConflictsWith(" + siblingPaths(names) + ")"
+		expr := strings.ToLower(a.ValueKind) + "validator.ConflictsWith(" + siblingPaths(a.UpSteps, names) + ")"
 		a.Validators = append(a.Validators, expr)
 		a.GroupValidators = append(a.GroupValidators, expr)
 	}
@@ -2779,13 +2784,28 @@ func splitTarget(target string) (ups int, name string) {
 	return ups, name
 }
 
+// levelSteps is the number of path steps that the object held by a goes up: its name for a single
+// object, and its name and the element for each item of a list, set, or map of objects.
+func levelSteps(a *tfAttr) int {
+	switch a.Kind {
+	case "ListNested", "SetNested", "MapNested":
+		return 2
+	}
+	return 1
+}
+
 // siblingPaths are the path expressions of the targets of a validator. A sibling is one AtParent
-// away, and each "../" goes one more level up.
-func siblingPaths(targets []string) string {
+// away, and each "../" goes up one object level: steps holds the path steps of each level above
+// the attribute, the nearest last (tfAttr.UpSteps), because an item of a list is two steps.
+func siblingPaths(steps []int, targets []string) string {
 	paths := make([]string, 0, len(targets))
 	for _, target := range targets {
 		ups, name := splitTarget(target)
-		paths = append(paths, fmt.Sprintf("path.MatchRelative().AtParent()%s.AtName(%q)", strings.Repeat(".AtParent()", ups), name))
+		parents := 1
+		for i := 0; i < ups && i < len(steps); i++ {
+			parents += steps[len(steps)-1-i]
+		}
+		paths = append(paths, fmt.Sprintf("path.MatchRelative()%s.AtName(%q)", strings.Repeat(".AtParent()", parents), name))
 	}
 	return strings.Join(paths, ", ")
 }
