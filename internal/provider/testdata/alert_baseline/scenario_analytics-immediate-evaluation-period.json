@@ -262,7 +262,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
-          "evaluation_period_minutes": null,
+          "evaluation_period_minutes": 5,
           "no_data_policy": null,
           "timeframe_minutes": 20,
           "use_rows_as_permutations": null

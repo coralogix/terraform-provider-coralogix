@@ -323,7 +323,7 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
-          "evaluation_period_minutes": null,
+          "evaluation_period_minutes": 5,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [
