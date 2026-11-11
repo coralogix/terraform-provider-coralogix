@@ -140,6 +140,7 @@ jobs:
             private_dir=$(mktemp -d)
             trap 'rm -rf "$private_dir"' EXIT
             if ! PREPARE_CI_TEAM_OUTPUT_FILE="$private_dir/fixtures.json" \
+              env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH \
               go -C sdk run ./tools/prepare-ci-team lookup >/dev/null 2>&1; then
               echo 'Integration lookup failed'
               exit 1
@@ -160,7 +161,8 @@ jobs:
             fi
             export PD_INTEGRATION_ID
           fi
-          if ! TF_ACC=1 go test \
+          # Do not give tests access to GitHub's output and summary files.
+          if ! TF_ACC=1 env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH go test \
             -ldflags '-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn' \
             ./internal/provider -run "^${TEST_NAME}$" -count=1 -timeout=20m -parallel=1 \
             >/dev/null 2>&1; then
