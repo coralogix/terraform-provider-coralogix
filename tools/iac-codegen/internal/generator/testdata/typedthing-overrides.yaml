@@ -87,6 +87,10 @@ enums:
     zero: unspecified
     trimPrefix: MODE_
     values: [MODE_FAST, MODE_EXACT]
+  TypedRounding:
+    zero: unspecified
+    trimPrefix: ROUNDING_
+    values: [ROUNDING_UP, ROUNDING_DOWN]
   TypedMetadataField:
     zero: unspecified
     trimPrefix: METADATA_FIELD_

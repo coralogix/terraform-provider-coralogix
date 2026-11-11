@@ -42,7 +42,7 @@ func Schema() schema.Schema {
 						Required: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("count", "avg", "percentile"),
-							typedArmValidator{Names: []string{"field", "mode", "weight", "unit", "percent", "bucket"}, Fields: map[string][]string{"count": {}, "avg": {"field", "mode", "weight", "unit"}, "percentile": {"field", "mode", "weight", "percent", "unit", "bucket"}}, Values: map[string]map[string][]validator.String{"avg": {"mode": {stringvalidator.OneOf("exact", "fast")}}}, Rules: map[string][]typedRule{"percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "unit"}}}}},
+							typedArmValidator{Names: []string{"field", "mode", "weight", "unit", "rounding", "percent", "bucket"}, Fields: map[string][]string{"count": {}, "avg": {"field", "mode", "weight", "unit", "rounding"}, "percentile": {"field", "mode", "weight", "percent", "unit", "rounding", "bucket"}}, Values: map[string]map[string][]validator.String{"avg": {"mode": {stringvalidator.OneOf("exact", "fast")}, "rounding": {stringvalidator.OneOf("down", "up")}}}, Rules: map[string][]typedRule{"percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "unit"}}}}},
 						},
 						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"count\", \"avg\", \"percentile\".",
 					},
@@ -59,6 +59,10 @@ func Schema() schema.Schema {
 						MarkdownDescription: "",
 					},
 					"unit": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+					"rounding": schema.StringAttribute{
 						Optional:            true,
 						MarkdownDescription: "",
 					},
