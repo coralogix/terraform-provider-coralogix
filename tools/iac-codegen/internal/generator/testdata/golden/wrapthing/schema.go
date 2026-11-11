@@ -126,6 +126,10 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"folder_path": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
 			"offset": schema.Int64Attribute{
 				Optional:            true,
 				MarkdownDescription: "",

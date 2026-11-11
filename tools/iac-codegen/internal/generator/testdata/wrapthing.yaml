@@ -39,6 +39,7 @@ paths:
                 panels:
                   type: array
                   items: {$ref: '#/components/schemas/WrapPanel'}
+                folderPath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -87,6 +88,7 @@ paths:
                 panels:
                   type: array
                   items: {$ref: '#/components/schemas/WrapPanel'}
+                folderPath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -135,6 +137,7 @@ components:
         panels:
           type: array
           items: {$ref: '#/components/schemas/WrapPanel'}
+        folderPath: {$ref: '#/components/schemas/FolderPath'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     LuceneQuery:
       type: object
@@ -220,3 +223,10 @@ components:
       properties:
         id: {$ref: '#/components/schemas/UUID'}
         title: {type: string, x-coralogix-presence: true}
+    # A folder path: the segments, held in an object, which Terraform shows as one text "Team/Sub".
+    FolderPath:
+      type: object
+      properties:
+        segments:
+          type: array
+          items: {type: string}

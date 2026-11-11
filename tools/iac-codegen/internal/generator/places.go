@@ -104,3 +104,19 @@ func checkPlaceFields(file *overrides.File, t *model.Type) error {
 	}
 	return nil
 }
+
+// joinOf returns the separator of the join line of the field, or "". A line on the list inside a
+// wrapper that collapses is the line of the field that holds the wrapper, as for collection.
+func joinOf(file *overrides.File, component, field string, t *model.Type) string {
+	if file == nil {
+		return ""
+	}
+	if sep := file.Types[component].Fields[field].Join; sep != "" {
+		return sep
+	}
+	if t != nil && len(t.Wrappers) != 0 {
+		inner := t.Wrappers[len(t.Wrappers)-1]
+		return file.Types[inner.Schema].Fields[inner.Field].Join
+	}
+	return ""
+}

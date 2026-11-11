@@ -1581,6 +1581,27 @@ func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 	return prior
 }
 {{- end}}
+{{- if .Conv.UsesJoin}}
+
+// splitText returns the elements of a text that Terraform shows for a list of strings: the text split
+// at every separator, with no trimming, so "a//b/" is a, an empty text, b, and an empty text. A null
+// or unknown text is no list.
+func splitText(v types.String, sep string) []string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return strings.Split(v.ValueString(), sep)
+}
+
+// joinText returns the elements of a list as one text, joined by the separator. A list that the API
+// does not have is null.
+func joinText(v []string, sep string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strings.Join(v, sep))
+}
+{{- end}}
 {{- if .Conv.UsesClientID}}
 
 // expandClientUUID returns the id that the client makes: the value of a known id, and a new version 4
@@ -1906,6 +1927,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "split"}}
 	{{.Dst}} = {{$l}}joinStrings(ctx, {{$p}}, m.{{.Model}}, {{printf "%q" .Split}}, diags){{$r}}
+{{- else if eq .Conv "join"}}
+	{{.Dst}} = splitText(m.{{.Model}}, {{printf "%q" .Join}})
 {{- else if and (eq .Conv "bool") .Negated}}
 	{{.Dst}} = {{$l}}negateBool(expandBool(m.{{.Model}})){{$r}}
 {{- else if eq .Conv "bool"}}
@@ -2159,7 +2182,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "flattenValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $v := .Src}}{{if .DirectValue}}{{$v = printf "&%s" .Src}}{{end}}
-{{- if eq .Conv "split"}}
+{{- if eq .Conv "join"}}
+	out.{{.Model}} = joinText({{.Src}}, {{printf "%q" .Join}})
+{{- else if eq .Conv "split"}}
 	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})
 {{- else if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})

@@ -301,7 +301,9 @@ const (
 	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
 	convEmptyBool = "emptybool"
 	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
-	convObjects   = "objects" // types.List ↔ []<SDK type>
+	// convJoin shows a list of strings as one string with the elements joined (join).
+	convJoin    = "join"    // types.String ↔ []string
+	convObjects = "objects" // types.List ↔ []<SDK type>
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
@@ -417,6 +419,8 @@ type convField struct {
 	ListFold *foldList
 	// ClientID: expand makes a UUID for an unknown value (clientID: uuid).
 	ClientID bool
+	// Join is the separator of a list of strings that Terraform shows as one string (join).
+	Join string
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -654,6 +658,18 @@ func (d *convData) UsesEnumsMapped() bool {
 	}
 	return false
 }
+
+// applyJoin turns a list of strings with a join line into the string of its elements.
+func (b *convBuilder) applyJoin(cf *convField, sep string) error {
+	if cf.Conv != convStrings || cf.Collection != "List" && cf.Collection != "" || cf.SDKType != "string" || cf.EnumMap != nil || cf.Enum || cf.Projection != nil {
+		return fmt.Errorf("%s: join needs a list of plain strings", cf.TFName)
+	}
+	cf.Conv, cf.Collection, cf.Join = convJoin, "", sep
+	return nil
+}
+
+// UsesJoin reports whether a field shows a list as one string. The template then emits its helpers.
+func (d *convData) UsesJoin() bool { return d.Uses(convJoin) }
 
 // UsesClientID reports whether a field gets a UUID that the client makes (clientID: uuid). The template
 // then emits the function that makes it.
@@ -1733,6 +1749,11 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err != nil {
 		return nil, err
 	}
+	if sep := joinOf(b.file, component, name, t); sep != "" {
+		if err := b.applyJoin(cf, sep); err != nil {
+			return nil, err
+		}
+	}
 	if sep := splitOf(b.file, component, name); sep != "" {
 		if cf.Conv != convString || cf.Wrap != nil {
 			return nil, fmt.Errorf("%s: split needs a plain string field", cf.TFName)
@@ -2719,7 +2740,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convFoldString: "types.StringType", convFoldList: "types.ListType{ElemType: types.StringType}", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convFoldString: "types.StringType", convJoin: "types.StringType", convFoldList: "types.ListType{ElemType: types.StringType}", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convIntegerAsString: "types.StringType",
 	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type", convFloat32AsFloat64: "types.Float64Type",
 	convInt32AsNumber: "types.NumberType", convFloat64AsNumber: "types.NumberType",

@@ -1355,6 +1355,13 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 			a.Validators = append(a.Validators, utcValidator)
 		}
 	case model.Set, model.List, model.Map:
+		if sep := joinOf(b.file, a.Component, a.Property, t); sep != "" {
+			if t.Kind != model.List || t.Elem == nil || t.Elem.Kind != model.String || isTime(t.Elem) {
+				return fmt.Errorf("%s.%s: join needs a list of plain strings", a.Component, a.Property)
+			}
+			a.Kind, a.ValueKind = "String", "String"
+			return nil
+		}
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
 		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
@@ -2243,6 +2250,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		goType = "types.Set"
 	case model.List:
 		goType = "types.List"
+		if joinOf(b.file, component, name, t) != "" {
+			goType = "types.String" // a list of strings that Terraform shows as one string
+		}
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:

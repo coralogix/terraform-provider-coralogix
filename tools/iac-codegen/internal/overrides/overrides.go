@@ -646,6 +646,10 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// Join shows a list of strings that the API holds as one string with the elements joined by the
+	// separator: `join: "/"` makes the list ["Team", "Sub"] the text "Team/Sub". Expand splits the
+	// text at every separator, with no trimming, and flatten joins the elements.
+	Join string `yaml:"join"`
 	// ClientID: uuid makes a string the id that the client makes. The attribute is Optional and
 	// Computed with UseNonNullStateForUnknown, so a new value plans unknown and an existing one keeps
 	// its state. Expand sends a UUID that it makes for a value that is unknown, and the value that
@@ -1109,6 +1113,9 @@ func (f *File) checkTypes() error {
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
+			if line.Join != "" && (line.Collection != "" || line.KeyedBy != nil || line.Split != "" || len(line.ValueNames) != 0 || line.ItemName != "" || line.SplitArms) {
+				return fmt.Errorf("types.%s.fields.%s: join shows a list of strings as one string, so collection, keyedBy, split, valueNames, itemName, and splitArms cannot be set", name, field)
+			}
 			if line.Split != "" && (line.Collection != "" || line.KeyedBy != nil) {
 				return fmt.Errorf("types.%s.fields.%s: split shows a string as a set, so collection and keyedBy cannot be set", name, field)
 			}
@@ -1266,6 +1273,8 @@ func (l Field) keys() []string {
 	add(l.ItemName != "", "itemName")
 	add(l.Negate, "negate")
 	add(l.Split != "", "split")
+	add(l.Join != "", "join")
+	add(l.ClientID != "", "clientID")
 	add(l.Inline, "inline")
 	return keys
 }
@@ -1462,7 +1471,7 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == "" && l.Join == "" && l.ClientID == ""
 }
 
 func (l Field) check() error {
@@ -1769,7 +1778,7 @@ func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
-		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != ""
+		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.Join != "" || l.ClientID != ""
 }
 
 func checkValidators(validators []Validator) error {

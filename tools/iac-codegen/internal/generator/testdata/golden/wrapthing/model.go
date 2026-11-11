@@ -22,6 +22,7 @@ type WrapThingModel struct {
 	MainLabel  types.String       `tfsdk:"main_label"`
 	ExtraLabel *LabelModel        `tfsdk:"extra_label"`
 	Panels     types.List         `tfsdk:"panels"`
+	FolderPath types.String       `tfsdk:"folder_path"`
 	Offset     types.Int64        `tfsdk:"offset"`
 }
 

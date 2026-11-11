@@ -5,7 +5,7 @@ mode: existing
 validators:
   inferred: false
 
-unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
+unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHolder, Selection, ListSelection]
 
 types:
   WrapThing:
@@ -28,6 +28,10 @@ types:
     fields:
       values:
         collection: set
+  # The segments of the folder path are one text, with the elements joined by a slash.
+  FolderPath:
+    fields:
+      segments: {join: "/"}
   # The client makes the id of a panel when the configuration leaves it out.
   WrapPanel:
     fields:

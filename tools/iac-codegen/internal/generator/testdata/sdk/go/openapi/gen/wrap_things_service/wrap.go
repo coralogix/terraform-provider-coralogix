@@ -70,6 +70,10 @@ type Label struct {
 	Value *string
 }
 
+type FolderPath struct {
+	Segments []string
+}
+
 // WrapPanel requires its id, so the SDK holds it as a value.
 type WrapPanel struct {
 	Id    UUID
@@ -92,6 +96,7 @@ type WrapThing struct {
 	MainLabel  *Label
 	ExtraLabel *Label
 	Panels     []WrapPanel
+	FolderPath *FolderPath
 	Offset     *string
 }
 
@@ -109,6 +114,7 @@ type CreateWrapThingRequest struct {
 	MainLabel  *Label
 	ExtraLabel *Label
 	Panels     []WrapPanel
+	FolderPath *FolderPath
 	Offset     *string
 }
 
@@ -126,6 +132,7 @@ type ReplaceWrapThingRequest struct {
 	MainLabel  *Label
 	ExtraLabel *Label
 	Panels     []WrapPanel
+	FolderPath *FolderPath
 	Offset     *string
 }
 

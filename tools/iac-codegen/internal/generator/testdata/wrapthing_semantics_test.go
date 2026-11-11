@@ -22,7 +22,7 @@ import (
 
 func ptr[T any](v T) *T { return &v }
 
-func strings(values ...string) types.List {
+func stringList(values ...string) types.List {
 	elems := make([]attr.Value, 0, len(values))
 	for _, v := range values {
 		elems = append(elems, types.StringValue(v))
@@ -47,11 +47,12 @@ func fullModel() *WrapThingModel {
 		RawQuery:   &LuceneQueryModel{Value: types.StringValue("raw")},
 		Priority:   types.StringValue("WRAP_PRIORITY_P1"),
 		Threshold:  types.Float64Value(0.5),
-		WidgetIds:  strings("a", "b"),
+		WidgetIds:  stringList("a", "b"),
 		Filter:     &SimpleFilterModel{Text: types.StringValue("text"), Limit: types.Int32Value(3), Span: types.Int64Value(-3)},
-		Selection:  strings("x", "y"),
+		Selection:  stringList("x", "y"),
 		Tags:       stringSet("p", "q"),
 		Panels:     types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()}),
+		FolderPath: types.StringNull(),
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
 		Offset:     types.Int64Value(-9007199254740993),
@@ -115,7 +116,7 @@ func TestExpandSendsNoWrapperForNull(t *testing.T) {
 func TestExpandSendsZeroValuesInTheirWrappers(t *testing.T) {
 	body, diags := expandCreate(context.Background(), &WrapThingModel{
 		Query: types.StringValue(""), Priority: types.StringNull(), Threshold: types.Float64Value(0),
-		WidgetIds: strings(), Selection: strings(), MainLabel: types.StringValue(""),
+		WidgetIds: stringList(), Selection: stringList(), MainLabel: types.StringValue(""),
 	})
 	if diags.HasError() {
 		t.Fatal(diags)
@@ -178,7 +179,7 @@ func TestFlattenKeepsAnItemWithoutValue(t *testing.T) {
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
-	if want := strings("a", ""); !got.WidgetIds.Equal(want) {
+	if want := stringList("a", ""); !got.WidgetIds.Equal(want) {
 		t.Fatalf("widget ids = %s, want %s", got.WidgetIds, want)
 	}
 }
@@ -500,5 +501,52 @@ func TestClientIDPlansUnknownForANewItemAndKeepsTheStateId(t *testing.T) {
 	}
 	if second["id"].IsKnown() {
 		t.Errorf("the new panel id = %v, want unknown", second["id"])
+	}
+}
+
+// A list of strings that the API holds in a wrapper is one text: the segments of a folder path are
+// "Team/Sub". Expand splits at every slash with no trimming, as the released resource did, and
+// flatten joins. A text that is null sends no wrapper and a response without a wrapper reads as null.
+func TestJoinedSegmentsAreOneText(t *testing.T) {
+	ctx := context.Background()
+	for text, want := range map[string][]string{
+		"Team/Sub":  {"Team", "Sub"},
+		"Team":      {"Team"},
+		"":          {""},
+		"/Team":     {"", "Team"},
+		"Team/":     {"Team", ""},
+		"Team//Sub": {"Team", "", "Sub"},
+	} {
+		body, diags := expandCreate(ctx, &WrapThingModel{
+			Query: types.StringNull(), Priority: types.StringNull(), Threshold: types.Float64Null(),
+			WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), Tags: types.SetNull(types.StringType), MainLabel: types.StringNull(),
+			FolderPath: types.StringValue(text),
+		})
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		if body.FolderPath == nil || !reflect.DeepEqual(body.FolderPath.Segments, want) {
+			t.Errorf("%q sent %+v, want %v", text, body.FolderPath, want)
+		}
+		resp := fullResponse()
+		resp.FolderPath = &wrap_things_service.FolderPath{Segments: want}
+		got, diags := flatten(ctx, resp)
+		if diags.HasError() || got.FolderPath.ValueString() != text {
+			t.Errorf("%v read as %q (%v), want %q", want, got.FolderPath.ValueString(), diags, text)
+		}
+	}
+	for name, folder := range map[string]types.String{"null": types.StringNull(), "unknown": types.StringUnknown()} {
+		body, _ := expandCreate(ctx, &WrapThingModel{
+			Query: types.StringNull(), Priority: types.StringNull(), Threshold: types.Float64Null(),
+			WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), Tags: types.SetNull(types.StringType), MainLabel: types.StringNull(),
+			FolderPath: folder,
+		})
+		if body.FolderPath != nil {
+			t.Errorf("%s sent %+v, want no wrapper", name, body.FolderPath)
+		}
+	}
+	got, _ := flatten(ctx, fullResponse())
+	if !got.FolderPath.IsNull() {
+		t.Errorf("a response without the path read as %v, want null", got.FolderPath)
 	}
 }

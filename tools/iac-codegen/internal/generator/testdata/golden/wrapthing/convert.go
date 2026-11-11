@@ -10,6 +10,7 @@ import (
 	"math"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -56,6 +57,7 @@ var createFields = []struct {
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
+	{attr: "folder_path", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }
 
@@ -326,6 +328,11 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 			out.Panels = append(out.Panels, *expandWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &items[i], diags))
 		}
 	}
+	{
+		var inner []string
+		inner = splitText(m.FolderPath, "/")
+		out.FolderPath = wrapFolderPath(inner)
+	}
 	out.Offset = expandInt64Wire(m.Offset)
 	return out
 }
@@ -487,6 +494,11 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 			out.Panels = append(out.Panels, *expandWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &items[i], diags))
 		}
 	}
+	{
+		var inner []string
+		inner = splitText(m.FolderPath, "/")
+		out.FolderPath = wrapFolderPath(inner)
+	}
 	out.Offset = expandInt64Wire(m.Offset)
 	return out
 }
@@ -550,6 +562,10 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 			items = append(items, *flattenWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &v.Panels[i], diags))
 		}
 		out.Panels = flattenList(ctx, types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, items, diags)
+	}
+	{
+		inner := unwrapFolderPath(v.FolderPath)
+		out.FolderPath = joinText(inner, "/")
 	}
 	out.Offset = flattenInt64Wire(p.AtName("offset"), v.Offset, diags)
 	return out
@@ -720,6 +736,22 @@ func unwrapLabel(w *wrap_things_service.Label) *string {
 		return nil
 	}
 	return w.Value
+}
+
+// wrapFolderPath puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapFolderPath(v []string) *wrap_things_service.FolderPath {
+	if v == nil {
+		return nil
+	}
+	return &wrap_things_service.FolderPath{Segments: v}
+}
+
+// unwrapFolderPath takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapFolderPath(w *wrap_things_service.FolderPath) []string {
+	if w == nil {
+		return nil
+	}
+	return w.Segments
 }
 
 // elements is a types.Set or a types.List.
@@ -967,6 +999,25 @@ func expandInt32(v types.Int32) *int32 {
 	}
 	n := v.ValueInt32()
 	return &n
+}
+
+// splitText returns the elements of a text that Terraform shows for a list of strings: the text split
+// at every separator, with no trimming, so "a//b/" is a, an empty text, b, and an empty text. A null
+// or unknown text is no list.
+func splitText(v types.String, sep string) []string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return strings.Split(v.ValueString(), sep)
+}
+
+// joinText returns the elements of a list as one text, joined by the separator. A list that the API
+// does not have is null.
+func joinText(v []string, sep string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strings.Join(v, sep))
 }
 
 // expandClientUUID returns the id that the client makes: the value of a known id, and a new version 4

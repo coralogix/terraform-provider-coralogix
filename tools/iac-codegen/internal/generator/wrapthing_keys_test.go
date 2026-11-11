@@ -48,3 +48,18 @@ func TestClientIDKeyIsChecked(t *testing.T) {
 		})
 	}
 }
+
+// join needs a list of plain strings, and cannot go with the keys that show the list another way.
+func TestJoinKeyIsChecked(t *testing.T) {
+	tests := map[string]struct{ from, to, want string }{
+		"a field that is no list": {"      span:\n        terraformType: Int64\n", "      span:\n        terraformType: Int64\n      text: {join: \"/\"}\n", "join"},
+		"with collection":         {`segments: {join: "/"}`, `segments: {join: "/", collection: set}`, "join shows a list of strings as one string"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateWrapThingWith(t, test.from, test.to); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
