@@ -1034,6 +1034,49 @@ func TestFloatAndNumberAttributesKeepTheReleasedTypes(t *testing.T) {
 	}
 }
 
+// Terraform parses a decimal such as 0.1 with more bits than a double holds. The API stores the
+// double, and reading it back as a double would plan one number and store another, which fails the
+// apply (inconsistent result) and shows a diff on every plan. A Number that rounds to the stored
+// double stays as configured. The test builds the number from text, as Terraform does, and not
+// from a double.
+func TestDoubleNumberKeepsTheConfiguredDecimal(t *testing.T) {
+	ctx := context.Background()
+	decimal := func(text string) types.Number {
+		f, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return types.NumberValue(f)
+	}
+	for _, text := range []string{"0.1", "2.5", "0.123456789012345678901"} {
+		configured := decimal(text)
+		req, diags := expandCreate(ctx, &ConfigThingModel{Scale: configured})
+		if diags.HasError() || req.Scale == nil {
+			t.Fatalf("%s: expand = %v, %v", text, req, diags)
+		}
+		api := &config_things_service.ConfigThing{Id: "thing-1", Scale: req.Scale}
+		got, diags := flatten(ctx, api, &ConfigThingModel{Scale: configured})
+		if diags.HasError() {
+			t.Fatalf("%s: %v", text, diags)
+		}
+		if !got.Scale.Equal(configured) {
+			t.Errorf("%s: read %v, want the configured %v to stay", text, got.Scale.ValueBigFloat().Text('g', 30), configured.ValueBigFloat().Text('g', 30))
+		}
+		// Import has no prior: the state takes the double of the API, which the next plan shows.
+		imported, diags := flatten(ctx, api, nil)
+		if diags.HasError() || imported.Scale.IsNull() {
+			t.Fatalf("%s: import read = %v, %v", text, imported.Scale, diags)
+		}
+	}
+
+	// A configured value that is another double than the API's changes the state.
+	other := 0.2
+	got, diags := flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1", Scale: &other}, &ConfigThingModel{Scale: decimal("0.1")})
+	if diags.HasError() || got.Scale.Equal(decimal("0.1")) {
+		t.Errorf("read = %v, %v, want the API value 0.2, not the prior", got.Scale, diags)
+	}
+}
+
 // An int32 Number holds a whole number in the int32 range. Another value is an error at apply, not
 // a cut value that reads back as another number.
 func TestNumberOverAnInt32RejectsWhatTheAPICannotHold(t *testing.T) {

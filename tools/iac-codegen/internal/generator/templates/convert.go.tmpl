@@ -1714,6 +1714,23 @@ func float64AsNumber(v *float64) types.Number {
 	return types.NumberValue(big.NewFloat(*v))
 }
 {{- end}}
+{{- if .Conv.Uses "float64asnumber"}}
+
+// keepPriorNumber returns the plan or state value prior when it is the same double as v, the value
+// that the API stores. A configured 0.1 then stays, though Terraform holds it with more bits than a
+// double and the API returns the double 0.1000000000000000055.
+func keepPriorNumber(prior, v types.Number) types.Number {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	p, _ := prior.ValueBigFloat().Float64()
+	f, _ := v.ValueBigFloat().Float64()
+	if p != f {
+		return v
+	}
+	return prior
+}
+{{- end}}
 {{- if .Conv.Uses "int64wire"}}
 
 // expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.
@@ -2332,6 +2349,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "float64asnumber"}}
 	out.{{.Model}} = float64AsNumber({{$v}})
 	{{- template "readZeroAsNull" .}}
+	if prior != nil {
+		out.{{.Model}} = keepPriorNumber(prior.{{.Model}}, out.{{.Model}})
+	}
 {{- else if eq .Conv "ints32asint64"}}
 	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, types.Int64Type, ints32AsInt64({{.Src}}), diags)
 {{- else if eq .Conv "float32"}}

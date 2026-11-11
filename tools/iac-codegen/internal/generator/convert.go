@@ -3063,7 +3063,7 @@ func markPriorFields(d *convData) error {
 				obj.NeedsPrior = true
 			}
 			// A double that the API stores as a float32 keeps the prior value of the same float32.
-			if f.Conv == convFloat64AsFloat32 || f.Conv == convFloat32AsFloat64 {
+			if f.Conv == convFloat64AsFloat32 || f.Conv == convFloat32AsFloat64 || f.Conv == convFloat64AsNumber {
 				obj.NeedsPrior = true
 			}
 			// An enum read in any case keeps the spelling of the prior value.

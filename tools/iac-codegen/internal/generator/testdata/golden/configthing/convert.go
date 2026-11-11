@@ -426,6 +426,9 @@ func flattenConfigThing(ctx context.Context, p path.Path, v *config_things_servi
 	}
 	out.Retries = int32AsNumber(v.Retries)
 	out.Scale = float64AsNumber(v.Scale)
+	if prior != nil {
+		out.Scale = keepPriorNumber(prior.Scale, out.Scale)
+	}
 	out.Marker = types.BoolPointerValue(v.Marker)
 	out.Remotes = types.ListNull(types.ObjectType{AttrTypes: configRemoteAttrTypes()})
 	srcRemotes := v.Remotes
@@ -1011,4 +1014,19 @@ func float64AsNumber(v *float64) types.Number {
 		return types.NumberNull()
 	}
 	return types.NumberValue(big.NewFloat(*v))
+}
+
+// keepPriorNumber returns the plan or state value prior when it is the same double as v, the value
+// that the API stores. A configured 0.1 then stays, though Terraform holds it with more bits than a
+// double and the API returns the double 0.1000000000000000055.
+func keepPriorNumber(prior, v types.Number) types.Number {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	p, _ := prior.ValueBigFloat().Float64()
+	f, _ := v.ValueBigFloat().Float64()
+	if p != f {
+		return v
+	}
+	return prior
 }
