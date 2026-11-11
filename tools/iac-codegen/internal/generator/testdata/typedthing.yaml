@@ -20,6 +20,7 @@ paths:
                 name: {type: string, x-coralogix-presence: true}
                 aggregation: {$ref: '#/components/schemas/TypedAggregation'}
                 selection: {$ref: '#/components/schemas/TypedSelection'}
+                pick: {$ref: '#/components/schemas/TypedPick'}
                 operator: {$ref: '#/components/schemas/TypedOperator'}
                 fields:
                   type: array
@@ -56,6 +57,7 @@ paths:
                 name: {type: string, x-coralogix-presence: true}
                 aggregation: {$ref: '#/components/schemas/TypedAggregation'}
                 selection: {$ref: '#/components/schemas/TypedSelection'}
+                pick: {$ref: '#/components/schemas/TypedPick'}
                 operator: {$ref: '#/components/schemas/TypedOperator'}
                 fields:
                   type: array
@@ -98,6 +100,7 @@ components:
         name: {type: string, x-coralogix-presence: true}
         aggregation: {$ref: '#/components/schemas/TypedAggregation'}
         selection: {$ref: '#/components/schemas/TypedSelection'}
+        pick: {$ref: '#/components/schemas/TypedPick'}
         operator: {$ref: '#/components/schemas/TypedOperator'}
         fields:
           type: array
@@ -215,3 +218,27 @@ components:
     TypedMode:
       type: string
       enum: [MODE_UNSPECIFIED, MODE_FAST, MODE_EXACT]
+    # A oneOf of all (no fields) and a list, as the legacy selection of a variable is: the released
+    # resource shows it as the list of values, with [] for all.
+    TypedPick:
+      type: object
+      oneOf:
+        - {required: [all], type: object}
+        - {required: [list], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [all], type: object}
+              - {required: [list], type: object}
+      properties:
+        all: {$ref: '#/components/schemas/TypedAll'}
+        list: {$ref: '#/components/schemas/TypedPickList'}
+    TypedPickList:
+      type: object
+      properties:
+        values:
+          type: array
+          items: {type: string}
+        labels:
+          type: array
+          items: {type: string}

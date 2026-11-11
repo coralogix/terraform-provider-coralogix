@@ -91,7 +91,12 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	if err := b.shareArmChecks(t, parts); err != nil {
 		return nil, err
 	}
-	m := &typedMerge{attrs: attrs, fields: fields, has: map[string][]string{}, required: map[string][]string{}, checked: map[string]map[string][]string{}}
+	for _, part := range parts {
+		if err := b.armRules(part); err != nil {
+			return nil, err
+		}
+	}
+	m := &typedMerge{attrs: attrs, fields: fields, has: map[string][]string{}, required: map[string][]string{}, checked: map[string]map[string][]string{}, rules: map[string][]typedRule{}}
 	for _, part := range parts {
 		if err := m.add(t, typeName, part); err != nil {
 			return nil, err
@@ -102,7 +107,7 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	if line.Infer {
 		inferTypeAttribute(attrs[0], arms, values, has)
 	}
-	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked))
+	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked, m.rules))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
@@ -123,6 +128,7 @@ type typedMerge struct {
 	has      map[string][]string
 	required map[string][]string
 	checked  map[string]map[string][]string
+	rules    map[string][]typedRule
 }
 
 // add merges the attributes of one arm. A merged field is optional, because other arms do not have
@@ -133,6 +139,9 @@ func (m *typedMerge) add(t *model.Type, typeName string, part *typedPart) error 
 	if len(part.checks) > 0 {
 		m.checked[part.value] = part.checks
 	}
+	if len(part.rules) > 0 {
+		m.rules[part.value] = part.rules
+	}
 	for _, a := range part.attrs {
 		m.has[part.value] = append(m.has[part.value], a.Name)
 		if a.Required || part.arm.Type.Kind != model.Object {
@@ -141,7 +150,7 @@ func (m *typedMerge) add(t *model.Type, typeName string, part *typedPart) error 
 		if a.Name == typeName {
 			return fmt.Errorf("%s: typedArms.field %q is also a field of the arm %s", t.Schema, typeName, part.arm.Name)
 		}
-		a.Required, a.Optional = false, true
+		a.Required, a.Optional, a.TypedArm = false, true, true
 		k := slices.IndexFunc(part.fields, func(f tfModelField) bool { return f.TFName == a.Name })
 		if k < 0 {
 			return fmt.Errorf("%s: the arm %s has no model field for the attribute %s", t.Schema, part.arm.Name, a.Name)
@@ -165,6 +174,67 @@ type typedPart struct {
 	attrs  []*tfAttr
 	fields []tfModelField
 	checks map[string][]string // the checks that run only when the type names this arm
+	rules  []typedRule         // the rules over attributes of this arm that run only when the type names it
+}
+
+// typedRule is a rule over attributes of an arm, from a validators line of one of its fields. Names
+// has the attribute of the line first, then the attributes that the line names.
+type typedRule struct {
+	Kind  string
+	Names []string
+}
+
+// crossValidator returns the kind of a validators entry that names other attributes, and the names.
+func crossValidator(v overrides.Validator) (string, []string) {
+	switch {
+	case len(v.ExactlyOneOf) != 0:
+		return "exactlyOneOf", v.ExactlyOneOf
+	case len(v.AtLeastOneOf) != 0:
+		return "atLeastOneOf", v.AtLeastOneOf
+	case len(v.AlsoRequires) != 0:
+		return "alsoRequires", v.AlsoRequires
+	case len(v.ConflictsWith) != 0:
+		return "conflictsWith", v.ConflictsWith
+	}
+	return "", nil
+}
+
+// armRules reads the validators lines of the fields of an object arm. They run only when the type
+// names the arm, because the merged field is one copy that every arm shares: a rule over other
+// attributes becomes a rule of the arm, and a validator of a text field becomes a check of the arm.
+func (b *tfBuilder) armRules(part *typedPart) error {
+	if part.arm.Type.Kind != model.Object || part.arm.Type.Schema == "" || inlinedTypedField(b.file, part.arm.Type) != nil {
+		return nil
+	}
+	has := map[string]bool{}
+	for _, a := range part.attrs {
+		has[a.Name] = true
+	}
+	for _, a := range part.attrs {
+		for _, v := range b.file.Types[part.arm.Type.Schema].Fields[a.Property].Validators {
+			if kind, names := crossValidator(v); kind != "" {
+				for _, name := range names {
+					if !has[name] || name == a.Name {
+						return fmt.Errorf("%s: validator target %q is not another attribute of the arm", part.arm.Name, name)
+					}
+				}
+				part.rules = append(part.rules, typedRule{Kind: kind, Names: append([]string{a.Name}, names...)})
+				continue
+			}
+			if a.ValueKind != "String" {
+				return fmt.Errorf("%s.%s: a validators line of a typedArms arm field takes a rule over other attributes, or a validator of a text field", part.arm.Name, a.Name)
+			}
+			expr, err := validatorExpr(a, v, b.file)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", part.arm.Name, a.Name, err)
+			}
+			if part.checks == nil {
+				part.checks = map[string][]string{}
+			}
+			part.checks[a.Name] = append(part.checks[a.Name], expr)
+		}
+	}
+	return nil
 }
 
 // shareArmChecks moves the checks of a field that two or more object arms share into the
@@ -353,7 +423,7 @@ type typedArm struct {
 // replace the arms as its fields. The arms keep their own conversion.
 func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 	line := b.file.TypedArmsOf(t.Schema)
-	if line == nil {
+	if line == nil || line.AsList {
 		return nil
 	}
 	if !b.resource.Replace {
@@ -471,7 +541,7 @@ func (b *convBuilder) mergeTyped(obj *convObject, merged []*convField, f *convFi
 // typedValidator is the Go expression of the typedArmValidator of an object whose merged attributes
 // are attrs[1:]. has lists the attributes of each arm, by value of the type, and checked the checks
 // of a scalar arm. required lists the fields that each arm needs when its type is chosen.
-func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]string, has, required map[string][]string, checked map[string]map[string][]string) string {
+func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]string, has, required map[string][]string, checked map[string]map[string][]string, rules map[string][]typedRule) string {
 	quote := func(names []string) string {
 		quoted := make([]string, 0, len(names))
 		for _, n := range names {
@@ -503,6 +573,20 @@ func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]stri
 	}
 	if len(vals) > 0 {
 		out += ", Values: map[string]map[string][]validator.String{" + strings.Join(vals, ", ") + "}"
+	}
+	var ruled []string
+	for _, arm := range arms {
+		v := values[arm.Name]
+		var items []string
+		for _, r := range rules[v] {
+			items = append(items, fmt.Sprintf("{Kind: %q, Names: []string{%s}}", r.Kind, quote(r.Names)))
+		}
+		if len(items) > 0 {
+			ruled = append(ruled, fmt.Sprintf("%q: {%s}", v, strings.Join(items, ", ")))
+		}
+	}
+	if len(ruled) > 0 {
+		out += ", Rules: map[string][]typedRule{" + strings.Join(ruled, ", ") + "}"
 	}
 	return out + "}"
 }

@@ -79,9 +79,13 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 			"names: {metadataField: metadata, tagField: tag, processTagField: process_tag}",
 			"field: value\n      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}", "field and value are both"},
 	}
+	cases["asList with a field"] = struct{ from, to, want string }{"typedArms: {asList: true}", "typedArms: {asList: true, field: kind}", "takes no field"}
+	cases["asList on a list arm with other fields"] = struct{ from, to, want string }{"      labels: {skip: true}\n", "      labels: {readEmptyAs: \"null\"}\n", "skip the other fields of the list arm"}
+	cases["a rule that names no attribute of the arm"] = struct{ from, to, want string }{"exactlyOneOf: [unit]", "exactlyOneOf: [nothing]", "is not another attribute of the arm"}
+	cases["a validators line on a number field of an arm"] = struct{ from, to, want string }{"      percentileUnit: {name: unit}\n", "      percentileUnit: {name: unit}\n      percent: {validators: [{between: [0, 1]}]}\n", "takes a rule over other attributes, or a validator of a text field"}
 	cases["two arm fields with one Go name and two Terraform names"] = struct{ from, to, want string }{
-		"      field: {readEmptyAs: \"null\"}\n      percentileUnit: {name: unit}",
-		"      field: {readEmptyAs: \"null\", name: other_field}\n      percentileUnit: {name: unit}", "have one Go name"}
+		"      field: {readEmptyAs: \"null\", validators: [{exactlyOneOf: [unit]}]}\n",
+		"      field: {readEmptyAs: \"null\", name: other_field}\n", "have one Go name"}
 	// A shared field that is not text has one attribute, so its checks must be the same in every arm.
 	t.Run("a shared number with other limits", func(t *testing.T) {
 		limited := strings.Replace(string(spec), "        weight: {type: number, format: double, x-coralogix-presence: true}\n", "        weight: {type: number, format: double, minimum: 0, x-coralogix-presence: true}\n", 1)

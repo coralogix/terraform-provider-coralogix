@@ -460,10 +460,17 @@ type TypedArms struct {
 	// list counts as set when it is not empty), and else the arm without fields. For a oneOf of
 	// `all` (no fields) and `list` (values), no values mean `all`, and some values mean `list`.
 	Infer bool `yaml:"infer"`
+	// AsList shows a oneOf of an arm without fields and an arm with one list of strings as that
+	// list: no values are the arm without fields, and some values are the list arm. No other key
+	// goes with it, because there is no object, no type, and no merged field.
+	AsList bool `yaml:"asList"`
 }
 
 // check checks the names of a typedArms line and that no two arms have one value.
 func (t *TypedArms) check() error {
+	if t.AsList && (t.Field != "" || t.Value != "" || len(t.Names) != 0 || t.Infer) {
+		return errors.New("typedArms.asList shows the oneOf as a list, so it takes no field, value, names, or infer")
+	}
 	for _, name := range []struct{ key, value string }{{"field", t.Field}, {"value", t.Value}} {
 		if name.value != "" && !tfNamePattern.MatchString(name.value) {
 			return fmt.Errorf("typedArms.%s %q must be lower case letters, digits, and _", name.key, name.value)

@@ -295,6 +295,9 @@ const (
 	convEnum       = "enum"       // types.String ↔ *<enum type> (D12)
 	convObj        = "object"     // *<Model> ↔ *<SDK type>
 	convEmpty      = "empty"      // *<Model> ↔ map[string]interface{} (F16)
+	// convFoldList shows a oneOf of an arm without fields and an arm with one list as that list
+	// (typedArms.asList): no values are the first arm, some values the second.
+	convFoldList = "foldlist" // types.List of strings ↔ *<oneOf SDK type>
 	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
 	convEmptyBool = "emptybool"
 	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
@@ -410,6 +413,8 @@ type convField struct {
 	FixedValue   string
 	// StringFold holds the two arms of a oneOf that Terraform shows as one string (asString).
 	StringFold *foldArms
+	// ListFold holds the arms of a oneOf that Terraform shows as one list (typedArms.asList).
+	ListFold *foldList
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -1482,6 +1487,12 @@ type foldArms struct {
 	Empty []emptyFoldArm
 }
 
+// foldList holds the arms of a oneOf that typedArms.asList shows as one list: the Go fields of the
+// arm without fields and of the arm with the list, the type of that arm, and the Go field of its list.
+type foldList struct {
+	All, List, ListType, Values string
+}
+
 // emptyFoldArm is one arm of a oneOf of objects without fields that asString shows as a string.
 type emptyFoldArm struct {
 	Value string // the Terraform name of the arm
@@ -1796,6 +1807,29 @@ func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, na
 	return "*" + obj.SDK, nil
 }
 
+// foldListConv sets the conversion of a oneOf that typedArms.asList shows as one list of strings.
+func (b *convBuilder) foldListConv(cf *convField, t *model.Type) (string, error) {
+	all, list, err := listArms(t)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", cf.TFName, err)
+	}
+	obj, err := b.nested(t)
+	if err != nil {
+		return "", err
+	}
+	allField, listField := fieldByModel(obj.Fields, camelize(all.Name)), fieldByModel(obj.Fields, camelize(list.Name))
+	if allField == nil || listField == nil || listField.Object == nil || len(listField.Object.Fields) != 1 {
+		return "", fmt.Errorf("%s: typedArms.asList needs the arms %s and %s", cf.TFName, all.Name, list.Name)
+	}
+	values := listField.Object.Fields[0]
+	if values.Conv != convStrings || values.EnumMap != nil || values.Enum || values.Wrap != nil || values.Projection != nil {
+		return "", fmt.Errorf("%s: typedArms.asList needs a list arm with one list of plain strings", cf.TFName)
+	}
+	cf.Conv, cf.SDKType = convFoldList, b.qualify(obj.SDK)
+	cf.ListFold = &foldList{All: allField.SDK, List: listField.SDK, ListType: b.qualify(listField.Object.SDK), Values: values.SDK}
+	return "*" + obj.SDK, nil
+}
+
 // foldEmptyArmsConv sets the conversion of a oneOf of objects without fields that Terraform shows
 // as one string: the name of the arm that is set. The SDK holds each arm as a map.
 func (b *convBuilder) foldEmptyArmsConv(cf *convField, t *model.Type, arms []*model.Field) (string, error) {
@@ -2034,6 +2068,9 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[t.Schema].CaseInsensitive
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
+		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
+			return b.foldListConv(cf, t)
+		}
 		if len(t.Fields) == 0 {
 			cf.Conv, cf.Object = convEmpty, &convObject{Model: modelTypeName(t.Schema)}
 			return "map[string]interface{}", nil
@@ -2662,7 +2699,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convFoldString: "types.StringType", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convFoldString: "types.StringType", convFoldList: "types.ListType{ElemType: types.StringType}", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convIntegerAsString: "types.StringType",
 	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type", convFloat32AsFloat64: "types.Float64Type",
 	convInt32AsNumber: "types.NumberType", convFloat64AsNumber: "types.NumberType",

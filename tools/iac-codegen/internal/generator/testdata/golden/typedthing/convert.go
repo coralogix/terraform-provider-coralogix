@@ -59,6 +59,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "aggregation", serverDefault: false},
 	{attr: "selection", serverDefault: false},
+	{attr: "picked_values", serverDefault: false},
 	{attr: "operator", serverDefault: false},
 	{attr: "fields", serverDefault: false},
 }
@@ -118,6 +119,8 @@ var oneOfArms = map[string]bool{
 	"aggregation.percentile":         true,
 	"selection.all":                  true,
 	"selection.list":                 true,
+	"picked_values.all":              true,
+	"picked_values.list":             true,
 	"operator.equals":                true,
 	"operator.equals.selection.all":  true,
 	"operator.equals.selection.list": true,
@@ -133,6 +136,7 @@ var computedAttrs = map[string]bool{
 	"id":                        true,
 	"selection.selection_type":  true,
 	"selection.selected_values": true,
+	"picked_values":             true,
 	"operator.selection_type":   true,
 	"operator.selected_values":  true,
 }
@@ -291,6 +295,16 @@ func expandCreateTypedThingBody(ctx context.Context, p path.Path, m *TypedThingM
 	out.Name = expandString(m.Name)
 	out.Aggregation = expandTypedAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
 	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	if v := m.Pick; !v.IsNull() && !v.IsUnknown() {
+		// No values select the arm without fields. Some values are the list arm.
+		fold := &typed_things_service.TypedPick{}
+		if values := expandElements[string](ctx, p.AtName("picked_values"), v, diags); len(values) == 0 {
+			fold.All = map[string]interface{}{}
+		} else {
+			fold.List = &typed_things_service.TypedPickList{Values: values}
+		}
+		out.Pick = fold
+	}
 	out.Operator = expandTypedOperator(ctx, p.AtName("operator"), m.Operator, diags)
 	if items := expandElements[TypedSpanFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]typed_things_service.TypedSpanField, 0, len(items))
@@ -832,6 +846,16 @@ func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThing
 	out.Name = expandString(m.Name)
 	out.Aggregation = expandTypedAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
 	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	if v := m.Pick; !v.IsNull() && !v.IsUnknown() {
+		// No values select the arm without fields. Some values are the list arm.
+		fold := &typed_things_service.TypedPick{}
+		if values := expandElements[string](ctx, p.AtName("picked_values"), v, diags); len(values) == 0 {
+			fold.All = map[string]interface{}{}
+		} else {
+			fold.List = &typed_things_service.TypedPickList{Values: values}
+		}
+		out.Pick = fold
+	}
 	out.Operator = expandTypedOperator(ctx, p.AtName("operator"), m.Operator, diags)
 	if items := expandElements[TypedSpanFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]typed_things_service.TypedSpanField, 0, len(items))
@@ -859,6 +883,15 @@ func flattenTypedThing(ctx context.Context, p path.Path, v *typed_things_service
 		priorSelection = prior.Selection
 	}
 	out.Selection = flattenTypedSelection(ctx, p.AtName("selection"), v.Selection, priorSelection, diags)
+	out.Pick = types.ListNull(types.StringType)
+	if fold := v.Pick; fold != nil {
+		switch {
+		case fold.List != nil:
+			out.Pick = flattenStringsList(ctx, append([]string{}, fold.List.Values...), diags)
+		case fold.All != nil:
+			out.Pick = flattenStringsList(ctx, []string{}, diags)
+		}
+	}
 	var priorOperator *TypedOperatorModel
 	if prior != nil {
 		priorOperator = prior.Operator

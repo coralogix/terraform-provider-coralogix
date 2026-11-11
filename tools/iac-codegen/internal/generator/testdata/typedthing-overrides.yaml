@@ -20,6 +20,8 @@ types:
   TypedThing:
     fields:
       id: {readOnly: true}
+      # The legacy selection is the list of values: [] selects all.
+      pick: {name: picked_values, computed: true, default: []}
   TypedAggregation:
     typedArms:
       # The released spelling of an arm that is not its name: average is avg.
@@ -46,7 +48,9 @@ types:
   # is a copy of the first arm's, so it has no trace of that need.
   TypedPercentile:
     fields:
-      field: {readEmptyAs: "null"}
+      # Per-arm rule: exactly one of field and unit is set when the type is percentile. The rule
+      # does not apply to the average, which shares the field attribute.
+      field: {readEmptyAs: "null", validators: [{exactlyOneOf: [unit]}]}
       percentileUnit: {name: unit}
   # Two arms call their field by different API names, and the released resource shows both as
   # unit: one attribute.
@@ -59,6 +63,14 @@ types:
       processTagField: {readEmptyAs: "null"}
     typedArms:
       names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
+
+  # A oneOf of all and a list is shown as that list, with no type attribute: [] is all, and values
+  # are the list. The labels of the list arm are not shown.
+  TypedPick:
+    typedArms: {asList: true}
+  TypedPickList:
+    fields:
+      labels: {skip: true}
 
 enums:
   # The enum of the first arm and the free text of the second arm share one attribute, mode. The

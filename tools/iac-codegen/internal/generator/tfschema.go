@@ -152,6 +152,10 @@ type tfAttr struct {
 	// FoldArms are the Terraform values of a oneOf of arms without fields that the attribute shows
 	// as one string (asString): the name of the arm that is set.
 	FoldArms []string
+	// TypedArm: the attribute is a field that a typedArms object merged from its arms. The
+	// validators lines of an arm field run only when the type names the arm, so the attribute
+	// itself takes none of them.
+	TypedArm bool
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
@@ -516,6 +520,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
 					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
+				}
+				if a.TypedArm {
+					line.Validators = nil
 				}
 				if err := checkSiblingTargets(a, attrs, above, line.Validators); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
@@ -1339,6 +1346,9 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
+		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
+			return b.asListAttribute(a, p, t)
+		}
 		if asString(b.file, a.Component, a.Property) {
 			if arms := emptyArms(t); arms != nil {
 				a.Kind, a.ValueKind = "String", "String"
@@ -1564,7 +1574,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
-	if line := b.file.TypedArmsOf(t.Schema); line != nil {
+	if line := b.file.TypedArmsOf(t.Schema); line != nil && !line.AsList {
 		if t.Kind != model.OneOf && t.Kind != model.Object {
 			return nil, fmt.Errorf("%s: typedArms needs a oneOf or an object, not a %s", t.Schema, t.Kind)
 		}
@@ -2212,7 +2222,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if shown := b.scalarOneOf(component, name); shown != "" {
+		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
+			goType = "types.List"
+		} else if shown := b.scalarOneOf(component, name); shown != "" {
 			goType = shown
 		} else if behavior == model.Computed || computed {
 			goType = "types.Object"
@@ -2688,6 +2700,54 @@ func (b *tfBuilder) scalarOneOf(component, name string) string {
 // asString reports whether the field has an asString line.
 func asString(file *overrides.File, component, field string) bool {
 	return file != nil && file.Types[component].Fields[field].AsString
+}
+
+// listArms returns the arm without fields and the arm with one list of strings of a oneOf that
+// typedArms.asList shows as that list.
+func listArms(t *model.Type) (all, list *model.Field, err error) {
+	if t.Kind != model.OneOf || len(t.Fields) != 2 || len(t.Wrappers) != 0 {
+		return nil, nil, errors.New("typedArms.asList needs a oneOf with two arms: an object without fields and an object with one list")
+	}
+	for _, arm := range t.Fields {
+		switch {
+		case emptyObject(arm.Type) && all == nil:
+			all = arm
+		case arm.Type.Kind == model.Object && len(arm.Type.Fields) == 1 && arm.Type.Fields[0].Type.Kind == model.List && list == nil:
+			list = arm
+		}
+	}
+	if all == nil || list == nil {
+		return nil, nil, errors.New("typedArms.asList needs a oneOf with two arms: an object without fields and an object with one list; skip the other fields of the list arm")
+	}
+	return all, list, nil
+}
+
+// asListAttribute makes a the list of strings of a oneOf that typedArms.asList shows as that list.
+// The type of the list comes from the list arm. The model struct of that arm is not needed.
+func (b *tfBuilder) asListAttribute(a *tfAttr, p attrPath, t *model.Type) error {
+	_, list, err := listArms(t)
+	if err != nil {
+		return fmt.Errorf("%s: %w", t.Schema, err)
+	}
+	owned := !b.seen[typeModelName(list.Type)]
+	inner, err := b.objectAttributes(p, list.Type)
+	if err != nil {
+		return err
+	}
+	if owned {
+		// Nothing else shows the list arm as an object, so its model struct would be unused.
+		name := typeModelName(list.Type)
+		delete(b.seen, name)
+		delete(b.owners, name)
+		b.models = slices.DeleteFunc(b.models, func(m *tfModel) bool { return m.Name == name })
+	}
+	if len(inner) != 1 || inner[0].Kind != "List" || inner[0].ElementType != "types.StringType" {
+		return fmt.Errorf("%s: typedArms.asList needs a list arm with one list of strings", t.Schema)
+	}
+	a.Kind, a.ValueKind, a.ElementType = "List", "List", inner[0].ElementType
+	a.Validators = append(a.Validators, inner[0].Validators...)
+	a.ElemValidators = inner[0].ElemValidators
+	return nil
 }
 
 // emptyArms returns the arms of a oneOf whose arms are all objects without fields, which asString

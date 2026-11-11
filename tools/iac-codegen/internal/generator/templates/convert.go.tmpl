@@ -1956,6 +1956,17 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "foldlist"}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		// No values select the arm without fields. Some values are the list arm.
+		fold := &{{.SDKType}}{}
+		if values := expandElements[string](ctx, {{$p}}, v, diags); len(values) == 0 {
+			fold.{{.ListFold.All}} = map[string]interface{}{}
+		} else {
+			fold.{{.ListFold.List}} = &{{.ListFold.ListType}}{{"{"}}{{.ListFold.Values}}: values{{"}"}}
+		}
+		{{.Dst}} = {{$l}}fold{{$r}}
+	}
 {{- else if and (eq .Conv "foldstring") .StringFold.Empty}}
 	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
 		// The text names the arm. Each arm is an object without fields.
@@ -2313,6 +2324,16 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 	{{- end}}
+{{- else if eq .Conv "foldlist"}}
+	out.{{.Model}} = types.ListNull(types.StringType)
+	if fold := {{$v}}; fold != nil {
+		switch {
+		case fold.{{.ListFold.List}} != nil:
+			out.{{.Model}} = flattenStringsList(ctx, append([]string{}, fold.{{.ListFold.List}}.{{.ListFold.Values}}...), diags)
+		case fold.{{.ListFold.All}} != nil:
+			out.{{.Model}} = flattenStringsList(ctx, []string{}, diags)
+		}
+	}
 {{- else if and (eq .Conv "foldstring") .StringFold.Empty}}
 	out.{{.Model}} = types.StringNull()
 	if fold := {{$v}}; fold != nil {

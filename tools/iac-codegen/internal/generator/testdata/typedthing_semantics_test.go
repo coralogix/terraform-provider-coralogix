@@ -2,6 +2,7 @@ package typedthing
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -220,7 +221,7 @@ func TestTypeValidatorChecksTheArm(t *testing.T) {
 	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("slow")}) {
 		t.Fatal("slow is no mode of avg")
 	}
-	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "mode": str("slow")}) {
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "field": str("f"), "mode": str("slow")}) {
 		t.Fatal("the mode of percentile is free text")
 	}
 	// A scalar arm is chosen by its value, so the type alone selects no arm.
@@ -626,6 +627,105 @@ func TestImportReadsTheSharedUnitOfEachArm(t *testing.T) {
 		}
 		if !attrs["type"].Equal(str(kind)) || !attrs["unit"].Equal(str(unit)) {
 			t.Fatalf("%s: type = %v, unit = %v, want %s and %s", kind, attrs["type"], attrs["unit"], kind, unit)
+		}
+	}
+}
+
+// A oneOf of an arm without fields and an arm with a list is shown as that list: [] is the arm
+// without fields, values are the list arm, and null sends neither.
+func TestOneOfShownAsTheListOfItsListArm(t *testing.T) {
+	for name, test := range map[string]struct {
+		values  tftypes.Value
+		wantAll bool
+		wantVal []string // nil: no list arm
+	}{
+		"empty list is all": {stringList(), true, nil},
+		"values are a list": {stringList("a", "b"), false, []string{"a", "b"}},
+		"null sends none":   {tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, nil), false, nil},
+	} {
+		typed_things_service.Created = nil
+		createWith(t, map[string]tftypes.Value{"picked_values": test.values}, nil)
+		pick := typed_things_service.Created[0].Pick
+		switch {
+		case !test.wantAll && test.wantVal == nil:
+			if pick != nil {
+				t.Errorf("%s: sent pick %+v, want none", name, pick)
+			}
+		case pick == nil || (pick.All != nil) != test.wantAll || (pick.List != nil) != (test.wantVal != nil):
+			t.Errorf("%s: sent pick %+v, want all %v and values %v", name, pick, test.wantAll, test.wantVal)
+		case test.wantVal != nil && !slices.Equal(pick.List.Values, test.wantVal):
+			t.Errorf("%s: sent values %v, want %v", name, pick.List.Values, test.wantVal)
+		}
+	}
+}
+
+// The read puts the arm back as the list: all is [], the list arm is its values, and no arm is null.
+// An import has only the id, so the same read must give the state that the plan has.
+func TestOneOfShownAsAListReadsBack(t *testing.T) {
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	for name, test := range map[string]struct {
+		pick *typed_things_service.TypedPick
+		want tftypes.Value
+	}{
+		"all":    {&typed_things_service.TypedPick{All: map[string]interface{}{}}, stringList()},
+		"list":   {&typed_things_service.TypedPick{List: &typed_things_service.TypedPickList{Values: []string{"x", "y"}}}, stringList("x", "y")},
+		"empty":  {&typed_things_service.TypedPick{List: &typed_things_service.TypedPickList{}}, stringList()},
+		"no arm": {&typed_things_service.TypedPick{}, tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, nil)},
+	} {
+		id := "thing-1"
+		typed_things_service.Stored = typed_things_service.TypedThing{Id: &id, Pick: test.pick}
+		r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+		resp := &frameworkresource.ReadResponse{State: state}
+		r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("%s: %v", name, resp.Diagnostics)
+		}
+		var values map[string]tftypes.Value
+		if err := resp.State.Raw.As(&values); err != nil {
+			t.Fatal(err)
+		}
+		if got := values["picked_values"]; !got.Equal(test.want) {
+			t.Errorf("%s: picked_values = %v, want %v", name, got, test.want)
+		}
+	}
+}
+
+// A validators line on the field of one arm is a rule of that arm: it runs only when the type names
+// the arm. The percentile needs exactly one of field and unit. The average shares the field and
+// the unit, and has no such rule.
+func TestValidatorsLineOfAnArmFieldRunsOnlyForThatArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	typeAttr := schemaResp.Schema.Attributes["aggregation"].(schema.SingleNestedAttribute).Attributes["type"].(schema.StringAttribute)
+	at := path.Root("aggregation").AtName("type")
+	valid := func(aggregation map[string]tftypes.Value) bool {
+		t.Helper()
+		config := tfsdk.Config{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{
+			"name": str("a"), "aggregation": objectValue(aggregationType(root), aggregation),
+		})}
+		resp := &validator.StringResponse{}
+		for _, v := range typeAttr.Validators {
+			v.ValidateString(context.Background(), validator.StringRequest{Path: at, PathExpression: at.Expression(), Config: config, ConfigValue: types.StringValue(*stringOf(aggregation["type"]))}, resp)
+		}
+		return !resp.Diagnostics.HasError()
+	}
+	unknown := tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+	for name, test := range map[string]struct {
+		aggregation map[string]tftypes.Value
+		valid       bool
+	}{
+		"percentile with a field":      {map[string]tftypes.Value{"type": str("percentile"), "field": str("f")}, true},
+		"percentile with a unit":       {map[string]tftypes.Value{"type": str("percentile"), "unit": str("ms")}, true},
+		"percentile with both":         {map[string]tftypes.Value{"type": str("percentile"), "field": str("f"), "unit": str("ms")}, false},
+		"percentile with neither":      {map[string]tftypes.Value{"type": str("percentile")}, false},
+		"percentile, field unknown":    {map[string]tftypes.Value{"type": str("percentile"), "field": unknown, "unit": str("ms")}, true},
+		"avg with both has no rule":    {map[string]tftypes.Value{"type": str("avg"), "field": str("f"), "unit": str("ms")}, true},
+		"avg with neither has no rule": {map[string]tftypes.Value{"type": str("avg")}, true},
+	} {
+		if got := valid(test.aggregation); got != test.valid {
+			t.Errorf("%s: valid = %v, want %v", name, got, test.valid)
 		}
 	}
 }

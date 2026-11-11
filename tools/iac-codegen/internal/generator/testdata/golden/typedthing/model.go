@@ -12,6 +12,7 @@ type TypedThingModel struct {
 	Name        types.String           `tfsdk:"name"`
 	Aggregation *TypedAggregationModel `tfsdk:"aggregation"`
 	Selection   *TypedSelectionModel   `tfsdk:"selection"`
+	Pick        types.List             `tfsdk:"picked_values"`
 	Operator    *TypedOperatorModel    `tfsdk:"operator"`
 	Fields      types.List             `tfsdk:"fields"`
 }
