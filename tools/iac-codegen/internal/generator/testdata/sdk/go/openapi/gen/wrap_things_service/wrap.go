@@ -80,6 +80,18 @@ type WrapPanel struct {
 	Title *string
 }
 
+// WrapNote requires its id and its panel id, so the SDK holds them as values.
+type WrapNote struct {
+	Id      string
+	Text    *string
+	PanelId UUID
+	Detail  *NoteDetail
+}
+
+type NoteDetail struct {
+	Url *string
+}
+
 // WrapThing requires query, so the SDK holds it as a value, not a pointer.
 type WrapThing struct {
 	Id         string
@@ -96,6 +108,7 @@ type WrapThing struct {
 	MainLabel  *Label
 	ExtraLabel *Label
 	Panels     []WrapPanel
+	Notes      []WrapNote
 	FolderPath *FolderPath
 	Offset     *string
 }
@@ -114,6 +127,7 @@ type CreateWrapThingRequest struct {
 	MainLabel  *Label
 	ExtraLabel *Label
 	Panels     []WrapPanel
+	Notes      []WrapNote
 	FolderPath *FolderPath
 	Offset     *string
 }
@@ -132,6 +146,7 @@ type ReplaceWrapThingRequest struct {
 	MainLabel  *Label
 	ExtraLabel *Label
 	Panels     []WrapPanel
+	Notes      []WrapNote
 	FolderPath *FolderPath
 	Offset     *string
 }

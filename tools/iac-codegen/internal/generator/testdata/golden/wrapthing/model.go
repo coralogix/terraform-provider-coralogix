@@ -40,7 +40,18 @@ type LabelModel struct {
 	Value types.String `tfsdk:"value"`
 }
 
+type NoteDetailModel struct {
+	Url types.String `tfsdk:"url"`
+}
+
+type WrapNoteModel struct {
+	Id     types.String     `tfsdk:"id"`
+	Text   types.String     `tfsdk:"text"`
+	Detail *NoteDetailModel `tfsdk:"detail"`
+}
+
 type WrapPanelModel struct {
-	Id    types.String `tfsdk:"id"`
-	Title types.String `tfsdk:"title"`
+	Id         types.String `tfsdk:"id"`
+	Title      types.String `tfsdk:"title"`
+	PanelNotes types.List   `tfsdk:"panel_notes"`
 }

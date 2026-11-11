@@ -71,6 +71,9 @@ type File struct {
 	// Inlined is what the generator derives from the upsert and inline lines. It is not a key of
 	// the file.
 	Inlined *Inlined `yaml:"-"`
+	// Distributed is what the generator derives from the distributeTo lines: the lists that the
+	// resource no longer holds. It is not a key of the file.
+	Distributed []*Distribution `yaml:"-"`
 	// TypeName is the released resource type name without the provider prefix, for example
 	// "slo_v2" for coralogix_slo_v2. "" names the resource after its OpenAPI component.
 	TypeName string `yaml:"typeName"`
@@ -655,6 +658,10 @@ type Field struct {
 	// its state. Expand sends a UUID that it makes for a value that is unknown, and the value that
 	// the configuration or the state has otherwise.
 	ClientID string `yaml:"clientID"`
+	// DistributeTo, on a top-level list of objects, shows the items of the list inside the items of
+	// another component, as a released resource showed the custom actions of a widget, which the
+	// API keeps in one list of the dashboard. The list is not an attribute of the resource.
+	DistributeTo *Distribute `yaml:"distributeTo"`
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
@@ -728,6 +735,88 @@ type Field struct {
 	// Split shows a string that the API holds as values joined by this separator, "a,b", as a set
 	// of strings, as the released resource did. Expand joins the values; flatten splits the text.
 	Split string `yaml:"split"`
+}
+
+// Distribute is a distributeTo line. Each item of the list names the component item that it
+// belongs to: by.listField is the field of the list item that holds the id, and by.itemField is
+// the field of the component that holds the same id. The component gets an attribute as, a list
+// of the list items that name it. Expand collects the items of every component into the list,
+// with the id of the component, and flatten groups the items of the response by that id.
+type Distribute struct {
+	// Item is the component whose items get the attribute.
+	Item string `yaml:"item"`
+	// As is the Terraform name of the attribute that the items of Item get.
+	As string `yaml:"as"`
+	// By says which fields hold the id: the item of the list names its component by ListField,
+	// and the component has the id in ItemField. Both are strings.
+	By DistributeBy `yaml:"by"`
+	// Keep is a dotted path of API names in a list item, such as definition.customAction. Flatten
+	// shows only the items whose value at the path is set, and leaves the other items out.
+	Keep string `yaml:"keep"`
+}
+
+// DistributeBy names the fields that hold the id of a distributeTo line.
+type DistributeBy struct {
+	ListField string `yaml:"listField"`
+	ItemField string `yaml:"itemField"`
+}
+
+// Distribution is a distributeTo line with the model that the generator took out of the resource:
+// the list and the field of its items that names the component. The renderer reads them from the
+// file, because the resource no longer has them.
+type Distribution struct {
+	Line Distribute
+	// Field is the top-level list.
+	Field *model.ResourceField
+	// Hidden is the field of the list items that By.ListField names. The generated code sets it and
+	// reads it, so it is no attribute.
+	Hidden *model.Field
+}
+
+// check reports a distributeTo line that lacks a key, or names a bad one.
+func (d *Distribute) check() error {
+	if d.Item == "" || d.As == "" || d.By.ListField == "" || d.By.ItemField == "" {
+		return errors.New("distributeTo needs item, as, and by with listField and itemField")
+	}
+	if !validAttrName.MatchString(d.As) {
+		return fmt.Errorf("distributeTo.as %q is not a Terraform attribute name: lower case letters, digits, and _", d.As)
+	}
+	if d.Keep == "" {
+		return nil
+	}
+	for _, step := range strings.Split(d.Keep, ".") {
+		if step == "" {
+			return fmt.Errorf("distributeTo.keep %q is a dotted path of API names", d.Keep)
+		}
+	}
+	return nil
+}
+
+// DistributedFields returns the top-level fields that distributeTo lines name, in order.
+func (f *File) DistributedFields(resource string) []string {
+	if f == nil {
+		return nil
+	}
+	var out []string
+	for _, name := range sortedKeys(f.Types[resource].Fields) {
+		if f.Types[resource].Fields[name].DistributeTo != nil {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// DistributionOf returns the distribution of the top-level field, or nil.
+func (f *File) DistributionOf(field string) *Distribution {
+	if f == nil {
+		return nil
+	}
+	for _, d := range f.Distributed {
+		if d.Field.Name == field {
+			return d
+		}
+	}
+	return nil
 }
 
 // Carry is a carrySiblings line.
@@ -1275,6 +1364,7 @@ func (l Field) keys() []string {
 	add(l.Split != "", "split")
 	add(l.Join != "", "join")
 	add(l.ClientID != "", "clientID")
+	add(l.DistributeTo != nil, "distributeTo")
 	add(l.Inline, "inline")
 	return keys
 }
@@ -1471,7 +1561,7 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == "" && l.Join == "" && l.ClientID == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == "" && l.Join == "" && l.ClientID == "" && l.DistributeTo == nil
 }
 
 func (l Field) check() error {
@@ -1479,6 +1569,9 @@ func (l Field) check() error {
 		return errors.New("the line sets nothing")
 	}
 	if err := l.checkConflicts(); err != nil {
+		return err
+	}
+	if err := l.checkDistributeTo(); err != nil {
 		return err
 	}
 	if err := l.checkDefault(); err != nil {
@@ -1569,6 +1662,24 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
+	return nil
+}
+
+// checkDistributeTo checks a distributeTo line. The list is no attribute of the resource, so the
+// line states only the attribute that the items of the component get: its texts.
+func (l Field) checkDistributeTo() error {
+	if l.DistributeTo == nil {
+		return nil
+	}
+	if err := l.DistributeTo.check(); err != nil {
+		return err
+	}
+	others := slices.DeleteFunc(l.keys(), func(key string) bool {
+		return key == "distributeTo" || key == "description" || key == "markdownDescription"
+	})
+	if len(others) != 0 {
+		return fmt.Errorf("distributeTo moves the list into another component, so the line sets only description and markdownDescription besides it, not %s", strings.Join(others, ", "))
 	}
 	return nil
 }
@@ -1778,7 +1889,7 @@ func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
-		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.Join != "" || l.ClientID != ""
+		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.Join != "" || l.ClientID != "" || l.DistributeTo != nil
 }
 
 func checkValidators(validators []Validator) error {

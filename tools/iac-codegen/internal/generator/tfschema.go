@@ -194,7 +194,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r, file), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
@@ -1674,6 +1674,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		attrs = append(attrs, a)
 		fields = append(fields, field)
 	}
+	distributed, distributedFields, err := b.distributedAttributes(p, t)
+	if err != nil {
+		return nil, err
+	}
 	oneOfs := t.Groups
 	if t.Kind == model.OneOf {
 		group := model.OneOfGroup{AllowNone: t.AllowNone}
@@ -1689,6 +1693,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		return nil, err
 	}
 	b.keptArmConflicts(t, attrs)
+	attrs, fields = append(attrs, distributed...), append(fields, distributedFields...)
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -2362,11 +2367,17 @@ func responseOnly(behavior model.Behavior) bool {
 // "Component.field".
 type sentSet map[string]bool
 
-// sentFields returns the component fields that a request sends in some place of r.
-func sentFields(r *model.Resource) sentSet {
+// sentFields returns the component fields that a request sends in some place of r. A list that a
+// distributeTo line moved out of the resource is sent as before.
+func sentFields(r *model.Resource, file *overrides.File) sentSet {
 	sent := sentSet{}
 	for _, f := range r.Fields {
 		sent.add(f.Type)
+	}
+	if file != nil {
+		for _, d := range file.Distributed {
+			sent.add(d.Field.Type)
+		}
 	}
 	return sent
 }

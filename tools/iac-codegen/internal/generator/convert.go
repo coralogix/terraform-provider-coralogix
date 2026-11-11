@@ -80,6 +80,8 @@ type convData struct {
 	// RootUnsupported are the oneOf arms of the resource itself that it does not configure
 	// (unsupportedArms). flatten reports a response that selects one before it checks Arms.
 	RootUnsupported []unsupportedArm
+	// Distributions are the lists that distributeTo lines moved into the items of a component.
+	Distributions []*convDistribution
 }
 
 // convArm is an inlined object of the resource response that the SDK holds in a pointer.
@@ -229,6 +231,9 @@ type convObject struct {
 	// Typed is set when Terraform shows the oneOf as a type attribute plus the merged fields of
 	// its arms (typedArms). Fields then holds the type and the merged fields, all Carried.
 	Typed *convTyped
+	// Lists are the top-level lists of a root that distributeTo lines moved into other objects.
+	// Expand sends the items that those objects collect, and flatten gives the response list to them.
+	Lists []convRootList
 }
 
 // convCarry is an object that Terraform shows as the arms of its oneOf field: each arm attribute
@@ -346,6 +351,9 @@ const (
 	// (splitArms). Object holds the conversion of each arm, whose Model is the attribute.
 	convSplitArms = "splitarms" // types.Set/List per arm ↔ []<SDK type>
 
+	// convDistributed is a list that Terraform shows in the items of another object (distributeTo).
+	convDistributed = "distributed" // types.List of objects ↔ the items of a list of the resource
+
 	convKeyedObjects = "keyedobjects" // types.Map of objects ↔ []<SDK type> keyed by a property (keyedBy)
 	convKeyedValues  = "keyedvalues"  // types.Map of String ↔ []<SDK type> of a key and a value (keyedBy)
 )
@@ -419,6 +427,10 @@ type convField struct {
 	ListFold *foldList
 	// ClientID: expand makes a UUID for an unknown value (clientID: uuid).
 	ClientID bool
+	// Dist and ItemID are set on a distributed field (distributeTo): the attribute of the object that
+	// holds the items of a list of the resource. ItemID is the field of the object that names them.
+	Dist   *convDistribution
+	ItemID *convField
 	// Join is the separator of a list of strings that Terraform shows as one string (join).
 	Join string
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
@@ -710,7 +722,7 @@ func (d *convData) HasValue() bool {
 			}
 		}
 	}
-	return false
+	return slices.ContainsFunc(d.Distributions, func(dist *convDistribution) bool { return dist.List.Value })
 }
 
 // setBodyMask records the SDK field that carries a JSON-body update mask.
@@ -747,7 +759,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err != nil {
 		return nil, err
 	}
-	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
+	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file)}
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
@@ -776,6 +788,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		if err := b.buildRoot(out, root); err != nil {
 			return nil, err
 		}
+	}
+	if err := b.distribute(out); err != nil {
+		return nil, err
 	}
 	if err := b.arms(out); err != nil {
 		return nil, err
@@ -809,6 +824,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	out.ItemProjections = b.projections
 	out.KeyedObjects = b.keyedObjects
 	if err := markPrior(out); err != nil {
+		return nil, err
+	}
+	if err := checkDistributions(out); err != nil {
 		return nil, err
 	}
 	for _, f := range r.Fields {
@@ -1055,29 +1073,9 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 			// The SDK struct still has it, and the released client sends the fixed value.
 			typ = f.Type
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
+		cf, err := b.rootField(obj, root, fieldsPath, f, typ)
 		if err != nil {
-			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-		}
-		if root.expand && fieldsPath == root.path && f.RequestPathOf(root.path == "update.body") != "" {
-			// The request holds the field deeper than the wrapper, so the Go expression goes through the objects.
-			prefix, err := b.requestObjects(obj, root, f)
-			if err != nil {
-				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-			}
-			cf.SDK = prefix + cf.SDK
-		}
-		if parent := root.parent(f); parent != nil {
-			// The SDK holds the field in the inlined object, so the Go expression goes through it.
-			field, err := b.parentField(obj, root, parent)
-			if err != nil {
-				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-			}
-			cf.SDK = field + "." + cf.SDK
-		}
-		b.markComputedObjectValue(cf, f, root.path == "fields")
-		if err := checkReadEmptyAs(cf); err != nil {
-			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+			return err
 		}
 		if group := b.file.GroupOf(f.Name); group != "" {
 			b.addToGroup(obj, groups, group, cf)
@@ -1085,11 +1083,44 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
+	if err := b.rootLists(obj, root, fieldsPath); err != nil {
+		return err
+	}
 	if err := b.mark(obj, root.expand); err != nil {
 		return fmt.Errorf("%s: %w", root.path, err)
 	}
 	*root.obj = obj
 	return nil
+}
+
+// rootField returns the conversion of the top-level field f of type typ in the root: the Go
+// expression of its SDK field goes through the request objects and the inlined object that hold it.
+func (b *convBuilder) rootField(obj *convObject, root convRoot, fieldsPath string, f *model.ResourceField, typ *model.Type) (*convField, error) {
+	cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
+	if err != nil {
+		return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+	}
+	if root.expand && fieldsPath == root.path && f.RequestPathOf(root.path == "update.body") != "" {
+		// The request holds the field deeper than the wrapper, so the Go expression goes through the objects.
+		prefix, err := b.requestObjects(obj, root, f)
+		if err != nil {
+			return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		cf.SDK = prefix + cf.SDK
+	}
+	if parent := root.parent(f); parent != nil {
+		// The SDK holds the field in the inlined object, so the Go expression goes through it.
+		field, err := b.parentField(obj, root, parent)
+		if err != nil {
+			return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		cf.SDK = field + "." + cf.SDK
+	}
+	b.markComputedObjectValue(cf, f, root.path == "fields")
+	if err := checkReadEmptyAs(cf); err != nil {
+		return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+	}
+	return cf, nil
 }
 
 // rootType is the type of field f in the root at path: the request type in
@@ -1398,6 +1429,7 @@ type convBuilder struct {
 	wraps        []*wrapHelper
 	projections  []*itemProjection
 	keyedObjects []*keyedObject
+	dists        map[string]*convDistribution // by the name of the top-level list
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.
@@ -2680,7 +2712,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		switch {
 		case f.Conv == convTime && expand:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects:
+		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects || f.Conv == convDistributed:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -2767,13 +2799,13 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.Int64Type}", nil
 	case convKeyedValues:
 		return "types.MapType{ElemType: types.StringType}", nil
-	case convObj, convObjects, convObjectMap, convGroup, convKeyedObjects:
+	case convObj, convObjects, convObjectMap, convGroup, convKeyedObjects, convDistributed:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}
 		expr := "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
 		switch f.Conv {
-		case convObjects:
+		case convObjects, convDistributed:
 			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
 		case convObjectMap, convKeyedObjects:
 			expr = "types.MapType{ElemType: " + expr + "}"

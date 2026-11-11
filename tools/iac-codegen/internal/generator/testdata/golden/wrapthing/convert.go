@@ -115,8 +115,9 @@ var oneOfArms = map[string]bool{}
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":        true,
-	"panels.id": true,
+	"id":                    true,
+	"panels.id":             true,
+	"panels.panel_notes.id": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -263,11 +264,47 @@ func emptyValue(at string, v attr.Value) bool {
 	return false
 }
 
+// distributedNotes holds the Notes list of one request or one response. The list is no
+// attribute of the resource: each item of it is an attribute of the object that it names. Expand
+// collects the items of every object, and flatten gives each object the items that name it.
+type distributedNotes struct {
+	items []wrap_things_service.WrapNote
+}
+
+type distributedNotesKey struct{}
+
+// withDistributedNotes returns ctx with a new collector that holds items.
+func withDistributedNotes(ctx context.Context, items []wrap_things_service.WrapNote) (context.Context, *distributedNotes) {
+	d := &distributedNotes{items: items}
+	return context.WithValue(ctx, distributedNotesKey{}, d), d
+}
+
+// distributedNotesOf returns the collector of ctx, or nil when ctx has none.
+func distributedNotesOf(ctx context.Context) *distributedNotes {
+	d, _ := ctx.Value(distributedNotesKey{}).(*distributedNotes)
+	return d
+}
+
+// of returns the items that name the object with the id, in the order of the list.
+func (d *distributedNotes) of(id string) []wrap_things_service.WrapNote {
+	var out []wrap_things_service.WrapNote
+	for _, a := range d.items {
+		if !(a.Detail != nil && a.Detail.Url != nil) {
+			continue
+		}
+		if got := unwrapUUID(&a.PanelId); got != nil && *got == id {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThingModel, diags *diag.Diagnostics) *wrap_things_service.CreateWrapThingRequest {
 	if m == nil {
 		return nil
 	}
 	out := &wrap_things_service.CreateWrapThingRequest{}
+	ctx, collectedNotes := withDistributedNotes(ctx, nil)
 	out.Name = expandString(m.Name)
 	{
 		var inner *string
@@ -334,6 +371,7 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		out.FolderPath = wrapFolderPath(inner)
 	}
 	out.Offset = expandInt64Wire(m.Offset)
+	out.Notes = collectedNotes.items
 	return out
 }
 
@@ -406,6 +444,21 @@ func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags 
 		out.Id = valueOf(wrapUUID(inner))
 	}
 	out.Title = expandString(m.Title)
+	if items := expandElements[WrapNoteModel](ctx, p.AtName("panel_notes"), m.PanelNotes, diags); len(items) != 0 {
+		if collected := distributedNotesOf(ctx); collected != nil {
+			// The items name this object by its id, as the request holds it.
+			id := unwrapUUID(&out.Id)
+			if id == nil || *id == "" {
+				diags.AddAttributeError(p.AtName("panel_notes"), "Missing id", "The items name their object by its id, so the object needs an id.")
+			} else {
+				for i := range items {
+					item := expandWrapNote(ctx, p.AtName("panel_notes").AtListIndex(i), &items[i], diags)
+					item.PanelId = valueOf(wrapUUID(id))
+					collected.items = append(collected.items, *item)
+				}
+			}
+		}
+	}
 	return out
 }
 
@@ -419,13 +472,80 @@ func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.Id = types.StringPointerValue(inner)
 	}
 	out.Title = types.StringPointerValue(v.Title)
+	out.PanelNotes = types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})
+	if collected := distributedNotesOf(ctx); collected != nil {
+		if id := unwrapUUID(&v.Id); id != nil {
+			if matched := collected.of(*id); len(matched) != 0 {
+				items := make([]WrapNoteModel, 0, len(matched))
+				for i := range matched {
+					items = append(items, *flattenWrapNote(ctx, p.AtName("panel_notes").AtListIndex(i), &matched[i], diags))
+				}
+				out.PanelNotes = flattenList(ctx, types.ObjectType{AttrTypes: wrapNoteAttrTypes()}, items, diags)
+			}
+		}
+	}
 	return out
 }
 
 func wrapPanelAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"id":    types.StringType,
-		"title": types.StringType,
+		"id":          types.StringType,
+		"title":       types.StringType,
+		"panel_notes": types.ListType{ElemType: types.ObjectType{AttrTypes: wrapNoteAttrTypes()}},
+	}
+}
+
+func expandWrapNote(ctx context.Context, p path.Path, m *WrapNoteModel, diags *diag.Diagnostics) *wrap_things_service.WrapNote {
+	if m == nil {
+		return nil
+	}
+	out := &wrap_things_service.WrapNote{}
+	out.Id = valueOf(expandClientUUID(m.Id))
+	out.Text = expandString(m.Text)
+	out.Detail = expandNoteDetail(ctx, p.AtName("detail"), m.Detail, diags)
+	return out
+}
+
+func flattenWrapNote(ctx context.Context, p path.Path, v *wrap_things_service.WrapNote, diags *diag.Diagnostics) *WrapNoteModel {
+	if v == nil {
+		return nil
+	}
+	out := &WrapNoteModel{}
+	out.Id = types.StringPointerValue(&v.Id)
+	out.Text = types.StringPointerValue(v.Text)
+	out.Detail = flattenNoteDetail(ctx, p.AtName("detail"), v.Detail, diags)
+	return out
+}
+
+func wrapNoteAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":     types.StringType,
+		"text":   types.StringType,
+		"detail": types.ObjectType{AttrTypes: noteDetailAttrTypes()},
+	}
+}
+
+func expandNoteDetail(ctx context.Context, p path.Path, m *NoteDetailModel, diags *diag.Diagnostics) *wrap_things_service.NoteDetail {
+	if m == nil {
+		return nil
+	}
+	out := &wrap_things_service.NoteDetail{}
+	out.Url = expandString(m.Url)
+	return out
+}
+
+func flattenNoteDetail(ctx context.Context, p path.Path, v *wrap_things_service.NoteDetail, diags *diag.Diagnostics) *NoteDetailModel {
+	if v == nil {
+		return nil
+	}
+	out := &NoteDetailModel{}
+	out.Url = types.StringPointerValue(v.Url)
+	return out
+}
+
+func noteDetailAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"url": types.StringType,
 	}
 }
 
@@ -434,6 +554,7 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		return nil
 	}
 	out := &wrap_things_service.ReplaceWrapThingRequest{}
+	ctx, collectedNotes := withDistributedNotes(ctx, nil)
 	out.Name = expandString(m.Name)
 	{
 		var inner *string
@@ -500,6 +621,7 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		out.FolderPath = wrapFolderPath(inner)
 	}
 	out.Offset = expandInt64Wire(m.Offset)
+	out.Notes = collectedNotes.items
 	return out
 }
 
@@ -507,6 +629,7 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	if v == nil {
 		return nil
 	}
+	ctx, _ = withDistributedNotes(ctx, v.Notes)
 	out := &WrapThingModel{}
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(v.Name)

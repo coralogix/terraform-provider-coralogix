@@ -324,6 +324,9 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		refs = append(refs, ref)
 	}
+	if err := distributeFields(resource, file); err != nil {
+		return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the distributeTo line.")
+	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}

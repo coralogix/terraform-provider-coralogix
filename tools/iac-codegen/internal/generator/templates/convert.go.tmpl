@@ -504,6 +504,45 @@ func defaultValue(at string, child attr.Value) bool {
 	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
 }
 {{- end}}
+{{- range .Distributions}}
+
+// distributed{{.Name}} holds the {{.Name}} list of one request or one response. The list is no
+// attribute of the resource: each item of it is an attribute of the object that it names. Expand
+// collects the items of every object, and flatten gives each object the items that name it.
+type distributed{{.Name}} struct {
+	items []{{.SDKType}}
+}
+
+type distributed{{.Name}}Key struct{}
+
+// withDistributed{{.Name}} returns ctx with a new collector that holds items.
+func withDistributed{{.Name}}(ctx context.Context, items []{{.SDKType}}) (context.Context, *distributed{{.Name}}) {
+	d := &distributed{{.Name}}{items: items}
+	return context.WithValue(ctx, distributed{{.Name}}Key{}, d), d
+}
+
+// distributed{{.Name}}Of returns the collector of ctx, or nil when ctx has none.
+func distributed{{.Name}}Of(ctx context.Context) *distributed{{.Name}} {
+	d, _ := ctx.Value(distributed{{.Name}}Key{}).(*distributed{{.Name}})
+	return d
+}
+
+// of returns the items that name the object with the id, in the order of the list.
+func (d *distributed{{.Name}}) of(id string) []{{.SDKType}} {
+	var out []{{.SDKType}}
+	for _, a := range d.items {
+{{- if .Keep}}
+		if !({{.Keep}}) {
+			continue
+		}
+{{- end}}
+		if got := {{.ListRead}}; got != nil && *got == id {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+{{- end}}
 {{range .Objects}}
 {{- if and .Expand .Group}}
 // expand{{.Func}} writes the fields of a group, which the API holds in the parent object, to out.
@@ -525,6 +564,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}{}
+{{- range .Lists}}
+	ctx, collected{{.Dist.Name}} := withDistributed{{.Dist.Name}}(ctx, nil)
+{{- end}}
 {{- range .Parents}}
 	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its fields are top-level attributes
 {{- end}}
@@ -532,6 +574,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- if not (or .FlattenOnly .Carried)}}
 {{- template "expandField" .}}
 {{- end}}
+{{- end}}
+{{- range .Lists}}
+	out.{{.SDK}} = collected{{.Dist.Name}}.items
 {{- end}}
 {{- range .DropEmptyParents}}
 	if out.{{.SDK}} != nil{{range .Nulls}} && {{.}}{{end}} {
@@ -577,6 +622,9 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 		v.{{.SDK}} = &{{.Type}}{}
 	}
 {{- end}}
+{{- end}}
+{{- range .Lists}}
+	ctx, _ = withDistributed{{.Dist.Name}}(ctx, v.{{.SDK}})
 {{- end}}
 	out := &{{.Model}}{}
 {{- range .Fields}}
@@ -1921,6 +1969,22 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	} else {
 		{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 	}
+{{- else if eq .Conv "distributed"}}
+	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); len(items) != 0 {
+		if collected := distributed{{.Dist.Name}}Of(ctx); collected != nil {
+			// The items name this object by its id, as the request holds it.
+			id := {{.ItemID.ReadOf "out"}}
+			if id == nil || *id == "" {
+				diags.AddAttributeError({{$p}}, "Missing id", "The items name their object by its id, so the object needs an id.")
+			} else {
+				for i := range items {
+					item := expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags)
+					item.{{.Dist.List.SDK}} = {{.Dist.List.WriteOf "id"}}
+					collected.items = append(collected.items, *item)
+				}
+			}
+		}
+	}
 {{- else if and (eq .Conv "string") .ClientID}}
 	{{.Dst}} = {{$l}}expandClientUUID(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "string"}}
@@ -2182,7 +2246,20 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "flattenValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $v := .Src}}{{if .DirectValue}}{{$v = printf "&%s" .Src}}{{end}}
-{{- if eq .Conv "join"}}
+{{- if eq .Conv "distributed"}}
+	out.{{.Model}} = types.ListNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if collected := distributed{{.Dist.Name}}Of(ctx); collected != nil {
+		if id := {{.ItemID.ReadOf "v"}}; id != nil {
+			if matched := collected.of(*id); len(matched) != 0 {
+				items := make([]{{.Object.Model}}, 0, len(matched))
+				for i := range matched {
+					items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &matched[i], diags))
+				}
+				out.{{.Model}} = flattenList(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+			}
+		}
+	}
+{{- else if eq .Conv "join"}}
 	out.{{.Model}} = joinText({{.Src}}, {{printf "%q" .Join}})
 {{- else if eq .Conv "split"}}
 	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})

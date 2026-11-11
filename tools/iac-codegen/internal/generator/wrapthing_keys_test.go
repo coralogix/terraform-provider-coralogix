@@ -63,3 +63,84 @@ func TestJoinKeyIsChecked(t *testing.T) {
 		})
 	}
 }
+
+// generateWrapThingSpecWith generates the wrapthing contract with its overrides file as it is and the
+// from in the contract changed to to, for each pair of changes.
+func generateWrapThingSpecWith(t *testing.T, changes ...[2]string) error {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := string(spec)
+	for _, change := range changes {
+		if !strings.Contains(changed, change[0]) {
+			t.Fatalf("the contract has no %q", change[0])
+		}
+		changed = strings.ReplaceAll(changed, change[0], change[1])
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(changed)
+	return generateFromInput(Options{Resource: "WrapThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: filepath.Join("testdata", "wrapthing-overrides.yaml")}, input, loadDir)
+}
+
+// distributeTo names a list of objects of the resource, a component that the resource holds, and two
+// string fields that hold the id. The line states only the texts of the attribute, and the list must
+// be sent whole by a request that replaces the resource.
+func TestDistributeToKeyIsChecked(t *testing.T) {
+	line := "          by: {listField: panelId, itemField: id}\n"
+	other := "      name: {distributeTo: {item: WrapPanel, as: moved, by: {listField: panelId, itemField: id}}}\n"
+	tests := map[string]struct{ from, to, want string }{
+		"an item that the resource does not hold":              {"item: WrapPanel", "item: Elsewhere", "item Elsewhere is no component that the resource holds"},
+		"the list itself as the item":                          {"item: WrapPanel", "item: WrapNote", "item WrapNote is no component that the resource holds"},
+		"a list field that does not exist":                     {"listField: panelId", "listField: nopeId", "by.listField: WrapNote has no field nopeId"},
+		"an item field that does not exist":                    {"itemField: id", "itemField: nope", "by.itemField: WrapPanel has no field nope"},
+		"a list field that is no string":                       {"listField: panelId", "listField: detail", "the field detail of WrapNote is no plain string"},
+		"a name that an attribute has":                         {"as: panel_notes", "as: title", "WrapPanel has the attribute title already"},
+		"a name that is no attribute name":                     {"as: panel_notes", "as: Panel-Notes", "is not a Terraform attribute name"},
+		"no name":                                              {"          as: panel_notes\n", "", "distributeTo needs item, as, and by"},
+		"no field that holds the id":                           {line, "          by: {listField: panelId}\n", "distributeTo needs item, as, and by"},
+		"a keep path that does not exist":                      {"keep: detail.url", "keep: detail.nope", "keep: NoteDetail has no field nope"},
+		"a keep path that is always set":                       {"keep: detail.url", "keep: id", "keep: id of WrapNote is set in every item"},
+		"a keep path through a string":                         {"keep: detail.url", "keep: text.nope", "keep: \"text.nope\" goes through a value that has no fields"},
+		"with skip":                                            {"      notes:\n", "      notes:\n        skip: true\n", "distributeTo moves the list into another component"},
+		"with readOnly":                                        {"      notes:\n", "      notes:\n        readOnly: true\n", "distributeTo moves the list into another component"},
+		"with name":                                            {"      notes:\n", "      notes:\n        name: other\n", "distributeTo moves the list into another component"},
+		"on a field that is no list":                           {"      rawQuery:\n", other + "      rawQuery:\n", "distributeTo needs a list of objects of a component, but name is not one"},
+		"on a field of another component":                      {"  SimpleFilter:\n    fields:\n", "  SimpleFilter:\n    fields:\n      text: {distributeTo: {item: WrapPanel, as: moved, by: {listField: panelId, itemField: id}}}\n", "distributeTo works on a top-level field of the resource WrapThing"},
+		"in the moved items, a key that needs the prior value": {"  WrapNote:\n    fields:\n", "  WrapNote:\n    fields:\n      text: {equality: json}\n", "distributeTo does not support equality"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateWrapThingWith(t, test.from, test.to); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// distributeTo cannot move a list that a request requires, or that another component holds too.
+func TestDistributeToNeedsAListThatTheContractAllows(t *testing.T) {
+	inBody, inResponse := "                notes:\n                  type: array\n", "        notes:\n          type: array\n"
+	tests := map[string]struct {
+		changes [][2]string
+		want    string
+	}{
+		"a list that Create requires": {[][2]string{
+			{"              required: [query]\n", "              required: [query, notes]\n"},
+			{"      required: [id, query]\n      properties:\n        id: {type: string, readOnly: true}", "      required: [id, query, notes]\n      properties:\n        id: {type: string, readOnly: true}"},
+			{inBody, inBody + "                  minItems: 1\n"},
+			{inResponse, inResponse + "          minItems: 1\n"},
+		}, "Create and Update leave optional"},
+		"a component that another place holds": {[][2]string{
+			{"        title: {type: string, x-coralogix-presence: true}\n", "        title: {type: string, x-coralogix-presence: true}\n        pinned: {$ref: '#/components/schemas/WrapNote'}\n"},
+		}, "WrapNote is held in other places too"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateWrapThingSpecWith(t, test.changes...); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

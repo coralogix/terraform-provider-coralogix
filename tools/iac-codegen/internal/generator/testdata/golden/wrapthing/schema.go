@@ -122,6 +122,36 @@ func Schema() schema.Schema {
 							Optional:            true,
 							MarkdownDescription: "",
 						},
+						"panel_notes": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"id": schema.StringAttribute{
+										Optional: true,
+										Computed: true,
+										PlanModifiers: []planmodifier.String{
+											stringplanmodifier.UseNonNullStateForUnknown(),
+										},
+										MarkdownDescription: "",
+									},
+									"text": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+									"detail": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"url": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+										},
+										MarkdownDescription: "",
+									},
+								},
+							},
+							MarkdownDescription: "The notes of this panel.",
+						},
 					},
 				},
 				MarkdownDescription: "",

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -353,6 +354,11 @@ func TestFoldedOneOfValidatorAcceptsTheUnionOfBothArms(t *testing.T) {
 
 func panelList(t *testing.T, panels ...WrapPanelModel) types.List {
 	t.Helper()
+	for i := range panels {
+		if panels[i].PanelNotes.ElementType(context.Background()) == nil {
+			panels[i].PanelNotes = types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})
+		}
+	}
 	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, panels)
 	if diags.HasError() {
 		t.Fatal(diags)
@@ -447,7 +453,9 @@ func TestClientIDPlansUnknownForANewItemAndKeepsTheStateId(t *testing.T) {
 	root := schemaResp.ResourceSchemas["test_wrap_thing"].ValueType().(tftypes.Object)
 	panelType := root.AttributeTypes["panels"].(tftypes.List).ElementType.(tftypes.Object)
 	panel := func(id tftypes.Value) tftypes.Value {
-		return tftypes.NewValue(panelType, map[string]tftypes.Value{"id": id, "title": tftypes.NewValue(tftypes.String, nil)})
+		return tftypes.NewValue(panelType, map[string]tftypes.Value{
+			"id": id, "title": tftypes.NewValue(tftypes.String, nil), "panel_notes": tftypes.NewValue(panelType.AttributeTypes["panel_notes"], nil),
+		})
 	}
 	thing := func(id string, panels ...tftypes.Value) tftypes.Value {
 		values := map[string]tftypes.Value{}
@@ -548,5 +556,240 @@ func TestJoinedSegmentsAreOneText(t *testing.T) {
 	got, _ := flatten(ctx, fullResponse())
 	if !got.FolderPath.IsNull() {
 		t.Errorf("a response without the path read as %v, want null", got.FolderPath)
+	}
+}
+
+func noteList(t *testing.T, notes ...WrapNoteModel) types.List {
+	t.Helper()
+	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: wrapNoteAttrTypes()}, notes)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return list
+}
+
+func noteOf(id, text, url string) WrapNoteModel {
+	note := WrapNoteModel{Id: types.StringValue(id), Text: types.StringValue(text), Detail: &NoteDetailModel{Url: types.StringValue(url)}}
+	if id == "" {
+		note.Id = types.StringUnknown()
+	}
+	return note
+}
+
+func apiNote(id, panel, url string) wrap_things_service.WrapNote {
+	note := wrap_things_service.WrapNote{Id: id, Text: ptr("text of " + id), PanelId: wrap_things_service.UUID{Value: ptr(panel)}}
+	if url != "" {
+		note.Detail = &wrap_things_service.NoteDetail{Url: ptr(url)}
+	}
+	return note
+}
+
+func notesModel(t *testing.T, panels ...WrapPanelModel) *WrapThingModel {
+	t.Helper()
+	return &WrapThingModel{Query: types.StringValue("q"), Panels: panelList(t, panels...)}
+}
+
+func panelsOf(t *testing.T, m *WrapThingModel) []WrapPanelModel {
+	t.Helper()
+	var panels []WrapPanelModel
+	if diags := m.Panels.ElementsAs(context.Background(), &panels, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	return panels
+}
+
+// The notes of a panel are in the list of the thing, and each one names its panel by the id of the
+// panel. Expand takes them out of the panels in order, and writes the id that the panel has in the
+// request: a known id as it is, and the UUID that expand makes for a panel without an id, the same
+// in the panel and in its notes. The notes have their own ids, made in the same way. Create and
+// Update send the same list.
+func TestDistributedItemsAreSentInTheListOfTheThing(t *testing.T) {
+	ctx := context.Background()
+	model := notesModel(t,
+		WrapPanelModel{Id: types.StringValue("p1"), PanelNotes: noteList(t, noteOf("a", "first", "u1"), noteOf("b", "second", "u2"))},
+		WrapPanelModel{Id: types.StringValue("p2"), PanelNotes: noteList(t, noteOf("c", "third", "u3"))},
+		WrapPanelModel{Id: types.StringUnknown(), PanelNotes: noteList(t, noteOf("", "fourth", "u4"))},
+		WrapPanelModel{Id: types.StringValue("p4"), PanelNotes: types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})},
+		WrapPanelModel{Id: types.StringValue("p5"), PanelNotes: noteList(t)},
+	)
+	create, diags := expandCreate(ctx, model)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	update, diags := expandUpdate(ctx, model)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	for name, notes := range map[string][]wrap_things_service.WrapNote{"create": create.Notes, "update": update.Notes} {
+		if len(notes) != 4 {
+			t.Fatalf("%s sent %d notes, want 4: %+v", name, len(notes), notes)
+		}
+		for i, want := range []struct{ id, panel, text, url string }{{"a", "p1", "first", "u1"}, {"b", "p1", "second", "u2"}, {"c", "p2", "third", "u3"}} {
+			note := notes[i]
+			if note.Id != want.id || *note.PanelId.Value != want.panel || *note.Text != want.text || *note.Detail.Url != want.url {
+				t.Errorf("%s note %d = %+v, want %+v", name, i, note, want)
+			}
+		}
+	}
+	// The panel without an id gets a made UUID, and its note names that UUID. The note has an id of its own.
+	made := create.Panels[2].Id.Value
+	last := create.Notes[3]
+	if made == nil || !uuidV4.MatchString(*made) {
+		t.Fatalf("the panel without an id got %v, want a made UUID", made)
+	}
+	if last.PanelId.Value == nil || *last.PanelId.Value != *made {
+		t.Errorf("the note names the panel %v, want the id that the panel is sent with, %s", last.PanelId.Value, *made)
+	}
+	if !uuidV4.MatchString(last.Id) || last.Id == *made {
+		t.Errorf("the note id = %q, want its own made UUID", last.Id)
+	}
+	if len(create.Panels) != 5 {
+		t.Errorf("sent %d panels, want 5", len(create.Panels))
+	}
+}
+
+// Without notes there is no list to send, and a request does not keep the notes of the one before.
+func TestDistributedItemsAreNotSentWhenThereAreNone(t *testing.T) {
+	ctx := context.Background()
+	model := notesModel(t, WrapPanelModel{Id: types.StringValue("p1")}, WrapPanelModel{Id: types.StringValue("p2"), PanelNotes: noteList(t)})
+	for name, expand := range map[string]func() ([]wrap_things_service.WrapNote, diag.Diagnostics){
+		"create": func() ([]wrap_things_service.WrapNote, diag.Diagnostics) {
+			b, d := expandCreate(ctx, model)
+			return b.Notes, d
+		},
+		"update": func() ([]wrap_things_service.WrapNote, diag.Diagnostics) {
+			b, d := expandUpdate(ctx, model)
+			return b.Notes, d
+		},
+	} {
+		notes, diags := expand()
+		if diags.HasError() || len(notes) != 0 {
+			t.Errorf("%s: notes = %+v (%v), want none", name, notes, diags)
+		}
+	}
+	// A request starts with an empty list: the notes of the one before are not in it.
+	with := notesModel(t, WrapPanelModel{Id: types.StringValue("p1"), PanelNotes: noteList(t, noteOf("a", "x", "u"))})
+	for range 2 {
+		body, diags := expandCreate(ctx, with)
+		if diags.HasError() || len(body.Notes) != 1 {
+			t.Errorf("notes = %+v (%v), want one", body.Notes, diags)
+		}
+	}
+}
+
+// A note names its panel by the id of the panel, so a panel without one cannot have notes.
+func TestDistributedItemsNeedTheIdOfTheirPanel(t *testing.T) {
+	model := notesModel(t, WrapPanelModel{Id: types.StringNull(), PanelNotes: noteList(t, noteOf("a", "x", "u"))})
+	if _, diags := expandCreate(context.Background(), model); !diags.HasError() {
+		t.Fatal("a panel with notes and no id: want an error")
+	}
+}
+
+// Flatten gives each panel the notes that name it, in the order of the list, with the ids that the API
+// has. A note without a url is another kind of note, so no panel shows it, and a note of another
+// panel is in no panel. A panel with none reads null. A read has no prior value, so this is also the
+// read after an import.
+func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
+	ctx := context.Background()
+	response := &wrap_things_service.WrapThing{
+		Id: "thing-1",
+		Panels: []wrap_things_service.WrapPanel{
+			{Id: wrap_things_service.UUID{Value: ptr("p1")}},
+			{Id: wrap_things_service.UUID{Value: ptr("p2")}},
+			{Id: wrap_things_service.UUID{Value: ptr("p3")}},
+		},
+		Notes: []wrap_things_service.WrapNote{
+			apiNote("a", "p1", "u1"),
+			apiNote("b", "p2", "u2"),
+			apiNote("c", "p1", "u3"),
+			apiNote("d", "p1", ""),
+			{Id: "e", PanelId: wrap_things_service.UUID{Value: ptr("p2")}, Detail: &wrap_things_service.NoteDetail{}},
+			apiNote("f", "other", "u4"),
+			{Id: "g", PanelId: wrap_things_service.UUID{}, Detail: &wrap_things_service.NoteDetail{Url: ptr("u5")}},
+		},
+	}
+	got, diags := flatten(ctx, response)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	panels := panelsOf(t, got)
+	if len(panels) != 3 {
+		t.Fatalf("read %d panels, want 3", len(panels))
+	}
+	want := []types.List{
+		noteList(t, WrapNoteModel{Id: types.StringValue("a"), Text: types.StringValue("text of a"), Detail: &NoteDetailModel{Url: types.StringValue("u1")}},
+			WrapNoteModel{Id: types.StringValue("c"), Text: types.StringValue("text of c"), Detail: &NoteDetailModel{Url: types.StringValue("u3")}}),
+		noteList(t, WrapNoteModel{Id: types.StringValue("b"), Text: types.StringValue("text of b"), Detail: &NoteDetailModel{Url: types.StringValue("u2")}}),
+		types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()}),
+	}
+	for i, panel := range panels {
+		if !panel.PanelNotes.Equal(want[i]) {
+			t.Errorf("panel %d notes = %s, want %s", i, panel.PanelNotes, want[i])
+		}
+	}
+	// A response without notes gives every panel null.
+	response.Notes = nil
+	got, diags = flatten(ctx, response)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	for i, panel := range panelsOf(t, got) {
+		if !panel.PanelNotes.IsNull() {
+			t.Errorf("panel %d notes = %s, want null", i, panel.PanelNotes)
+		}
+	}
+}
+
+// The notes of a panel come back as they were sent: expand, then flatten the list that the request
+// holds, gives the same panels, and the same notes in them.
+func TestDistributedItemsSurviveARoundTrip(t *testing.T) {
+	ctx := context.Background()
+	model := notesModel(t,
+		WrapPanelModel{Id: types.StringValue("p1"), Title: types.StringValue("one"), PanelNotes: noteList(t, noteOf("a", "x", "u1"), noteOf("b", "y", "u2"))},
+		WrapPanelModel{Id: types.StringValue("p2"), Title: types.StringNull(), PanelNotes: noteList(t, noteOf("c", "z", "u3"))},
+		WrapPanelModel{Id: types.StringValue("p3"), Title: types.StringNull(), PanelNotes: types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})},
+	)
+	body, diags := expandCreate(ctx, model)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	got, diags := flatten(ctx, &wrap_things_service.WrapThing{Id: "thing-1", Query: body.Query, Panels: body.Panels, Notes: body.Notes})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if !got.Panels.Equal(model.Panels) {
+		t.Fatalf("panels:\n got %s\nwant %s", got.Panels, model.Panels)
+	}
+}
+
+// The notes are an attribute of the panel and no attribute of the thing, and the id that names the
+// panel is no attribute of the note.
+func TestDistributedItemsAreOnlyInsideTheirPanel(t *testing.T) {
+	var resp frameworkresource.SchemaResponse
+	(&Resource{}).Schema(context.Background(), frameworkresource.SchemaRequest{}, &resp)
+	if _, ok := resp.Schema.Attributes["notes"]; ok {
+		t.Error("the thing has the attribute notes, want it only in the panels")
+	}
+	panels, ok := resp.Schema.Attributes["panels"].(schema.ListNestedAttribute)
+	if !ok {
+		t.Fatalf("panels = %#v", resp.Schema.Attributes["panels"])
+	}
+	notes, ok := panels.NestedObject.Attributes["panel_notes"].(schema.ListNestedAttribute)
+	if !ok || !notes.Optional || notes.Required || notes.Computed {
+		t.Fatalf("panel_notes = %#v, want an optional list of objects", panels.NestedObject.Attributes["panel_notes"])
+	}
+	if notes.MarkdownDescription != "The notes of this panel." {
+		t.Errorf("the description = %q, want the text of the line", notes.MarkdownDescription)
+	}
+	for name := range notes.NestedObject.Attributes {
+		if name == "panel_id" {
+			t.Error("a note has the attribute panel_id, want the panel to name it")
+		}
+	}
+	if _, ok := reflect.TypeOf(WrapThingModel{}).FieldByName("Notes"); ok {
+		t.Error("the model of the thing has Notes")
+	}
+	if _, ok := reflect.TypeOf(WrapNoteModel{}).FieldByName("PanelId"); ok {
+		t.Error("the model of a note has PanelId")
 	}
 }
