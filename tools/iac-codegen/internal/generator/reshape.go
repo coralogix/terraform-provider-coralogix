@@ -517,7 +517,12 @@ func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, []string, erro
 		}
 	}
 	if h.nested && len(kept) != 0 {
-		// The other arms stay. The fields of the arm join the object, and conflict with them.
+		// The other arms stay. The fields of the arm join the object, and conflict with them. The
+		// group goes away, and the conflicts do not say that an arm is set, so the group must allow
+		// that none is.
+		if !slices.ContainsFunc(group.Content, func(entry *yaml.Node) bool { return mapValue(entry, "not") != nil }) {
+			return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group that requires one arm, and the group goes away when %s is inlined beside %s, so a request could send no arm; the generator cannot keep that rule", arm, arm, strings.Join(kept, ", "))
+		}
 		return arm, kept, nil
 	}
 	if !response {

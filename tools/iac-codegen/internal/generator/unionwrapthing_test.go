@@ -205,6 +205,14 @@ func TestInlineOfAnOptionalObjectAndAKeptArm(t *testing.T) {
 			},
 			message: "is an arm of a oneOf group of a request, so the request does not always send it; if the API always has it, add required: true to the inline line of link",
 		},
+		// A oneOf without the branch that allows no arm requires one. The inline removes the group, so
+		// the rule would be lost.
+		"an arm beside a kept arm in a oneOf that requires an arm": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return replaceOnce(t, s, "        - required: [custom]\n        - required: [internal]\n        - not:\n            anyOf:\n              - required: [custom]\n              - required: [internal]\n      properties:\n        custom: {allOf: [{$ref: '#/components/schemas/CustomOptions'}]}", "        - required: [custom]\n        - required: [internal]\n      properties:\n        custom: {allOf: [{$ref: '#/components/schemas/CustomOptions'}]}"), o
+			},
+			message: "is an arm of a oneOf group that requires one arm",
+		},
 		"an arm beside a kept arm with required": {
 			change: func(t *testing.T, s, o string) (string, string) {
 				return s, replaceOnce(t, o, "      custom: {inline: true}\n", "      custom: {inline: true, required: true}\n")
