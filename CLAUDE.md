@@ -20,6 +20,17 @@ TF_ACC=1 go test ./internal/provider/alerts/... -run TestAccAlert -v
 
 Acceptance tests use a shared Coralogix team. Jobs in one workflow run can run in parallel. Put tests that change the same account-wide resource collection in one shard. Check both legacy and framework test names when you change shard patterns.
 
+**Which acceptance jobs a pull request runs.** Two buckets: the dashboard jobs, and every other job. `.github/scripts/detect-test-scope.sh` reads the changed files of the pull request.
+
+```
+only dashboard files           -> dashboard jobs, plus the jobs that use dashboard code
+only files of other resources  -> every job except the dashboard jobs
+any other file, or both        -> every job   (internal/utils, go.mod, .github/**, provider.go, shared test helpers)
+push to master, nightly        -> every job
+```
+
+When a dashboard test starts to use a helper of a non-dashboard file, add that file to `shared` in the script.
+
 Local end-to-end smoke against examples: `./exec_examples_locally.sh` (rewrites every `examples/resources/*.tf` to point at `locally/debug/coralogix` v1.5, runs `terraform plan`, then reverts).
 
 The Makefile's `OS_ARCH=darwin_arm64` may need editing for non-Apple-Silicon dev machines. Pair `make install` with a `~/.terraformrc` dev-overrides block pointing at `~/.terraform.d/plugins/locally/debug/coralogix`.
