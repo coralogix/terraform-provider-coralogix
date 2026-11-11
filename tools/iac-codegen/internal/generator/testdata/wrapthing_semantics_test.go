@@ -4,11 +4,13 @@ import (
 	"context"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -682,6 +684,35 @@ func TestDistributedItemsNeedTheIdOfTheirPanel(t *testing.T) {
 	model := notesModel(t, WrapPanelModel{Id: types.StringNull(), PanelNotes: noteList(t, noteOf("a", "x", "u"))})
 	if _, diags := expandCreate(context.Background(), model); !diags.HasError() {
 		t.Fatal("a panel with notes and no id: want an error")
+	}
+}
+
+// A response shows only the notes that have a url, so a note without one would be missing after the
+// write: the read would not return it. Expand refuses such a note, with an error on the note, and
+// sends nothing. A note with a url is sent as before.
+func TestDistributedItemThatAResponseWouldNotShowIsRefused(t *testing.T) {
+	noUrl := noteOf("a", "x", "u")
+	noUrl.Detail = nil
+	emptyDetail := noteOf("b", "y", "u")
+	emptyDetail.Detail = &NoteDetailModel{Url: types.StringNull()}
+	for name, note := range map[string]WrapNoteModel{"no detail": noUrl, "a detail without a url": emptyDetail} {
+		model := notesModel(t, WrapPanelModel{Id: types.StringValue("p1"), PanelNotes: noteList(t, noteOf("c", "ok", "u"), note)})
+		_, createDiags := expandCreate(context.Background(), model)
+		_, updateDiags := expandUpdate(context.Background(), model)
+		for call, diags := range map[string]diag.Diagnostics{"create": createDiags, "update": updateDiags} {
+			if !diags.HasError() {
+				t.Fatalf("%s %s: want an error for a note that the response would not show", name, call)
+			}
+			found := false
+			for _, d := range diags.Errors() {
+				if withPath, ok := d.(diag.DiagnosticWithPath); ok && withPath.Path().Equal(path.Root("panels").AtListIndex(0).AtName("panel_notes").AtListIndex(1)) && strings.Contains(d.Detail(), "detail.url") {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%s %s: the errors %v have none for panels[0].panel_notes[1] that names detail.url", name, call, diags.Errors())
+			}
+		}
 	}
 }
 

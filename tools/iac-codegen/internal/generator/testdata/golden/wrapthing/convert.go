@@ -285,11 +285,17 @@ func distributedNotesOf(ctx context.Context) *distributedNotes {
 	return d
 }
 
+// distributedNotesShown reports whether a response shows the item: it has a value at detail.url.
+// Flatten drops the other items, so expand refuses them, or the write would lose them on the read.
+func distributedNotesShown(a wrap_things_service.WrapNote) bool {
+	return a.Detail != nil && a.Detail.Url != nil
+}
+
 // of returns the items that name the object with the id, in the order of the list.
 func (d *distributedNotes) of(id string) []wrap_things_service.WrapNote {
 	var out []wrap_things_service.WrapNote
 	for _, a := range d.items {
-		if !(a.Detail != nil && a.Detail.Url != nil) {
+		if !distributedNotesShown(a) {
 			continue
 		}
 		if got := unwrapUUID(&a.PanelId); got != nil && *got == id {
@@ -453,6 +459,10 @@ func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags 
 			} else {
 				for i := range items {
 					item := expandWrapNote(ctx, p.AtName("panel_notes").AtListIndex(i), &items[i], diags)
+					if !distributedNotesShown(*item) {
+						diags.AddAttributeError(p.AtName("panel_notes").AtListIndex(i), "Item would not be read back", "A response shows only the items that have a value at detail.url, so this item would be missing after the write. Set that value.")
+						continue
+					}
 					item.PanelId = valueOf(wrapUUID(id))
 					collected.items = append(collected.items, *item)
 				}

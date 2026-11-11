@@ -527,12 +527,21 @@ func distributed{{.Name}}Of(ctx context.Context) *distributed{{.Name}} {
 	return d
 }
 
+{{- if .Keep}}
+
+// distributed{{.Name}}Shown reports whether a response shows the item: it has a value at {{.KeepPath}}.
+// Flatten drops the other items, so expand refuses them, or the write would lose them on the read.
+func distributed{{.Name}}Shown(a {{.SDKType}}) bool {
+	return {{.Keep}}
+}
+{{- end}}
+
 // of returns the items that name the object with the id, in the order of the list.
 func (d *distributed{{.Name}}) of(id string) []{{.SDKType}} {
 	var out []{{.SDKType}}
 	for _, a := range d.items {
 {{- if .Keep}}
-		if !({{.Keep}}) {
+		if !distributed{{.Name}}Shown(a) {
 			continue
 		}
 {{- end}}
@@ -1996,6 +2005,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			} else {
 				for i := range items {
 					item := expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags)
+{{- if .Dist.Keep}}
+					if !distributed{{.Dist.Name}}Shown(*item) {
+						diags.AddAttributeError({{$p}}.AtListIndex(i), "Item would not be read back", "A response shows only the items that have a value at {{.Dist.KeepPath}}, so this item would be missing after the write. Set that value.")
+						continue
+					}
+{{- end}}
 					item.{{.Dist.List.SDK}} = {{.Dist.List.WriteOf "id"}}
 					collected.items = append(collected.items, *item)
 				}

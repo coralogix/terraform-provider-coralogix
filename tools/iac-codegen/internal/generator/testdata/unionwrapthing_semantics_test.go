@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -656,6 +658,30 @@ func remindersOf(t *testing.T, item UnionItemModel) []UnionReminderModel {
 		t.Fatal(diags)
 	}
 	return out
+}
+
+// The definition of a reminder is an optional object, so a reminder without a url sends no link. A
+// response would not show it (only reminders with a link are shown), so the write would lose it.
+// Expand refuses it with an error on the reminder and sends nothing; a reminder with a url is sent.
+func TestReminderThatAResponseWouldNotShowIsRefused(t *testing.T) {
+	m := &UnionWrapThingModel{Name: types.StringValue("n"), Kind: &UnionWrapThingKindModel{ArmC: &ArmCModel{Label: types.StringValue("l")}}, Items: itemList(t,
+		itemWithReminders("i1", reminderList(t, reminderOf("a", "u1"), UnionReminderModel{Label: types.StringValue("b"), Url: types.StringNull()})),
+	)}
+	for call, expand := range map[string]func() diag.Diagnostics{
+		"create": func() diag.Diagnostics { _, d := expandCreate(context.Background(), m); return d },
+		"update": func() diag.Diagnostics { _, d := expandUpdate(context.Background(), m); return d },
+	} {
+		diags := expand()
+		found := false
+		for _, d := range diags.Errors() {
+			if withPath, ok := d.(diag.DiagnosticWithPath); ok && withPath.Path().Equal(path.Root("items").AtListIndex(0).AtName("reminders").AtListIndex(1)) && strings.Contains(d.Detail(), "definition.link") {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s: the errors %v have none for items[0].reminders[1] that names definition.link", call, diags.Errors())
+		}
+	}
 }
 
 // Flatten gives each item the reminders that name it, in the order of the list. A reminder whose

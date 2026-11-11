@@ -269,11 +269,17 @@ func distributedRemindersOf(ctx context.Context) *distributedReminders {
 	return d
 }
 
+// distributedRemindersShown reports whether a response shows the item: it has a value at definition.link.
+// Flatten drops the other items, so expand refuses them, or the write would lose them on the read.
+func distributedRemindersShown(a union_wrap_things_service.UnionReminder) bool {
+	return a.Definition != nil && a.Definition.Link != nil
+}
+
 // of returns the items that name the object with the id, in the order of the list.
 func (d *distributedReminders) of(id string) []union_wrap_things_service.UnionReminder {
 	var out []union_wrap_things_service.UnionReminder
 	for _, a := range d.items {
-		if !(a.Definition != nil && a.Definition.Link != nil) {
+		if !distributedRemindersShown(a) {
 			continue
 		}
 		if got := &a.ItemName; got != nil && *got == id {
@@ -410,6 +416,10 @@ func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags 
 			} else {
 				for i := range items {
 					item := expandUnionReminder(ctx, p.AtName("reminders").AtListIndex(i), &items[i], diags)
+					if !distributedRemindersShown(*item) {
+						diags.AddAttributeError(p.AtName("reminders").AtListIndex(i), "Item would not be read back", "A response shows only the items that have a value at definition.link, so this item would be missing after the write. Set that value.")
+						continue
+					}
 					item.ItemName = valueOf(id)
 					collected.items = append(collected.items, *item)
 				}

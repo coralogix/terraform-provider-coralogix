@@ -24,6 +24,8 @@ type convDistribution struct {
 	// Keep is the Go condition that a list item (the variable a) must meet to be shown: the
 	// values on the path of the keep line are set. It is "" when the line has no path.
 	Keep string
+	// KeepPath is the path of the keep line, for the error of an item that fails the condition.
+	KeepPath string
 }
 
 // convRootList is the list of a root, and the Go field of the root struct that holds it.
@@ -108,7 +110,7 @@ func (b *convBuilder) distributionOf(d *overrides.Distribution, cf *convField) (
 	if err != nil {
 		return nil, err
 	}
-	dist := &convDistribution{Name: camelize(d.Field.Name), SDKType: cf.SDKType, Object: cf.Object, List: hidden, Keep: keep}
+	dist := &convDistribution{Name: camelize(d.Field.Name), SDKType: cf.SDKType, Object: cf.Object, List: hidden, Keep: keep, KeepPath: d.Line.Keep}
 	b.dists[d.Field.Name] = dist
 	return dist, nil
 }
