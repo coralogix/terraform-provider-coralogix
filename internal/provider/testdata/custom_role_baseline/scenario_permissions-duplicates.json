@@ -1,0 +1,18 @@
+[
+  {
+    "step": "create with the same permission twice",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Duplicate Set Element [AttributeName(\"permissions\")] | This attribute contains duplicate values of: tftypes.String<\"spans.events2metrics:UpdateConfig\">"
+    ],
+    "state": null
+  }
+]

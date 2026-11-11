@@ -1,0 +1,10 @@
+[
+  {
+    "step": "config sets neither id nor name",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"id\")] | No attribute specified when one (and only one) of [id.<.name] is required"
+    ],
+    "state": null
+  }
+]

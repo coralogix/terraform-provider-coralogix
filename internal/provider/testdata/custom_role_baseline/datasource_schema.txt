@@ -1,0 +1,12 @@
+(data source schema)
+    description: Coralogix Custom Role. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-roles-and-permissions/.
+description  tftypes.String computed
+    description: Custom Role description.
+id  tftypes.String optional
+    description: Custom Role ID.
+name  tftypes.String optional,computed
+    description: Custom Role name.
+parent_role  tftypes.String computed
+    description: Parent role name
+permissions  tftypes.Set[tftypes.String] computed
+    description: Custom role permissions

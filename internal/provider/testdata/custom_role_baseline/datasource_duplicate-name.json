@@ -1,0 +1,25 @@
+[
+  {
+    "step": "read a name that two roles have",
+    "config": {
+      "name": "seeded"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Multiple coralogix_custom_roles found | Multiple coralogix_custom_roles found with name \"seeded\""
+    ],
+    "state": {
+      "description": null,
+      "id": null,
+      "name": "seeded",
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

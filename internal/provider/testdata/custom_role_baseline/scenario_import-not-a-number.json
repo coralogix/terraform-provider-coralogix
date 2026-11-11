@@ -1,0 +1,16 @@
+[
+  {
+    "step": "import a non-numeric id",
+    "state": null
+  },
+  {
+    "step": "import a non-numeric id (refresh)",
+    "state": {
+      "description": null,
+      "id": "not-a-number",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

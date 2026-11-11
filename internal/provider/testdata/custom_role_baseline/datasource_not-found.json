@@ -1,0 +1,25 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "5009"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5009",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_custom_role | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Role not found\"}\noperation - Read"
+    ],
+    "state": {
+      "description": null,
+      "id": "5009",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

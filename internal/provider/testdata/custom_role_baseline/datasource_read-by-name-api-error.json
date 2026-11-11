@@ -1,0 +1,25 @@
+[
+  {
+    "step": "the list answers 500",
+    "config": {
+      "name": "seeded"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_custom_role | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+    ],
+    "state": {
+      "description": null,
+      "id": null,
+      "name": "seeded",
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

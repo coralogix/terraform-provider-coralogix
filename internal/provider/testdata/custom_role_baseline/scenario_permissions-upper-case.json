@@ -1,0 +1,148 @@
+[
+  {
+    "step": "create with upper case permissions",
+    "config": {
+      "description": "made with Terraform",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "shouting",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "SPANS.EVENTS2METRICS:UPDATECONFIG"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: add an upper case permission",
+    "config": {
+      "description": "made with Terraform",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG",
+        "SPANS.EVENTS2METRICS:READCONFIG"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG",
+        "SPANS.EVENTS2METRICS:READCONFIG"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "shouting",
+          "newPermissions": {
+            "permissions": [
+              "SPANS.EVENTS2METRICS:UPDATECONFIG",
+              "SPANS.EVENTS2METRICS:READCONFIG"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG",
+        "SPANS.EVENTS2METRICS:READCONFIG"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan after update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "shouting",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG",
+        "SPANS.EVENTS2METRICS:READCONFIG"
+      ]
+    },
+    "replanEmpty": true
+  }
+]

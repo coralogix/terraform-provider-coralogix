@@ -1,0 +1,14 @@
+[
+  {
+    "step": "validate a null permission",
+    "config": {
+      "description": "d",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        null
+      ]
+    },
+    "state": null
+  }
+]

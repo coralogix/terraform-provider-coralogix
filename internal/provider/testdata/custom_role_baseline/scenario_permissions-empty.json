@@ -1,0 +1,15 @@
+[
+  {
+    "step": "validate an empty permissions set",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": []
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"permissions\")] | Attribute permissions set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  }
+]

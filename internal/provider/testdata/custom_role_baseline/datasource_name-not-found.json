@@ -1,0 +1,25 @@
+[
+  {
+    "step": "read a name that does not exist",
+    "config": {
+      "name": "missing"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_custom_role not found | coralogix_custom_role \"missing\" not found"
+    ],
+    "state": {
+      "description": null,
+      "id": null,
+      "name": "missing",
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]
