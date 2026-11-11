@@ -212,6 +212,22 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+						"reminders": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"label": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+									"url": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+								},
+							},
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",

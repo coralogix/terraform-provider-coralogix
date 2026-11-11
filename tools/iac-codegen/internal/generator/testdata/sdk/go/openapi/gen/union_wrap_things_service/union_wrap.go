@@ -56,6 +56,13 @@ type ActionDefinition struct {
 	Target *ActionTarget
 }
 
+// UnionReminder requires the name of its item, so the SDK holds it as a value.
+type UnionReminder struct {
+	ItemName   string
+	Label      *string
+	Definition *ActionDefinition
+}
+
 type ActionLink struct {
 	Url *string
 }
@@ -97,6 +104,7 @@ type Thing struct {
 	ArmB        *ArmB
 	ArmC        *ArmC
 	Items       []UnionItem
+	Reminders   []UnionReminder
 }
 
 type UnionWrapThing struct {

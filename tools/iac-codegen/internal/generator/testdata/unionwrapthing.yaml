@@ -106,6 +106,9 @@ components:
         items:
           type: array
           items: {$ref: '#/components/schemas/UnionItem'}
+        reminders:
+          type: array
+          items: {$ref: '#/components/schemas/UnionReminder'}
       oneOf:
         - required: [armA]
         - required: [armB]
@@ -219,6 +222,16 @@ components:
       properties:
         link: {$ref: '#/components/schemas/ActionLink'}
         target: {$ref: '#/components/schemas/ActionTarget'}
+    # A reminder names its item by the name of the item. The reminders are in the list of the thing, not
+    # in the item. A reminder whose definition has a link is shown; one with a target is another kind,
+    # which the resource does not show.
+    UnionReminder:
+      type: object
+      required: [itemName]
+      properties:
+        itemName: {type: string, minLength: 1}
+        label: {type: string, x-coralogix-presence: true}
+        definition: {$ref: '#/components/schemas/ActionDefinition'}
     ActionLink:
       type: object
       properties:

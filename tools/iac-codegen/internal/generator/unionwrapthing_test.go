@@ -243,6 +243,62 @@ func TestChainedInlineLinesDoNotDependOnTheNamesOfTheComponents(t *testing.T) {
 	}
 }
 
+// The keep path of a distributeTo line is in API names. It goes through the objects that inline
+// lines moved out of the item, and the generator reports a path that leaves them.
+func TestKeepPathGoesThroughInlinedObjects(t *testing.T) {
+	tests := map[string]struct{ keep, want string }{
+		"a step that no line moved":      {"definition.nope", "keep: ActionDefinition has no field nope, and no inline line moved it out of its object"},
+		"a step after the innermost arm": {"definition.link.url", "keep: ActionLink has no field url, and no inline line moved it out of its object"},
+		"a skipped arm":                  {"definition.target", "keep: ActionDefinition has no field target, and no inline line moved it out of its object"},
+		"the field that names the item":  {"itemName", "keep: UnionReminder has no field itemName"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec, overrides := unionWrapThingInputs(t)
+			dir := t.TempDir()
+			path := filepath.Join(dir, "unionwrapthing-overrides.yaml")
+			if err := os.WriteFile(path, []byte(replaceOnce(t, overrides, "keep: definition.link", "keep: "+test.keep)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = []byte(spec)
+			err := generateFromInput(Options{Resource: "UnionWrapThing", OutputDir: filepath.Join(dir, "out"), OverridesPath: path}, input, loadDir)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A skip line of the component of an inlined object is carried to the component that receives the
+// fields of the object: the target is no attribute of the action or the reminder, although only the
+// definition skips it. A line of the receiving component for the field takes precedence.
+func TestSkipOfAnInlinedObjectIsCarried(t *testing.T) {
+	schema, err := os.ReadFile(filepath.Join(generateUnionWrapThing(t), "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), `"target"`) || strings.Contains(string(schema), `"page_id"`) {
+		t.Fatal("the schema has the skipped target")
+	}
+	spec, overrides := unionWrapThingInputs(t)
+	overrides = replaceOnce(t, overrides, "  ItemAction:\n    fields:\n      definition: {inline: true}\n", "  ItemAction:\n    fields:\n      definition: {inline: true}\n      target: {description: The target of the action}\n")
+	dir := t.TempDir()
+	path := filepath.Join(dir, "unionwrapthing-overrides.yaml")
+	if err := os.WriteFile(path, []byte(overrides), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(spec)
+	out := filepath.Join(dir, "out")
+	if err := generateFromInput(Options{Resource: "UnionWrapThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	if schema, err = os.ReadFile(filepath.Join(out, "schema.go")); err != nil || !strings.Contains(string(schema), "The target of the action") {
+		t.Fatalf("the schema has no target attribute with the line of the action (%v)", err)
+	}
+}
+
 // A types.<Type>.at line names the holder of the component and the fields with another name there.
 // A line that matches no place, or no field, is an error: its names would be dropped without a word.
 func TestPlaceLinesAreChecked(t *testing.T) {

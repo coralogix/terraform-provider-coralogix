@@ -26,6 +26,15 @@ types:
   UnionWrapThing:
     fields:
       thing: {inline: true, required: true}
+      # The reminders are one list of the thing in the API. Terraform shows each reminder in the item
+      # that it names. Only a reminder whose definition has a link is shown: the path goes through the
+      # definition, which the line of the reminder inlines, and the link, which the line of the definition inlines.
+      reminders:
+        distributeTo:
+          item: UnionItem
+          as: reminders
+          by: {listField: itemName, itemField: name}
+          keep: definition.link
       # The API variant follows the arm that is set. The arms are in the group kind.
       variant: {requestValueBy: {armA: THING_VARIANT_A_OR_UNSPECIFIED, armB: THING_VARIANT_B, armC: THING_VARIANT_C}}
       id: {readOnly: true}
@@ -41,15 +50,19 @@ types:
       custom: {inline: true}
   # A definition is a oneOf of a link and a target. The target is skipped, and the line of the link
   # says that the API always has it, so a request always sends the link. An action holds its
-  # definition in an object that it inlines too, so the url is a flat attribute of the action.
+  # definition in an object that it inlines too, so the url is a flat attribute of the action. The
+  # skip line of the target is carried to the action.
   ItemAction:
     fields:
       definition: {inline: true}
-      target: {skip: true}
   ActionDefinition:
     fields:
       link: {inline: true, required: true}
       target: {skip: true}
+  # A reminder inlines its definition, like an action.
+  UnionReminder:
+    fields:
+      definition: {inline: true}
   # The same component has another name for its label in the first place than in the second.
   Tag:
     at:

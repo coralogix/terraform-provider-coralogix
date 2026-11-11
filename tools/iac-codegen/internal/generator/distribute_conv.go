@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
@@ -114,28 +115,17 @@ func (b *convBuilder) distributionOf(d *overrides.Distribution, cf *convField) (
 
 // keepCondition returns the Go condition that the list item a has a value at each step of the keep
 // path. A step that the SDK holds as a value needs no check, but the last step must be a pointer:
-// only a pointer can be unset.
+// only a pointer can be unset. The path is in API names. A step that an inline line moved out of its
+// object is an object of the item that the model does not show any more: the path goes through it,
+// and through the objects that inline lines of its component moved too.
 func (b *convBuilder) keepCondition(action *model.Type, keep string) (string, error) {
 	steps := keepSteps(keep)
 	var checks []string
-	expr, t := "a", action
+	expr := "a"
+	at := keepPosition{t: action, schema: action.Schema}
 	for i, step := range steps {
-		if t == nil || (t.Kind != model.Object && t.Kind != model.OneOf) {
-			return "", fmt.Errorf("keep: %q goes through a value that has no fields", keep)
-		}
-		i1 := fieldIndex(t, step)
-		if i1 < 0 {
-			return "", fmt.Errorf("keep: %s has no field %s", t.Schema, step)
-		}
-		f := t.Fields[i1]
-		if len(f.Type.Wrappers) != 0 {
-			return "", fmt.Errorf("keep: %s of %s is in wrapper objects, and the path cannot go through them", step, t.Schema)
-		}
-		ref, err := b.ix.schemaRef(t.Schema)
-		if err != nil {
-			return "", err
-		}
-		field, err := b.ix.fieldRef(ref.Path + "." + step)
+		holder := at.schema
+		field, err := b.keepStep(&at, step, keep)
 		if err != nil {
 			return "", err
 		}
@@ -144,11 +134,53 @@ func (b *convBuilder) keepCondition(action *model.Type, keep string) (string, er
 		case strings.HasPrefix(field.Want, "*"):
 			checks = append(checks, expr+" != nil")
 		case i == len(steps)-1:
-			return "", fmt.Errorf("keep: %s of %s is set in every item, so the path says nothing", step, t.Schema)
+			return "", fmt.Errorf("keep: %s of %s is set in every item, so the path says nothing", step, holder)
 		}
-		t = f.Type
 	}
 	return strings.Join(checks, " && "), nil
+}
+
+// keepPosition is the object that a keep path has reached: its type when the model shows it, nil
+// when an inline line moved it out of its parent, its component, and (inside an inlined object) the
+// SDK path of the object.
+type keepPosition struct {
+	t              *model.Type
+	schema, prefix string
+}
+
+// keepStep moves at one step down a keep path and returns the SDK field of the step.
+func (b *convBuilder) keepStep(at *keepPosition, step, keep string) (sdkcheck.Ref, error) {
+	if t := at.t; t != nil && fieldIndex(t, step) >= 0 {
+		f := t.Fields[fieldIndex(t, step)]
+		if len(f.Type.Wrappers) != 0 {
+			return sdkcheck.Ref{}, fmt.Errorf("keep: %s of %s is in wrapper objects, and the path cannot go through them", step, t.Schema)
+		}
+		ref, err := b.ix.schemaRef(t.Schema)
+		if err != nil {
+			return sdkcheck.Ref{}, err
+		}
+		at.t, at.schema = f.Type, f.Type.Schema
+		return b.ix.fieldRef(ref.Path + "." + step)
+	}
+	if parent := b.file.NestedObject(at.schema, step); parent != nil {
+		if at.t != nil {
+			ref, err := b.ix.schemaRef(at.t.Schema)
+			if err != nil {
+				return sdkcheck.Ref{}, err
+			}
+			at.prefix = ref.Path
+		}
+		plain := at.prefix + "." + parent.Field
+		at.t, at.schema, at.prefix = nil, parent.Schema, plain
+		return b.ix.fieldRef(parent.ObjectPath(plain))
+	}
+	switch {
+	case at.t != nil && (at.t.Kind == model.Object || at.t.Kind == model.OneOf):
+		return sdkcheck.Ref{}, fmt.Errorf("keep: %s has no field %s", at.t.Schema, step)
+	case at.t == nil && at.prefix != "":
+		return sdkcheck.Ref{}, fmt.Errorf("keep: %s has no field %s, and no inline line moved it out of its object", at.schema, step)
+	}
+	return sdkcheck.Ref{}, fmt.Errorf("keep: %q goes through a value that has no fields", keep)
 }
 
 // fieldIndex returns the index of the field of t with the API name, or -1.

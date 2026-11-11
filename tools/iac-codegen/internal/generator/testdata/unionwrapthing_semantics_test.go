@@ -123,6 +123,9 @@ func itemList(t *testing.T, items ...UnionItemModel) types.List {
 			// A list that the test leaves out has no element type yet.
 			items[i].Choices = types.ListNull(types.ObjectType{AttrTypes: pickAttrTypes()})
 		}
+		if items[i].Reminders.IsNull() && items[i].Reminders.ElementType(context.Background()) == nil {
+			items[i].Reminders = types.ListNull(types.ObjectType{AttrTypes: unionReminderAttrTypes()})
+		}
 	}
 	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: unionItemAttrTypes()}, items)
 	if diags.HasError() {
@@ -290,7 +293,7 @@ func TestInlinedArmConflictsWithTheKeptArm(t *testing.T) {
 		item := tftypes.NewValue(itemType, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, "i"), "note": nullString, "value": nullString, "label": nullString, "options": opts,
 			"first": tftypes.NewValue(itemType.AttributeTypes["first"], nil), "second": tftypes.NewValue(itemType.AttributeTypes["second"], nil),
 			"choice": tftypes.NewValue(itemType.AttributeTypes["choice"], nil), "choices": tftypes.NewValue(itemType.AttributeTypes["choices"], nil),
-			"action": tftypes.NewValue(itemType.AttributeTypes["action"], nil), "behavior": tftypes.NewValue(itemType.AttributeTypes["behavior"], nil)})
+			"action": tftypes.NewValue(itemType.AttributeTypes["action"], nil), "behavior": tftypes.NewValue(itemType.AttributeTypes["behavior"], nil), "reminders": tftypes.NewValue(itemType.AttributeTypes["reminders"], nil)})
 		values["name"] = tftypes.NewValue(tftypes.String, "n")
 		kindType := objectType.AttributeTypes["kind"].(tftypes.Object)
 		armValues := map[string]tftypes.Value{}
@@ -589,5 +592,160 @@ func TestUrlReadsBackAfterImportAndSendsTheSameLink(t *testing.T) {
 	b, a := again[0].Behavior, again[0].Action
 	if b == nil || b.Link == nil || *b.Link.Url != url || b.Target != nil || a == nil || a.Definition == nil || a.Definition.Link == nil || *a.Definition.Link.Url != url {
 		t.Fatalf("sent again = %+v %+v, want the same link", b, a)
+	}
+}
+
+func reminderList(t *testing.T, reminders ...UnionReminderModel) types.List {
+	t.Helper()
+	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: unionReminderAttrTypes()}, reminders)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return list
+}
+
+func reminderOf(label, url string) UnionReminderModel {
+	return UnionReminderModel{Label: types.StringValue(label), Url: types.StringValue(url)}
+}
+
+func itemWithReminders(name string, reminders types.List) UnionItemModel {
+	null := types.StringNull()
+	return UnionItemModel{Name: types.StringValue(name), Note: null, Value: null, Label: null, Reminders: reminders}
+}
+
+// The reminders are one list of the thing in the API, and each one names its item by the name of the
+// item. Create and Update send the reminders of every item in that list, in the order of the items,
+// with the link inside the definition, and leave the other kind of definition unset. An item without
+// reminders adds none.
+func TestRemindersAreSentInOneListWithTheNameOfTheirItem(t *testing.T) {
+	ctx := context.Background()
+	m := &UnionWrapThingModel{Name: types.StringValue("n"), Kind: &UnionWrapThingKindModel{ArmC: &ArmCModel{Label: types.StringValue("l")}}, Items: itemList(t,
+		itemWithReminders("i1", reminderList(t, reminderOf("a", "u1"), reminderOf("b", "u2"))),
+		itemWithReminders("i2", reminderList(t, reminderOf("c", "u3"))),
+		itemWithReminders("i3", types.ListNull(types.ObjectType{AttrTypes: unionReminderAttrTypes()})),
+	)}
+	create, diags := expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	update, diags := expandUpdate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	for name, got := range map[string][]union_wrap_things_service.UnionReminder{"create": create.Thing.Reminders, "update": update.Thing.Reminders} {
+		want := []struct{ item, label, url string }{{"i1", "a", "u1"}, {"i1", "b", "u2"}, {"i2", "c", "u3"}}
+		if len(got) != len(want) {
+			t.Fatalf("%s sent %d reminders, want %d: %+v", name, len(got), len(want), got)
+		}
+		for i, w := range want {
+			r := got[i]
+			if r.ItemName != w.item || *r.Label != w.label || r.Definition == nil || r.Definition.Link == nil || *r.Definition.Link.Url != w.url || r.Definition.Target != nil {
+				t.Errorf("%s reminder %d = %+v, want item %s, label %s, the link %s", name, i, r, w.item, w.label, w.url)
+			}
+		}
+	}
+}
+
+func remindersOf(t *testing.T, item UnionItemModel) []UnionReminderModel {
+	t.Helper()
+	var out []UnionReminderModel
+	if item.Reminders.IsNull() {
+		return nil
+	}
+	if diags := item.Reminders.ElementsAs(context.Background(), &out, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	return out
+}
+
+// Flatten gives each item the reminders that name it, in the order of the list. A reminder whose
+// definition has no link (the other kind, or none) is in no item, and a reminder that names no item
+// is lost, as for any list that is shown inside the items.
+func TestOnlyRemindersWithALinkAreShownInTheirItem(t *testing.T) {
+	ctx := context.Background()
+	id, a, b, c := "thing-1", "u1", "u2", "page"
+	link := func(url *string) *union_wrap_things_service.ActionDefinition {
+		return &union_wrap_things_service.ActionDefinition{Link: &union_wrap_things_service.ActionLink{Url: url}}
+	}
+	got, diags := flatten(ctx, &union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{
+		Name: "n", ArmC: &union_wrap_things_service.ArmC{},
+		Items: []union_wrap_things_service.UnionItem{{Name: "i1"}, {Name: "i2"}, {Name: "i3"}},
+		Reminders: []union_wrap_things_service.UnionReminder{
+			{ItemName: "i1", Definition: link(&a)},
+			{ItemName: "i1", Definition: &union_wrap_things_service.ActionDefinition{Target: &union_wrap_things_service.ActionTarget{PageId: &c}}},
+			{ItemName: "i2"},
+			{ItemName: "i2", Definition: link(nil)},
+			{ItemName: "i2", Definition: link(&b)},
+			{ItemName: "nobody", Definition: link(&a)},
+		},
+	}})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var items []UnionItemModel
+	if diags := got.Items.ElementsAs(ctx, &items, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	first, second := remindersOf(t, items[0]), remindersOf(t, items[1])
+	if len(first) != 1 || first[0].Url.ValueString() != "u1" {
+		t.Errorf("reminders of i1 = %+v, want only the link u1", first)
+	}
+	if len(second) != 2 || !second[0].Url.IsNull() || second[1].Url.ValueString() != "u2" {
+		t.Errorf("reminders of i2 = %+v, want the empty link and the link u2", second)
+	}
+	if !items[2].Reminders.IsNull() {
+		t.Errorf("reminders of i3 = %s, want null", items[2].Reminders)
+	}
+}
+
+// An import reads the resource with only the id. Each item gets its reminders from the list of the
+// thing, and the second plan sees what the API had: expand sends the same list again, and the
+// reminder of the other kind is not in it, as it was not shown.
+func TestRemindersReadBackAfterImportAndSendTheSameList(t *testing.T) {
+	ctx := context.Background()
+	id, a, b := "thing-1", "u1", "u2"
+	link := func(url *string) *union_wrap_things_service.ActionDefinition {
+		return &union_wrap_things_service.ActionDefinition{Link: &union_wrap_things_service.ActionLink{Url: url}}
+	}
+	union_wrap_things_service.Stored = union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{
+		Name: "n", ArmC: &union_wrap_things_service.ArmC{},
+		Items: []union_wrap_things_service.UnionItem{{Name: "i1"}, {Name: "i2"}},
+		Reminders: []union_wrap_things_service.UnionReminder{
+			{ItemName: "i1", Definition: link(&a)},
+			{ItemName: "i2", Definition: link(&b)},
+		},
+	}}
+	r := &Resource{client: &union_wrap_things_service.UnionWrapThingsServiceAPIService{}}
+	var schemaResp frameworkresource.SchemaResponse
+	r.Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for name, typ := range root.AttributeTypes {
+		values[name] = tftypes.NewValue(typ, nil)
+	}
+	values["id"] = tftypes.NewValue(tftypes.String, id)
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, values)}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var model UnionWrapThingModel
+	if diags := resp.State.Get(ctx, &model); diags.HasError() {
+		t.Fatal(diags)
+	}
+	var items []UnionItemModel
+	if diags := model.Items.ElementsAs(ctx, &items, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if r1, r2 := remindersOf(t, items[0]), remindersOf(t, items[1]); len(r1) != 1 || r1[0].Url.ValueString() != "u1" || len(r2) != 1 || r2[0].Url.ValueString() != "u2" {
+		t.Fatalf("read = %+v %+v, want one reminder in each item", r1, r2)
+	}
+	again, diags := expandUpdate(ctx, &model)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if got := again.Thing.Reminders; len(got) != 2 || got[0].ItemName != "i1" || *got[0].Definition.Link.Url != "u1" || got[1].ItemName != "i2" || *got[1].Definition.Link.Url != "u2" {
+		t.Fatalf("sent again = %+v, want the two reminders", got)
 	}
 }

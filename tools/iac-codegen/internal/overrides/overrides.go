@@ -233,6 +233,56 @@ func (f *File) NestedParent(schema, field string) *Parent {
 	return &parent
 }
 
+// CarrySkips gives a component that received a field from an inlined object the skip line of the
+// object's component: a field that an inline line of a nested component moved out of an object is
+// skipped when the line of the object's component skips it, and the receiving component has no
+// line for it. A line of the receiving component takes precedence.
+func (f *File) CarrySkips() {
+	if f == nil || f.Inlined == nil {
+		return
+	}
+	for _, schema := range sortedKeys(f.Inlined.Nested) {
+		for _, field := range sortedKeys(f.Inlined.Nested[schema]) {
+			if _, ok := f.Types[schema].Fields[field]; ok || !f.skippedInObject(schema, field) {
+				continue
+			}
+			t := f.Types[schema]
+			if t.Fields == nil {
+				t.Fields = map[string]Field{}
+			}
+			t.Fields[field] = Field{Field: iacoverrides.Field{Skip: true}}
+			f.Types[schema] = t
+		}
+	}
+}
+
+// skippedInObject reports whether the line of a component on the chain of objects that hold field
+// for schema skips it.
+func (f *File) skippedInObject(schema, field string) bool {
+	for _, parent := range f.NestedParents(schema, field) {
+		if f.Types[parent.Schema].Fields[field].Skip {
+			return true
+		}
+	}
+	return false
+}
+
+// NestedObject returns the object whose API property is name, when an inline line of the component
+// schema moved fields out of it, or nil. The object is no field of the component any more.
+func (f *File) NestedObject(schema, name string) *Parent {
+	if f == nil || f.Inlined == nil {
+		return nil
+	}
+	parents := f.Inlined.Nested[schema]
+	for _, field := range sortedKeys(parents) {
+		if parents[field].Field == name {
+			parent := parents[field]
+			return &parent
+		}
+	}
+	return nil
+}
+
 // NestedParents returns the objects that hold field of the component schema, the outer one first.
 // An inline line of a component whose object has an inline line of its own for the same field makes
 // a chain: the moved field is inside the object of the first line, which holds it inside the object

@@ -271,6 +271,10 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 			return nil, &EligibilityError{Report: report}
 		}
 		if file.Inlined != nil {
+			// A field that a nested inline line moved out of an object keeps the skip line of the
+			// object's component, so the policy is built again.
+			file.CarrySkips()
+			policy = file.Policy()
 			if doc, err = model.Load(reshaped); err != nil {
 				return nil, fmt.Errorf("read the reshaped contract: %w", err)
 			}

@@ -75,16 +75,22 @@ type ActionDefinitionModel struct {
 	Url types.String `tfsdk:"url"`
 }
 
+type UnionReminderModel struct {
+	Label types.String `tfsdk:"label"`
+	Url   types.String `tfsdk:"url"`
+}
+
 type UnionItemModel struct {
-	Name     types.String                `tfsdk:"name"`
-	Note     types.String                `tfsdk:"note"`
-	Value    types.String                `tfsdk:"value"`
-	Label    types.String                `tfsdk:"label"`
-	Options  *ItemOptionsModel           `tfsdk:"options"`
-	First    *TagAtUnionItemFirstModel   `tfsdk:"first"`
-	Second   *TagModel                   `tfsdk:"second"`
-	Choice   *PickAtUnionItemChoiceModel `tfsdk:"choice"`
-	Choices  types.List                  `tfsdk:"choices"`
-	Action   *ItemActionModel            `tfsdk:"action"`
-	Behavior *ActionDefinitionModel      `tfsdk:"behavior"`
+	Name      types.String                `tfsdk:"name"`
+	Note      types.String                `tfsdk:"note"`
+	Value     types.String                `tfsdk:"value"`
+	Label     types.String                `tfsdk:"label"`
+	Options   *ItemOptionsModel           `tfsdk:"options"`
+	First     *TagAtUnionItemFirstModel   `tfsdk:"first"`
+	Second    *TagModel                   `tfsdk:"second"`
+	Choice    *PickAtUnionItemChoiceModel `tfsdk:"choice"`
+	Choices   types.List                  `tfsdk:"choices"`
+	Action    *ItemActionModel            `tfsdk:"action"`
+	Behavior  *ActionDefinitionModel      `tfsdk:"behavior"`
+	Reminders types.List                  `tfsdk:"reminders"`
 }
