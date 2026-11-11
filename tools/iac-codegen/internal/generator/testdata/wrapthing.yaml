@@ -5,7 +5,8 @@
 # LuceneQuery stays an object in rawQuery, so their properties state presence. The offset and the
 # span of the filter are signed 64-bit numbers that the API sends as strings (^-?[0-9]+$); the
 # released resource shows them as Int64. The tags are one list inside one wrapper, shown as a set. The window is a oneOf of an enum and a free
-# duration, shown as one string.
+# duration, shown as one string. The notes are one list of the thing, and each note names its panel by id. The released resource
+# showed them inside their panel.
 openapi: 3.1.0
 info: {title: wrap, version: 1.0.0}
 paths:
@@ -36,6 +37,13 @@ paths:
                 window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
+                panels:
+                  type: array
+                  items: {$ref: '#/components/schemas/WrapPanel'}
+                notes:
+                  type: array
+                  items: {$ref: '#/components/schemas/WrapNote'}
+                folderPath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -81,6 +89,13 @@ paths:
                 window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
+                panels:
+                  type: array
+                  items: {$ref: '#/components/schemas/WrapPanel'}
+                notes:
+                  type: array
+                  items: {$ref: '#/components/schemas/WrapNote'}
+                folderPath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -126,6 +141,13 @@ components:
         window: {$ref: '#/components/schemas/Window'}
         mainLabel: {$ref: '#/components/schemas/Label'}
         extraLabel: {$ref: '#/components/schemas/Label'}
+        panels:
+          type: array
+          items: {$ref: '#/components/schemas/WrapPanel'}
+        notes:
+          type: array
+          items: {$ref: '#/components/schemas/WrapNote'}
+        folderPath: {$ref: '#/components/schemas/FolderPath'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     LuceneQuery:
       type: object
@@ -204,3 +226,33 @@ components:
       required: []
       properties:
         value: {type: string, x-coralogix-presence: true}
+    # A panel has an id that the client makes: a UUID held in a wrapper, which the API requires.
+    WrapPanel:
+      type: object
+      required: [id]
+      properties:
+        id: {$ref: '#/components/schemas/UUID'}
+        title: {type: string, x-coralogix-presence: true}
+    # A note names its panel by the id of the panel, a UUID in a wrapper. The notes are in the list of
+    # the thing, not in the panel. The detail is set for a note of this kind, and a note without a url
+    # is another kind of note, which the resource does not show.
+    WrapNote:
+      type: object
+      required: [id, panelId]
+      properties:
+        id: {type: string}
+        text: {type: string, x-coralogix-presence: true}
+        panelId: {$ref: '#/components/schemas/UUID'}
+        detail: {$ref: '#/components/schemas/NoteDetail'}
+    NoteDetail:
+      type: object
+      required: []
+      properties:
+        url: {type: string, x-coralogix-presence: true}
+    # A folder path: the segments, held in an object, which Terraform shows as one text "Team/Sub".
+    FolderPath:
+      type: object
+      properties:
+        segments:
+          type: array
+          items: {type: string}

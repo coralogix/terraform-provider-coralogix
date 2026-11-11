@@ -255,16 +255,26 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
+	// source is the file as written. file has a copy of a component for each place that inlines a field.
+	source := file
 	if file != nil {
 		if report = overrideIssues(doc, component, file, operationIDs, policy); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
+		if file, err = withPlaceClones(file); err != nil {
+			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the at line.")
+		}
+		policy = file.Policy()
 		// The upsert and inline keys change the contract that the model reads (reshape.go).
 		reshaped, ids, report := reshape(data, component, operationIDs, file, policy)
 		if len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
 		if file.Inlined != nil {
+			// A field that a nested inline line moved out of an object keeps the skip line of the
+			// object's component, so the policy is built again.
+			file.CarrySkips()
+			policy = file.Policy()
 			if doc, err = model.Load(reshaped); err != nil {
 				return nil, fmt.Errorf("read the reshaped contract: %w", err)
 			}
@@ -306,7 +316,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		refs = append(refs, armRefs...)
 	}
-	refs = inlineSDKNames(upsertSDKNames(refs, file), file)
+	refs = placeSDKNames(inlineSDKNames(upsertSDKNames(refs, file), file), file)
 	if file != nil {
 		if refs, err = showSDKNames(doc, refs, file); err != nil {
 			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the show line of the dataSource section.")
@@ -324,11 +334,14 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		refs = append(refs, ref)
 	}
+	if err := distributeFields(resource, file); err != nil {
+		return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the distributeTo line.")
+	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
 	return &validatedResource{resource: resource, refs: refs, overrides: file,
-		withoutDelete: validateWithoutDelete(data, resourceName, operationIDs, sdkModule, providerModule, file)}, nil
+		withoutDelete: validateWithoutDelete(data, resourceName, operationIDs, sdkModule, providerModule, source)}, nil
 }
 
 // readBackIssues reports a Create response that a singleton cannot read back from.

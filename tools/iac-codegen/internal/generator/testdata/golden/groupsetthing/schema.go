@@ -8,6 +8,8 @@ import (
 	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -15,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -110,6 +113,104 @@ func Schema() schema.Schema {
 					},
 				},
 				MarkdownDescription: "",
+			},
+			"schedule": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"absolute": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("relative")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"start": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+							"end": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+					"relative": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("absolute")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"duration": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+					"mode": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("fast", "slow", "balanced"),
+						},
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"window": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"absolute": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"start": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+							"end": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+					"relative": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"duration": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "The window of the set.",
+			},
+			"refresh": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString("off"),
+						Validators: []validator.String{
+							stringvalidator.OneOf("off", "five_minutes", "hourly"),
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"off\", \"five_minutes\", \"hourly\". The default is \"off\".",
+					},
+				},
+				MarkdownDescription: "How often the set refreshes.",
 			},
 			"document": schema.StringAttribute{
 				Optional: true,

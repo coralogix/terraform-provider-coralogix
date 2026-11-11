@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -41,7 +42,7 @@ func Schema() schema.Schema {
 						Required: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("count", "avg", "percentile"),
-							typedArmValidator{Names: []string{"field", "mode", "weight", "percent", "bucket"}, Fields: map[string][]string{"count": {}, "avg": {"field", "mode", "weight"}, "percentile": {"field", "mode", "weight", "percent", "bucket"}}, Values: map[string]map[string][]validator.String{"avg": {"mode": {stringvalidator.OneOf("exact", "fast")}}}},
+							typedArmValidator{Names: []string{"field", "mode", "weight", "unit", "percent", "bucket"}, Fields: map[string][]string{"count": {}, "avg": {"field", "mode", "weight", "unit"}, "percentile": {"field", "mode", "weight", "percent", "unit", "bucket"}}, Values: map[string]map[string][]validator.String{"avg": {"mode": {stringvalidator.OneOf("exact", "fast")}}}, Rules: map[string][]typedRule{"percentile": {{Kind: "exactlyOneOf", Names: []string{"field", "unit"}}}}},
 						},
 						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"count\", \"avg\", \"percentile\".",
 					},
@@ -54,6 +55,10 @@ func Schema() schema.Schema {
 						MarkdownDescription: "",
 					},
 					"weight": schema.Float64Attribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+					"unit": schema.StringAttribute{
 						Optional:            true,
 						MarkdownDescription: "",
 					},
@@ -101,6 +106,13 @@ func Schema() schema.Schema {
 						MarkdownDescription: "",
 					},
 				},
+				MarkdownDescription: "",
+			},
+			"picked_values": schema.ListAttribute{
+				Optional:            true,
+				Computed:            true,
+				ElementType:         types.StringType,
+				Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
 				MarkdownDescription: "",
 			},
 			"operator": schema.SingleNestedAttribute{
@@ -156,6 +168,24 @@ func Schema() schema.Schema {
 							Optional:            true,
 							MarkdownDescription: "",
 						},
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"span_value": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"type": schema.StringAttribute{
+						Required: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("metadata", "tag", "process_tag"),
+							typedArmValidator{Names: []string{"value"}, Fields: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Required: map[string][]string{"metadata": {"value"}, "tag": {"value"}, "process_tag": {"value"}}, Values: map[string]map[string][]validator.String{"metadata": {"value": {stringvalidator.OneOf("application_name", "service_name")}}}},
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"metadata\", \"tag\", \"process_tag\".",
+					},
+					"value": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
 					},
 				},
 				MarkdownDescription: "",
@@ -267,6 +297,15 @@ type typedArmValidator struct {
 	Required map[string][]string
 	// Values are the checks of a scalar arm, by value of the type and attribute.
 	Values map[string]map[string][]validator.String
+	// Rules are the rules over attributes of an arm, by value of the type.
+	Rules map[string][]typedRule
+}
+
+// typedRule is a rule over attributes of an arm: exactlyOneOf, atLeastOneOf, alsoRequires, or
+// conflictsWith. Names has the attribute that the line is on first, then the others.
+type typedRule struct {
+	Kind  string
+	Names []string
 }
 
 func (v typedArmValidator) Description(context.Context) string {
@@ -275,6 +314,44 @@ func (v typedArmValidator) Description(context.Context) string {
 
 func (v typedArmValidator) MarkdownDescription(ctx context.Context) string {
 	return v.Description(ctx)
+}
+
+// validateRules checks the rules of the arm that the type names. A value that is unknown makes the
+// rule wait until it is known.
+func (v typedArmValidator) validateRules(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse, kind string) {
+	for _, rule := range v.Rules[kind] {
+		set, unknown := 0, false
+		first := false
+		for i, name := range rule.Names {
+			var value attr.Value
+			if diags := req.Config.GetAttribute(ctx, req.Path.ParentPath().AtName(name), &value); diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
+			switch {
+			case value != nil && value.IsUnknown():
+				unknown = true
+			case value != nil && !value.IsNull() && !typedCollectionEmpty(value):
+				set++
+				first = first || i == 0
+			}
+		}
+		if unknown {
+			continue
+		}
+		at := req.Path.ParentPath().AtName(rule.Names[0])
+		list := strings.Join(rule.Names, ", ")
+		switch {
+		case rule.Kind == "exactlyOneOf" && set != 1:
+			resp.Diagnostics.AddAttributeError(at, "Invalid attribute combination", fmt.Sprintf("When the type is %q, exactly one of %s must be set.", kind, list))
+		case rule.Kind == "atLeastOneOf" && set == 0:
+			resp.Diagnostics.AddAttributeError(at, "Missing required attribute", fmt.Sprintf("When the type is %q, at least one of %s must be set.", kind, list))
+		case rule.Kind == "conflictsWith" && first && set > 1:
+			resp.Diagnostics.AddAttributeError(at, "Invalid attribute combination", fmt.Sprintf("When the type is %q, %s must not be set with the others of %s.", kind, rule.Names[0], list))
+		case rule.Kind == "alsoRequires" && first && set != len(rule.Names):
+			resp.Diagnostics.AddAttributeError(at, "Missing required attribute", fmt.Sprintf("When the type is %q and %s is set, all of %s must be set.", kind, rule.Names[0], list))
+		}
+	}
 }
 
 func (v typedArmValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
@@ -286,6 +363,7 @@ func (v typedArmValidator) ValidateString(ctx context.Context, req validator.Str
 	if !ok {
 		return // the OneOf validator of the type reports it
 	}
+	v.validateRules(ctx, req, resp, kind)
 	for _, name := range v.Required[kind] {
 		at := req.Path.ParentPath().AtName(name)
 		var value attr.Value

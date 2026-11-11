@@ -5,14 +5,45 @@ import (
 	"net/http"
 )
 
+type AbsoluteWindow struct {
+	End   *string
+	Start string
+}
+
+// A oneOf whose arms have no fields.
+type Mode struct {
+	Fast         map[string]interface{}
+	Slow         map[string]interface{}
+	BalancedMode map[string]interface{}
+}
+
+// A oneOf: AbsoluteWindow, or RelativeWindow, a plain duration. Mode is a field of its own.
+type Schedule struct {
+	AbsoluteWindow *AbsoluteWindow
+	RelativeWindow *string
+	Mode           *Mode
+}
+
 type CreateGroupSetThing struct {
-	Groups []InGroupThing
-	Name   *string
+	AbsoluteWindow *AbsoluteWindow
+	FiveMinutes    map[string]interface{}
+	Groups         []InGroupThing
+	Name           *string
+	Off            map[string]interface{}
+	OneHour        map[string]interface{}
+	RelativeWindow *string
+	Schedule       *Schedule
 }
 
 type UpdateGroupSetThing struct {
-	Groups []InGroupThing
-	Name   *string
+	AbsoluteWindow *AbsoluteWindow
+	FiveMinutes    map[string]interface{}
+	Groups         []InGroupThing
+	Name           *string
+	Off            map[string]interface{}
+	OneHour        map[string]interface{}
+	RelativeWindow *string
+	Schedule       *Schedule
 }
 
 type CreateGroupSetThingResult struct {
@@ -20,9 +51,15 @@ type CreateGroupSetThingResult struct {
 }
 
 type GroupSetThing struct {
-	Groups []OutGroupThing
-	Id     string
-	Name   string
+	AbsoluteWindow *AbsoluteWindow
+	FiveMinutes    map[string]interface{}
+	Groups         []OutGroupThing
+	Id             string
+	Name           string
+	Off            map[string]interface{}
+	OneHour        map[string]interface{}
+	RelativeWindow *string
+	Schedule       *Schedule
 }
 
 type InGroupThing struct {
@@ -104,8 +141,16 @@ func (r ApiGroupSetsUpdateRequest) UpdateGroupSetThing(updateGroupSetThing Updat
 	return r
 }
 
-func store(id string, name *string, groups []InGroupThing) {
-	Stored = GroupSetThing{Id: id, Name: id}
+// refresh holds the arms of the refresh that a request sent.
+type refresh struct{ off, fiveMinutes, oneHour map[string]interface{} }
+
+func store(id string, name *string, groups []InGroupThing, schedule *Schedule, absolute *AbsoluteWindow, relative *string, arms refresh) {
+	Stored = GroupSetThing{Id: id, Name: id, Schedule: schedule, AbsoluteWindow: absolute, RelativeWindow: relative,
+		Off: arms.off, FiveMinutes: arms.fiveMinutes, OneHour: arms.oneHour}
+	if arms.off == nil && arms.fiveMinutes == nil && arms.oneHour == nil {
+		// The service refreshes nothing when no arm is sent, and says so.
+		Stored.Off = map[string]interface{}{}
+	}
 	if name != nil {
 		Stored.Name = *name
 	}
@@ -131,7 +176,7 @@ func store(id string, name *string, groups []InGroupThing) {
 
 func (r ApiGroupSetsCreateRequest) Execute() (*CreateGroupSetThingResult, *http.Response, error) {
 	Created = append(Created, r.body)
-	store("set-1", r.body.Name, r.body.Groups)
+	store("set-1", r.body.Name, r.body.Groups, r.body.Schedule, r.body.AbsoluteWindow, r.body.RelativeWindow, refresh{r.body.Off, r.body.FiveMinutes, r.body.OneHour})
 	return &CreateGroupSetThingResult{Id: "set-1"}, nil, nil
 }
 
@@ -146,7 +191,7 @@ func (r ApiGroupSetsUpdateRequest) Execute() (map[string]interface{}, *http.Resp
 	if r.body.Name != nil {
 		name = r.body.Name
 	}
-	store(r.id, name, r.body.Groups)
+	store(r.id, name, r.body.Groups, r.body.Schedule, r.body.AbsoluteWindow, r.body.RelativeWindow, refresh{r.body.Off, r.body.FiveMinutes, r.body.OneHour})
 	return map[string]interface{}{}, nil, nil
 }
 

@@ -28,8 +28,10 @@ var updateFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "aggregation", serverDefault: false},
 	{attr: "selection", serverDefault: false},
+	{attr: "picked_values", serverDefault: false},
 	{attr: "operator", serverDefault: false},
 	{attr: "fields", serverDefault: false},
+	{attr: "span_value", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

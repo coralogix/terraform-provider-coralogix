@@ -625,7 +625,7 @@ func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	if !r.HiddenWrappers[line.Component] {
 		return nil
 	}
-	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" })
+	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" || key == "join" })
 }
 
 // stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum
