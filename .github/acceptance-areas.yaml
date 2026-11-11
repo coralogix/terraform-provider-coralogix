@@ -1,0 +1,178 @@
+# Which acceptance test jobs a pull request runs.
+#
+# Run `go run ./tools/acceptance-areas lint` to check this file. Run
+# `go run ./tools/acceptance-areas report` to see the jobs of each area.
+#
+# The rule:
+#   - A pull request that changes only files of some areas runs the jobs that run the tests
+#     of those areas. It also runs the jobs of every area that depends on them.
+#   - A pull request that changes any other file runs every job. That includes
+#     .github/**, tools/**, go.mod, and every file listed under `shared`.
+#   - The nightly run and every push to master run every job.
+#
+# The jobs of an area are not listed here. The tool finds them: it matches the tests of the
+# area files against the -run and -skip patterns of .github/workflows/acceptance-tests.yml.
+
+# Changes to these files never start a test.
+ignore:
+  - '^\.claude/'
+  - '^\.cursor/'
+  - '\.md$'
+
+# Every file under these directories must be in an area or in `shared`.
+# A new file that is in neither fails the lint.
+strict:
+  - internal/provider/
+  - examples/
+
+# Files that belong to no area. A change to one of them runs every job.
+shared:
+  - internal/provider/provider.go
+  - internal/provider/mux.go
+  - internal/provider/mux_test.go
+  - internal/provider/codegen.go
+  - internal/provider/provider_test.go
+  - internal/provider/provider_domain_test.go
+  - internal/provider/generated/registry.go
+  - internal/provider/generated/versions.yaml
+  - examples/provider/
+  # Test helpers that two or more areas use. They sit in files named after one resource.
+  # Moving the helpers into one file would let the tests of these files stay in their areas.
+  - internal/provider/global_router_baseline_test.go
+  - internal/provider/global_router_baseline_harness_test.go
+  - internal/provider/global_router_baseline_fake_test.go
+  - internal/provider/global_router_fidelity_test.go
+  - internal/provider/global_router_fields_scenarios_test.go
+  - internal/provider/connector_baseline_fake_test.go
+  - internal/provider/alerts_scheduler_baseline_test.go
+  - internal/provider/alerts_scheduler_baseline_fake_test.go
+  - internal/provider/archive_metrics_fidelity_test.go
+  - internal/provider/archive_targets_helpers_test.go
+  # These tests cover the data sources of many areas.
+  - internal/provider/data_source_baseline_test.go
+  - internal/provider/data_source_baseline_fake_test.go
+
+# An area owns these paths. The longest matching path wins.
+#
+#   paths:      file or directory prefixes. A prefix that ends in "/" is a directory.
+#   resources:  Terraform resource names without `coralogix_`. Each name expands to the
+#               test files, test data, and examples of that resource.
+#   generated:  directory names under internal/provider/generated/.
+#   depends_on: areas whose code this area uses. The lint fails when code of an area uses
+#               code of another area that is not listed here.
+areas:
+  aaa:
+    paths:
+      - internal/provider/aaa/
+      - internal/provider/resource_ip_access_test.go
+      - internal/provider/data_source_ip_access_test.go
+    resources: [api_key, custom_role, group, scope, user, team, ip_access]
+    generated: [apikey, team]
+
+  actions:
+    paths: [internal/provider/actions/]
+    resources: [action]
+    generated: [action]
+
+  ai:
+    paths: [internal/provider/ai/]
+    resources: [ai_evaluation, ai_custom_evaluation]
+    generated: [aievaluation]
+
+  alerts:
+    paths: [internal/provider/alerts/]
+    resources: [alert, alerts_scheduler]
+    generated: [alert, alertsscheduler]
+    depends_on: [aaa, actions, dashboards, notifications, slo_mgmt]
+
+  apm:
+    paths: [internal/provider/apm/]
+    resources: [slo]
+
+  dashboards:
+    paths: [internal/provider/dashboards/]
+    resources: [dashboard, dashboards_folder]
+    generated: [dashboardsfolder]
+
+  data_exploration:
+    paths:
+      - internal/provider/data_exploration/
+      - internal/provider/resource_hosted_dashboard_test.go
+      - internal/provider/data_source_hosted_dashboard_test.go
+      - examples/resources/coralogix_hosted_dashboard
+      - examples/data-sources/coralogix_hosted_dashboard
+
+  dataengine:
+    paths: [internal/provider/dataengine/]
+    resources: [archive_retentions]
+    generated: [archiveretentions]
+    depends_on: [metrics]
+
+  dataplans:
+    paths: [internal/provider/dataplans/]
+    resources: [quota_allocation_rule_set, tco_policies, tco_policies_logs, tco_policies_rum, tco_policies_traces]
+    generated: [quotaallocationruleset, tcopolicieslogs, tcopoliciesrum, tcopoliciestraces]
+
+  enrichment_rules:
+    paths: [internal/provider/enrichment_rules/]
+    resources: [enrichment, data_enrichments, data_set]
+
+  events2metrics:
+    paths: [internal/provider/events2metrics/]
+    resources: [events2metric]
+    generated: [events2metric]
+    depends_on: [notifications]
+
+  fleet:
+    paths: [internal/provider/fleet/]
+    resources: [configuration_group]
+    generated: [configurationgroup]
+
+  integrations:
+    paths: [internal/provider/integrations/]
+    resources: [integration]
+    generated: [integration]
+
+  logs:
+    paths: [internal/provider/logs/]
+    resources: [archive_logs]
+    generated: [archivelogs]
+
+  metrics:
+    paths: [internal/provider/metrics/]
+    resources: [archive_metrics]
+    generated: [archivemetrics]
+
+  notifications:
+    paths: [internal/provider/notifications/, examples/resources/coralogix_notification_center]
+    resources: [connector, preset, global_router]
+    generated: [connector, preset, globalrouter]
+
+  parsing_rules:
+    paths: [internal/provider/parsing_rules/]
+    resources: [parsing_rules, rules_group]
+    generated: [parsingrules]
+    depends_on: [actions]
+
+  recording_rules:
+    paths:
+      - internal/provider/recording_rules/
+      - internal/provider/data_source_coralogix_recording_rules_group_test.go
+    resources: [recording_rules_groups_set]
+    generated: [recordingrulesgroupsset]
+    depends_on: [parsing_rules]
+
+  slo_mgmt:
+    paths: [internal/provider/slo_mgmt/]
+    resources: [slo_v2]
+    generated: [slov2]
+
+  views:
+    paths: [internal/provider/views/]
+    resources: [view, view_folder]
+    generated: [view, viewfolder]
+
+  webhook:
+    paths: [internal/provider/webhook/]
+    resources: [webhook]
+    generated: [webhook]
