@@ -10,6 +10,7 @@ archivemetrics: v0.1.0-beta.79
 archiveretentions: v0.1.0-beta.79
 configurationgroup: v0.1.0-beta.79
 connector: v0.1.0-beta.79
+customrole: v0.1.0-beta.79
 dashboardsfolder: v0.1.0-beta.79
 events2metric: v0.1.0-beta.79
 globalrouter: v0.1.0-beta.79

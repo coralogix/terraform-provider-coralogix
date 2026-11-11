@@ -1,0 +1,59 @@
+# Where coralogix_custom_role differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: CustomRole
+mode: existing
+typeName: custom_role
+
+markdownDescription: "Coralogix Custom Role. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-roles-and-permissions/."
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+# Create is a PUT of the collection and returns only {"id": N}. Update is a POST of the role and
+# returns {}. Both are read back with Get, which wraps the role.
+api:
+  operations:
+    create: RoleManagementService_CreateRole
+    get: RoleManagementService_GetCustomRole
+    update: RoleManagementService_UpdateRole
+    delete: RoleManagementService_DeleteRole
+  methods: {create: PUT, update: POST}
+  idProperty: roleId
+  # PINNED-SDK: the Get response of the pinned SDK does not require roleId, though the service
+  # always returns it. Delete the line when the SDK has the contract that requires it.
+  serverSetID: true
+  createResponseOnlyIDProperty: id
+
+# Update holds the permissions in a one-property object; Create and Get hold the list.
+unwrap: [v2.Permissions]
+
+# The released data source read a role by id, or by name through the list.
+dataSource:
+  lookup: [id, name]
+
+types:
+  CustomRole:
+    fields:
+      roleId: {name: id, terraformType: String, readOnly: true, markdownDescription: "Custom Role ID."}
+      # Update takes the name and the description as newName and newDescription.
+      name: {updateAs: newName, required: true, markdownDescription: "Custom Role name."}
+      description: {updateAs: newDescription, required: true, markdownDescription: "Custom Role description."}
+      # Create takes the parent by name or by id, and Update cannot change it. The released
+      # resource shows the name only.
+      parentRoleName: {name: parent_role, required: true, markdownDescription: "Parent role name"}
+      parentRoleId: {skip: true}
+      teamId: {skip: true}
+      # The API keeps the spelling that a permission was given in, and one spelling of permissions
+      # that differ only in case, so a read keeps the case of the configuration.
+      permissions:
+        updateAs: newPermissions
+        collection: set
+        required: true
+        equality: caseInsensitive
+        validators: [{sizeAtLeast: 1}]
+        markdownDescription: "Custom role permissions"

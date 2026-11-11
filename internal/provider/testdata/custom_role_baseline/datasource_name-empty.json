@@ -4,15 +4,26 @@
     "config": {
       "name": ""
     },
-    "applyDiagnostics": [
-      "error: Invalid Id or Name | coralogix_custom_role id or name must be provided"
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
     ],
     "state": {
-      "description": null,
-      "id": null,
+      "description": "seeded",
+      "id": "5001",
       "name": "",
-      "parent_role": null,
-      "permissions": null
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
     }
   }
 ]

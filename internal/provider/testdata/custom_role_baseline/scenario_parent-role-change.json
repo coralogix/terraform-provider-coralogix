@@ -68,29 +68,8 @@
         "spans.events2metrics:UpdateConfig"
       ]
     },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
-        "body": {
-          "newDescription": "made with Terraform",
-          "newName": "n",
-          "newPermissions": {
-            "permissions": [
-              "spans.events2metrics:UpdateConfig"
-            ]
-          }
-        },
-        "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "parent_role"
+    "requiresReplace": [
+      "AttributeName(\"parent_role\")"
     ],
     "state": {
       "description": "made with Terraform",
@@ -100,10 +79,6 @@
       "permissions": [
         "spans.events2metrics:UpdateConfig"
       ]
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"parent_role\")"
-    ]
+    }
   }
 ]

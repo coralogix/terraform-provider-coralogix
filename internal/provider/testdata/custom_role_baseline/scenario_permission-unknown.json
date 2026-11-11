@@ -34,7 +34,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_custom_role | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Expression is not valid: nope:Nope\"}\noperation - Create"
+      "error: Unable to create custom_role | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Expression is not valid: nope:Nope\"}"
     ],
     "state": null
   }

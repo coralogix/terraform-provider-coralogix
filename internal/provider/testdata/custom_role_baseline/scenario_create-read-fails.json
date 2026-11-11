@@ -39,9 +39,15 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error refreshing updated coralogix_custom_role. State was not updated | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+      "error: Unable to create custom_role | created custom_role with id 5001, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
-    "state": null
+    "state": {
+      "description": null,
+      "id": "5001",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
   },
   {
     "step": "apply again",
@@ -78,7 +84,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_custom_role | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role n for team 700001 as it already exists.\"}\noperation - Create"
+      "error: Unable to create custom_role | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role n for team 700001 as it already exists.\"}"
     ],
     "state": null
   }

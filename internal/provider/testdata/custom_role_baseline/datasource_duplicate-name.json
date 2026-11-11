@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Multiple coralogix_custom_roles found | Multiple coralogix_custom_roles found with name \"seeded\""
+      "error: coralogix_custom_role with name \"seeded\" is not unique | 2 coralogix_custom_role resources have the name \"seeded\". Set the id instead of the name."
     ],
     "state": {
       "description": null,
