@@ -658,10 +658,10 @@ type Field struct {
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
 	// Validators are the released validators of the field.
 	Validators []Validator `yaml:"validators"`
-	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. "caseInsensitive"
-	// keeps the spelling of the prior element of a list or set of strings that the API returns in
-	// another case. The API
+	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
+	// "caseInsensitive" is for a list or set of strings: it keeps the spelling of the prior element
+	// when the API returns the element in another case.
 	Equality string `yaml:"equality"`
 	// RequiresReplace: a change of this top-level field replaces the resource, although Update
 	// accepts it, as the released resource did. A PATCH Update does not send the field. A PUT
