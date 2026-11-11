@@ -362,6 +362,8 @@ func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags 
 			out.Choices = append(out.Choices, *expandPick(ctx, p.AtName("choices").AtListIndex(i), &items[i], diags))
 		}
 	}
+	out.Action = expandItemAction(ctx, p.AtName("action"), m.Action, diags)
+	out.Behavior = expandActionDefinition(ctx, p.AtName("behavior"), m.Behavior, diags)
 	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
 		out.Value = nil // an optional object that the configuration sets no attribute of is left out
 	}
@@ -401,20 +403,24 @@ func flattenUnionItem(ctx context.Context, p path.Path, v *union_wrap_things_ser
 		}
 		out.Choices = flattenList(ctx, types.ObjectType{AttrTypes: pickAttrTypes()}, items, diags)
 	}
+	out.Action = flattenItemAction(ctx, p.AtName("action"), v.Action, diags)
+	out.Behavior = flattenActionDefinition(ctx, p.AtName("behavior"), v.Behavior, diags)
 	return out
 }
 
 func unionItemAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"name":    types.StringType,
-		"note":    types.StringType,
-		"value":   types.StringType,
-		"label":   types.StringType,
-		"options": types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
-		"first":   types.ObjectType{AttrTypes: tagAtUnionItemFirstAttrTypes()},
-		"second":  types.ObjectType{AttrTypes: tagAttrTypes()},
-		"choice":  types.ObjectType{AttrTypes: pickAtUnionItemChoiceAttrTypes()},
-		"choices": types.ListType{ElemType: types.ObjectType{AttrTypes: pickAttrTypes()}},
+		"name":     types.StringType,
+		"note":     types.StringType,
+		"value":    types.StringType,
+		"label":    types.StringType,
+		"options":  types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
+		"first":    types.ObjectType{AttrTypes: tagAtUnionItemFirstAttrTypes()},
+		"second":   types.ObjectType{AttrTypes: tagAttrTypes()},
+		"choice":   types.ObjectType{AttrTypes: pickAtUnionItemChoiceAttrTypes()},
+		"choices":  types.ListType{ElemType: types.ObjectType{AttrTypes: pickAttrTypes()}},
+		"action":   types.ObjectType{AttrTypes: itemActionAttrTypes()},
+		"behavior": types.ObjectType{AttrTypes: actionDefinitionAttrTypes()},
 	}
 }
 
@@ -601,6 +607,78 @@ func labelledAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"value": types.StringType,
 		"label": types.StringType,
+	}
+}
+
+func expandItemAction(ctx context.Context, p path.Path, m *ItemActionModel, diags *diag.Diagnostics) *union_wrap_things_service.ItemAction {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.ItemAction{}
+	out.Definition = &union_wrap_things_service.ActionDefinition{} // an inlined object: its fields are top-level attributes
+	out.Definition.Link = &union_wrap_things_service.ActionLink{}  // an inlined object: its fields are top-level attributes
+	out.Label = expandString(m.Label)
+	out.Definition.Link.Url = expandString(m.Url)
+	if out.Definition != nil && modelNull(m.Url) {
+		out.Definition = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenItemAction(ctx context.Context, p path.Path, v *union_wrap_things_service.ItemAction, diags *diag.Diagnostics) *ItemActionModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Definition == nil {
+		v.Definition = &union_wrap_things_service.ActionDefinition{}
+	}
+	if v.Definition.Link == nil {
+		v.Definition.Link = &union_wrap_things_service.ActionLink{}
+	}
+	out := &ItemActionModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Url = types.StringPointerValue(v.Definition.Link.Url)
+	return out
+}
+
+func itemActionAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label": types.StringType,
+		"url":   types.StringType,
+	}
+}
+
+func expandActionDefinition(ctx context.Context, p path.Path, m *ActionDefinitionModel, diags *diag.Diagnostics) *union_wrap_things_service.ActionDefinition {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.ActionDefinition{}
+	out.Link = &union_wrap_things_service.ActionLink{} // an inlined object: its fields are top-level attributes
+	out.Link.Url = expandString(m.Url)
+	return out
+}
+
+func flattenActionDefinition(ctx context.Context, p path.Path, v *union_wrap_things_service.ActionDefinition, diags *diag.Diagnostics) *ActionDefinitionModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Link == nil {
+		v.Link = &union_wrap_things_service.ActionLink{}
+	}
+	out := &ActionDefinitionModel{}
+	out.Url = types.StringPointerValue(v.Link.Url)
+	return out
+}
+
+func actionDefinitionAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"url": types.StringType,
 	}
 }
 

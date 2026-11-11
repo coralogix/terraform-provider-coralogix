@@ -2415,10 +2415,8 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 // adds no field to it, but the pointer that holds the arms is a parent for both.
 func (b *convBuilder) typedParentsOfBoth(obj *convObject, sdkPath string, t *model.Type) error {
 	for _, f := range t.Fields {
-		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
-			if err := b.nestedParentOfBoth(obj, sdkPath, parent); err != nil {
-				return fmt.Errorf("%s: %w", f.Name, err)
-			}
+		if err := b.nestedParentsOfBoth(obj, sdkPath, b.file.NestedParents(t.Schema, f.Name)); err != nil {
+			return fmt.Errorf("%s: %w", f.Name, err)
 		}
 	}
 	return nil
@@ -3419,10 +3417,8 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 			// The component is a request and a response. The first pass made one list of parents.
-			if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
-				if err := b.nestedParentOfBoth(obj, sdkPath, parent); err != nil {
-					return fmt.Errorf("%s: %w", f.Name, err)
-				}
+			if err := b.nestedParentsOfBoth(obj, sdkPath, b.file.NestedParents(t.Schema, f.Name)); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 			continue
 		}
@@ -3433,9 +3429,9 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 		}
 		cf.TFName = name
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
-		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
+		if parents := b.file.NestedParents(t.Schema, f.Name); len(parents) != 0 {
 			// An inline line moved the field out of its object: the Go expression goes through it.
-			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parent, cf, f.Attrs.Required && scalarKind(f.Type)); err != nil {
+			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parents, cf, f.Attrs.Required && scalarKind(f.Type)); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 		}
@@ -3663,40 +3659,49 @@ func (b *convBuilder) nestedRequestPath(obj *convObject, sdkPath string, f *mode
 	return nil
 }
 
-// nestedInlineParent points cf, a field that an inline line moved out of the object parent of the
-// object at sdkPath, at the field of that object. A request allocates an SDK pointer before it writes
-// the field; a response reads a missing one as empty.
-func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parent *overrides.Parent, cf *convField, requiredScalar bool) error {
-	objectPath := parent.ObjectPath(sdkPath + "." + parent.Field)
-	ref, err := b.ix.fieldRef(objectPath)
-	if err != nil {
-		return err
+// nestedInlineParent points cf, a field that inline lines moved out of the objects in parents (the
+// outer one first) of the object at sdkPath, at the field of the innermost one. A request allocates
+// each SDK pointer on the way before it writes the field; a response reads a missing one as empty.
+func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parents []overrides.Parent, cf *convField, requiredScalar bool) error {
+	selector, prefix := "", sdkPath
+	var pointers []convParent
+	for _, parent := range parents {
+		plain := prefix + "." + parent.Field
+		objectPath := parent.ObjectPath(plain)
+		ref, err := b.ix.fieldRef(objectPath)
+		if err != nil {
+			return err
+		}
+		typ, err := b.ix.typeRef(objectPath)
+		if err != nil {
+			return err
+		}
+		selector += ref.Name
+		switch ref.Want {
+		case typ.Name:
+		case "*" + typ.Name:
+			if !request && (cf.Value || requiredScalar) {
+				// A missing object flattens as a zero value of its type, so a field that the SDK holds as a
+				// value would read as "", false, or 0 instead of null. The SDK holds a required scalar as a
+				// value; the contract says so before the SDK exists.
+				return fmt.Errorf("%s is an optional object, and its field %s is a value in the SDK, so it would read back as a zero value instead of null when the API returns no object", ref.SDKName(), selector+"."+cf.SDK)
+			}
+			pointers = append(pointers, convParent{SDK: selector, Type: b.qualify(typ.Name), DropEmpty: request && !parent.Always})
+		default:
+			return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
+		}
+		selector += "."
+		prefix = plain
 	}
-	typ, err := b.ix.typeRef(objectPath)
-	if err != nil {
-		return err
-	}
-	cf.SDK = ref.Name + "." + cf.SDK
-	switch ref.Want {
-	case typ.Name:
-		return nil
-	case "*" + typ.Name:
-	default:
-		return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
-	}
-	if !request && (cf.Value || requiredScalar) {
-		// A missing object flattens as a zero value of its type, so a field that the SDK holds as a
-		// value would read as "", false, or 0 instead of null. The SDK holds a required scalar as a
-		// value; the contract says so before the SDK exists.
-		return fmt.Errorf("%s is an optional object, and its field %s is a value in the SDK, so it would read back as a zero value instead of null when the API returns no object", ref.SDKName(), cf.SDK)
-	}
-	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name), DropEmpty: request}
+	cf.SDK = selector + cf.SDK
 	list := &obj.FlattenParents
 	if request {
 		list = &obj.Parents
 	}
-	if !slices.Contains(*list, p) {
-		*list = append(*list, p)
+	for _, p := range pointers {
+		if !slices.Contains(*list, p) {
+			*list = append(*list, p)
+		}
 	}
 	if request {
 		// The same object is flattened: a response can leave the object out, as expand does when no
@@ -3709,28 +3714,34 @@ func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, reques
 	return nil
 }
 
-// nestedParentOfBoth makes the SDK pointer that holds an inlined object a parent of both the
-// request and the response conversion of obj: a component that a request and a response share has
-// one object. An object that the SDK holds as a value needs nothing.
-func (b *convBuilder) nestedParentOfBoth(obj *convObject, sdkPath string, parent *overrides.Parent) error {
-	objectPath := parent.ObjectPath(sdkPath + "." + parent.Field)
-	ref, err := b.ix.fieldRef(objectPath)
-	if err != nil {
-		return err
-	}
-	typ, err := b.ix.typeRef(objectPath)
-	if err != nil {
-		return err
-	}
-	if ref.Want != "*"+typ.Name {
-		return nil
-	}
-	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name)}
-	if q := (convParent{SDK: ref.Name, Type: p.Type, DropEmpty: true}); !slices.Contains(obj.Parents, q) {
-		obj.Parents = append(obj.Parents, q)
-	}
-	if !slices.Contains(obj.FlattenParents, p) {
-		obj.FlattenParents = append(obj.FlattenParents, p)
+// nestedParentsOfBoth makes the SDK pointers that hold an inlined object, the outer one first, a
+// parent of both the request and the response conversion of obj: a component that a request and a
+// response share has one object. An object that the SDK holds as a value needs nothing.
+func (b *convBuilder) nestedParentsOfBoth(obj *convObject, sdkPath string, parents []overrides.Parent) error {
+	selector, prefix := "", sdkPath
+	for _, parent := range parents {
+		plain := prefix + "." + parent.Field
+		objectPath := parent.ObjectPath(plain)
+		ref, err := b.ix.fieldRef(objectPath)
+		if err != nil {
+			return err
+		}
+		typ, err := b.ix.typeRef(objectPath)
+		if err != nil {
+			return err
+		}
+		selector += ref.Name
+		if ref.Want == "*"+typ.Name {
+			p := convParent{SDK: selector, Type: b.qualify(typ.Name)}
+			if q := (convParent{SDK: selector, Type: p.Type, DropEmpty: !parent.Always}); !slices.Contains(obj.Parents, q) {
+				obj.Parents = append(obj.Parents, q)
+			}
+			if !slices.Contains(obj.FlattenParents, p) {
+				obj.FlattenParents = append(obj.FlattenParents, p)
+			}
+		}
+		selector += "."
+		prefix = plain
 	}
 	return nil
 }

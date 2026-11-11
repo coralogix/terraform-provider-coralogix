@@ -157,6 +157,10 @@ type Parent struct {
 	// Same: a field of the object has the name of the object (a nested component only), so the
 	// reference of the object needs a path of its own.
 	Same bool
+	// Always: the object is an arm of a oneOf group whose other arms the file skips, and the line
+	// says that the API always has it (a nested component only). A request always sends it, even
+	// when the configuration sets none of its fields.
+	Always bool
 }
 
 // ObjectPath is the SDK reference path of the object that holds the moved fields, next to the field
@@ -228,6 +232,26 @@ func (f *File) NestedParent(schema, field string) *Parent {
 	}
 	return &parent
 }
+
+// NestedParents returns the objects that hold field of the component schema, the outer one first.
+// An inline line of a component whose object has an inline line of its own for the same field makes
+// a chain: the moved field is inside the object of the first line, which holds it inside the object
+// of the second.
+func (f *File) NestedParents(schema, field string) []Parent {
+	var out []Parent
+	for len(out) < maxInlineDepth {
+		parent := f.NestedParent(schema, field)
+		if parent == nil {
+			break
+		}
+		out = append(out, *parent)
+		schema = parent.Schema
+	}
+	return out
+}
+
+// maxInlineDepth bounds a chain of inline lines, so that a component that holds itself ends it.
+const maxInlineDepth = 8
 
 // ParentOf returns the object that holds field in root ("create", "update", or "get"), or nil.
 func (f *File) ParentOf(root, field string) *Parent {

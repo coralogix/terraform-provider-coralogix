@@ -152,6 +152,8 @@ components:
         choices:
           type: array
           items: {$ref: '#/components/schemas/Pick'}
+        action: {$ref: '#/components/schemas/ItemAction'}
+        behavior: {$ref: '#/components/schemas/ActionDefinition'}
     # One component in two places. Terraform names its label title in the first place and label in the
     # second, as the released resource names a metric in two kinds of filter.
     Tag:
@@ -197,3 +199,31 @@ components:
     InternalOptions:
       type: object
       additionalProperties: false
+    # A definition that is a oneOf of a link and a target, held in an object of an action (action) and
+    # by the item itself (behavior). The released resource shows only the link, as flat attributes. The
+    # other arm is skipped, and the line of the link says that the API always has it.
+    ItemAction:
+      type: object
+      properties:
+        label: {type: string, x-coralogix-presence: true}
+        definition: {$ref: '#/components/schemas/ActionDefinition'}
+    ActionDefinition:
+      type: object
+      oneOf:
+        - required: [link]
+        - required: [target]
+        - not:
+            anyOf:
+              - required: [link]
+              - required: [target]
+      properties:
+        link: {$ref: '#/components/schemas/ActionLink'}
+        target: {$ref: '#/components/schemas/ActionTarget'}
+    ActionLink:
+      type: object
+      properties:
+        url: {type: string, x-coralogix-presence: true}
+    ActionTarget:
+      type: object
+      properties:
+        pageId: {type: string, x-coralogix-presence: true}

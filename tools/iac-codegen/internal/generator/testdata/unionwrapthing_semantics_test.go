@@ -289,7 +289,8 @@ func TestInlinedArmConflictsWithTheKeptArm(t *testing.T) {
 		nullString := tftypes.NewValue(tftypes.String, nil)
 		item := tftypes.NewValue(itemType, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, "i"), "note": nullString, "value": nullString, "label": nullString, "options": opts,
 			"first": tftypes.NewValue(itemType.AttributeTypes["first"], nil), "second": tftypes.NewValue(itemType.AttributeTypes["second"], nil),
-			"choice": tftypes.NewValue(itemType.AttributeTypes["choice"], nil), "choices": tftypes.NewValue(itemType.AttributeTypes["choices"], nil)})
+			"choice": tftypes.NewValue(itemType.AttributeTypes["choice"], nil), "choices": tftypes.NewValue(itemType.AttributeTypes["choices"], nil),
+			"action": tftypes.NewValue(itemType.AttributeTypes["action"], nil), "behavior": tftypes.NewValue(itemType.AttributeTypes["behavior"], nil)})
 		values["name"] = tftypes.NewValue(tftypes.String, "n")
 		kindType := objectType.AttributeTypes["kind"].(tftypes.Object)
 		armValues := map[string]tftypes.Value{}
@@ -471,5 +472,122 @@ func TestPlacesReadBackInTheirOwnShape(t *testing.T) {
 	again := sentItems(t, items...)
 	if again[0].Choice.Value == nil || *again[0].Choice.Value.Value != "v" || again[0].Choices[0].Value == nil || again[1].Choice.Value != nil || again[2].Choice != nil {
 		t.Fatalf("sent again = %+v %+v %+v", again[0], again[1], again[2])
+	}
+}
+
+// A definition is a oneOf of a link and a target. The file inlines the link, whose line says that the
+// API always has it, and skips the target. Create and Update send the link object when the item
+// holds a definition, also when none of its attributes is set. The target stays unset.
+func TestInlinedArmWithRequiredIsAlwaysSent(t *testing.T) {
+	null := types.StringNull()
+	got := sentItems(t,
+		UnionItemModel{Name: types.StringValue("url"), Note: null, Value: null, Label: null, Behavior: &ActionDefinitionModel{Url: types.StringValue("https://example.com")}},
+		UnionItemModel{Name: types.StringValue("empty"), Note: null, Value: null, Label: null, Behavior: &ActionDefinitionModel{Url: null}},
+		UnionItemModel{Name: types.StringValue("none"), Note: null, Value: null, Label: null},
+	)
+	if b := got[0].Behavior; b == nil || b.Link == nil || b.Link.Url == nil || *b.Link.Url != "https://example.com" || b.Target != nil {
+		t.Errorf("behavior with a url = %+v, want only the link, with the url", got[0].Behavior)
+	}
+	if b := got[1].Behavior; b == nil || b.Link == nil || b.Link.Url != nil || b.Target != nil {
+		t.Errorf("behavior without a url = %+v, want an empty link", got[1].Behavior)
+	}
+	if got[2].Behavior != nil {
+		t.Errorf("item without a behavior sent %+v", got[2].Behavior)
+	}
+}
+
+// The action inlines its definition too, so the url is an attribute of the action. The request
+// holds it in the link of the definition. The definition of an action without a url is left out,
+// as for any optional object.
+func TestUrlOfAnActionIsSentInTheLinkOfItsDefinition(t *testing.T) {
+	null := types.StringNull()
+	got := sentItems(t,
+		UnionItemModel{Name: types.StringValue("url"), Note: null, Value: null, Label: null, Action: &ItemActionModel{Label: types.StringValue("l"), Url: types.StringValue("https://example.com")}},
+		UnionItemModel{Name: types.StringValue("label"), Note: null, Value: null, Label: null, Action: &ItemActionModel{Label: types.StringValue("l"), Url: null}},
+	)
+	a := got[0].Action
+	if a == nil || *a.Label != "l" || a.Definition == nil || a.Definition.Link == nil || *a.Definition.Link.Url != "https://example.com" || a.Definition.Target != nil {
+		t.Errorf("action with a url = %+v, want the url in the link of the definition", a)
+	}
+	if a := got[1].Action; a == nil || *a.Label != "l" || a.Definition != nil {
+		t.Errorf("action without a url = %+v, want no definition", a)
+	}
+}
+
+// A response reads the url from the link, in both places. A response without a definition, or
+// with the other arm, reads a null url.
+func TestUrlIsReadFromTheLink(t *testing.T) {
+	ctx := context.Background()
+	id, url, label := "thing-1", "https://example.com", "l"
+	page := "d"
+	got, diags := flatten(ctx, &union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{
+		Name: "n", ArmC: &union_wrap_things_service.ArmC{},
+		Items: []union_wrap_things_service.UnionItem{
+			{Name: "link", Behavior: &union_wrap_things_service.ActionDefinition{Link: &union_wrap_things_service.ActionLink{Url: &url}},
+				Action: &union_wrap_things_service.ItemAction{Label: &label, Definition: &union_wrap_things_service.ActionDefinition{Link: &union_wrap_things_service.ActionLink{Url: &url}}}},
+			{Name: "target", Behavior: &union_wrap_things_service.ActionDefinition{Target: &union_wrap_things_service.ActionTarget{PageId: &page}},
+				Action: &union_wrap_things_service.ItemAction{Label: &label}},
+			{Name: "none"},
+		},
+	}})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var items []UnionItemModel
+	if diags := got.Items.ElementsAs(ctx, &items, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if items[0].Behavior == nil || items[0].Behavior.Url.ValueString() != url || items[0].Action == nil || items[0].Action.Url.ValueString() != url || items[0].Action.Label.ValueString() != "l" {
+		t.Errorf("link item = %+v %+v, want the url in both places", items[0].Behavior, items[0].Action)
+	}
+	if items[1].Behavior == nil || !items[1].Behavior.Url.IsNull() || items[1].Action == nil || !items[1].Action.Url.IsNull() {
+		t.Errorf("target item = %+v %+v, want a null url", items[1].Behavior, items[1].Action)
+	}
+	if items[2].Behavior != nil || items[2].Action != nil {
+		t.Errorf("bare item = %+v %+v, want null objects", items[2].Behavior, items[2].Action)
+	}
+}
+
+// An import reads the resource with only the id. The url comes back from the link, and the second
+// plan sees what the API had: expand sends the same link again.
+func TestUrlReadsBackAfterImportAndSendsTheSameLink(t *testing.T) {
+	ctx := context.Background()
+	id, url, label := "thing-1", "https://example.com", "l"
+	union_wrap_things_service.Stored = union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{
+		Name: "n", ArmC: &union_wrap_things_service.ArmC{},
+		Items: []union_wrap_things_service.UnionItem{{Name: "i",
+			Behavior: &union_wrap_things_service.ActionDefinition{Link: &union_wrap_things_service.ActionLink{Url: &url}},
+			Action:   &union_wrap_things_service.ItemAction{Label: &label, Definition: &union_wrap_things_service.ActionDefinition{Link: &union_wrap_things_service.ActionLink{Url: &url}}}}},
+	}}
+	r := &Resource{client: &union_wrap_things_service.UnionWrapThingsServiceAPIService{}}
+	var schemaResp frameworkresource.SchemaResponse
+	r.Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for name, typ := range root.AttributeTypes {
+		values[name] = tftypes.NewValue(typ, nil)
+	}
+	values["id"] = tftypes.NewValue(tftypes.String, id)
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, values)}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var model UnionWrapThingModel
+	if diags := resp.State.Get(ctx, &model); diags.HasError() {
+		t.Fatal(diags)
+	}
+	var items []UnionItemModel
+	if diags := model.Items.ElementsAs(ctx, &items, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if items[0].Behavior == nil || items[0].Behavior.Url.ValueString() != url || items[0].Action == nil || items[0].Action.Url.ValueString() != url {
+		t.Fatalf("read = %+v %+v, want the url in both places", items[0].Behavior, items[0].Action)
+	}
+	again := sentItems(t, items...)
+	b, a := again[0].Behavior, again[0].Action
+	if b == nil || b.Link == nil || *b.Link.Url != url || b.Target != nil || a == nil || a.Definition == nil || a.Definition.Link == nil || *a.Definition.Link.Url != url {
+		t.Fatalf("sent again = %+v %+v, want the same link", b, a)
 	}
 }

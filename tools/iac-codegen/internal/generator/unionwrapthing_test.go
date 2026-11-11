@@ -193,6 +193,24 @@ func TestInlineOfAnOptionalObjectAndAKeptArm(t *testing.T) {
 			},
 			message: "is an arm of a oneOf group of a request",
 		},
+		// required: true says that the API always has the arm, so a request always sends it.
+		"an arm beside a skipped arm in a request, with required": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return s, replaceOnce(t, o, "  ItemOptions:\n    fields:\n      custom: {inline: true}\n", "  ItemOptions:\n    fields:\n      custom: {inline: true, required: true}\n      internal: {skip: true}\n")
+			},
+		},
+		"an arm beside a skipped arm in a request, with no line that requires it": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return s, replaceOnce(t, o, "      link: {inline: true, required: true}\n", "      link: {inline: true}\n")
+			},
+			message: "is an arm of a oneOf group of a request, so the request does not always send it; if the API always has it, add required: true to the inline line of link",
+		},
+		"an arm beside a kept arm with required": {
+			change: func(t *testing.T, s, o string) (string, string) {
+				return s, replaceOnce(t, o, "      custom: {inline: true}\n", "      custom: {inline: true, required: true}\n")
+			},
+			message: "no schema needs required: true on the inline line of",
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -211,6 +229,17 @@ func TestInlineOfAnOptionalObjectAndAKeptArm(t *testing.T) {
 				t.Fatalf("report = %v, want the message %q", report, test.message)
 			}
 		})
+	}
+}
+
+// A component whose object has inline lines too gets the fields of the object as the object shows
+// them, whatever the names of the two components are: the object is done first. The line of an
+// outer component that sorts before its object must not see the oneOf of the object.
+func TestChainedInlineLinesDoNotDependOnTheNamesOfTheComponents(t *testing.T) {
+	spec, overrides := unionWrapThingInputs(t)
+	spec, overrides = strings.ReplaceAll(spec, "ItemAction", "AItemAction"), strings.ReplaceAll(overrides, "ItemAction", "AItemAction")
+	if _, err := validateOpenAPIWith([]byte(spec), "UnionWrapThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, overrides)); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -209,7 +209,7 @@ func (h inliner) unusedNestedRequired(nested map[string][]string, relied map[str
 	for _, component := range slices.Sorted(maps.Keys(nested)) {
 		for _, field := range nested[component] {
 			if h.file.Types[component].Fields[field].Required && !relied[component+"."+field] {
-				report = append(report, issue.Issue{Code: "OVERRIDE_UNUSED", Location: overrides.FileName + ":types." + component + ".fields." + field, Message: fmt.Sprintf("every schema that holds %q requires it, so required: true on its inline line says nothing", field), Remediation: "Delete only the key required from the inline line."})
+				report = append(report, issue.Issue{Code: "OVERRIDE_UNUSED", Location: overrides.FileName + ":types." + component + ".fields." + field, Message: fmt.Sprintf("no schema needs required: true on the inline line of %q, so it says nothing: every schema that holds the object requires it, the object is an arm that stays beside other arms, or only a response holds the component", field), Remediation: "Delete only the key required from the inline line."})
 			}
 		}
 	}
@@ -354,6 +354,7 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 			return nil, err
 		}
 		isArm := name == arm
+		armOnly := isArm && len(kept) == 0
 		optional := h.optionalObject(s, name, isArm, kept, required)
 		if !isArm && !slices.Contains(required, name) && !optional {
 			if err := h.requireObject(s, name); err != nil {
@@ -377,7 +378,7 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 			if err := add(objectProps.Content[j], objectProps.Content[j+1], slices.Contains(objectRequired, child)); err != nil {
 				return nil, err
 			}
-			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: isArm && len(kept) == 0, Kept: strings.Join(kept, ","), Same: same}
+			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: armOnly, Kept: strings.Join(kept, ","), Same: same, Always: h.alwaysSent(name, armOnly, response)}
 		}
 	}
 	if err := h.checkTypedFields(typedObjects, flat); err != nil {
@@ -469,6 +470,13 @@ func (h inliner) optionalObject(s *yaml.Node, name string, isArm bool, kept, req
 	return !h.file.Types[h.resource].Fields[name].Required
 }
 
+// alwaysSent reports whether a request always sends the inlined object name: it is an arm that is
+// the object (the other arms are skipped) of a nested component that a request holds, and the line
+// says that the API always has it.
+func (h inliner) alwaysSent(name string, armOnly, response bool) bool {
+	return h.nested && armOnly && !response && h.file.Types[h.resource].Fields[name].Required
+}
+
 // requireObject checks an inlined object that s does not require. The line states that the API
 // always has it, when the contract cannot say so, and the line is then needed for s.
 func (h inliner) requireObject(s *yaml.Node, name string) error {
@@ -481,7 +489,9 @@ func (h inliner) requireObject(s *yaml.Node, name string) error {
 
 // inlinedArm returns the inlined field that is an arm of the oneOf group of s, or "". The other
 // arms must be skipped, so that the group means that the inlined arm is set, or that the resource
-// does not exist. A request cannot have an inlined arm: the request must always send the object.
+// does not exist. A request cannot have an inlined arm of the resource: the request must always send
+// the object. On a nested component, a line with required: true says that the API always has the
+// arm, so a request always sends it.
 func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, []string, error) {
 	group := mapValue(s, "oneOf")
 	if group == nil {
@@ -511,7 +521,15 @@ func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, []string, erro
 		return arm, kept, nil
 	}
 	if !response {
-		return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it", arm)
+		if !h.nested {
+			return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it", arm)
+		}
+		if !h.file.Types[h.resource].Fields[arm].Required {
+			return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it; if the API always has it, add required: true to the inline line of %s", arm, arm)
+		}
+		// The line says that the API always has the arm: a request always sends it.
+		h.relied[s] = append(h.relied[s], arm)
+		return arm, nil, nil
 	}
 	if len(kept) != 0 {
 		return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group; skip the other arm %s, or the resource could be that arm", arm, kept[0])
@@ -580,7 +598,8 @@ func inlineSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 
 // inlineNestedSDKNames moves the SDK names of the fields that an inline line of a nested component
 // moved to the type of the object that holds them, and adds that object: its field of the
-// component, next to the moved field, and its type.
+// component, next to the moved field, and its type. When the object has an inline line of its own
+// for the field, the field moves on, to the type of the inner object, which the outer one holds.
 func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 	if len(file.Inlined.Nested) == 0 {
 		return refs
@@ -591,29 +610,33 @@ func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.
 		if ref.Kind != sdkcheck.KindField {
 			continue
 		}
-		for schema, parents := range file.Inlined.Nested {
+		at := strings.LastIndex(ref.Path, ".")
+		if at < 0 {
+			continue
+		}
+		field := ref.Path[at+1:]
+		for schema := range file.Inlined.Nested {
 			if ref.Owner != model.GoName(schema) {
 				continue
 			}
-			at := strings.LastIndex(ref.Path, ".")
-			if at < 0 {
-				continue
+			prefix, owner := ref.Path[:at], ref.Owner
+			for _, parent := range file.NestedParents(schema, field) {
+				typ := model.GoName(parent.Schema)
+				out[i].Owner = typ
+				plain := prefix + "." + parent.Field
+				path := parent.ObjectPath(plain)
+				prefix, schema = plain, parent.Schema
+				if added[path] {
+					owner = typ
+					continue
+				}
+				added[path] = true
+				// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
+				out = append(out,
+					sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: ref.Pkg, Owner: owner, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
+					sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent})
+				owner = typ
 			}
-			parent, ok := parents[ref.Path[at+1:]]
-			if !ok {
-				continue
-			}
-			typ := model.GoName(parent.Schema)
-			out[i].Owner = typ
-			path := parent.ObjectPath(ref.Path[:at] + "." + parent.Field)
-			if added[path] {
-				continue
-			}
-			added[path] = true
-			// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
-			out = append(out,
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: ref.Pkg, Owner: ref.Owner, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent})
 		}
 	}
 	return out
@@ -751,7 +774,7 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 	out := map[string]map[string]overrides.Parent{}
 	relied := map[string]bool{}         // component.field of each inline line that a schema needs required: true for
 	counterparts := map[string]string{} // the request counterpart of each component
-	for _, name := range slices.Sorted(maps.Keys(mergeSets(responses, requests))) {
+	for _, name := range h.holdersLast(slices.Sorted(maps.Keys(mergeSets(responses, requests)))) {
 		schema := mapValue(h.schemas, name)
 		props := mapValue(schema, "properties")
 		for _, component := range slices.Sorted(maps.Keys(objects)) {
@@ -803,6 +826,41 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		return nil, report
 	}
 	return out, nil
+}
+
+// holdersLast orders names so that a schema comes after the schemas of names that its fields refer
+// to, otherwise in the order of names. An inline line of a component takes the fields of its object
+// as the object has them: when the object has inline lines too, they must be done first, so that
+// the fields move up through both (a chain of lines).
+func (h inliner) holdersLast(names []string) []string {
+	known := map[string]bool{}
+	for _, name := range names {
+		known[name] = true
+	}
+	var out []string
+	seen := map[string]bool{}
+	var visit func(name string)
+	visit = func(name string) {
+		if seen[name] {
+			return
+		}
+		seen[name] = true
+		props := mapValue(mapValue(h.schemas, name), "properties")
+		for i := 1; props != nil && i < len(props.Content); i += 2 {
+			ref := refName(props.Content[i])
+			if ref == "" {
+				ref = allOfRef(props.Content[i])
+			}
+			if known[ref] {
+				visit(ref)
+			}
+		}
+		out = append(out, name)
+	}
+	for _, name := range names {
+		visit(name)
+	}
+	return out
 }
 
 // isCounterpart reports whether a schema that is not component can be its request counterpart: only

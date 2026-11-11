@@ -39,6 +39,17 @@ types:
   ItemOptions:
     fields:
       custom: {inline: true}
+  # A definition is a oneOf of a link and a target. The target is skipped, and the line of the link
+  # says that the API always has it, so a request always sends the link. An action holds its
+  # definition in an object that it inlines too, so the url is a flat attribute of the action.
+  ItemAction:
+    fields:
+      definition: {inline: true}
+      target: {skip: true}
+  ActionDefinition:
+    fields:
+      link: {inline: true, required: true}
+      target: {skip: true}
   # The same component has another name for its label in the first place than in the second.
   Tag:
     at:

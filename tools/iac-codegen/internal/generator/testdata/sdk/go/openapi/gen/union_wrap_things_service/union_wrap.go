@@ -45,6 +45,25 @@ type ItemOptions struct {
 	Internal map[string]interface{}
 }
 
+// ItemAction holds its definition, a oneOf of a link and a target, in a pointer.
+type ItemAction struct {
+	Label      *string
+	Definition *ActionDefinition
+}
+
+type ActionDefinition struct {
+	Link   *ActionLink
+	Target *ActionTarget
+}
+
+type ActionLink struct {
+	Url *string
+}
+
+type ActionTarget struct {
+	PageId *string
+}
+
 type Tag struct {
 	Label *string
 }
@@ -56,14 +75,16 @@ type Pick struct {
 }
 
 type UnionItem struct {
-	Name    string
-	Extra   *ItemExtra
-	Value   *Labelled
-	Options *ItemOptions
-	First   *Tag
-	Second  *Tag
-	Choice  *Pick
-	Choices []Pick
+	Name     string
+	Extra    *ItemExtra
+	Value    *Labelled
+	Options  *ItemOptions
+	First    *Tag
+	Second   *Tag
+	Choice   *Pick
+	Choices  []Pick
+	Action   *ItemAction
+	Behavior *ActionDefinition
 }
 
 // Thing holds the common fields and the arms of the oneOf. The requests and the response hold it

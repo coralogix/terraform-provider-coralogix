@@ -188,6 +188,30 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+						"action": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"label": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"url": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"behavior": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"url": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",
