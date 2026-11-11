@@ -69,24 +69,17 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "(("
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-logs-immediate-errors",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -96,7 +89,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Lucene query validation failed at line 1, column 1, token (: Syntax Error, cannot parse ((:  \"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Lucene query validation failed at line 1, column 1, token (: Syntax Error, cannot parse ((:  \"}"
     ],
     "state": null
   },
@@ -205,8 +198,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -214,18 +207,13 @@
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "(("
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-logs-immediate-errors",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
@@ -238,7 +226,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Lucene query validation failed at line 1, column 1, token (: Syntax Error, cannot parse ((:  \"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Lucene query validation failed at line 1, column 1, token (: Syntax Error, cannot parse ((:  \"}"
     ],
     "stateDelta": {}
   },

@@ -131,7 +131,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsRatioThreshold": {
               "denominator": {
                 "simpleFilter": {
@@ -146,7 +145,6 @@
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
                   "labelFilters": {
@@ -178,11 +176,8 @@
               }
             },
             "name": "tfbaseline-logs-ratio-severities",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
           }
         },
@@ -324,8 +319,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -344,7 +339,6 @@
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
                   "labelFilters": {
@@ -376,9 +370,7 @@
               }
             },
             "name": "tfbaseline-logs-ratio-severities",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"

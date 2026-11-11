@@ -39,7 +39,6 @@
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
           "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }",
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -57,7 +56,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid argument: access policy contains permissions [[\\n    \\\"permission_data_ingest_api_keys_manage\\\",\\n    \\\"permission_data_ingest_api_keys_read_access_policy\\\",\\n    \\\"permission_data_ingest_api_keys_read_config\\\",\\n    \\\"permission_data_ingest_api_keys_update_access_policy\\\",\\n]] which are not valid for resource type: resource_team_custom_api_keys\"}\noperation - Create"
+      "error: Unable to create api_key | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid argument: access policy contains permissions [[\\n    \\\"permission_data_ingest_api_keys_manage\\\",\\n    \\\"permission_data_ingest_api_keys_read_access_policy\\\",\\n    \\\"permission_data_ingest_api_keys_read_config\\\",\\n    \\\"permission_data_ingest_api_keys_update_access_policy\\\",\\n]] which are not valid for resource type: resource_team_custom_api_keys\"}"
     ],
     "state": null
   }

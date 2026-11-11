@@ -201,11 +201,8 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
           }
         },
@@ -413,6 +410,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "a.key",
@@ -462,9 +460,7 @@
               "uniqueCountKeypath": "other.keypath"
             },
             "name": "tfbaseline-unique-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"

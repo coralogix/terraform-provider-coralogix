@@ -69,7 +69,6 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
-          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -138,9 +137,7 @@
               "app"
             ],
             "name": "tfbaseline-analytics-threshold",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -186,7 +183,6 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
-          "evaluation_period_minutes": 10,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -281,7 +277,6 @@
           "dataprime_query": {
             "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
           },
-          "evaluation_period_minutes": 10,
           "no_data_policy": {
             "auto_retire_seconds": 3600,
             "state": "ALERTING"
@@ -367,8 +362,7 @@
           "retriggering_period": {
             "minutes": 10
           }
-        },
-        "/type_definition/analytics_threshold/evaluation_period_minutes": 10
+        }
       }
     },
     "stateDelta": {}
@@ -440,7 +434,6 @@
                 "query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
               },
               "evaluationDelayMs": 60000,
-              "evaluationPeriodMinutes": 10,
               "noDataPolicy": {
                 "autoRetireSeconds": 7200,
                 "state": "NO_DATA_POLICY_STATE_OK"
@@ -471,9 +464,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-threshold",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P4",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -555,12 +546,12 @@
         "set": {
           "/body/alertDefProperties/analyticsThreshold/dataprimeQuery/query": "source logs | count as c",
           "/body/alertDefProperties/analyticsThreshold/timeframeMinutes": 10,
-          "/body/alertDefProperties/groupByKeys": []
+          "/body/alertDefProperties/description": ""
         },
         "remove": [
           "/body/alertDefProperties/analyticsThreshold/evaluationDelayMs",
           "/body/alertDefProperties/analyticsThreshold/useRowsAsPermutations",
-          "/body/alertDefProperties/description"
+          "/body/alertDefProperties/groupByKeys"
         ]
       }
     ],

@@ -118,22 +118,6 @@ var (
 	AutoRetireTimeframeSchemaToProtoMap = utils.ReverseMap(AutoRetireTimeframeProtoToSchemaMap)
 	ValidAutoRetireTimeframes           = utils.GetKeys(AutoRetireTimeframeSchemaToProtoMap)
 
-	NoDataPolicyStateProtoToSchemaMap = map[alerts.NoDataPolicyState]string{
-		// UNSPECIFIED is a protobuf sentinel, not a UI/user-facing value. Kept for
-		// read/import mapping; configuration should prefer omitting the block or using
-		// a concrete state. Config use emits a deprecation warning.
-		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_UNSPECIFIED: "UNSPECIFIED",
-		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_OK:          "OK",
-		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_ALERTING:    "ALERTING",
-		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_KEEP_LAST:   "KEEP_LAST",
-		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_NO_DATA:     "NO_DATA",
-	}
-	NoDataPolicyStateSchemaToProtoMap = utils.ReverseMap(NoDataPolicyStateProtoToSchemaMap)
-	// Preferred user-facing values (docs + descriptions). UNSPECIFIED remains accepted
-	// with a deprecation warning for one or more releases.
-	ValidNoDataPolicyStates    = []string{"OK", "ALERTING", "KEEP_LAST", "NO_DATA"}
-	AcceptedNoDataPolicyStates = append(append([]string{}, ValidNoDataPolicyStates...), "UNSPECIFIED")
-
 	LogsRatioTimeWindowValueProtoToSchemaMap = map[alerts.LogsRatioTimeWindowValue]string{
 		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
 		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
@@ -271,22 +255,21 @@ var (
 		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_EQUALS:                   "EQUALS",
 		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_NOT_EQUALS:               "NOT_EQUALS",
 	}
-	LogsThresholdConditionToProtoMap = utils.ReverseMap(LogsThresholdConditionMap)
-	LogsThresholdConditionValues     = utils.GetValues(LogsThresholdConditionMap)
+
+	LogsThresholdConditionValues = utils.GetValues(LogsThresholdConditionMap)
 
 	LogsTimeRelativeConditionMap = map[alerts.LogsTimeRelativeConditionType]string{
 		alerts.LOGSTIMERELATIVECONDITIONTYPE_LOGS_TIME_RELATIVE_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
 		alerts.LOGSTIMERELATIVECONDITIONTYPE_LOGS_TIME_RELATIVE_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
 	}
-	LogsTimeRelativeConditionToProtoMap = utils.ReverseMap(LogsTimeRelativeConditionMap)
-	LogsTimeRelativeConditionValues     = utils.GetValues(LogsTimeRelativeConditionMap)
+
+	LogsTimeRelativeConditionValues = utils.GetValues(LogsTimeRelativeConditionMap)
 
 	LogsRatioConditionMap = map[alerts.LogsRatioConditionType]string{
 		alerts.LOGSRATIOCONDITIONTYPE_LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
 		alerts.LOGSRATIOCONDITIONTYPE_LOGS_RATIO_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
 	}
-	LogsRatioConditionMapValues        = utils.GetValues(LogsRatioConditionMap)
-	LogsRatioConditionSchemaToProtoMap = utils.ReverseMap(LogsRatioConditionMap)
+	LogsRatioConditionMapValues = utils.GetValues(LogsRatioConditionMap)
 
 	MetricsThresholdConditionMap = map[alerts.MetricThresholdConditionType]string{
 		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
@@ -296,19 +279,18 @@ var (
 		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_EQUALS:                   "EQUALS",
 		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_NOT_EQUALS:               "NOT_EQUALS",
 	}
-	MetricsThresholdConditionValues     = utils.GetValues(MetricsThresholdConditionMap)
-	MetricsThresholdConditionToProtoMap = utils.ReverseMap(MetricsThresholdConditionMap)
+	MetricsThresholdConditionValues = utils.GetValues(MetricsThresholdConditionMap)
 
 	MetricAnomalyConditionMap = map[alerts.MetricAnomalyConditionType]string{
 		alerts.METRICANOMALYCONDITIONTYPE_METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED: "MORE_THAN",
 		alerts.METRICANOMALYCONDITIONTYPE_METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL:                "LESS_THAN",
 	}
-	MetricAnomalyConditionValues     = utils.GetValues(MetricAnomalyConditionMap)
-	MetricAnomalyConditionToProtoMap = utils.ReverseMap(MetricAnomalyConditionMap)
-	LogsAnomalyConditionMap          = map[alerts.LogsAnomalyConditionType]string{
+	MetricAnomalyConditionValues = utils.GetValues(MetricAnomalyConditionMap)
+
+	LogsAnomalyConditionMap = map[alerts.LogsAnomalyConditionType]string{
 		alerts.LOGSANOMALYCONDITIONTYPE_LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED: "MORE_THAN_USUAL",
 	}
-	LogsAnomalyConditionSchemaToProtoMap = utils.ReverseMap(LogsAnomalyConditionMap)
+
 	// LogsAnomalyConditionValues           = utils.GetValues(LogsAnomalyConditionMap)
 
 	// AnalyticsThresholdOperatorProtoToSchemaMap collapses the protobuf
@@ -322,8 +304,6 @@ var (
 		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_EQUALS:                   "EQUALS",
 		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_NOT_EQUALS:               "NOT_EQUALS",
 	}
-	AnalyticsThresholdOperatorSchemaToProtoMap = utils.ReverseMap(AnalyticsThresholdOperatorProtoToSchemaMap)
-	ValidAnalyticsThresholdOperators           = utils.GetKeys(AnalyticsThresholdOperatorSchemaToProtoMap)
 
 	DurationUnitProtoToSchemaMap = map[alerts.DurationUnit]string{
 		alerts.DURATIONUNIT_DURATION_UNIT_UNSPECIFIED: "UNSPECIFIED",
@@ -331,81 +311,9 @@ var (
 	}
 	DurationUnitSchemaToProtoMap = utils.ReverseMap(DurationUnitProtoToSchemaMap)
 	ValidDurationUnits           = utils.GetKeys(DurationUnitSchemaToProtoMap)
-
-	// The API reads back an omitted mode or query type as UNSPECIFIED, which it
-	// treats as enabled / DataPrime. Those are mapped on read only; writes always
-	// send the concrete value.
-	CaseAutoResolveModeSchemaToProtoMap = map[string]alerts.AlertDefCaseAutoResolveMode{
-		CaseAutoResolveModeEnabled:  alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED,
-		CaseAutoResolveModeDisabled: alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED,
-	}
-	CaseAutoResolveModeProtoToSchemaMap = map[alerts.AlertDefCaseAutoResolveMode]string{
-		alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_UNSPECIFIED: CaseAutoResolveModeEnabled,
-		alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED:     CaseAutoResolveModeEnabled,
-		alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED:    CaseAutoResolveModeDisabled,
-	}
-	ValidCaseAutoResolveModes = []string{CaseAutoResolveModeEnabled, CaseAutoResolveModeDisabled}
-
-	CaseEnrichmentQueryTypeSchemaToProtoMap = map[string]alerts.AlertDefCaseEnrichmentQueryType{
-		CaseEnrichmentQueryTypeDataPrime: alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME,
-	}
-	CaseEnrichmentQueryTypeProtoToSchemaMap = map[alerts.AlertDefCaseEnrichmentQueryType]string{
-		alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_UNSPECIFIED: CaseEnrichmentQueryTypeDataPrime,
-		alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME:   CaseEnrichmentQueryTypeDataPrime,
-	}
-	ValidCaseEnrichmentQueryTypes = []string{CaseEnrichmentQueryTypeDataPrime}
 )
 
-const (
-	CaseAutoResolveModeEnabled       = "enabled"
-	CaseAutoResolveModeDisabled      = "disabled"
-	CaseEnrichmentQueryTypeDataPrime = "dataprime"
-)
-
-type AlertResourceModel struct {
-	ID                types.String `tfsdk:"id"`
-	Name              types.String `tfsdk:"name"`
-	Description       types.String `tfsdk:"description"`
-	Enabled           types.Bool   `tfsdk:"enabled"`
-	Priority          types.String `tfsdk:"priority"`
-	Schedule          types.Object `tfsdk:"schedule"`        // AlertScheduleModel
-	TypeDefinition    types.Object `tfsdk:"type_definition"` // AlertTypeDefinitionModel
-	PhantomMode       types.Bool   `tfsdk:"phantom_mode"`
-	Deleted           types.Bool   `tfsdk:"deleted"`
-	GroupBy           types.List   `tfsdk:"group_by"`           // []types.String
-	IncidentsSettings types.Object `tfsdk:"incidents_settings"` // IncidentsSettingsModel
-	NotificationGroup types.Object `tfsdk:"notification_group"` // NotificationGroupModel
-	Labels            types.Map    `tfsdk:"labels"`             // map[string]string
-	DataSources       types.List   `tfsdk:"data_sources"`       // []DataSourceModel
-	CaseSettings      types.Object `tfsdk:"case_settings"`      // CaseSettingsModel
-	AccessPolicy      types.String `tfsdk:"access_policy"`
-}
-
-type CaseSettingsModel struct {
-	AutoResolveMode   types.String `tfsdk:"auto_resolve_mode"`
-	EnrichmentQueries types.List   `tfsdk:"enrichment_queries"` // []CaseEnrichmentQueryModel
-	Destinations      types.List   `tfsdk:"destinations"`       // []CaseDestinationModel
-}
-
-type CaseEnrichmentQueryModel struct {
-	Query types.String `tfsdk:"query"`
-	Type  types.String `tfsdk:"type"`
-}
-
-type CaseDestinationModel struct {
-	ConnectorId types.String `tfsdk:"connector_id"`
-	Condition   types.String `tfsdk:"condition"`
-	PresetId    types.String `tfsdk:"preset_id"`
-}
-
-type DataSourceModel struct {
-	DataSpace types.String `tfsdk:"data_space"`
-	DataSet   types.String `tfsdk:"data_set"`
-}
-
-type AlertScheduleModel struct {
-	ActiveOn types.Object `tfsdk:"active_on"` // ActiveOnModel
-}
+const ()
 
 type AlertTypeDefinitionModel struct {
 	LogsImmediate             types.Object `tfsdk:"logs_immediate"`               // LogsImmediateModel
@@ -423,18 +331,6 @@ type AlertTypeDefinitionModel struct {
 	SloThreshold              types.Object `tfsdk:"slo_threshold"`                // SloThresholdModel
 	AnalyticsImmediate        types.Object `tfsdk:"analytics_immediate"`          // AnalyticsImmediateModel
 	AnalyticsThreshold        types.Object `tfsdk:"analytics_threshold"`          // AnalyticsThresholdModel
-}
-
-type IncidentsSettingsModel struct {
-	NotifyOn           types.String `tfsdk:"notify_on"`
-	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
-}
-
-type NotificationGroupModel struct {
-	Destinations     types.List   `tfsdk:"destinations"`      // NotificationDestinationModel
-	Router           types.Object `tfsdk:"router"`            // NotificationRouterModel
-	GroupByKeys      types.List   `tfsdk:"group_by_keys"`     // []types.String
-	WebhooksSettings types.Set    `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
 }
 
 type NotificationRouterModel struct {
@@ -464,24 +360,6 @@ type ConfigurationOverrideModel struct {
 
 type NotificationRouter struct {
 	NotifyOn types.String `tfsdk:"notify_on"`
-}
-
-type WebhooksSettingsModel struct {
-	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
-	NotifyOn           types.String `tfsdk:"notify_on"`
-	IntegrationID      types.String `tfsdk:"integration_id"`
-	Recipients         types.Set    `tfsdk:"recipients"` //[]types.String
-}
-
-type ActiveOnModel struct {
-	DaysOfWeek types.Set    `tfsdk:"days_of_week"` // []types.String
-	StartTime  types.String `tfsdk:"start_time"`
-	EndTime    types.String `tfsdk:"end_time"`
-	UtcOffset  types.String `tfsdk:"utc_offset"`
-}
-
-type RetriggeringPeriodModel struct {
-	Minutes types.Int64 `tfsdk:"minutes"`
 }
 
 // Alert Types:
@@ -597,11 +475,6 @@ type MetricAnomalyModel struct {
 	PercentageOfDeviation types.Float64 `tfsdk:"percentage_of_deviation"`
 }
 
-type MetricImmediateModel struct {
-	MetricFilter              types.Object `tfsdk:"metric_filter"`               // TracingFilterModel
-	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
-}
-
 type TracingImmediateModel struct {
 	TracingFilter             types.Object `tfsdk:"tracing_filter"`              // TracingFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
@@ -663,10 +536,6 @@ type LabelFiltersModel struct {
 type LabelFilterTypeModel struct {
 	Value     types.String `tfsdk:"value"`
 	Operation types.String `tfsdk:"operation"`
-}
-
-type NotificationPayloadFilterModel struct {
-	Filter types.String `tfsdk:"filter"`
 }
 
 type UndetectedValuesManagementModel struct {
@@ -805,24 +674,22 @@ type DataprimeQueryModel struct {
 }
 
 type AnalyticsImmediateModel struct {
-	DataprimeQuery          types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
-	NoDataPolicy            types.Object `tfsdk:"no_data_policy"`  // NoDataPolicyModel
-	UseRowsAsPermutations   types.Bool   `tfsdk:"use_rows_as_permutations"`
-	TimeframeMinutes        types.Int32  `tfsdk:"timeframe_minutes"`
-	EvaluationPeriodMinutes types.Int32  `tfsdk:"evaluation_period_minutes"`
-	CustomEvaluationDelay   types.Int32  `tfsdk:"custom_evaluation_delay"`
+	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
+	NoDataPolicy          types.Object `tfsdk:"no_data_policy"`  // NoDataPolicyModel
+	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
+	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
+	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type AnalyticsThresholdModel struct {
-	DataprimeQuery          types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
-	Rules                   types.List   `tfsdk:"rules"`           // []AnalyticsThresholdRuleModel
-	Operator                types.String `tfsdk:"operator"`
-	TargetColumn            types.String `tfsdk:"target_column"`
-	NoDataPolicy            types.Object `tfsdk:"no_data_policy"` // NoDataPolicyModel
-	UseRowsAsPermutations   types.Bool   `tfsdk:"use_rows_as_permutations"`
-	TimeframeMinutes        types.Int32  `tfsdk:"timeframe_minutes"`
-	EvaluationPeriodMinutes types.Int32  `tfsdk:"evaluation_period_minutes"`
-	CustomEvaluationDelay   types.Int32  `tfsdk:"custom_evaluation_delay"`
+	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
+	Rules                 types.List   `tfsdk:"rules"`           // []AnalyticsThresholdRuleModel
+	Operator              types.String `tfsdk:"operator"`
+	TargetColumn          types.String `tfsdk:"target_column"`
+	NoDataPolicy          types.Object `tfsdk:"no_data_policy"` // NoDataPolicyModel
+	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
+	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
+	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type AnalyticsThresholdRuleModel struct {

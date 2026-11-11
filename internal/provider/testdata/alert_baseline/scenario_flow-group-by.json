@@ -112,13 +112,9 @@
                 }
               ]
             },
-            "groupByKeys": [],
             "name": "tfbaseline-flow-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_FLOW"
           }
         },
@@ -235,6 +231,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "flow": {
               "enforceSuppression": false,
@@ -267,9 +264,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-flow-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_FLOW"
@@ -435,7 +430,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid alerts in flow alert type: \\\"Invalid group by keys. internal alerts intersection - [coralogix.metadata.applicationName, coralogix.metadata.subsystemName] flow alert group by keys [coralogix.metadata.severity]\\\"\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000007: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid alerts in flow alert type: \\\"Invalid group by keys. internal alerts intersection - [coralogix.metadata.applicationName, coralogix.metadata.subsystemName] flow alert group by keys [coralogix.metadata.severity]\\\"\"}"
     ],
     "stateDelta": {}
   },
@@ -463,7 +458,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid alerts in flow alert type: \\\"Invalid group by keys. internal alerts intersection - [coralogix.metadata.applicationName] flow alert group by keys [coralogix.metadata.subsystemName]\\\"\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000007: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid alerts in flow alert type: \\\"Invalid group by keys. internal alerts intersection - [coralogix.metadata.applicationName] flow alert group by keys [coralogix.metadata.subsystemName]\\\"\"}"
     ],
     "stateDelta": {}
   },
@@ -491,7 +486,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid alerts in flow alert type: \\\"Invalid group by keys. internal alerts intersection - [] flow alert group by keys [coralogix.metadata.applicationName]\\\"\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000007: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid alerts in flow alert type: \\\"Invalid group by keys. internal alerts intersection - [] flow alert group by keys [coralogix.metadata.applicationName]\\\"\"}"
     ],
     "stateDelta": {}
   },

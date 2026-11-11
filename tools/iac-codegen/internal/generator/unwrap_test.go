@@ -82,6 +82,29 @@ func TestUnwrapReportsLinesOnHiddenProperties(t *testing.T) {
 	}
 }
 
+// collection: set on the list inside a wrapper that collapses makes the attribute a set. The line
+// is no use on the field that holds the wrapper, which is no list, and the other keys of the
+// hidden property still change nothing.
+func TestUnwrapCollectionLineIsOnTheListInTheWrapper(t *testing.T) {
+	tests := map[string]struct {
+		replacements []string
+		want         []string
+	}{
+		"on the list in the wrapper":  {nil, nil},
+		"on the field of the wrapper": {[]string{"      mainLabel:\n", "      tags:\n        collection: set\n      mainLabel:\n"}, []string{"OVERRIDE_UNUSED"}},
+		"next to another hidden key":  {[]string{"        collection: set\n", "        collection: set\n        validators: [{sizeAtLeast: 1}]\n"}, []string{"OVERRIDE_UNUSED"}},
+		"on a list that is no set":    {[]string{"types:\n", "types:\n  Selection:\n    fields:\n      list:\n        collection: set\n"}, []string{"OVERRIDE_UNUSED"}},
+		"on a wrapper that stays":     {[]string{"unwrap: [Tags, ", "unwrap: ["}, nil},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if codes := wrapThingCodes(t, test.replacements...); !slices.Equal(codes, test.want) {
+				t.Fatalf("codes %v, want %v", codes, test.want)
+			}
+		})
+	}
+}
+
 func TestUnwrapRejectsKeysThatReadTheWrappedField(t *testing.T) {
 	codes := wrapThingCodes(t, "      mainLabel:\n", "      widgetIds:\n        keepPriorOrder: true\n      mainLabel:\n")
 	if !slices.Contains(codes, "UNWRAP_COMBINATION_UNSUPPORTED") {

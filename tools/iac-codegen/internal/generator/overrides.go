@@ -104,11 +104,12 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 	}
 	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
 	root, _ := model.BuildWithPolicy(doc, component, ids, policy) // Model issues are reported by the contract check.
+	createOptional := createOptionalFields(doc, component, ids, file)
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
 			continue
 		}
-		if problem := lineProblem(doc, line, component, file, requested, root); problem != nil {
+		if problem := lineProblem(doc, line, component, file, requested, root, createOptional); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -155,7 +156,7 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 
 // lineProblem checks one line. resource is the component of the resource response. requested are
 // the components that a request body reaches.
-func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool, root *model.Resource) *lineIssue {
+func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool, root *model.Resource, createOptional map[string]bool) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -167,7 +168,7 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if err != nil {
 		return wholeLine(fmt.Errorf("component %q: %w", line.Component, err))
 	}
-	if line.Kind == overrides.KindField {
+	if line.Kind == overrides.KindField || line.Kind == overrides.KindGroup {
 		if schema, err = withInlinedFields(schema, file, line.Component); err != nil {
 			return wholeLine(err)
 		}
@@ -191,7 +192,14 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 				}
 			}
 		}
-		return fieldLineProblem(schema, line, nested, responseOnly)
+		// The resource component can be one that only the response reaches too: Create has a body of
+		// its own. Then the required list of the response says nothing about a field that Create
+		// leaves optional without a default, and the line is what makes it required in Terraform.
+		var byCreate map[string]bool
+		if !nested && !requested[line.Component] {
+			byCreate = createOptional
+		}
+		return fieldLineProblem(schema, line, nested, responseOnly, byCreate)
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
@@ -200,6 +208,97 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		}
 	}
 	return nil
+}
+
+// createOperationID returns the operation that creates the resource: the file names it, or an
+// option does, or the model finds it. It returns "" when it cannot be resolved yet.
+func createOperationID(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) string {
+	if o := file.API.Operations; o != nil && o.Create != "" {
+		return o.Create
+	}
+	if ids.Create != "" {
+		return ids.Create
+	}
+	resource, err := model.BuildWithPolicy(doc, component, ids, file.Policy())
+	if err != nil {
+		return ""
+	}
+	return resource.Create.OperationID
+}
+
+// createOptionalFields returns the fields of the resource component (the fields of its inlined
+// objects too) that the Create request body has, leaves optional, and gives no default. A field in
+// an inlined object is optional when the body or the object leaves it optional. It returns nil when
+// the Create body cannot be read.
+func createOptionalFields(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) map[string]bool {
+	id := createOperationID(doc, component, ids, file)
+	if id == "" || doc.Paths == nil || doc.Paths.PathItems == nil || doc.Components == nil || doc.Components.Schemas == nil {
+		return nil
+	}
+	var body *base.Schema
+	for _, item := range doc.Paths.PathItems.FromOldest() {
+		for _, op := range item.GetOperations().FromOldest() {
+			if op.OperationId != id || op.RequestBody == nil || op.RequestBody.Content == nil {
+				continue
+			}
+			for _, media := range op.RequestBody.Content.FromOldest() {
+				if media.Schema != nil {
+					body, _ = media.Schema.BuildSchema()
+				}
+				break
+			}
+		}
+	}
+	proxy := doc.Components.Schemas.GetOrZero(component)
+	if body == nil || body.Properties == nil || proxy == nil {
+		return nil
+	}
+	resource, err := proxy.BuildSchema()
+	if err != nil {
+		return nil
+	}
+	if resource, err = withInlinedFields(resource, file, component); err != nil || resource.Properties == nil {
+		return nil
+	}
+	var inlined []string
+	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
+			inlined = append(inlined, line.Field)
+		}
+	}
+	hasDefault := func(p *base.SchemaProxy) bool {
+		built, err := p.BuildSchema()
+		return err != nil || built.Default != nil
+	}
+	out := map[string]bool{}
+	for name := range resource.Properties.KeysFromOldest() {
+		if direct := body.Properties.GetOrZero(name); direct != nil {
+			out[name] = !slices.Contains(body.Required, name) && !hasDefault(direct)
+			continue
+		}
+		for _, parent := range inlined {
+			parentProxy := body.Properties.GetOrZero(parent)
+			if parentProxy == nil {
+				continue
+			}
+			object, err := parentProxy.BuildSchema()
+			if err != nil {
+				continue
+			}
+			if len(object.AllOf) == 1 {
+				if object, err = object.AllOf[0].BuildSchema(); err != nil {
+					continue
+				}
+			}
+			if object.Properties == nil {
+				continue
+			}
+			if child := object.Properties.GetOrZero(name); child != nil {
+				out[name] = !(slices.Contains(body.Required, parent) && slices.Contains(object.Required, name)) && !hasDefault(child)
+			}
+		}
+	}
+	return out
 }
 
 // withInlinedFields returns the component with the fields of its inlined objects: they are
@@ -382,7 +481,7 @@ func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 // shared is true for a nested component, which the requests and the response usually share, so
 // its required list binds the requests too. responseOnly is true for a nested component that no
 // request reaches: its required list binds no request, so a required or optional line is not stale.
-func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool) *lineIssue {
+func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool, createOptional map[string]bool) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
@@ -393,7 +492,14 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
-	if line.Required && !responseOnly && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
+	requiredByContract := slices.Contains(schema.Required, line.Field)
+	if createOptional[line.Field] {
+		// The Create body has its own field, optional and without a default: the required list of
+		// the response, which no request reaches, does not state that Terraform requires it.
+		requiredByContract = false
+	}
+	// An inline line with required: true is checked against every schema that it inlines (reshape.go).
+	if line.Required && !line.Inline && !responseOnly && requiredByContract && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
 	if line.Optional && shared && !responseOnly && !slices.Contains(schema.Required, line.Field) {
@@ -513,12 +619,13 @@ func unwrapUsageIssues(r *model.Resource, file *overrides.File) issue.Report {
 }
 
 // hiddenKeys returns the keys of a field line on the property of a wrapper that collapses in
-// every place. An unwrap key still decides the wrapper inside that property.
+// every place. An unwrap key still decides the wrapper inside that property, and a collection
+// key still decides whether the list inside it is a set: the value of the wrapper is that list.
 func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	if !r.HiddenWrappers[line.Component] {
 		return nil
 	}
-	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
+	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" })
 }
 
 // stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum
@@ -566,11 +673,28 @@ func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
 }
 
+// throughAllOf returns the schema that a schema with no type of its own and one allOf entry
+// stands for, as the OpenAPI generator writes an enum or an object that has a description.
+func throughAllOf(s *base.Schema) (*base.Schema, error) {
+	for len(s.Type) == 0 && len(s.Enum) == 0 && len(s.AllOf) == 1 {
+		inner, err := s.AllOf[0].BuildSchema()
+		if err != nil {
+			return nil, err
+		}
+		s = inner
+	}
+	return s, nil
+}
+
 // requestValueByProblem checks a requestValueBy line. The field is a string, each key is an
 // object field of the component, and each value is a value of the enum of the field when the
 // field is an enum.
 func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err == nil {
+		// The OpenAPI generator writes an enum with a description as allOf of one $ref.
+		built, err = throughAllOf(built)
+	}
 	if err != nil {
 		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
 	}
@@ -584,6 +708,9 @@ func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue 
 			return wholeLine(fmt.Errorf("requestValueBy names %q, which component %q does not have", field, line.Component))
 		}
 		s, err := proxy.BuildSchema()
+		if err == nil {
+			s, err = throughAllOf(s)
+		}
 		if err != nil {
 			return wholeLine(fmt.Errorf("field %q: %w", field, err))
 		}

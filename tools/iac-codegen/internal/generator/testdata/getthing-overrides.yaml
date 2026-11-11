@@ -1,0 +1,30 @@
+# The released resource of folderthing with the two hooks around its Get call. The Get response
+# holds a revision next to the thing, which only a hook can see, and the resource shows it as the
+# computed attribute revision. The data source runs the same hooks.
+resource: FolderThing
+mode: existing
+typeName: get_thing_v2
+getHooks: true
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  idProperty: id
+  createResponseOnlyIDProperty: thingId
+  serverSetID: true
+
+types:
+  FolderThing:
+    fields:
+      id:
+        readOnly: true
+    extraAttributes:
+      revision:
+        type: string
+        computed: true
+        markdownDescription: The revision of the thing, from the Get response.
+
+dataSource: {}

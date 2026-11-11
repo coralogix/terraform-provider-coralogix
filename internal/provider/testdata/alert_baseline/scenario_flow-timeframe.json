@@ -112,13 +112,9 @@
                 }
               ]
             },
-            "groupByKeys": [],
             "name": "tfbaseline-flow-timeframe",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_FLOW"
           }
         },
@@ -232,6 +228,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "flow": {
               "enforceSuppression": false,
@@ -262,9 +259,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-flow-timeframe",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_FLOW"
@@ -352,7 +347,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000003: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}"
     ],
     "stateDelta": {}
   },
@@ -491,7 +486,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Timeframe ms must exist and be greater than 0 for all stages except the first one\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"flow\\\",\\n      \\\"stages\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000003: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Timeframe ms must exist and be greater than 0 for all stages except the first one\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"flow\\\",\\n      \\\"stages\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -509,7 +504,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Timeframe ms must exist and be greater than 0 for all stages except the first one\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"flow\\\",\\n      \\\"stages\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000003: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Timeframe ms must exist and be greater than 0 for all stages except the first one\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"flow\\\",\\n      \\\"stages\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -651,7 +646,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Timeframe ms must exist and be greater than 0 for all stages except the first one\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"flow\\\",\\n      \\\"stages\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000003: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Timeframe ms must exist and be greater than 0 for all stages except the first one\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"flow\\\",\\n      \\\"stages\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {
       "set": {

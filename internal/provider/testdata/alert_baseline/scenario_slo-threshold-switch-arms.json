@@ -84,13 +84,9 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-slo-switch",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {
               "errorBudget": {
                 "rules": [
@@ -249,6 +245,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "service"
@@ -258,9 +255,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-slo-switch",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {

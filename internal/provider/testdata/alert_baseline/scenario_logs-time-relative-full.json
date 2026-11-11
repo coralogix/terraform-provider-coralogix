@@ -253,11 +253,8 @@
               }
             },
             "name": "tfbaseline-relative-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"
           }
         },
@@ -499,6 +496,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.subsystemName"
@@ -553,9 +551,7 @@
               }
             },
             "name": "tfbaseline-relative-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"

@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -85,8 +84,7 @@
     "replanDiff": [
       "AttributeName(\"hashed\")",
       "AttributeName(\"presets\").ElementKeyValue(tftypes.String<\"APM\">)",
-      "AttributeName(\"presets\").ElementKeyValue(tftypes.String<\"apm\">)",
-      "AttributeName(\"value\")"
+      "AttributeName(\"presets\").ElementKeyValue(tftypes.String<\"apm\">)"
     ]
   }
 ]

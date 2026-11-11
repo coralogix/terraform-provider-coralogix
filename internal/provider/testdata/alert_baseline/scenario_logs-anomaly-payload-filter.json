@@ -74,13 +74,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsAnomaly": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -90,11 +87,8 @@
               ]
             },
             "name": "tfbaseline-anomaly-payload",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
           }
         },
@@ -220,8 +214,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -229,9 +223,7 @@
             "logsAnomaly": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -239,7 +231,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -249,9 +240,7 @@
               ]
             },
             "name": "tfbaseline-anomaly-payload",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
@@ -263,14 +252,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.logs_anomaly.notification_payload_filter"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_anomaly/notification_payload_filter": []
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -280,10 +267,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: two values",
@@ -384,9 +368,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsAnomaly/notificationPayloadFilter": []
-        }
+        "remove": [
+          "/body/alertDefProperties/logsAnomaly/notificationPayloadFilter"
+        ]
       }
     ],
     "stateDelta": {

@@ -209,11 +209,8 @@
                 }
               ]
             },
-            "groupByKeys": [],
             "name": "tfbaseline-flow-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "type": "ALERT_DEF_TYPE_FLOW"
@@ -638,9 +635,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-flow-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P4",
             "type": "ALERT_DEF_TYPE_FLOW"
@@ -737,6 +732,7 @@
       {
         "deltaOf": "PUT",
         "set": {
+          "/body/alertDefProperties/description": "",
           "/body/alertDefProperties/flow/stages": [
             {
               "flowStagesGroups": {
@@ -757,10 +753,7 @@
               "timeframeType": "TIMEFRAME_TYPE_UP_TO"
             }
           ]
-        },
-        "remove": [
-          "/body/alertDefProperties/description"
-        ]
+        }
       }
     ],
     "stateDelta": {

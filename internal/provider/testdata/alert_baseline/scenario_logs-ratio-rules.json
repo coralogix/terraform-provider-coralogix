@@ -91,12 +91,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsRatioThreshold": {
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numeratorAlias": "errors",
               "rules": [
                 {
@@ -118,11 +116,8 @@
               }
             },
             "name": "tfbaseline-logs-ratio-rules",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
           }
         },
@@ -320,8 +315,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -329,21 +324,16 @@
             "logsRatioThreshold": {
               "denominator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -380,9 +370,7 @@
               }
             },
             "name": "tfbaseline-logs-ratio-rules",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
@@ -779,7 +767,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Cannot mix thresholds less/more than\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsRatioThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Cannot mix thresholds less/more than\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsRatioThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },

@@ -33,6 +33,20 @@ type File struct {
 	// AfterFlatten gives a released resource a hook that can project API fields into
 	// Terraform attributes after the generated conversion. The data source runs it too.
 	AfterFlatten bool `yaml:"afterFlatten"`
+	// ModifyPlan gives a released resource a hook that runs at the end of the plan, for a planned
+	// value that no plan modifier of one attribute can state: one that reads another attribute, or
+	// that changes values inside the items of a set.
+	ModifyPlan bool `yaml:"modifyPlan"`
+	// GetHooks gives a released resource two hooks around its Get call: Get replaces the call, to
+	// add a query parameter or to retry it, and AfterGet receives the whole Get response, with the
+	// values that sit next to the resource. The data source runs them too. A singleton has no
+	// such hooks.
+	GetHooks bool `yaml:"getHooks"`
+	// EnumValuesInDescription appends the accepted Terraform values of an enum attribute to its
+	// description: ` Valid values: ["A" "B"].`, as the released handwritten resources wrote them.
+	// The list is the one of the validator. A description that a field line states, or that
+	// already says "Valid values", stays as it is.
+	EnumValuesInDescription bool `yaml:"enumValuesInDescription"`
 	// Resource is the OpenAPI component of the resource. It must match the
 	// generator's --resource flag, so a file cannot be used for the wrong resource.
 	Resource string `yaml:"resource"`
@@ -227,6 +241,30 @@ type Group struct {
 	// RequireOne: the fields are the arms of a oneOf of the resource, and the user must set one.
 	// The arms then check each other with ExactlyOneOf instead of ConflictsWith.
 	RequireOne bool `yaml:"requireOne"`
+	// Optional makes the object optional, for a released attribute that the user may leave out and
+	// that the API has as plain fields. Expand sends none of its fields when it is null, and
+	// flatten reads it as null when the response has none of them, so every field must be one that
+	// the SDK holds by pointer, or a list or a map. The fields inside stay as their lines say.
+	Optional bool `yaml:"optional"`
+	// Computed, with optional, makes the object Optional and Computed: the plan is unknown when
+	// the configuration leaves it out, and the model holds it as a types.Object.
+	Computed bool `yaml:"computed"`
+	// UseStateForUnknown, with computed, keeps the state value of the object when the
+	// configuration leaves it out.
+	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+}
+
+// check checks the keys of a group that change its mode.
+func (g Group) check() error {
+	switch {
+	case g.Computed && !g.Optional:
+		return errors.New("computed needs optional: true: a required object cannot be computed")
+	case g.UseStateForUnknown && !g.Computed:
+		return errors.New("useStateForUnknown needs computed: true: only a computed object is unknown in a plan")
+	case g.Optional && g.RequireOne:
+		return errors.New("requireOne needs an object that the user sets, so it cannot be optional")
+	}
+	return nil
 }
 
 var tfNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
@@ -259,6 +297,11 @@ func (f *File) checkGroups() error {
 	if err := checkGroupMap("groups", f.Groups); err != nil {
 		return err
 	}
+	for _, name := range sortedKeys(f.Groups) {
+		if g := f.Groups[name]; g.Optional || g.Computed || g.UseStateForUnknown {
+			return fmt.Errorf("groups.%s: optional, computed, and useStateForUnknown are keys of types.<Type>.groups, not of a group of the resource", name)
+		}
+	}
 	for _, name := range sortedKeys(f.Types) {
 		if err := checkGroupMap("types."+name+".groups", f.Types[name].Groups); err != nil {
 			return err
@@ -277,6 +320,9 @@ func checkGroupMap(prefix string, groups map[string]Group) error {
 		}
 		if len(g.Fields) == 0 {
 			return fmt.Errorf("%s.%s: fields is empty", prefix, name)
+		}
+		if err := g.check(); err != nil {
+			return fmt.Errorf("%s.%s: %w", prefix, name, err)
 		}
 		for _, field := range g.Fields {
 			if other, ok := seen[field]; ok {
@@ -359,6 +405,16 @@ type Type struct {
 	RequestWrapper string `yaml:"requestWrapper"`
 	// TypedArms shows this oneOf object as a type attribute plus the merged fields of its arms.
 	TypedArms *TypedArms `yaml:"typedArms"`
+	// UseStateForUnknown puts objectplanmodifier.UseStateForUnknown() on the object of each list
+	// or set that holds this component, for a released schema that has it there. A modifier on
+	// the item, unlike one on an attribute inside it, is not an attribute of the item.
+	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+}
+
+// isEmpty reports whether the type line sets nothing.
+func (t Type) isEmpty() bool {
+	return t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
+		t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && !t.UseStateForUnknown && t.TypedArms == nil
 }
 
 // TypedArms shows a oneOf object as one object. A required string attribute (Field) names the arm.
@@ -433,10 +489,11 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// Type is "string" or "int64" for a scalar, or "set" for a set. Without it, the attribute is a
-	// map. A string of the resource that is neither computed nor writeOnly keeps the value of the
-	// plan or the prior state, as a dynamic one does, for a text that a handwritten hook turns into
-	// request values, such as a document of the whole resource.
+	// Type is "string", "int64", or "bool" for a scalar, "set" or "list" for a collection of strings,
+	// or "object" for an object with the attributes below. Without it, the attribute is a map. A
+	// string of the resource that is not read-only or writeOnly keeps the value of the plan or the
+	// prior state, as a dynamic one does, for a text that a handwritten hook turns into request
+	// values, such as a document of the whole resource. So does an object of the resource.
 	Type string `yaml:"type"`
 	// ElementType is the map or set value type. A scalar or dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
@@ -462,6 +519,19 @@ type ExtraAttribute struct {
 	ElementValues []string `yaml:"elementValues"`
 	// UseStateForUnknown keeps a computed value during a plan.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// Optional: true, with computed: true, makes the attribute Optional and Computed, for a value
+	// that the user may set and that a handwritten hook fills in otherwise. Without computed, an
+	// extra attribute is optional already.
+	Optional bool `yaml:"optional"`
+	// Default is the static default of an Optional and Computed string, bool, or int64.
+	Default any `yaml:"default"`
+	// Equality is "json" or "yaml" for a string: the plan keeps the state value when the configured
+	// document is equal to it, as the equality line of a field does.
+	Equality string `yaml:"equality"`
+	// Attributes are the attributes of an object (type: object), by Terraform name. They take the
+	// keys of an extra attribute, except dynamic, writeOnly, and inUpdate, and they are optional
+	// unless they say required: true.
+	Attributes map[string]ExtraAttribute `yaml:"attributes"`
 }
 
 // Field overrides one field of an object. A field with a line keeps the released
@@ -475,14 +545,27 @@ type Field struct {
 	ValueNames map[int64]string `yaml:"valueNames"`
 	// Inline: true shows the fields of this object field of the resource as top-level
 	// attributes, as the released resource did. The API sends and returns them inside the object.
-	// The lines of those fields are lines of the resource component.
+	// The lines of those fields are lines of the resource component. With required: true, the
+	// line says that the API always sends and returns the object, when the contract has no
+	// required list that can say so; the line then has no attribute to make required.
 	Inline bool `yaml:"inline"`
 	// AsBool shows an object without fields as a bool, for example a oneOf arm alwaysActive: {}.
 	// true sends the empty object, false is an error, and a response that has the object reads
 	// as true; one without it reads as null.
 	AsBool bool `yaml:"asBool"`
+	// AsString, on a field that holds a oneOf of an enum and a string, shows the oneOf as one
+	// string: a Terraform spelling of the enum selects the enum arm, and any other value is the
+	// string arm. Flatten reads the arm that the response has, so a released resource that took
+	// "5_MINUTES" or "1h30m" in one attribute keeps it. A regexMatches validator of the line is
+	// the check of the string arm: the validator of the attribute accepts a spelling of the enum
+	// or a match of the pattern. enum: true alone accepts only the spellings of the enum, and a
+	// line with neither accepts any string.
+	AsString bool `yaml:"asString"`
 	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
-	// int32: Int64. String keeps a computed integer as decimal text, including a released int64 resource id.
+	// int32: Int64. Expand converts the value and reports one outside the int32 range. On a
+	// digit string (^[0-9]+$ or ^-?[0-9]+$) it reads the 64-bit number as an Int64. String keeps a
+	// computed integer as decimal text, including a released int64 resource id: the state holds
+	// the decimal text, and the calls parse it.
 	TerraformType string `yaml:"terraformType"`
 	// StoredAs: float32 on a double field says that the API stores the value as a float32 and
 	// returns the float64 of that float32 (0.3 reads back as 0.30000001192092896). Flatten reads
@@ -509,6 +592,9 @@ type Field struct {
 	Name string `yaml:"name"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
+	// Sensitive marks the Terraform attribute sensitive, as the released attribute was: Terraform
+	// hides its value in plans and output. It is a Terraform fact that the contract does not state.
+	Sensitive bool `yaml:"sensitive"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
@@ -516,12 +602,14 @@ type Field struct {
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
-	// Default is a static default in the schema: a string, a bool, a number, or [] (an empty list
-	// or set).
+	// Default is a static default in the schema: a string, a bool, a number, [] (an empty list or
+	// set), null (NullDefault: a list, set, map, or object that plans null when omitted), or a map
+	// ({} or {child: value, ...}: an object whose attributes get these values, the others null).
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
-	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
+	// ReadNullAs: "empty" reads a missing string as "", and a missing list or set of objects as an
+	// empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
 	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
 	// oneOf: each arm attribute holds the other fields of the object (the siblings) next to the
@@ -831,6 +919,9 @@ func Parse(data []byte) (*File, error) {
 		}
 		return nil, fmt.Errorf("%s: %w", FileName, err)
 	}
+	if err := markNullDefaults(data, &f); err != nil {
+		return nil, fmt.Errorf("%s: %w", FileName, err)
+	}
 	if err := f.check(); err != nil {
 		return nil, fmt.Errorf("%s: %w", FileName, err)
 	}
@@ -897,8 +988,7 @@ func (f *File) checkTypes() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
-			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && t.TypedArms == nil {
+		if t.isEmpty() {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		if err := t.checkUnsupported(); err != nil {
@@ -1032,6 +1122,7 @@ func (l Field) keys() []string {
 	add(l.Skip, "skip")
 	add(len(l.ValueNames) != 0, "valueNames")
 	add(l.AsBool, "asBool")
+	add(l.AsString, "asString")
 	add(l.TerraformType != "", "terraformType")
 	add(l.StoredAs != "", "storedAs")
 	add(l.DefaultArm, "defaultArm")
@@ -1045,6 +1136,7 @@ func (l Field) keys() []string {
 	add(l.Collection != "", "collection")
 	add(l.Name != "", "name")
 	add(l.Deprecation != "", "deprecation")
+	add(l.Sensitive, "sensitive")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.UseNonNullStateForUnknown, "useNonNullStateForUnknown")
@@ -1068,6 +1160,9 @@ func (l Field) keys() []string {
 	add(l.RequiresReplace, "requiresReplace")
 	add(l.UniqueBy != "", "uniqueBy")
 	add(l.RequestAs != "", "requestAs")
+	add(l.UpdateAs != "", "updateAs")
+	add(l.UpdateDefault != "", "updateDefault")
+	add(l.ItemName != "", "itemName")
 	add(l.Negate, "negate")
 	add(l.Split != "", "split")
 	add(l.Inline, "inline")
@@ -1106,14 +1201,61 @@ func (l Field) KeepsReleasedOmission() bool {
 }
 
 func (e ExtraAttribute) check(name string) error {
+	return e.checkAt(name, false)
+}
+
+// checkAt checks the attribute; nested says that it is inside an object extra attribute.
+func (e ExtraAttribute) checkAt(name string, nested bool) error {
 	if err := checkExtraName(name); err != nil {
 		return err
 	}
 	if err := e.checkShape(); err != nil {
 		return err
 	}
+	if err := e.checkMode(nested); err != nil {
+		return err
+	}
 	if e.MarkdownDescription == "" {
 		return errors.New("markdownDescription is required")
+	}
+	for child, attribute := range e.Attributes {
+		if err := attribute.checkAt(child, true); err != nil {
+			return fmt.Errorf("attributes.%s: %w", child, err)
+		}
+	}
+	return nil
+}
+
+// checkMode checks the keys that set how the attribute is planned: optional, default, equality,
+// and what an object may hold.
+func (e ExtraAttribute) checkMode(nested bool) error {
+	if e.Optional && (!e.Computed || e.Required) {
+		return errors.New("optional: true needs computed: true and no required: an extra attribute that is not computed is optional already")
+	}
+	if e.Optional && e.WriteOnly {
+		return errors.New("optional: true cannot be combined with writeOnly")
+	}
+	if e.Default != nil && !e.Optional {
+		return errors.New("default needs optional: true and computed: true: the Framework only allows a default on a computed attribute")
+	}
+	if e.UseStateForUnknown && !e.Computed {
+		return errors.New("useStateForUnknown needs a computed attribute")
+	}
+	if nested && (e.Dynamic || e.WriteOnly || e.InUpdate || e.Equality != "") {
+		return errors.New("an attribute inside an object cannot be dynamic, writeOnly, inUpdate, or have an equality line")
+	}
+	return e.checkEquality()
+}
+
+func (e ExtraAttribute) checkEquality() error {
+	if e.Equality == "" {
+		return nil
+	}
+	if e.Equality != "json" && e.Equality != "yaml" {
+		return fmt.Errorf("equality is %q, want json or yaml", e.Equality)
+	}
+	if e.Type != "string" || e.Computed && !e.Optional || e.WriteOnly {
+		return errors.New("equality needs a string that the user sets, and that is not writeOnly")
 	}
 	return nil
 }
@@ -1140,7 +1282,7 @@ func (e ExtraAttribute) checkShape() error {
 	if err := e.checkType(); err != nil {
 		return err
 	}
-	if e.Computed && (e.Required || e.WriteOnly || e.InUpdate) {
+	if e.Computed && !e.Optional && (e.Required || e.WriteOnly || e.InUpdate) {
 		return errors.New("computed cannot be combined with required, writeOnly, or inUpdate")
 	}
 	if e.WriteOnly && e.InUpdate {
@@ -1160,27 +1302,45 @@ func (e ExtraAttribute) checkDynamic() error {
 }
 
 func (e ExtraAttribute) checkType() error {
+	if e.Type != "object" && len(e.Attributes) != 0 {
+		return errors.New("attributes belong to type: object")
+	}
 	switch e.Type {
 	case "":
 		if e.ElementType != "string" && e.ElementType != "int64" {
 			return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
 		}
-	case "string":
+	case "string", "int64", "bool":
 		if e.ElementType != "" {
-			return errors.New("a string attribute has no elementType")
+			return fmt.Errorf("a %s attribute has no elementType", e.Type)
 		}
-	case "int64":
-		if e.ElementType != "" {
-			return errors.New("an int64 attribute has no elementType")
-		}
-	case "set":
+	case "set", "list":
 		if e.ElementType != "string" {
-			return fmt.Errorf("a set attribute needs elementType string, got %q", e.ElementType)
+			return fmt.Errorf("a %s attribute needs elementType string, got %q", e.Type, e.ElementType)
 		}
+	case "object":
+		return e.checkObject()
 	default:
-		return fmt.Errorf("type is %q, want string, int64, or set", e.Type)
+		return fmt.Errorf("type is %q, want string, int64, bool, set, list, or object", e.Type)
 	}
 	return nil
+}
+
+// checkObject checks an object extra attribute: the user sets it, and it has attributes.
+func (e ExtraAttribute) checkObject() error {
+	if e.ElementType != "" || len(e.Attributes) == 0 {
+		return errors.New("an object attribute has attributes and no elementType")
+	}
+	if e.Computed && !e.Optional || e.WriteOnly {
+		return errors.New("an object attribute is set by the user: it cannot be computed-only or writeOnly")
+	}
+	return nil
+}
+
+// hasTypeKey reports whether the line changes the Terraform type of the field: asBool, asString,
+// terraformType, or storedAs.
+func (l Field) hasTypeKey() bool {
+	return l.AsBool || l.AsString || l.TerraformType != "" || l.StoredAs != ""
 }
 
 func (l Field) empty() bool {
@@ -1188,7 +1348,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.hasTypeKey() && !l.DefaultArm && l.Deprecation == "" && !l.Sensitive &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 
@@ -1201,7 +1361,7 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && !l.Negate && l.Split == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == ""
 }
 
 func (l Field) check() error {
@@ -1257,8 +1417,8 @@ func (l Field) check() error {
 	if err := checkValueNames(l.ValueNames); err != nil {
 		return err
 	}
-	if l.Inline && len(l.keys()) != 1 {
-		return errors.New("an inlined field has no attribute of its own, so the line sets only inline: put the other keys on the lines of its fields")
+	if l.Inline && !slices.Equal(l.keys(), []string{"required", "inline"}) && len(l.keys()) != 1 {
+		return errors.New("an inlined field has no attribute of its own, so the line sets only inline, and required when the API always has the object: put the other keys on the lines of its fields")
 	}
 	return checkValidators(l.Validators)
 }
@@ -1291,6 +1451,7 @@ func (l Field) checkConflicts() error {
 	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
 		return errors.New("requestValue and requestValueBy cannot both be set")
 	}
+
 	for _, field := range sortedKeys(l.RequestValueBy) {
 		if field == "" || l.RequestValueBy[field] == "" {
 			return errors.New("requestValueBy maps a field name to an API value")
@@ -1302,17 +1463,113 @@ func (l Field) checkConflicts() error {
 	return nil
 }
 
-// checkDefault checks the type of a default: a string, a bool, a number, or an empty list.
+// checkAsString rejects a key that cannot work on a oneOf that Terraform shows as one string.
+func (l Field) checkAsString() error {
+	if !l.AsString {
+		return nil
+	}
+	if l.AsBool {
+		return errors.New("asString and asBool cannot both be set")
+	}
+	if l.CarrySiblings != nil || l.SplitArms || l.Inline || l.KeyedBy != nil || l.Collection != "" || l.Unwrap != nil {
+		return errors.New("asString shows the oneOf as one string, so carrySiblings, splitArms, inline, keyedBy, collection, and unwrap cannot be set")
+	}
+	if l.RequireOne || l.Fixed() || l.TerraformType != "" || len(l.ValueNames) != 0 || l.Equality != "" || l.KeepPriorOrder {
+		return errors.New("asString cannot be combined with requireOne, requestValue, requestValueBy, terraformType, valueNames, equality, or keepPriorOrder")
+	}
+	if slices.ContainsFunc(l.Validators, func(v Validator) bool { return v.EnumExceptZero }) {
+		return errors.New("asString shows the zero value of the enum as a value of the string, so enumExceptZero cannot be set")
+	}
+	return nil
+}
+
+// checkDefault checks the type of a default: a string, a bool, a number, an empty list, null, or
+// an object whose values are of those types.
 func (l Field) checkDefault() error {
-	switch d := l.Default.(type) {
-	case nil, string, bool, int, float64:
+	return checkDefaultValue("default", l.Default)
+}
+
+func checkDefaultValue(where string, value any) error {
+	switch d := value.(type) {
+	case nil, nullDefaultValue, string, bool, int, float64:
 	case []any:
 		if len(d) != 0 {
-			return errors.New("a list default must be empty: []")
+			return fmt.Errorf("%s: a list default must be empty: []", where)
+		}
+	case map[string]any:
+		for _, name := range sortedKeys(d) {
+			if err := checkDefaultValue(where+"."+name, d[name]); err != nil {
+				return err
+			}
 		}
 	default:
-		return fmt.Errorf("default is %T, want a string, a bool, a number, or []", l.Default)
+		return fmt.Errorf("%s is %T, want a string, a bool, a number, [], null, or an object", where, value)
 	}
+	return nil
+}
+
+// nullDefaultValue is the type of NullDefault.
+type nullDefaultValue struct{}
+
+// NullDefault is the Default of a line that says default: null. A YAML null decodes as nil, the
+// same as a missing key, so Parse finds the key in the YAML tree and sets this value in its place.
+// It plans a null list, set, map, or object for an omitted Optional and Computed attribute, where
+// it would plan an unknown value without a default.
+var NullDefault any = nullDefaultValue{}
+
+// IsNullDefault reports whether a default is NullDefault.
+func IsNullDefault(value any) bool {
+	_, ok := value.(nullDefaultValue)
+	return ok
+}
+
+// markNullDefaults finds each `default: null` of a field line, which the struct decoder cannot tell
+// from a missing key, and sets NullDefault on the line. A `default: null` anywhere else is an
+// error: it would change nothing.
+func markNullDefaults(data []byte, f *File) error {
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		return err
+	}
+	if len(root.Content) == 0 {
+		return nil
+	}
+	return walkNullDefaults(root.Content[0], nil, f)
+}
+
+func walkNullDefaults(n *yaml.Node, path []string, f *File) error {
+	switch n.Kind {
+	case yaml.SequenceNode:
+		for i, child := range n.Content {
+			if err := walkNullDefaults(child, append(slices.Clone(path), strconv.Itoa(i)), f); err != nil {
+				return err
+			}
+		}
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			if err := walkNullDefaultsOf(n.Content[i].Value, n.Content[i+1], path, f); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// walkNullDefaultsOf handles one key of a mapping: a null default, or a node to walk into.
+func walkNullDefaultsOf(key string, value *yaml.Node, path []string, f *File) error {
+	here := append(slices.Clone(path), key)
+	atFields := len(path) == 3 && path[0] == "types" && path[2] == "fields" // key names a field
+	atLine := len(path) == 4 && path[0] == "types" && path[2] == "fields"   // key is a key of a line
+	if key != "default" || value.Kind != yaml.ScalarNode || value.ShortTag() != "!!null" || atFields {
+		return walkNullDefaults(value, here, f)
+	}
+	if !atLine {
+		return fmt.Errorf("%s: default: null changes nothing here: only a field line (types.<Type>.fields.<field>) takes it", strings.Join(here, "."))
+	}
+	t := f.Types[path[1]]
+	line := t.Fields[path[3]]
+	line.Default = NullDefault
+	t.Fields[path[3]] = line
 	return nil
 }
 
@@ -1343,6 +1600,9 @@ func (l Field) checkReleasedKeys() error {
 	}
 	if l.ShowInverted && l.Fixed() {
 		return errors.New("a requestValue field is no Terraform attribute, so showInverted changes nothing: send the API value")
+	}
+	if err := l.checkAsString(); err != nil {
+		return err
 	}
 	return l.checkCarry()
 }
@@ -1407,7 +1667,7 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.StoredAs != "" || l.DefaultArm ||
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
 		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != ""
 }
 
@@ -1551,10 +1811,11 @@ func (f *File) Exceptions() iacoverrides.Exceptions {
 				e.Fields[name] = map[string]iacoverrides.Field{}
 			}
 			api := line.Field
-			if line.Default != nil {
+			if line.Default != nil && !IsNullDefault(line.Default) {
 				// optional with a static default is a Terraform exception: Terraform always sends
 				// the default, so the request still has the value that the contract requires,
-				// which the SDK holds as a value.
+				// which the SDK holds as a value. A null default sends nothing: the request
+				// keeps its optional line, which sends an empty list for a required one.
 				api.Optional = false
 			}
 			e.Fields[name][field] = api

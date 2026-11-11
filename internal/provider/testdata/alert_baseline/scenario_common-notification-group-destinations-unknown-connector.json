@@ -86,17 +86,13 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-destination",
             "notificationGroup": {
@@ -104,15 +100,11 @@
                 {
                   "connectorId": "does-not-exist",
                   "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED",
-                  "presetId": "does-not-exist",
-                  "resolvedRouteOverrides": {},
-                  "triggeredRoutingOverrides": {}
+                  "presetId": "does-not-exist"
                 }
-              ],
-              "groupByKeys": []
+              ]
             },
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -122,7 +114,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid destinations: {\\\"reason\\\":\\\"Connector not found: does-not-exist\\\"}\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid destinations: {\\\"reason\\\":\\\"Connector not found: does-not-exist\\\"}\"}"
     ],
     "state": null
   }

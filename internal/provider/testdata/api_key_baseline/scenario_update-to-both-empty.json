@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -103,13 +102,15 @@
       },
       "permissions": [],
       "presets": [],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
+          "isActive": true,
+          "newName": "emptied",
           "permissions": {
             "permissions": []
           },

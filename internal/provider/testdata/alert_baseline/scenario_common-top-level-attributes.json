@@ -84,22 +84,16 @@
               "env": "test",
               "team": "a"
             },
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-top",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
@@ -225,7 +219,6 @@
             "entityLabels": {
               "team": "b"
             },
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -233,18 +226,13 @@
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-top",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P4",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
@@ -287,24 +275,21 @@
     "requests": [
       {
         "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/description": ""
+        },
         "remove": [
-          "/body/alertDefProperties/description",
           "/body/alertDefProperties/entityLabels"
         ]
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "stateDelta": {
       "set": {
+        "/description": null,
         "/labels": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh after removal",
@@ -314,10 +299,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

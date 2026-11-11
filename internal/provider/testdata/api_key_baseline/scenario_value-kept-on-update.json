@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -111,14 +110,25 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "newName": "ingest-renamed"
+          "isActive": true,
+          "newName": "ingest-renamed",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
         },
         "status": 200
       },

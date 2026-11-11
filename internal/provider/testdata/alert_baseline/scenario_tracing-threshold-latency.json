@@ -85,19 +85,13 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-threshold-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 1,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
@@ -226,6 +220,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [],
             "incidentsSettings": {
@@ -233,17 +228,13 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-threshold-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 1,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
@@ -300,22 +291,16 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "1.23456789e+10"
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "12345678901"
         }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.tracing_threshold.tracing_filter.latency_threshold_ms"
-    ],
     "stateDelta": {
       "set": {
-        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 12345678900
+        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 12345678901
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"latency_threshold_ms\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh 12345678901",
@@ -325,10 +310,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"latency_threshold_ms\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: 2^63, above the largest int64",
@@ -337,22 +319,8 @@
         "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 9223372036854776000
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 9223372036854776000
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "9.223372037e+18",
-          "/status": 500
-        }
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Replace"
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=9.223372037e+18) cannot be represented as a 64-bit integer."
     ],
     "stateDelta": {}
   },
@@ -363,22 +331,8 @@
         "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1.5
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/tracing_threshold/tracing_filter/latency_threshold_ms": 1.5
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/latencyThresholdMs": "1.5",
-          "/status": 400
-        }
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: proto: (line 1:611): invalid value for uint64 field value: \\\"1.5\\\"\"}\noperation - Replace"
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=1.5) is not an integer."
     ],
     "stateDelta": {}
   }

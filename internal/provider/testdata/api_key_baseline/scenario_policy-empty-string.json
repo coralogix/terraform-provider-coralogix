@@ -39,7 +39,6 @@
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
           "accessPolicy": "",
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"

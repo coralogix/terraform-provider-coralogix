@@ -83,10 +83,8 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsTimeRelativeThreshold": {
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -105,11 +103,8 @@
               }
             },
             "name": "tfbaseline-relative-fallback",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"
           }
         },
@@ -245,8 +240,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -255,13 +250,10 @@
               "ignoreInfinity": false,
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -280,9 +272,7 @@
               }
             },
             "name": "tfbaseline-relative-fallback",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"

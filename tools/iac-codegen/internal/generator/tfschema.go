@@ -18,8 +18,15 @@ import (
 
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
-	Package           string
-	AfterFlatten      bool
+	Package      string
+	AfterFlatten bool
+	// ModifyPlanHook: the Hooks have a ModifyPlan, that the generated ModifyPlan calls last.
+	ModifyPlanHook bool
+	// EqualityFile: the package has equality.go, with the document comparisons.
+	EqualityFile bool
+	// EqualityPlan: equality.go also defines ModifyPlan, for the equality lines of fields and the
+	// enum aliases. An extra attribute with an equality line is only a plan modifier.
+	EqualityPlan      bool
 	VersionHeader     string
 	Model             string // Go type of the resource model, for example "WidgetModel"
 	Attributes        []*tfAttr
@@ -29,7 +36,10 @@ type tfResource struct {
 	CRUD              *crudData // CRUD, import, and the provider data
 	HasServerDefaults bool
 	// SetServerDefaults: a server default is inside a set item, so its modifier reads the plan.
-	SetServerDefaults  bool
+	SetServerDefaults bool
+	// SetItemState: an object that keeps its state is inside a set item (types.<Type>.groups), so
+	// its modifier takes the state item that the planned item matches.
+	SetItemState       bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
 	// RequestReplaceKinds are the Terraform value kinds of the immutable
 	// attributes that hold values that the server sets. They use
@@ -89,6 +99,11 @@ type tfAttr struct {
 	// GroupValidators are the oneOf group validators. They state the structure of the request, not a
 	// limit, so they stay when the behavior-overrides file removes the inferred validators.
 	GroupValidators []string
+	// EnumValueSets are the values that an enum validator accepts, by the Go expression of the
+	// validator, recorded where the validator is built. The description of an attribute lists
+	// them (enumValuesInDescription), so the list is never read back from the text of a validator.
+	// A validator that is no longer in Validators contributes nothing.
+	EnumValueSets map[string][]string
 	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
 	// The acceptance test sets one arm of each group.
 	OneOfGroup string
@@ -111,14 +126,31 @@ type tfAttr struct {
 	// empty object, whose children cannot name the component.
 	ObjectComponent string
 	// PlainDescription: the docs text is Description, not MarkdownDescription.
-	PlainDescription   bool
-	DeprecationMessage string
-	Default            string // Go expression of a static default, or ""
+	PlainDescription bool
+	// VerbatimDescription: a description or markdownDescription line of the field states the text.
+	VerbatimDescription bool
+	DeprecationMessage  string
+	// Sensitive: Terraform hides the value (a sensitive line).
+	Sensitive bool
+	Default   string // Go expression of a static default, or ""
+	// DefaultRaw is the value of the default of the line, or of the extra attribute, as the file
+	// states it. An object default compares it with the value that it gives the attribute.
+	DefaultRaw any
+	// StructDefault is a default that resolveStructDefaults builds after the field lines and the
+	// extra attributes, because its Go expression holds the types of the attributes below it.
+	StructDefault any
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
 	TrueOnly bool
-	// Uint64: the attribute is a uint64 that the API sends as a string, shown as Int64.
+	// ItemModifiers are the plan modifiers of the object of each item of a list or set of objects
+	// (types.<Type>.useStateForUnknown), not of the attribute that holds the list.
+	ItemModifiers []string
+	// FoldEnum is the enum component of the oneOf that the attribute shows as one string
+	// (asString), "" for any other attribute.
+	FoldEnum string
+	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
+	// shown as Int64.
 	Uint64 bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
@@ -155,10 +187,11 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
+		out.ModifyPlanHook = file.ModifyPlan
 	}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
@@ -190,6 +223,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.RequestReplaceKinds = b.replaceKinds
 	out.DefaultPaths = b.defaultPaths
 	out.SetServerDefaults = b.setDefaults
+	out.SetItemState = b.setItemState
 	for _, kind := range b.defaultKinds {
 		out.HasServerDefaults = true
 		if !containsString(out.ServerDefaultKinds, kind) {
@@ -329,7 +363,7 @@ func (r *tfResource) UsesAttr() bool {
 // default would let the user set a value that flatten replaces with the id of the server.
 func checkSingletonIDAttribute(attrs []*tfAttr) error {
 	for _, a := range attrs {
-		if a.Name == "id" && (!computedOnly(a) || a.Default != "") {
+		if a.Name == "id" && (!computedOnly(a) || hasDefault(a)) {
 			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only with no default, so its line cannot set required, optional, computed: false, or a default")
 		}
 	}
@@ -514,7 +548,52 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	// modifiers back on a computed-only copy of a component. Configuration is
 	// always null there, so those checks never run.
 	stripComputedConfig(out.Attributes)
+	addEnumValues(out.Attributes, file.EnumValuesInDescription)
 	return applyConfigChecks(out, file)
+}
+
+// addEnumValues appends the accepted values of the enum validator of an attribute to its
+// description, in every attribute below attrs. The values are the ones that were recorded when the
+// validator was built (EnumValueSets), so the list and the check cannot disagree: they are the
+// Terraform spellings of the enums line, and the zero value only when the validator accepts it. A description that a field line states, one
+// that already has "Valid values", and an attribute without an enum validator stay as they are.
+// Without enumValuesInDescription (enabled false) it changes nothing.
+func addEnumValues(attrs []*tfAttr, enabled bool) {
+	if !enabled {
+		return
+	}
+	for _, a := range attrs {
+		if values, ok := enumValidatorValues(a); ok && !a.VerbatimDescription && !strings.Contains(a.Description, "Valid values") {
+			list := fmt.Sprintf("Valid values: %q.", values)
+			if a.Description != "" {
+				list = " " + list
+			}
+			a.Description += list
+		}
+		addEnumValues(a.Attributes, true)
+	}
+}
+
+// enumValidatorValues returns the values of the enum validators of an attribute of an enum (or a
+// list or set of one). Every validator must pass, so with more than one, such as an inferred one
+// and an enumExceptZero line, the accepted values are the ones that all of them accept.
+func enumValidatorValues(a *tfAttr) ([]string, bool) {
+	if a.EnumSchema == "" && a.FoldEnum == "" {
+		return nil, false
+	}
+	var values []string
+	found := false
+	for _, v := range a.Validators {
+		list, ok := a.EnumValueSets[v]
+		switch {
+		case !ok:
+		case !found:
+			values, found = slices.Clone(list), true
+		default:
+			values = slices.DeleteFunc(values, func(value string) bool { return !slices.Contains(list, value) })
+		}
+	}
+	return values, found && len(values) != 0
 }
 
 // stripComputedConfig removes configuration checks from a computed-only attribute
@@ -562,12 +641,13 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		return err
 	}
 	if l.Description != nil {
-		a.Description, a.PlainDescription = *l.Description, true
+		a.Description, a.PlainDescription, a.VerbatimDescription = *l.Description, true, true
 	}
 	if l.MarkdownDescription != nil {
-		a.Description, a.PlainDescription = *l.MarkdownDescription, false
+		a.Description, a.PlainDescription, a.VerbatimDescription = *l.MarkdownDescription, false, true
 	}
 	a.DeprecationMessage = l.Deprecation
+	a.Sensitive = l.Sensitive
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
@@ -580,7 +660,22 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if err := applyDefault(a, l); err != nil {
 		return err
 	}
+	return applyValidators(a, l, file)
+}
+
+// applyValidators adds the validators of a line to the attribute. A oneOf that shows as one string
+// (asString) gets one validator made from the enum and the pattern of the line.
+func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if l.AsString && a.FoldEnum == "" {
+		return errors.New("asString needs a field that holds a oneOf")
+	}
+	enumOnly := false
 	for _, v := range l.Validators {
+		if l.AsString && v.Enum {
+			// The validator of a oneOf that shows as one string is made below.
+			enumOnly = true
+			continue
+		}
 		expr, err := validatorExpr(a, v, file)
 		if err != nil {
 			return err
@@ -595,6 +690,9 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			}
 			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
 		}
+	}
+	if l.AsString {
+		return foldStringValidators(a, file, enumOnly)
 	}
 	return nil
 }
@@ -690,11 +788,16 @@ func applyDefault(a *tfAttr, l overrides.Field) error {
 	if l.Default == nil {
 		return nil
 	}
-	expr, err := defaultExpr(a, l.Default)
-	if err != nil {
-		return err
+	a.DefaultRaw = l.Default
+	if deferredDefault(a, l.Default) {
+		a.StructDefault = l.Default
+	} else {
+		expr, err := defaultExpr(a, l.Default)
+		if err != nil {
+			return err
+		}
+		a.Default = expr
 	}
-	a.Default = expr
 	if a.Required {
 		// A released default on a field that the contract requires means that the contract is
 		// wrong about the field. The line states the exception with optional: true.
@@ -719,7 +822,7 @@ func checkAttrMode(a *tfAttr) error {
 	switch {
 	case a.Required && a.Computed:
 		return errors.New("the line makes the attribute required and computed: required: true needs a field that the user sets")
-	case a.Default != "" && !a.Computed:
+	case hasDefault(a) && !a.Computed:
 		return errors.New("the line gives the attribute a default, but the attribute is not computed: add computed: true")
 	case !a.Required && !a.Optional && !a.Computed:
 		return errors.New("the line leaves the attribute without a mode: computed: false needs a field that the user can set, and the contract makes this field server-owned")
@@ -797,7 +900,9 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		for _, one := range v.OneOf {
 			quoted = append(quoted, strconv.Quote(one))
 		}
-		return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
+		expr := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+		a.recordEnumValues(expr, slices.Clone(v.OneOf))
+		return expr, nil
 	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
 	case v.LengthAtLeast != nil && a.ValueKind == "String":
@@ -837,23 +942,42 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
 // exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
 func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
-	oneOf, err := enumOneOf(a, file, exceptZero)
+	oneOf, values, err := enumChoice(a, file, exceptZero)
 	if err != nil {
 		return "", err
 	}
 	if a.ValueKind == "List" || a.ValueKind == "Set" {
-		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
+		expr := strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")"
+		a.recordEnumValues(expr, values)
+		return expr, nil
 	}
+	a.recordEnumValues(oneOf, values)
 	return oneOf, nil
+}
+
+// recordEnumValues states the values that the validator with the expression expr accepts.
+func (a *tfAttr) recordEnumValues(expr string, values []string) {
+	if a.EnumValueSets == nil {
+		a.EnumValueSets = map[string][]string{}
+	}
+	a.EnumValueSets[expr] = values
 }
 
 // enumOneOf is the OneOf validator of one value of the enum of the attribute: the validator of a
 // scalar, and the validator of each element of a list or set.
 func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
+	expr, _, err := enumChoice(a, file, exceptZero)
+	return expr, err
+}
+
+// enumChoice is the OneOf validator of one value of the enum of the attribute, and the values that
+// it accepts: the Terraform values of the enums line, sorted, and the zero value unless exceptZero.
+// The expression is made from the values, so the two cannot disagree.
+func enumChoice(a *tfAttr, file *overrides.File, exceptZero bool) (string, []string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	collection := a.ValueKind == "List" || a.ValueKind == "Set"
 	if a.EnumSchema == "" || !ok || a.ValueKind != "String" && !collection {
-		return "", errors.New("the enum validator needs a field of an enum type, or a list or set of one, that has a line under enums")
+		return "", nil, errors.New("the enum validator needs a field of an enum type, or a list or set of one, that has a line under enums")
 	}
 	var values []string
 	if enum.Zero != "" && !exceptZero {
@@ -868,9 +992,9 @@ func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error)
 		quoted = append(quoted, strconv.Quote(v))
 	}
 	if enum.CaseInsensitive {
-		return "stringvalidator.OneOfCaseInsensitive(" + strings.Join(quoted, ", ") + ")", nil
+		return "stringvalidator.OneOfCaseInsensitive(" + strings.Join(quoted, ", ") + ")", values, nil
 	}
-	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
+	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", values, nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
@@ -886,9 +1010,12 @@ func planModifierPackages(attrs []*tfAttr) []string {
 	var packages []string
 	for _, attr := range attrs {
 		pkg := strings.ToLower(attr.ValueKind) + "planmodifier"
-		for _, modifier := range attr.Modifiers {
+		for _, modifier := range append(slices.Clone(attr.Modifiers), attr.ItemModifiers...) {
 			if strings.Contains(modifier, pkg+".") && !containsString(packages, pkg) {
 				packages = append(packages, pkg)
+			}
+			if strings.HasPrefix(modifier, "objectplanmodifier.") && !containsString(packages, "objectplanmodifier") {
+				packages = append(packages, "objectplanmodifier")
 			}
 		}
 		for _, nested := range planModifierPackages(attr.Attributes) {
@@ -1042,11 +1169,13 @@ type tfBuilder struct {
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
 	setDefaults  bool            // SetServerDefaults
+	setItemState bool            // SetItemState
 	file         *overrides.File
 	policy       model.Policy      // names the attributes that a name line renames
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
 	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+	itemModified map[string]bool   // components whose items carry types.<Type>.useStateForUnknown
 	// carried are the siblings that a carrySiblings arm holds, with the component whose lines they
 	// take. flags are the fold flags that an arm holds.
 	carried map[*model.Field]string
@@ -1178,7 +1307,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 			return err
 		}
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
-		a.Uint64 = t.Kind == model.Integer && t.WireString && t.Format == "uint64"
+		a.Uint64 = t.Kind == model.Integer && t.WireString && (t.Format == "uint64" || t.Format == "int64")
 		if t.Kind == model.Enum {
 			a.EnumSchema = t.Schema
 		}
@@ -1189,6 +1318,14 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
+		if asString(b.file, a.Component, a.Property) {
+			enum, _, err := stringArms(t)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
+			}
+			a.Kind, a.ValueKind, a.FoldEnum = "String", "String", enum.Type.Schema
+			return nil
+		}
 		a.Kind, a.ValueKind = "SingleNested", "Object"
 		a.ObjectComponent = t.Schema
 		a.KeyedObject = t.Keyed != nil && t.Keyed.Object
@@ -1218,6 +1355,10 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	case model.Object, model.OneOf:
 		a.Kind = kind + "Nested"
 		a.ObjectComponent = t.Elem.Schema
+		if b.file != nil && b.file.Types[t.Elem.Schema].UseStateForUnknown {
+			a.ItemModifiers = []string{"objectplanmodifier.UseStateForUnknown()"}
+			b.itemModified[t.Elem.Schema] = true
+		}
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
@@ -1249,14 +1390,31 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 // of int32: Int64. The validators follow the type. On a uint64 that the API sends as a string, the
 // attribute is Int64 already: the line states that the released resource showed it as Int64, so a
 // contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
-// String keeps a computed-only integer as decimal text.
+// String keeps an integer as decimal text.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
 	}
 	if l.TerraformType == "String" {
-		if (a.Kind != "Int32" && a.Kind != "Int64") || !a.Computed || a.Optional || a.Required {
-			return fmt.Errorf("terraformType String needs a computed-only integer attribute")
+		// The released attribute is the decimal text of an integer, such as the id or a team id. An
+		// int32 is shown this way only when the server sets it.
+		if a.Kind != "Int32" && a.Kind != "Int64" {
+			return fmt.Errorf("terraformType String needs an integer attribute, not a %s", a.Kind)
+		}
+		if a.Kind == "Int32" && (!a.Computed || a.Optional || a.Required) {
+			return fmt.Errorf("terraformType String needs a computed-only integer attribute for an int32")
+		}
+		// A validator over other attributes has the same arguments for every type. A validator over the
+		// value (AtLeast, OneOf, ...) has no string counterpart with the same meaning.
+		for i, v := range a.Validators {
+			rest, ok := strings.CutPrefix(v, "int64validator.")
+			if !ok {
+				continue
+			}
+			if !strings.HasPrefix(rest, "ConflictsWith(") && !strings.HasPrefix(rest, "ExactlyOneOf(") && !strings.HasPrefix(rest, "AlsoRequires(") && !strings.HasPrefix(rest, "AtLeastOneOf(") {
+				return fmt.Errorf("terraformType String cannot keep the validator %s of the contract: remove the limit with validators.inferred: false, or state it as a validators line", v)
+			}
+			a.Validators[i] = "stringvalidator." + rest
 		}
 		prefix := strings.ToLower(a.Kind) + "planmodifier."
 		for i, m := range a.Modifiers {
@@ -1281,7 +1439,7 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 		a.ElementType = "types.Int64Type"
 		a.ElemValidators = retype(a.ElemValidators)
 	default:
-		return fmt.Errorf("terraformType Int64 needs an int32 or uint64 attribute, or a list or set of int32, not a %s", a.Kind)
+		return fmt.Errorf("terraformType Int64 needs an int32 attribute, a 64-bit number that the API sends as a string, or a list or set of int32, not a %s", a.Kind)
 	}
 	a.Validators, a.GroupValidators = retype(a.Validators), retype(a.GroupValidators)
 	return nil
@@ -1330,7 +1488,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
-	groups := newNestedGroups(b, t.Schema)
+	groups := newNestedGroups(b, t.Schema, slices.Contains(p, anySetItem))
 	for _, f := range t.Fields {
 		if fold, ok := b.flags[f]; ok {
 			// The flag of a folded arm: true selects this arm, false the folded one.
@@ -1818,12 +1976,12 @@ func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.
 		if i < 0 {
 			return fmt.Errorf("%s: updateMask: omit found no attribute for the Update field", name)
 		}
-		if attrs[i].Default != "" && isZeroDefault(file.Types[r.Name].Fields[f.Name].Default) && !f.Update.Presence {
+		if hasDefault(attrs[i]) && isZeroDefault(file.Types[r.Name].Fields[f.Name].Default) && !f.Update.Presence {
 			// Removing the value plans the zero, but a field without presence does not send it,
 			// and with no mask the server keeps the old value.
 			return fmt.Errorf("%s: updateMask: omit cannot clear this attribute: its default is the zero value, which Update does not send without x-coralogix-presence", name)
 		}
-		if attrs[i].Required || attrs[i].Default != "" || keepsAnyState(attrs[i]) {
+		if attrs[i].Required || hasDefault(attrs[i]) || keepsAnyState(attrs[i]) {
 			continue
 		}
 		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
@@ -1940,8 +2098,8 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if b.policy.AsBool(component, name) {
-			goType = "types.Bool"
+		if shown := b.scalarOneOf(component, name); shown != "" {
+			goType = shown
 		} else if behavior == model.Computed || computed {
 			goType = "types.Object"
 		} else {
@@ -2003,6 +2161,7 @@ func scalar(t *model.Type) (string, []string, error) {
 			// it is not a range. Only the sign is known (F19).
 			return "Int64", []string{"int64validator.AtLeast(0)"}, nil
 		case "int64":
+			// A signed number that the API sends as a string has no range known here.
 			return "Int64", rangeValidator("int64validator", t.Minimum, t.Maximum, formatInt), nil
 		case "int32":
 			return "Int32", rangeValidator("int32validator", t.Minimum, t.Maximum, formatInt), nil
@@ -2370,6 +2529,70 @@ func checkSplitNames(out *tfResource, root *tfModel, r *model.Resource, file *ov
 	return nil
 }
 
+// scalarOneOf is the model type of an object field that Terraform shows as one scalar (asBool,
+// asString), or "".
+func (b *tfBuilder) scalarOneOf(component, name string) string {
+	switch {
+	case b.policy.AsBool(component, name):
+		return "types.Bool"
+	case asString(b.file, component, name):
+		return "types.String"
+	}
+	return ""
+}
+
+// asString reports whether the field has an asString line.
+func asString(file *overrides.File, component, field string) bool {
+	return file != nil && file.Types[component].Fields[field].AsString
+}
+
+// stringArms returns the enum arm and the string arm of a oneOf that asString shows as one
+// string. The oneOf has exactly these two arms, and the string arm is a plain string.
+func stringArms(t *model.Type) (enum, str *model.Field, err error) {
+	if t.Kind != model.OneOf || len(t.Fields) != 2 || len(t.Wrappers) != 0 {
+		return nil, nil, errors.New("asString needs a oneOf with two arms: an enum and a string")
+	}
+	for _, arm := range t.Fields {
+		switch {
+		case arm.Type.Kind == model.Enum && enum == nil:
+			enum = arm
+		case arm.Type.Kind == model.String && arm.Type.Format == "" && str == nil:
+			str = arm
+		}
+	}
+	if enum == nil || str == nil {
+		return nil, nil, errors.New("asString needs a oneOf with two arms: an enum and a string")
+	}
+	return enum, str, nil
+}
+
+// foldStringValidators makes the validator of an attribute that shows a oneOf of an enum and a
+// string as one string. A regexMatches validator of the line checks the string arm: the value is a
+// Terraform spelling of the enum, or matches one of them. With enum: true and no pattern, only the
+// spellings are valid. With neither, the attribute takes any string.
+func foldStringValidators(a *tfAttr, file *overrides.File, enumOnly bool) error {
+	oneOf, values, err := enumChoice(&tfAttr{EnumSchema: a.FoldEnum, ValueKind: "String"}, file, false)
+	if err != nil {
+		return err
+	}
+	var regexes []string
+	a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool {
+		if strings.HasPrefix(v, "stringvalidator.RegexMatches(") {
+			regexes = append(regexes, v)
+			return true
+		}
+		return false
+	})
+	switch {
+	case len(regexes) != 0:
+		a.Validators = append(a.Validators, "stringvalidator.Any("+strings.Join(append([]string{oneOf}, regexes...), ", ")+")")
+	case enumOnly:
+		a.Validators = append(a.Validators, oneOf)
+		a.recordEnumValues(oneOf, values)
+	}
+	return nil
+}
+
 // splitArms reports whether the field has a splitArms line.
 func splitArms(file *overrides.File, component, field string) bool {
 	return file != nil && file.Types[component].Fields[field].SplitArms
@@ -2424,6 +2647,9 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 			a.Computed = *line.Computed
 		}
 		if line.Default != nil {
+			if overrides.IsNullDefault(line.Default) {
+				return errors.New("splitArms needs default: []: an arm without values reads as an empty collection, not null")
+			}
 			if a.Default, err = defaultExpr(a, line.Default); err != nil {
 				return err
 			}
@@ -2480,10 +2706,11 @@ type nestedGroups struct {
 	attrs     map[string]*tfAttr
 	models    map[string]*tfModel
 	fresh     map[string]bool // the group attribute was made by the last add
+	inSet     bool            // the component is the item of a set
 }
 
-func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
-	g := &nestedGroups{b: b, component: component, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}, fresh: map[string]bool{}}
+func newNestedGroups(b *tfBuilder, component string, inSet bool) *nestedGroups {
+	g := &nestedGroups{b: b, component: component, inSet: inSet, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}, fresh: map[string]bool{}}
 	if b.file != nil {
 		g.lines = b.file.Types[component].Groups
 	}
@@ -2496,8 +2723,24 @@ func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
 	return g
 }
 
+// checkItemModifiersUsed reports a types.<Type>.useStateForUnknown of a type that no list or set of
+// the resource holds, such as a misspelled type name or a single object: the modifier would be dropped
+// without a word.
+func (b *tfBuilder) checkItemModifiersUsed() error {
+	if b.file == nil {
+		return nil
+	}
+	for _, name := range slices.Sorted(maps.Keys(b.file.Types)) {
+		if b.file.Types[name].UseStateForUnknown && !b.itemModified[name] {
+			return fmt.Errorf("types.%s.useStateForUnknown: no list or set of the resource holds objects of %s", name, name)
+		}
+	}
+	return nil
+}
+
 // checkNestedGroupsUsed reports types.<Type>.groups of a type that no object of the resource
-// has, such as a misspelled type name: the groups would be dropped without a word.
+// has, such as a misspelled type name: the groups would be dropped without a word. It also checks the
+// useStateForUnknown lines of types.
 func (b *tfBuilder) checkNestedGroupsUsed() error {
 	if b.file == nil {
 		return nil
@@ -2507,7 +2750,7 @@ func (b *tfBuilder) checkNestedGroupsUsed() error {
 			return fmt.Errorf("types.%s.groups: no object of the resource is %s", name, name)
 		}
 	}
-	return nil
+	return b.checkItemModifiersUsed()
 }
 
 // of returns the group that holds field, or "".
@@ -2534,14 +2777,30 @@ func (g *nestedGroups) add(group string, f *model.Field, a *tfAttr, field tfMode
 	attr, found := g.attrs[group]
 	g.fresh[group] = !found
 	if !found {
-		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true, Component: g.component,
-			Description: g.lines[group].MarkdownDescription}
+		line := g.lines[group]
+		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: !line.Optional, Optional: line.Optional,
+			Computed: line.Computed, Component: g.component, Description: line.MarkdownDescription}
+		attr.Modifiers = g.stateModifiers(line)
 		g.attrs[group] = attr
 		g.models[group] = &tfModel{Name: groupModelName(g.component, group)}
 	}
 	attr.Attributes = append(attr.Attributes, a)
 	g.models[group].Fields = append(g.models[group].Fields, field)
 	return nil
+}
+
+// stateModifiers are the plan modifiers of a group that keeps its state. Inside a set item the
+// framework gives the built-in modifier the state of the item at the same index, which can be another
+// item, so the group takes the state of the item that the planned item matches.
+func (g *nestedGroups) stateModifiers(line overrides.Group) []string {
+	switch {
+	case !line.UseStateForUnknown:
+		return nil
+	case g.inSet:
+		g.b.setItemState = true
+		return []string{"setItemStateModifier{}"}
+	}
+	return []string{"objectplanmodifier.UseStateForUnknown()"}
 }
 
 // first returns the group attribute and its model field when the last add made the group, so the
@@ -2558,7 +2817,12 @@ func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool, error) 
 		g.b.seen[model.Name] = true
 		g.b.models = append(g.b.models, model)
 	}
-	return g.attrs[group], tfModelField{Name: camelize(group), Type: "*" + model.Name, TFName: group}, true, nil
+	goType := "*" + model.Name
+	if g.lines[group].Computed {
+		// The plan of an omitted computed object is unknown, which a pointer cannot hold.
+		goType = "types.Object"
+	}
+	return g.attrs[group], tfModelField{Name: camelize(group), Type: goType, TFName: group}, true, nil
 }
 
 // addValidators adds the oneOf validators: inside a group when the group holds every arm, else to

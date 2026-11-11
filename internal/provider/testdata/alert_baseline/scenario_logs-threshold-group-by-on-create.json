@@ -86,7 +86,6 @@
             "enabled": true,
             "groupByKeys": [],
             "logsThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -107,11 +106,8 @@
               }
             },
             "name": "tfbaseline-logs-threshold-groupby-empty",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
           }
         },
@@ -120,9 +116,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
     "state": {
       "access_policy": null,
       "case_settings": null,
@@ -130,7 +123,7 @@
       "deleted": false,
       "description": null,
       "enabled": true,
-      "group_by": null,
+      "group_by": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "incidents_settings": {
         "notify_on": "Triggered Only",
@@ -200,10 +193,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -215,10 +205,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

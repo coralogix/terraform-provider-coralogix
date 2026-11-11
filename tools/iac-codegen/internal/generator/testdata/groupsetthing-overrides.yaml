@@ -6,6 +6,8 @@ resource: GroupSetThing
 mode: existing
 typeName: group_set_thing
 afterFlatten: true
+# A plan hook, with no equality line in the resource: the generated ModifyPlan only calls it.
+modifyPlan: true
 schema:
   version: 1
   upgrade:
@@ -25,11 +27,25 @@ types:
       name: {computed: true, useStateForUnknown: true}
       groups: {computed: true, useStateForUnknown: true}
     extraAttributes:
+      # An equality line of an extra attribute is a plan modifier only: the resource has a server
+      # default, which the ModifyPlan of an equality line of a field does not allow.
       document:
         type: string
+        equality: json
         markdownDescription: A document that a hook turns into the groups.
   OutGroupThing:
+    # The period is an optional object that the server keeps: a group that leaves it out keeps what
+    # the state has. The object of each item of the set has the modifier too, as the released schema has.
+    useStateForUnknown: true
+    groups:
+      period:
+        fields: [periodMinutes]
+        optional: true
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: How often the group is retriggered.
     fields:
+      periodMinutes: {required: true, markdownDescription: Minutes between retriggers.}
       lastSeenAt: {skip: true}
       interval:
         validators: [{atLeast: 60}]

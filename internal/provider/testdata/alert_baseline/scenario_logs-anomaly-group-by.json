@@ -74,13 +74,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsAnomaly": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -90,11 +87,8 @@
               ]
             },
             "name": "tfbaseline-anomaly-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
           }
         },
@@ -224,6 +218,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -235,17 +230,13 @@
             "logsAnomaly": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -255,9 +246,7 @@
               ]
             },
             "name": "tfbaseline-anomaly-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
@@ -357,18 +346,12 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
     "stateDelta": {
       "set": {
-        "/group_by": null
+        "/group_by": []
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -378,10 +361,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: removed",
@@ -395,8 +375,20 @@
         "/group_by": null
       }
     },
-    "noChange": true,
-    "stateDelta": {}
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/group_by": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -406,9 +398,6 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   }
 ]

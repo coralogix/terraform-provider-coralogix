@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -272,5 +274,22 @@ func TestDataSourceTakesTheFirstNameMatch(t *testing.T) {
 	resp = read("missing")
 	if !resp.Diagnostics.HasError() || resp.Diagnostics[0].Summary() != `coralogix_shared_thing_v2 with name "missing" not found` || len(shared_things_service.GotIDs) != 0 {
 		t.Fatalf("missing name: Get ids = %v, diagnostics = %v", shared_things_service.GotIDs, resp.Diagnostics)
+	}
+}
+
+// enumValuesInDescription lists the Terraform values of the enum validator in the description of
+// the attribute, in the resource and in the data source that copies its schema. frame takes
+// enumExceptZero, so the list leaves out the zero value.
+func TestEnumValuesInDescription(t *testing.T) {
+	const want = `Valid values: ["one_day" "seven_days"].`
+	frame, ok := Schema().Attributes["window"].(schema.SingleNestedAttribute).Attributes["frame"].(schema.StringAttribute)
+	if !ok || frame.MarkdownDescription != want {
+		t.Fatalf("resource description = %q, want %q", frame.MarkdownDescription, want)
+	}
+	var resp datasource.SchemaResponse
+	(&DataSource{}).Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	copied, ok := resp.Schema.Attributes["window"].(dsschema.SingleNestedAttribute).Attributes["frame"].(dsschema.StringAttribute)
+	if !ok || copied.MarkdownDescription != want {
+		t.Fatalf("data source description = %q, want %q", copied.MarkdownDescription, want)
 	}
 }

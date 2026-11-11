@@ -82,13 +82,9 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-slo-values",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {
               "errorBudget": {
                 "rules": [
@@ -208,6 +204,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "service"
@@ -217,9 +214,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-slo-values",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {
@@ -471,7 +466,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}"
     ],
     "stateDelta": {}
   },
@@ -678,7 +673,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000008: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}"
     ],
     "stateDelta": {}
   },
@@ -703,7 +698,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000008: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}"
     ],
     "stateDelta": {}
   },
@@ -728,7 +723,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000008: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed getting SLO metric alert\"}"
     ],
     "stateDelta": {}
   },
@@ -851,7 +846,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Error budget threshold must be between 0 and 100\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Error budget threshold must be between 0 and 100\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -876,7 +871,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"errorBudget\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -958,7 +953,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   }

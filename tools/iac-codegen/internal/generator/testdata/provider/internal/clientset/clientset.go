@@ -5,11 +5,13 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/default_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/filter_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/key_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
@@ -22,6 +24,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/typed_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/union_wrap_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrapped_things_service"
@@ -38,6 +41,7 @@ type ClientSet struct {
 	Archived       *archived_things_service.ArchivedThingsServiceAPIService
 	Config         *config_things_service.ConfigThingsServiceAPIService
 	Wrap           *wrap_things_service.WrapThingsServiceAPIService
+	UnionWrap      *union_wrap_things_service.UnionWrapThingsServiceAPIService
 	Custom         *custom_things_service.CustomThingsServiceAPIService
 	Shared         *shared_things_service.SharedThingsServiceAPIService
 	Echo           *echo_things_service.EchoThingsServiceAPIService
@@ -52,6 +56,8 @@ type ClientSet struct {
 	Typed          *typed_things_service.TypedThingsServiceAPIService
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
 	Retag          *retag_things_service.RetagThingsServiceAPIService
+	Default        *default_things_service.DefaultThingsServiceAPIService
+	Key            *key_things_service.KeyThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -74,6 +80,10 @@ func (c *ClientSet) ConfigThings() *config_things_service.ConfigThingsServiceAPI
 
 func (c *ClientSet) WrapThings() *wrap_things_service.WrapThingsServiceAPIService {
 	return c.Wrap
+}
+
+func (c *ClientSet) DefaultThings() *default_things_service.DefaultThingsServiceAPIService {
+	return c.Default
 }
 
 func (c *ClientSet) CustomThings() *custom_things_service.CustomThingsServiceAPIService {
@@ -108,6 +118,10 @@ func (c *ClientSet) WrappedThings() *wrapped_things_service.WrappedThingsService
 	return c.WrappedID
 }
 
+func (c *ClientSet) KeyThings() *key_things_service.KeyThingsServiceAPIService {
+	return c.Key
+}
+
 func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPIService {
 	return c.Rename
 }
@@ -138,4 +152,8 @@ func (c *ClientSet) OverwriteThings() *overwrite_things_service.OverwriteThingsS
 
 func (c *ClientSet) RetagThings() *retag_things_service.RetagThingsServiceAPIService {
 	return c.Retag
+}
+
+func (c *ClientSet) UnionWrapThings() *union_wrap_things_service.UnionWrapThingsServiceAPIService {
+	return c.UnionWrap
 }

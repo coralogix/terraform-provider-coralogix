@@ -58,13 +58,13 @@ resource "coralogix_api_key" "example" {
 
 - `hashed` (Boolean) Api Key Is Hashed.
 - `id` (String) ApiKey ID.
-- `value` (String, Sensitive) The API key's secret value. The Coralogix backend returns this only when the key is first created; the Terraform provider captures it then and preserves it in resource state. Imported resources and data-source lookups cannot recover the value and will surface it as null.
+- `value` (String, Sensitive) The API key's secret value. The Coralogix API returns it for every key that is not hashed, so an imported key and a data source have it. A key that schema version 0 of the provider created as hashed has no value to read: Terraform keeps the one in its state.
 
 <a id="nestedatt--owner"></a>
 ### Nested Schema for `owner`
 
 Optional:
 
-- `organisation_id` (String)
-- `team_id` (String)
-- `user_id` (String)
+- `organisation_id` (String) Organisation identifier of the API key owner.
+- `team_id` (String) The team id.
+- `user_id` (String) User identifier of the API key owner.

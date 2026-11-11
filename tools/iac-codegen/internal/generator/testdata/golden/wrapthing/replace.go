@@ -33,8 +33,11 @@ var updateFields = []struct {
 	{attr: "widget_ids", serverDefault: false},
 	{attr: "filter", serverDefault: false},
 	{attr: "selection", serverDefault: false},
+	{attr: "tags", serverDefault: false},
+	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
+	{attr: "offset", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

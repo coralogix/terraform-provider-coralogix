@@ -70,15 +70,10 @@
           "alertDefProperties": {
             "description": "first",
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-immediate-desc",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "100",
@@ -178,20 +173,17 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-immediate-desc",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "100",
@@ -208,14 +200,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/description": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -227,10 +217,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: set the description",
@@ -279,11 +266,9 @@
       {
         "deltaOf": "PUT",
         "set": {
+          "/body/alertDefProperties/description": "",
           "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "200"
-        },
-        "remove": [
-          "/body/alertDefProperties/description"
-        ]
+        }
       }
     ],
     "stateDelta": {

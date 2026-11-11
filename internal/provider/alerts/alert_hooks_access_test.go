@@ -19,12 +19,12 @@ import (
 	"testing"
 
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
-	alertschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func TestFlattenAlertAccessPolicy(t *testing.T) {
+func TestFoldAccessPolicy(t *testing.T) {
 	// The backend's key order for the same policy a jsonencode-based
 	// configuration would produce.
 	backendText := `{"version":"2025-01-01","default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[]}`
@@ -130,10 +130,7 @@ func TestFlattenAlertAccessPolicy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, diags := flattenAlertAccessPolicy(tt.current, tt.accessPolicy, tt.readable)
-			if diags.HasError() {
-				t.Fatalf("diagnostics: %v", diags)
-			}
+			got := foldAccessPolicy(tt.current, tt.accessPolicy, tt.readable)
 			if !got.Equal(tt.want) {
 				t.Fatalf("access_policy = %s, want %s", got, tt.want)
 			}
@@ -141,7 +138,7 @@ func TestFlattenAlertAccessPolicy(t *testing.T) {
 	}
 }
 
-func TestAlertAccessPolicyForCreate(t *testing.T) {
+func TestAccessPolicyForCreate(t *testing.T) {
 	value := "policy"
 	tests := []struct {
 		name string
@@ -156,7 +153,7 @@ func TestAlertAccessPolicyForCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := alertAccessPolicyForCreate(tt.plan)
+			got := accessPolicyForCreate(tt.plan)
 			if tt.want == nil {
 				if got != nil {
 					t.Fatalf("access policy = %q, want nil", *got)
@@ -170,45 +167,17 @@ func TestAlertAccessPolicyForCreate(t *testing.T) {
 	}
 }
 
-func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
+func TestAccessPolicyActionForUpdate(t *testing.T) {
 	value := "policy"
 	empty := ""
 	tests := []struct {
 		name   string
 		config types.String
-		plan   types.String
 		check  func(t *testing.T, got *alerts.AccessPolicyAction)
 	}{
 		{
 			name:   "removed from configuration is omitted",
 			config: types.StringNull(),
-			plan:   types.StringNull(),
-			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
-				t.Helper()
-				if got != nil {
-					t.Fatalf("action = %v, want nil", got)
-				}
-			},
-		},
-		{
-			// UseStateForUnknown carries the prior policy into the plan when
-			// the configuration line is removed; the action must still be
-			// omitted (removal from config relinquishes management, Option A).
-			name:   "removed from configuration with the prior value carried into the plan is omitted",
-			config: types.StringNull(),
-			plan:   types.StringValue(value),
-			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
-				t.Helper()
-				if got != nil {
-					t.Fatalf("action = %v, want nil", got)
-				}
-			},
-		},
-		{
-			// Same, after a "" delete: state "" carried into the plan.
-			name:   "removed from configuration with the empty sentinel carried into the plan is omitted",
-			config: types.StringNull(),
-			plan:   types.StringValue(empty),
 			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
 				t.Helper()
 				if got != nil {
@@ -219,18 +188,6 @@ func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
 		{
 			name:   "unknown config is omitted",
 			config: types.StringUnknown(),
-			plan:   types.StringUnknown(),
-			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
-				t.Helper()
-				if got != nil {
-					t.Fatalf("action = %v, want nil", got)
-				}
-			},
-		},
-		{
-			name:   "unknown plan is omitted",
-			config: types.StringValue(value),
-			plan:   types.StringUnknown(),
 			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
 				t.Helper()
 				if got != nil {
@@ -241,7 +198,6 @@ func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
 		{
 			name:   "empty string deletes the remote policy",
 			config: types.StringValue(empty),
-			plan:   types.StringValue(empty),
 			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
 				t.Helper()
 				if got == nil {
@@ -276,7 +232,6 @@ func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
 		{
 			name:   "value upserts the policy",
 			config: types.StringValue(value),
-			plan:   types.StringValue(value),
 			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
 				t.Helper()
 				if got == nil {
@@ -294,12 +249,12 @@ func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.check(t, alertAccessPolicyActionForUpdate(tt.config, tt.plan))
+			tt.check(t, accessPolicyActionForUpdate(tt.config))
 		})
 	}
 }
 
-func TestAlertAccessFromGetResponse(t *testing.T) {
+func TestAccessPolicyFromGetResponse(t *testing.T) {
 	policy := "policy"
 	withPolicy := &alerts.GetAlertDefResponse{
 		Access: &alerts.AlertDefAccess{AccessPolicy: &policy},
@@ -307,24 +262,35 @@ func TestAlertAccessFromGetResponse(t *testing.T) {
 	withoutAccess := &alerts.GetAlertDefResponse{}
 	withoutPolicy := &alerts.GetAlertDefResponse{Access: &alerts.AlertDefAccess{}}
 
-	if got, readable := alertAccessFromGetResponse(nil); got != nil || readable {
+	if got, readable := accessPolicyFromGetResponse(nil); got != nil || readable {
 		t.Fatalf("nil response = (%v, %v), want (nil, false)", got, readable)
 	}
-	if got, readable := alertAccessFromGetResponse(withoutAccess); got != nil || readable {
+	if got, readable := accessPolicyFromGetResponse(withoutAccess); got != nil || readable {
 		t.Fatalf("response without access = (%v, %v), want (nil, false): presence unknown", got, readable)
 	}
-	if got, readable := alertAccessFromGetResponse(withoutPolicy); got != nil || !readable {
+	if got, readable := accessPolicyFromGetResponse(withoutPolicy); got != nil || !readable {
 		t.Fatalf("access without policy = (%v, %v), want (nil, true): authoritative absence", got, readable)
 	}
-	if got, readable := alertAccessFromGetResponse(withPolicy); got == nil || *got != policy || !readable {
+	// The real API answers a key without alerts:ReadAccessPolicy with 200, the access block, and the
+	// permission flags, but no policy. The policy is then unknown, not deleted.
+	canRead, cannotRead := true, false
+	unreadable := &alerts.GetAlertDefResponse{Access: &alerts.AlertDefAccess{Permissions: &alerts.AlertDefPermissions{CanReadAccessPolicy: &cannotRead}}}
+	if got, readable := accessPolicyFromGetResponse(unreadable); got != nil || readable {
+		t.Fatalf("access with canReadAccessPolicy false = (%v, %v), want (nil, false): the policy is unknown", got, readable)
+	}
+	readableWithoutPolicy := &alerts.GetAlertDefResponse{Access: &alerts.AlertDefAccess{Permissions: &alerts.AlertDefPermissions{CanReadAccessPolicy: &canRead}}}
+	if got, readable := accessPolicyFromGetResponse(readableWithoutPolicy); got != nil || !readable {
+		t.Fatalf("access with canReadAccessPolicy true and no policy = (%v, %v), want (nil, true)", got, readable)
+	}
+	if got, readable := accessPolicyFromGetResponse(withPolicy); got == nil || *got != policy || !readable {
 		t.Fatalf("access with policy = (%v, %v), want (%q, true)", got, readable, policy)
 	}
 }
 
 func TestAlertAccessPolicySchema(t *testing.T) {
-	attr, ok := alertschema.V3().Attributes["access_policy"]
+	attr, ok := alert.Schema().Attributes["access_policy"]
 	if !ok {
-		t.Fatal("V3 schema has no access_policy attribute")
+		t.Fatal("schema has no access_policy attribute")
 	}
 	strAttr, ok := attr.(schema.StringAttribute)
 	if !ok {

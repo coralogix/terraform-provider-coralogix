@@ -96,7 +96,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "metricThreshold": {
               "metricFilter": {
                 "promql": "sum(rate(tfbaseline_requests_total[5m]))"
@@ -125,11 +124,8 @@
               }
             },
             "name": "tfbaseline-mt-window-free",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
           }
         },
@@ -139,7 +135,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "state": null
   },
@@ -283,8 +279,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -317,9 +313,7 @@
               }
             },
             "name": "tfbaseline-mt-window-free",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
@@ -481,7 +475,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -527,7 +521,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -573,7 +567,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -658,7 +652,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -699,34 +693,14 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/metricThreshold/rules/0/condition/ofTheLast/metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED",
-          "/status": 200
-        },
-        "remove": [
-          "/body/alertDefProperties/metricThreshold/rules/0/condition/ofTheLast/metricTimeWindowDynamicDuration"
-        ]
+          "/body/alertDefProperties/metricThreshold/rules/0/condition/ofTheLast/metricTimeWindowDynamicDuration": ""
+        }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.metric_threshold.rules"
+    "applyDiagnostics": [
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Duration must be within the valid range: 1 - 2160 minutes.\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"ofTheLast\\\",\\n      \\\"type\\\",\\n      \\\"metricTimeWindowDynamicDuration\\\"\\n    ]\\n  }\\n]\"}"
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_threshold/rules/0/condition/of_the_last": "1_MINUTE"
-      }
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>)",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>)",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"for_over_pct\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"threshold\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"override\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"override\").AttributeName(\"priority\")"
-    ]
+    "stateDelta": {}
   },
   {
     "step": "refresh after the empty string",
@@ -739,14 +713,14 @@
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>)",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>)",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"for_over_pct\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"threshold\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"override\")",
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"1_MINUTE\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"override\").AttributeName(\"priority\")"
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>)",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"for_over_pct\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"condition\").AttributeName(\"threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"override\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"500ms\">, \"threshold\":tftypes.Number<\"10\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P5\">>>).AttributeName(\"override\").AttributeName(\"priority\")"
     ]
   },
   {
@@ -765,8 +739,12 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/metricThreshold/rules/0/condition/ofTheLast/metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_5"
-        }
+          "/body/alertDefProperties/metricThreshold/rules/0/condition/ofTheLast/metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_5",
+          "/status": 200
+        },
+        "remove": [
+          "/body/alertDefProperties/metricThreshold/rules/0/condition/ofTheLast/metricTimeWindowDynamicDuration"
+        ]
       }
     ],
     "stateDelta": {

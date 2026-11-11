@@ -167,19 +167,13 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-threshold-ops",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 1,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
@@ -440,6 +434,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [],
             "incidentsSettings": {
@@ -447,17 +442,13 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-threshold-ops",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 1,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"

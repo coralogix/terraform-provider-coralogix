@@ -52,7 +52,6 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
-          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "operator": "MORE_THAN",
           "rules": [
@@ -107,13 +106,9 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-analytics-threshold",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
           }
         },
@@ -155,7 +150,6 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
-          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [
@@ -223,7 +217,6 @@
           }
         },
         "/priority": "P5",
-        "/type_definition/analytics_threshold/evaluation_period_minutes": 10,
         "/type_definition/analytics_threshold/no_data_policy": {
           "auto_retire_seconds": 3600,
           "state": "ALERTING"
@@ -238,7 +231,6 @@
               "dataprimeQuery": {
                 "query": "source logs | count as c"
               },
-              "evaluationPeriodMinutes": 10,
               "noDataPolicy": {
                 "autoRetireSeconds": 3600,
                 "state": "NO_DATA_POLICY_STATE_ALERTING"
@@ -257,16 +249,14 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-threshold",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -582,7 +572,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -637,7 +627,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": false,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": false,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -662,7 +652,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -687,7 +677,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": false,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": false,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },

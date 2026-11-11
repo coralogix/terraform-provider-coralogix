@@ -85,19 +85,13 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-threshold-coll",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 1,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
@@ -252,6 +246,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [],
             "incidentsSettings": {
@@ -259,9 +254,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-threshold-coll",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingThreshold": {
@@ -269,7 +262,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 1,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
@@ -280,7 +272,13 @@
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "100",
-                  "tracingLabelFilters": {}
+                  "tracingLabelFilters": {
+                    "applicationName": [],
+                    "operationName": [],
+                    "serviceName": [],
+                    "spanFields": [],
+                    "subsystemName": []
+                  }
                 }
               }
             },
@@ -293,24 +291,17 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.tracing_threshold.notification_payload_filter",
-      "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name",
-      "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.operation_name",
-      "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.service_name",
-      "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields",
-      "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.subsystem_name"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"notification_payload_filter\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"operation_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"service_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"subsystem_name\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/type_definition/tracing_threshold/notification_payload_filter": [],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/application_name": [],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/operation_name": [],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/service_name": [],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/span_fields": [],
+        "/type_definition/tracing_threshold/tracing_filter/tracing_label_filters/subsystem_name": []
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh after the empty collections",
@@ -320,15 +311,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"notification_payload_filter\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"operation_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"service_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"subsystem_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: every collection with elements",
@@ -697,15 +680,13 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingThreshold/notificationPayloadFilter": []
-        },
         "remove": [
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/applicationName",
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/operationName",
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/serviceName",
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/spanFields",
-          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/subsystemName"
+          "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/subsystemName",
+          "/body/alertDefProperties/tracingThreshold/notificationPayloadFilter"
         ]
       }
     ],

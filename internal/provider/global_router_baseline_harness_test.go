@@ -458,21 +458,7 @@ func (h *grHarness) Import(name, id string) tftypes.Value {
 // UpgradeV0 upgrades a raw state that was written by schema version 0.
 func (h *grHarness) UpgradeV0(name, rawJSON string) tftypes.Value {
 	h.t.Helper()
-	step := grStep{Step: name, Config: json.RawMessage(rawJSON)}
-	resp, err := h.server.UpgradeResourceState(h.ctx, &tfprotov6.UpgradeResourceStateRequest{
-		TypeName: h.typeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(rawJSON)},
-	})
-	h.must(err)
-	step.Requests = h.api.takeRequests()
-	step.ApplyDiags = diagStrings(resp.Diagnostics)
-	if hasError(resp.Diagnostics) {
-		h.record(step)
-		return h.null()
-	}
-	state := h.decode(resp.UpgradedState)
-	step.State = toJSON(state)
-	h.record(step)
-	return state
+	return h.UpgradeFrom(name, 0, rawJSON)
 }
 
 // ReadDataSource validates the config of the data source with the type name of the harness, and
@@ -573,6 +559,17 @@ type unknownJSON struct{}
 
 func (unknownJSON) MarshalJSON() ([]byte, error) { return []byte(`"(unknown)"`), nil }
 
+// numberFromText reads a number from the text of a scenario that was written for a string attribute
+// (an id) and runs against a number attribute.
+func numberFromText(t *testing.T, typ tftypes.Type, text string) tftypes.Value {
+	t.Helper()
+	number, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+	if err != nil {
+		t.Fatalf("%q is not a number: %v", text, err)
+	}
+	return tftypes.NewValue(typ, number)
+}
+
 func fromJSON(t *testing.T, typ tftypes.Type, v any) tftypes.Value {
 	t.Helper()
 	if v == nil {
@@ -589,6 +586,9 @@ func fromJSON(t *testing.T, typ tftypes.Type, v any) tftypes.Value {
 	case typ.Is(tftypes.Bool):
 		return tftypes.NewValue(typ, v.(bool))
 	case typ.Is(tftypes.Number):
+		if text, ok := v.(string); ok {
+			return numberFromText(t, typ, text)
+		}
 		return tftypes.NewValue(typ, big.NewFloat(v.(float64)))
 	case typ.Is(tftypes.Object{}):
 		m := v.(map[string]any)

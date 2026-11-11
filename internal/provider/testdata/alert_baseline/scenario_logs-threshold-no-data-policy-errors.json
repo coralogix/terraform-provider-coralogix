@@ -90,13 +90,11 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsThreshold": {
               "noDataPolicy": {
                 "autoRetireSeconds": 90,
                 "state": "NO_DATA_POLICY_STATE_ALERTING"
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -117,11 +115,8 @@
               }
             },
             "name": "tfbaseline-logs-threshold-nodata-err",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
           }
         },
@@ -131,7 +126,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "state": null
   },
@@ -279,8 +274,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -288,9 +283,7 @@
             "logsThreshold": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -298,7 +291,6 @@
                 "autoRetireSeconds": 30,
                 "state": "NO_DATA_POLICY_STATE_ALERTING"
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -319,9 +311,7 @@
               }
             },
             "name": "tfbaseline-logs-threshold-nodata-err",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
@@ -334,7 +324,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },

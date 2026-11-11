@@ -86,24 +86,17 @@
               }
             ],
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-data-sources",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -213,8 +206,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -222,18 +215,13 @@
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-data-sources",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
@@ -443,7 +431,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed creating or updating alert, could not find specified datasets in the current datasests list\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed creating or updating alert, could not find specified datasets in the current datasests list\"}"
     ],
     "stateDelta": {}
   },
@@ -471,7 +459,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed creating or updating alert, could not find specified datasets in the current datasests list\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Failed creating or updating alert, could not find specified datasets in the current datasests list\"}"
     ],
     "stateDelta": {}
   },

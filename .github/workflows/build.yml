@@ -54,11 +54,27 @@ jobs:
         run: make test
 
   alert-baseline:
-    name: Alert baseline tests
+    name: Alert baseline tests (${{ matrix.shard }})
     permissions:
       contents: read
     env:
       GO111MODULE: on
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The scenarios run one after the other. Three shards keep each job near five minutes.
+          # The last shard takes every scenario that the other two leave out, so a scenario with a
+          # new prefix is never missed.
+          - shard: core
+            scenarios: '^(common-|logs-immediate-|logs-threshold-|logs-ratio-)'
+            quick: true
+          - shard: logs
+            scenarios: '^(logs-anomaly-|logs-new-value-|logs-unique-count-|logs-time-relative-|slo-threshold-)'
+            quick: false
+          - shard: rest
+            scenarios: ''
+            quick: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -70,7 +86,14 @@ jobs:
         # The modules must be downloaded first: the fake reads the OpenAPI document from the module cache.
         run: |
           go mod download
-          make test-alert-baseline
+          if [ "${{ matrix.quick }}" = "true" ]; then
+            go test ./internal/provider -run '^(TestAlertBaselineSchema|TestAlertFakeMatchesRecordedBackend)$' -count=1 -timeout=300s
+          fi
+          if [ -n "${{ matrix.scenarios }}" ]; then
+            go test ./internal/provider -run '^TestAlertBaselineScenarios$/${{ matrix.scenarios }}' -count=1 -timeout=900s
+          else
+            go test ./internal/provider -run '^TestAlertBaselineScenarios$' -skip '^TestAlertBaselineScenarios$/^(common-|logs-|slo-threshold-)' -count=1 -timeout=900s
+          fi
 
   test-dashboard-baseline:
     # The dashboard baseline tests run here, next to the unit tests, with a longer limit.

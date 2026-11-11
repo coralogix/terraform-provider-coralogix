@@ -82,13 +82,9 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-slo-missing",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {
               "errorBudget": {
                 "rules": [
@@ -115,7 +111,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}\noperation - Create"
+      "error: Unable to create alert | 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}"
     ],
     "state": null
   },
@@ -141,7 +137,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Failed Getting SLO definition\"}\noperation - Create"
+      "error: Unable to create alert | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Failed Getting SLO definition\"}"
     ],
     "stateDelta": {}
   },
@@ -229,7 +225,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}\noperation - Create"
+      "error: Unable to create alert | 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}"
     ],
     "stateDelta": {}
   },
@@ -276,7 +272,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}\noperation - Create"
+      "error: Unable to create alert | 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}"
     ],
     "stateDelta": {}
   }

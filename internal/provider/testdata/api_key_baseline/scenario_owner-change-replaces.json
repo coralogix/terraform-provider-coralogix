@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -111,10 +110,10 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requiresReplace": [
-      "AttributeName(\"owner\").AttributeName(\"team_id\")"
+      "AttributeName(\"owner\")"
     ],
     "state": {
       "access_policy": "",
@@ -167,11 +166,10 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requiresReplace": [
-      "AttributeName(\"owner\").AttributeName(\"team_id\")",
-      "AttributeName(\"owner\").AttributeName(\"user_id\")"
+      "AttributeName(\"owner\")"
     ],
     "state": {
       "access_policy": "",
@@ -224,11 +222,10 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requiresReplace": [
-      "AttributeName(\"owner\").AttributeName(\"organisation_id\")",
-      "AttributeName(\"owner\").AttributeName(\"team_id\")"
+      "AttributeName(\"owner\")"
     ],
     "state": {
       "access_policy": "",

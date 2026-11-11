@@ -52,7 +52,6 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
-          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "operator": "MORE_THAN",
           "rules": [
@@ -107,13 +106,9 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-analytics-threshold-prio",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
           }
         },
@@ -155,7 +150,6 @@
           "dataprime_query": {
             "query": "source logs | count as c"
           },
-          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "operator": "MORE_THAN",
           "rules": [
@@ -208,7 +202,6 @@
           }
         },
         "/priority": "P5",
-        "/type_definition/analytics_threshold/evaluation_period_minutes": 10,
         "/type_definition/analytics_threshold/no_data_policy": null,
         "/type_definition/analytics_threshold/rules/0/override/priority": "P2"
       }
@@ -221,7 +214,6 @@
               "dataprimeQuery": {
                 "query": "source logs | count as c"
               },
-              "evaluationPeriodMinutes": 10,
               "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
               "rules": [
                 {
@@ -236,16 +228,14 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-threshold-prio",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"

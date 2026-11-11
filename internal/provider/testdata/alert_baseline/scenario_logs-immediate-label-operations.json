@@ -93,7 +93,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
@@ -104,7 +103,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
@@ -114,15 +112,11 @@
                   },
                   "luceneQuery": "q"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-logs-immediate-operations",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -227,8 +221,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -243,7 +237,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
@@ -253,13 +246,10 @@
                   },
                   "luceneQuery": "q"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-logs-immediate-operations",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"

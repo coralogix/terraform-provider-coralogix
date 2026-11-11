@@ -5,6 +5,7 @@ package provider
 // them all. The CI version check of the generator reads these lines to know what to compare.
 
 //go:generate make -C ../.. codegen RESOURCE=AiEvaluation OUT=aievaluation
+//go:generate make -C ../.. codegen RESOURCE=AlertDef OUT=alert
 //go:generate make -C ../.. codegen RESOURCE=AlertSchedulerRule OUT=alertsscheduler
 //go:generate make -C ../.. codegen RESOURCE=ConfigurationGroup OUT=configurationgroup
 //go:generate make -C ../.. codegen RESOURCE=Connector OUT=connector
@@ -17,6 +18,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=RuleGroup OUT=parsingrules
 //go:generate make -C ../.. codegen RESOURCE=OutRuleGroupSet OUT=recordingrulesgroupsset
 //go:generate make -C ../.. codegen RESOURCE=GetTeamResponse OUT=team
+//go:generate make -C ../.. codegen RESOURCE=KeyInfo OUT=apikey
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder

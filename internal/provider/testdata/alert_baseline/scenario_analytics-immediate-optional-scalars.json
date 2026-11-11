@@ -39,7 +39,6 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
-          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -71,13 +70,9 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-analytics-immediate",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
           }
         },
@@ -118,7 +113,6 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
-          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -172,7 +166,6 @@
           }
         },
         "/priority": "P5",
-        "/type_definition/analytics_immediate/evaluation_period_minutes": 10,
         "/type_definition/analytics_immediate/no_data_policy": null,
         "/type_definition/analytics_immediate/use_rows_as_permutations": true
       }
@@ -185,20 +178,17 @@
               "dataprimeQuery": {
                 "query": "source logs | count"
               },
-              "evaluationPeriodMinutes": 10,
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-immediate",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -424,7 +414,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 10800000,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 10800000\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsImmediate\\\",\\n      \\\"evaluationDelayMs\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 10800000,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 10800000\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsImmediate\\\",\\n      \\\"evaluationDelayMs\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -477,7 +467,6 @@
     },
     "planDelta": {
       "set": {
-        "/type_definition/analytics_immediate/evaluation_period_minutes": 1,
         "/type_definition/analytics_immediate/timeframe_minutes": 1
       }
     },
@@ -485,18 +474,15 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsImmediate/evaluationPeriodMinutes": 1,
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1
+          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1,
+          "/status": 400
         }
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_immediate/evaluation_period_minutes": 1,
-        "/type_definition/analytics_immediate/timeframe_minutes": 1
-      }
-    },
-    "replanEmpty": true
+    "applyDiagnostics": [
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"evaluationPeriodMinutes is omitted, so the alert keeps its current value (10), which exceeds the new timeframeMinutes (1); set evaluationPeriodMinutes to at most 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsImmediate\\\",\\n      \\\"evaluationPeriodMinutes\\\"\\n    ]\\n  }\\n]\"}"
+    ],
+    "stateDelta": {}
   },
   {
     "step": "timeframe_minutes 1440",
@@ -514,7 +500,8 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1440
+          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 1440,
+          "/status": 200
         }
       }
     ],
@@ -605,16 +592,15 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 9
+          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 9,
+          "/status": 400
         }
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_immediate/timeframe_minutes": 9
-      }
-    },
-    "replanEmpty": true
+    "applyDiagnostics": [
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"evaluationPeriodMinutes is omitted, so the alert keeps its current value (10), which exceeds the new timeframeMinutes (9); set evaluationPeriodMinutes to at most 9\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"analyticsImmediate\\\",\\n      \\\"evaluationPeriodMinutes\\\"\\n    ]\\n  }\\n]\"}"
+    ],
+    "stateDelta": {}
   },
   {
     "step": "create with timeframe_minutes 9 on a new alert",
@@ -626,7 +612,6 @@
         "/id": "(unknown)",
         "/incidents_settings": "(unknown)",
         "/priority": "(unknown)",
-        "/type_definition/analytics_immediate/evaluation_period_minutes": "(unknown)",
         "/type_definition/analytics_immediate/no_data_policy": "(unknown)"
       }
     },
@@ -640,8 +625,8 @@
     ],
     "stateDelta": {
       "set": {
-        "/id": "00000000-0000-4000-8000-000000000015",
-        "/type_definition/analytics_immediate/evaluation_period_minutes": 9
+        "/id": "00000000-0000-4000-8000-000000000013",
+        "/type_definition/analytics_immediate/timeframe_minutes": 9
       }
     },
     "replanEmpty": true
@@ -668,8 +653,7 @@
     ],
     "stateDelta": {
       "set": {
-        "/id": "00000000-0000-4000-8000-000000000017",
-        "/type_definition/analytics_immediate/evaluation_period_minutes": 1,
+        "/id": "00000000-0000-4000-8000-000000000015",
         "/type_definition/analytics_immediate/timeframe_minutes": 1
       }
     },

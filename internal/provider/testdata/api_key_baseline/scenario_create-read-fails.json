@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -60,12 +59,33 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_api_key | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+      "error: Unable to create api_key | created api_key with id 00000000-0000-4000-8000-000000000001, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
+    ],
+    "state": {
+      "access_policy": null,
+      "active": null,
+      "hashed": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": null,
+      "owner": null,
+      "permissions": null,
+      "presets": null,
+      "value": null
+    }
+  },
+  {
+    "step": "next apply after the API recovers: delete the tainted resource",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
     ],
     "state": null
   },
   {
-    "step": "next apply after the API recovers: no state, so create again",
+    "step": "next apply after the API recovers: create it again",
     "config": {
       "name": "unread",
       "owner": {
@@ -102,7 +122,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -155,42 +174,12 @@
       {
         "method": "GET",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
-        "status": 200
+        "status": 404
       }
     ],
-    "state": {
-      "access_policy": "",
-      "active": true,
-      "hashed": false,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": "unread",
-      "owner": {
-        "organisation_id": null,
-        "team_id": "4000001",
-        "user_id": null
-      },
-      "permissions": [
-        "livetail:Read"
-      ],
-      "presets": [
-        "APM"
-      ],
-      "value": "fake-secret-1"
-    },
-    "drift": [
-      "AttributeName(\"access_policy\")",
-      "AttributeName(\"active\")",
-      "AttributeName(\"hashed\")",
-      "AttributeName(\"name\")",
-      "AttributeName(\"owner\")",
-      "AttributeName(\"owner\").AttributeName(\"organisation_id\")",
-      "AttributeName(\"owner\").AttributeName(\"team_id\")",
-      "AttributeName(\"owner\").AttributeName(\"user_id\")",
-      "AttributeName(\"permissions\")",
-      "AttributeName(\"permissions\").ElementKeyValue(tftypes.String<\"livetail:Read\">)",
-      "AttributeName(\"presets\")",
-      "AttributeName(\"presets\").ElementKeyValue(tftypes.String<\"APM\">)",
-      "AttributeName(\"value\")"
-    ]
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | api_key with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
+    ],
+    "state": null
   }
 ]

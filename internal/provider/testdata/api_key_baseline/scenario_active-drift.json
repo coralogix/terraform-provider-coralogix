@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -114,8 +113,7 @@
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"active\")",
-      "AttributeName(\"hashed\")",
-      "AttributeName(\"value\")"
+      "AttributeName(\"hashed\")"
     ]
   },
   {
@@ -149,14 +147,25 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "isActive": true
+          "isActive": true,
+          "newName": "drifting",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
         },
         "status": 200
       },

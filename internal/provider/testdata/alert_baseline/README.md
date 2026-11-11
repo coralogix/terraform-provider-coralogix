@@ -34,7 +34,7 @@ scenario, and a change shows once. The format is in `alert_baseline_delta_test.g
 
 ## What is covered
 
-231 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).
+229 scenarios, one golden each (`scenario_<name>.json`), plus the schema (`schema_current.txt`).
 
 | Prefix | Alert type or topic |
 |---|---|
@@ -120,7 +120,10 @@ The goldens record these as they are. A change in a golden is a decision, never 
   `group_by`, flow `stages`, groups, and `alert_defs`) reads back as null: inconsistent result
   after apply, and the next plan is not empty.
 - Removing `description` on Update gives an inconsistent result, because the API keeps the old
-  value. Removing `no_data_policy` keeps the old state and sends no request.
+  value. The migration fixes this: an Update whose configuration has no `description` sends `""`,
+  which clears it, and a read of `""` is null unless the configuration holds `""`. The goldens of
+  the affected scenarios show it (the PUT bodies carry `"description": ""`, the removal steps end
+  with an empty replan). Removing `no_data_policy` keeps the old state and sends no request.
 - A webhook with only email `recipients` plans `notify_on` as unknown again after every refresh
   (`common-notification-group-recipients`).
 - Numbers that the API rounds or clamps (`minimum_threshold`, `percentage_of_deviation`,

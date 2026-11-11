@@ -237,9 +237,7 @@
               "coralogix.metadata.applicationName"
             ],
             "name": "tfbaseline-tracing-threshold-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "tracingThreshold": {
@@ -249,7 +247,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 3,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_15"
@@ -865,9 +862,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-threshold-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P4",
             "tracingThreshold": {
@@ -878,7 +873,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 9,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_HOURS_2"
@@ -1079,7 +1073,7 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/tracingThreshold/notificationPayloadFilter": []
+          "/body/alertDefProperties/description": ""
         },
         "remove": [
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/applicationName",
@@ -1087,7 +1081,7 @@
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/serviceName",
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/spanFields",
           "/body/alertDefProperties/tracingThreshold/tracingFilter/simpleFilter/tracingLabelFilters/subsystemName",
-          "/body/alertDefProperties/description"
+          "/body/alertDefProperties/tracingThreshold/notificationPayloadFilter"
         ]
       }
     ],
@@ -1313,9 +1307,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-threshold-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "tracingThreshold": {
@@ -1325,7 +1317,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
                     "spanAmount": 3,
                     "timeWindow": {
                       "tracingTimeWindowValue": "TRACING_TIME_WINDOW_VALUE_MINUTES_15"

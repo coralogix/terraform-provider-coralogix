@@ -83,7 +83,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "metricAnomaly": {
               "metricFilter": {
                 "promql": "sum(rate(tfbaseline_requests_total[5m]))"
@@ -103,11 +102,8 @@
               ]
             },
             "name": "tfbaseline-ma-minimal",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           }
         },
@@ -331,8 +327,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -356,9 +352,7 @@
               ]
             },
             "name": "tfbaseline-ma-minimal-2",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"

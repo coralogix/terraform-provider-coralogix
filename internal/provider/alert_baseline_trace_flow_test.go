@@ -1107,32 +1107,6 @@ func init() {
 			h.Destroy("destroy", s)
 		})
 
-		// evaluation_period_minutes: the API fills in min(10, timeframe_minutes) on create and keeps
-		// the stored value on a Replace that omits it. The plan keeps it too, and falls back to the
-		// default when a lowered timeframe_minutes would leave it too large.
-		addAlertScenario("analytics-"+kind+"-evaluation-period", func(h *grHarness) {
-			period := func(timeframe float64, minutes ...float64) j {
-				b := body(j{"timeframe_minutes": timeframe})
-				if len(minutes) > 0 {
-					b["evaluation_period_minutes"] = minutes[0]
-				}
-				return cfg(b)
-			}
-			s := h.Apply("create without it: the API default", h.null(), period(20))
-			s = h.RefreshPlan("refresh", s)
-			imported := h.Import("import by id", idOf(s))
-			h.Plan("plan the same config on the imported state", imported, period(20))
-			s = h.Apply("set 5", s, period(20, 5))
-			s = h.RefreshPlan("refresh after setting it", s)
-			s = h.Apply("omit it: the stored value stays", s, period(20))
-			s = h.RefreshPlan("refresh after omitting it", s)
-			s = h.Apply("omit it and lower timeframe_minutes below it: the default of the new timeframe", s, period(3))
-			s = h.RefreshPlan("refresh after lowering the timeframe", s)
-			s = h.Apply("set the highest value 15", s, period(20, 15))
-			s = h.RefreshPlan("refresh after setting 15", s)
-			h.Destroy("destroy", s)
-		})
-
 		addAlertScenario("analytics-"+kind+"-no-data-policy", func(h *grHarness) {
 			s := h.Apply("create without no_data_policy", h.null(), cfg(body()))
 			s = h.RefreshPlan("refresh", s)
@@ -1458,17 +1432,12 @@ func init() {
 func init() { addAlertKeepRule(atfKeepOnReplace) }
 
 // atfKeepOnReplace keeps what the server keeps when a Replace does not send it: the evaluation
-// period of an analytics alert. A Replace that sends a period sets it.
-func atfKeepOnReplace(oldProps, newProps, request map[string]any) {
+// period of an analytics alert.
+func atfKeepOnReplace(oldProps, newProps map[string]any) {
 	for _, arm := range []string{"analyticsImmediate", "analyticsThreshold"} {
 		oldBody, newBody := atfObj(oldProps, arm), atfObj(newProps, arm)
 		if oldBody == nil || newBody == nil {
 			continue
-		}
-		if sent := atfObj(request, arm); sent != nil {
-			if _, ok := sent["evaluationPeriodMinutes"]; ok {
-				continue
-			}
 		}
 		if period, ok := oldBody["evaluationPeriodMinutes"]; ok {
 			newBody["evaluationPeriodMinutes"] = period

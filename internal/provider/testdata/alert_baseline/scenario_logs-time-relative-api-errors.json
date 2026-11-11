@@ -86,11 +86,9 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsTimeRelativeThreshold": {
               "evaluationDelayMs": 10800001,
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -109,11 +107,8 @@
               }
             },
             "name": "tfbaseline-relative-errors",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"
           }
         },
@@ -123,7 +118,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 10800000,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 10800000\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"evaluationDelayMs\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 10800000,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 10800000\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"evaluationDelayMs\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "state": null
   },
@@ -168,7 +163,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\",\\n      0,\\n      \\\"condition\\\",\\n      \\\"threshold\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -256,7 +251,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Different condition rules cannot have the same priority\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Different condition rules cannot have the same priority\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -284,7 +279,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Cannot mix thresholds less/more than\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Cannot mix thresholds less/more than\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -496,8 +491,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -506,13 +501,10 @@
               "ignoreInfinity": false,
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -541,9 +533,7 @@
               }
             },
             "name": "tfbaseline-relative-errors",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"
@@ -556,7 +546,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Cannot mix thresholds less/more than\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Cannot mix thresholds less/more than\\\",\\n    \\\"fatal\\\": true,\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"rules\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -620,7 +610,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 10800000,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 10800000\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"evaluationDelayMs\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 10800000,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 10800000\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsTimeRelativeThreshold\\\",\\n      \\\"evaluationDelayMs\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },

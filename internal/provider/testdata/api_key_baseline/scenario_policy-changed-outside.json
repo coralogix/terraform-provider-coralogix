@@ -39,7 +39,6 @@
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
           "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -116,8 +115,7 @@
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"access_policy\")",
-      "AttributeName(\"hashed\")",
-      "AttributeName(\"value\")"
+      "AttributeName(\"hashed\")"
     ]
   },
   {
@@ -152,14 +150,26 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }"
+          "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
+          "isActive": true,
+          "newName": "policy",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
         },
         "status": 200
       },

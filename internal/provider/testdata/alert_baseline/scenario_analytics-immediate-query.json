@@ -39,7 +39,6 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
-          "evaluation_period_minutes": "(unknown)",
           "no_data_policy": "(unknown)",
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -71,13 +70,9 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-analytics-immediate",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
           }
         },
@@ -118,7 +113,6 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
-          "evaluation_period_minutes": 10,
           "no_data_policy": null,
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -161,7 +155,6 @@
         },
         "/priority": "P5",
         "/type_definition/analytics_immediate/dataprime_query/query": "source logs\n| filter $d.msg == \"a 'b'\"\n| count as c",
-        "/type_definition/analytics_immediate/evaluation_period_minutes": 10,
         "/type_definition/analytics_immediate/no_data_policy": null
       }
     },
@@ -173,19 +166,16 @@
               "dataprimeQuery": {
                 "query": "source logs\n| filter $d.msg == \"a 'b'\"\n| count as c"
               },
-              "evaluationPeriodMinutes": 10,
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-immediate",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
