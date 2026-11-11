@@ -422,10 +422,23 @@ func (h inliner) checkTypedFields(typed []*yaml.Node, flat *yaml.Node) error {
 	if len(typed) > 1 {
 		return fmt.Errorf("inline: more than one inlined object has a typedArms line, so the line of the component is unclear; put a typedArms line on %s", h.resource)
 	}
-	if len(flat.Content) != len(typed[0].Content) {
-		return fmt.Errorf("inline: the fields of an object with a typedArms line are arms in %s, but %s has other fields; put a typedArms line on %s to say what it shows", h.resource, h.resource, h.resource)
+	if h.keptFields(flat) != len(typed[0].Content) {
+		return fmt.Errorf("inline: the fields of an object with a typedArms line are arms in %s, but %s has other fields; put a typedArms line on %s to say what it shows (a field that its line skips does not count)", h.resource, h.resource, h.resource)
 	}
 	return nil
+}
+
+// keptFields counts the entries (names and schemas) of the properties of the component that its
+// lines do not skip.
+func (h inliner) keptFields(props *yaml.Node) int {
+	lines := h.file.Types[h.resource].Fields
+	kept := 0
+	for i := 0; i+1 < len(props.Content); i += 2 {
+		if line, ok := lines[props.Content[i].Value]; !ok || !line.Skip {
+			kept += 2
+		}
+	}
+	return kept
 }
 
 // carryOneOf returns the oneOf group that the fields of the inlined object bring to s: the group of

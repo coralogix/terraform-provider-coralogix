@@ -113,6 +113,7 @@ components:
       type: object
       properties:
         value: {$ref: '#/components/schemas/TypedSpanField'}
+        note: {type: string, x-coralogix-presence: true}
     TypedAggregation:
       type: object
       oneOf:

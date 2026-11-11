@@ -25,9 +25,11 @@ types:
   # The value of the span value is a span field, which has a typedArms line (below). The inline line
   # moves its arms into the span value, which shows them as the span field does: span_value =
   # {type, value}, with no value object between.
+  # A field beside the object that the line skips is no arm: the contract has note, Terraform does not.
   TypedSpanValue:
     fields:
       value: {inline: true}
+      note: {skip: true}
   TypedAggregation:
     typedArms:
       # The released spelling of an arm that is not its name: average is avg.

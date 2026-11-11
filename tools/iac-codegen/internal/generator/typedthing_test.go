@@ -132,7 +132,7 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 // attributes of the component that holds it. The generator refuses the shapes where the line would
 // make an arm of something that is no arm, or where no component could take it.
 func TestInlineOfATypedObjectIsChecked(t *testing.T) {
-	spanValue := "    TypedSpanValue:\n      type: object\n      properties:\n        value: {$ref: '#/components/schemas/TypedSpanField'}\n"
+	spanValue := "    TypedSpanValue:\n      type: object\n      properties:\n        value: {$ref: '#/components/schemas/TypedSpanField'}\n        note: {type: string, x-coralogix-presence: true}\n"
 	tests := map[string]struct {
 		spec, overrides [2]string
 		want            string
@@ -142,7 +142,7 @@ func TestInlineOfATypedObjectIsChecked(t *testing.T) {
 			want:      "has typedArms.asList, which shows a list",
 		},
 		"another field beside the object": {
-			spec: [2]string{spanValue, spanValue + "        note: {type: string, x-coralogix-presence: true}\n"},
+			spec: [2]string{spanValue, spanValue + "        other: {type: string, x-coralogix-presence: true}\n"},
 			want: "the fields of an object with a typedArms line are arms in TypedSpanValue, but TypedSpanValue has other fields",
 		},
 		"two objects with a typedArms line": {
