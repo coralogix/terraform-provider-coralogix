@@ -143,7 +143,7 @@ func TestExpandSendsZeroValuesInTheirWrappers(t *testing.T) {
 }
 
 func TestFlattenTakesValuesOutOfTheirWrappers(t *testing.T) {
-	got, diags := flatten(context.Background(), fullResponse())
+	got, diags := flatten(context.Background(), fullResponse(), nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -158,7 +158,7 @@ func TestFlattenReadsAMissingValueAsNull(t *testing.T) {
 		Priority:  &wrap_things_service.PriorityValue{},
 		Selection: &wrap_things_service.Selection{},
 		MainLabel: &wrap_things_service.Label{},
-	})
+	}, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -179,7 +179,7 @@ func TestFlattenKeepsAnItemWithoutValue(t *testing.T) {
 	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{
 		Id:        "thing-1",
 		WidgetIds: []wrap_things_service.UUID{{Value: ptr("a")}, {}},
-	})
+	}, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -217,17 +217,17 @@ func TestSignedDigitStringIsSentAsDecimalText(t *testing.T) {
 // Flatten parses the text of the API. A text that is no 64-bit number is an error, not a null.
 func TestSignedDigitStringIsReadAsAnInteger(t *testing.T) {
 	for text, want := range map[string]int64{"-5": -5, "0": 0, "42": 42, "-9223372036854775808": -1 << 63} {
-		got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)})
+		got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}, nil)
 		if diags.HasError() || got.Offset.ValueInt64() != want {
 			t.Fatalf("offset of %q = %v (%v), want %d", text, got.Offset, diags, want)
 		}
 	}
-	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1"})
+	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1"}, nil)
 	if diags.HasError() || !got.Offset.IsNull() {
 		t.Fatalf("a missing offset = %v (%v), want null", got.Offset, diags)
 	}
 	for _, text := range []string{"", "abc", "1.5", "9223372036854775808", "-9223372036854775809"} {
-		if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}); !diags.HasError() {
+		if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}, nil); !diags.HasError() {
 			t.Errorf("offset %q: want an error", text)
 		}
 	}
@@ -259,11 +259,11 @@ func TestWrappedSetIsSentInItsWrapper(t *testing.T) {
 // Flatten builds the set from the list in the wrapper, in any order. A missing wrapper, and a
 // wrapper without values, are null.
 func TestWrappedSetIsReadFromItsWrapper(t *testing.T) {
-	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{"b", "a"}}})
+	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{"b", "a"}}}, nil)
 	if diags.HasError() || !got.Tags.Equal(stringSet("a", "b")) {
 		t.Fatalf("tags = %s (%v), want [a b] as a set", got.Tags, diags)
 	}
-	got, diags = flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{}}})
+	got, diags = flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{}}}, nil)
 	if diags.HasError() || got.Tags.IsNull() || len(got.Tags.Elements()) != 0 {
 		t.Fatalf("tags = %s (%v), want an empty set", got.Tags, diags)
 	}
@@ -271,7 +271,7 @@ func TestWrappedSetIsReadFromItsWrapper(t *testing.T) {
 		"no wrapper":           {Id: "thing-1"},
 		"a wrapper of no list": {Id: "thing-1", Tags: &wrap_things_service.Tags{}},
 	} {
-		got, diags = flatten(context.Background(), response)
+		got, diags = flatten(context.Background(), response, nil)
 		if diags.HasError() || !got.Tags.IsNull() {
 			t.Errorf("%s: tags = %s (%v), want null", name, got.Tags, diags)
 		}
@@ -319,18 +319,18 @@ func TestFoldedOneOfIsReadFromTheArmOfTheResponse(t *testing.T) {
 		"no object":       {nil, types.StringNull()},
 	} {
 		t.Run(name, func(t *testing.T) {
-			got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: test.api})
+			got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: test.api}, nil)
 			if diags.HasError() || !got.Window.Equal(test.want) {
 				t.Fatalf("window = %s (%v), want %s", got.Window, diags, test.want)
 			}
 		})
 	}
 	both := &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5), CustomValue: ptr("5m")}
-	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: both}); !diags.HasError() {
+	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: both}, nil); !diags.HasError() {
 		t.Fatal("a response with both arms: want an error")
 	}
 	unknown := &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_99"))}
-	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: unknown}); !diags.HasError() {
+	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: unknown}, nil); !diags.HasError() {
 		t.Fatal("an enum value that the enums line lacks: want an error")
 	}
 }
@@ -413,7 +413,7 @@ func TestClientIDReadsBackAsTheAPIHasIt(t *testing.T) {
 	}
 	{
 		name := "an import, no prior"
-		got, diags := flatten(ctx, resp)
+		got, diags := flatten(ctx, resp, nil)
 		if diags.HasError() {
 			t.Fatalf("%s: %v", name, diags)
 		}
@@ -541,7 +541,7 @@ func TestJoinedSegmentsAreOneText(t *testing.T) {
 		}
 		resp := fullResponse()
 		resp.FolderPath = &wrap_things_service.FolderPath{Segments: want}
-		got, diags := flatten(ctx, resp)
+		got, diags := flatten(ctx, resp, nil)
 		if diags.HasError() || got.FolderPath.ValueString() != text {
 			t.Errorf("%v read as %q (%v), want %q", want, got.FolderPath.ValueString(), diags, text)
 		}
@@ -556,7 +556,7 @@ func TestJoinedSegmentsAreOneText(t *testing.T) {
 			t.Errorf("%s sent %+v, want no wrapper", name, body.FolderPath)
 		}
 	}
-	got, _ := flatten(ctx, fullResponse())
+	got, _ := flatten(ctx, fullResponse(), nil)
 	if !got.FolderPath.IsNull() {
 		t.Errorf("a response without the path read as %v, want null", got.FolderPath)
 	}
@@ -593,13 +593,13 @@ func TestGroupFieldsInWrappersAreSent(t *testing.T) {
 // and the id of the thing is not changed by the id of the home.
 func TestGroupFieldsInWrappersAreRead(t *testing.T) {
 	ctx := context.Background()
-	got, diags := flatten(ctx, fullResponse())
+	got, diags := flatten(ctx, fullResponse(), nil)
 	if diags.HasError() || got.Home != nil {
 		t.Fatalf("a response with neither arm read as %+v (%v), want a null group", got.Home, diags)
 	}
 	resp := fullResponse()
 	resp.HomeId = &wrap_things_service.UUID{Value: ptr("abc")}
-	got, diags = flatten(ctx, resp)
+	got, diags = flatten(ctx, resp, nil)
 	if diags.HasError() || got.Home == nil || got.Home.HomeId.ValueString() != "abc" || !got.Home.HomePath.IsNull() {
 		t.Fatalf("the id read as %+v (%v), want the id and a null path", got.Home, diags)
 	}
@@ -608,9 +608,58 @@ func TestGroupFieldsInWrappersAreRead(t *testing.T) {
 	}
 	resp = fullResponse()
 	resp.HomePath = &wrap_things_service.FolderPath{Segments: []string{"Team", "Sub"}}
-	got, diags = flatten(ctx, resp)
+	got, diags = flatten(ctx, resp, nil)
 	if diags.HasError() || got.Home == nil || got.Home.HomePath.ValueString() != "Team/Sub" || !got.Home.HomeId.IsNull() {
 		t.Fatalf("the path read as %+v (%v), want the path and a null id", got.Home, diags)
+	}
+}
+
+// The API can answer another arm than the one the user wrote: a path comes back as an id. The home
+// keeps the arm of the prior value (the plan after a write, the state on a read). With no prior value,
+// as in an import, the response decides.
+func TestGroupKeepsThePriorArm(t *testing.T) {
+	ctx := context.Background()
+	byID := &wrap_things_service.UUID{Value: ptr("abc")}
+	byPath := &wrap_things_service.FolderPath{Segments: []string{"Team", "Sub"}}
+	prior := func(id, path types.String) *WrapThingModel {
+		m := fullModel()
+		m.Home = &WrapThingHomeModel{HomeId: id, HomePath: path}
+		return m
+	}
+	home := func(m *WrapThingModel) string {
+		if m.Home == nil {
+			return "null"
+		}
+		return "id=" + m.Home.HomeId.String() + " path=" + m.Home.HomePath.String()
+	}
+	null := types.StringNull()
+	tests := map[string]struct {
+		prior *WrapThingModel
+		id    *wrap_things_service.UUID
+		path  *wrap_things_service.FolderPath
+		want  string
+	}{
+		"a written path, answered as an id, stays a path":    {prior(null, types.StringValue("Team/Sub")), byID, nil, `id=<null> path="Team/Sub"`},
+		"a written id, answered as a path, stays an id":      {prior(types.StringValue("abc"), null), nil, byPath, `id="abc" path=<null>`},
+		"a written id, answered as the id, is the id":        {prior(types.StringValue("old"), null), byID, nil, `id="abc" path=<null>`},
+		"a written path, answered as the path, is read":      {prior(null, types.StringValue("Old/Path")), nil, byPath, `id=<null> path="Team/Sub"`},
+		"an import has no prior value, so the id is read":    {nil, byID, nil, `id="abc" path=<null>`},
+		"a prior group without an arm reads the response":    {prior(null, null), byID, nil, `id="abc" path=<null>`},
+		"a prior group with unknown arms reads the response": {prior(types.StringUnknown(), types.StringUnknown()), byID, nil, `id="abc" path=<null>`},
+		"a response without an arm is a null group":          {prior(null, types.StringValue("Team/Sub")), nil, nil, "null"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			resp := fullResponse()
+			resp.HomeId, resp.HomePath = test.id, test.path
+			got, diags := flatten(ctx, resp, test.prior)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if h := home(got); h != test.want {
+				t.Errorf("home = %s, want %s", h, test.want)
+			}
+		})
 	}
 }
 
@@ -792,7 +841,7 @@ func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
 			{Id: "g", PanelId: wrap_things_service.UUID{}, Detail: &wrap_things_service.NoteDetail{Url: ptr("u5")}},
 		},
 	}
-	got, diags := flatten(ctx, response)
+	got, diags := flatten(ctx, response, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -813,7 +862,7 @@ func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
 	}
 	// A response without notes gives every panel null.
 	response.Notes = nil
-	got, diags = flatten(ctx, response)
+	got, diags = flatten(ctx, response, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -837,7 +886,7 @@ func TestDistributedItemsSurviveARoundTrip(t *testing.T) {
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
-	got, diags := flatten(ctx, &wrap_things_service.WrapThing{Id: "thing-1", Query: body.Query, Panels: body.Panels, Notes: body.Notes})
+	got, diags := flatten(ctx, &wrap_things_service.WrapThing{Id: "thing-1", Query: body.Query, Panels: body.Panels, Notes: body.Notes}, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}

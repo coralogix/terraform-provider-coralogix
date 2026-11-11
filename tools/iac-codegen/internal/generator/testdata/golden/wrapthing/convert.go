@@ -95,13 +95,13 @@ func expandUpdate(ctx context.Context, m *WrapThingModel) (*wrap_things_service.
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *wrap_things_service.WrapThing) (*WrapThingModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *wrap_things_service.WrapThing, prior *WrapThingModel) (*WrapThingModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no WrapThing.")
 		return nil, diags
 	}
-	out := flattenWrapThing(ctx, path.Empty(), v, &diags)
+	out := flattenWrapThing(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() || out.Id.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -672,7 +672,7 @@ func expandReplaceWrapThingRequestHome(ctx context.Context, p path.Path, m *Wrap
 	}
 }
 
-func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, diags *diag.Diagnostics) *WrapThingModel {
+func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, prior *WrapThingModel, diags *diag.Diagnostics) *WrapThingModel {
 	if v == nil {
 		return nil
 	}
@@ -737,12 +737,16 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		inner := unwrapFolderPath(v.FolderPath)
 		out.FolderPath = joinText(inner, "/")
 	}
-	out.Home = flattenWrapThingHome(ctx, p.AtName("home"), v, diags)
+	var priorHome *WrapThingHomeModel
+	if prior != nil {
+		priorHome = prior.Home
+	}
+	out.Home = flattenWrapThingHome(ctx, p.AtName("home"), v, priorHome, diags)
 	out.Offset = flattenInt64Wire(p.AtName("offset"), v.Offset, diags)
 	return out
 }
 
-func flattenWrapThingHome(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, diags *diag.Diagnostics) *WrapThingHomeModel {
+func flattenWrapThingHome(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, prior *WrapThingHomeModel, diags *diag.Diagnostics) *WrapThingHomeModel {
 	if v == nil {
 		return nil
 	}
@@ -757,6 +761,11 @@ func flattenWrapThingHome(ctx context.Context, p path.Path, v *wrap_things_servi
 	{
 		inner := unwrapFolderPath(v.HomePath)
 		out.HomePath = joinText(inner, "/")
+	}
+	if prior != nil && otherArm([]bool{!prior.HomeId.IsNull() && !prior.HomeId.IsUnknown(), !prior.HomePath.IsNull() && !prior.HomePath.IsUnknown()}, []bool{!out.HomeId.IsNull() && !out.HomeId.IsUnknown(), !out.HomePath.IsNull() && !out.HomePath.IsUnknown()}) {
+		// The API answered another arm than the one that the user wrote, so the written arm stays.
+		kept := *prior
+		return &kept
 	}
 	return out
 }
@@ -1189,6 +1198,19 @@ func expandInt32(v types.Int32) *int32 {
 	}
 	n := v.ValueInt32()
 	return &n
+}
+
+// otherArm reports whether the prior value and the new value each have a field set, and no field is
+// set in both: the new value holds another arm than the prior one.
+func otherArm(prior, now []bool) bool {
+	anyPrior, anyNow := false, false
+	for i := range prior {
+		if prior[i] && now[i] {
+			return false
+		}
+		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
+	}
+	return anyPrior && anyNow
 }
 
 // splitText returns the elements of a text that Terraform shows for a list of strings: the text split

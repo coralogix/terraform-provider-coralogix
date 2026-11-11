@@ -199,6 +199,9 @@ type convObject struct {
 	// OptionalGroup: the group is optional (the line has optional). Flatten returns nil, a null
 	// group, when the response has none of its fields.
 	OptionalGroup bool
+	// KeepPriorArm: flatten keeps the prior value when the response has other fields than it does
+	// (the keepPriorArm key of a group).
+	KeepPriorArm bool
 	// AttrTypes are the Terraform attribute types, when a list holds the
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
@@ -678,6 +681,20 @@ func (b *convBuilder) applyJoin(cf *convField, sep string) error {
 	}
 	cf.Conv, cf.Collection, cf.Join = convJoin, "", sep
 	return nil
+}
+
+// UsesKeepPriorArm reports whether a group keeps the prior arm. The template then emits its helper.
+func (d *convData) UsesKeepPriorArm() bool {
+	return slices.ContainsFunc(d.Objects, func(o *convObject) bool { return o.KeepPriorArm })
+}
+
+// SetIn is the Go condition that the value of the field in the model v (a name) is set: not null, not
+// unknown, and not a nil object.
+func (f *convField) SetIn(v string) string {
+	if (f.Conv == convObj || f.Conv == convGroup) && !f.ObjectValue {
+		return v + "." + f.Model + " != nil"
+	}
+	return "!" + v + "." + f.Model + ".IsNull() && !" + v + "." + f.Model + ".IsUnknown()"
 }
 
 // UsesJoin reports whether a field shows a list as one string. The template then emits its helpers.
@@ -3312,7 +3329,7 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 	g, found := groups[outer]
 	if !found {
 		g = &convObject{Func: root.Func + camelize(outer), Model: groupModelName(b.resource.Name, outer), SDK: root.SDK, Group: true,
-			RequireOne: line.RequireOne, OptionalGroup: line.Optional}
+			RequireOne: line.RequireOne, OptionalGroup: line.Optional, KeepPriorArm: line.KeepPriorArm, NeedsPrior: line.KeepPriorArm}
 		g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
 		groups[outer] = g
 		b.objects = append(b.objects, g)

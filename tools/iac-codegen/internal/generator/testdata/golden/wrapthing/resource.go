@@ -270,7 +270,7 @@ func (r *Resource) setState(ctx context.Context, v *wrap_things_service.WrapThin
 			return diags
 		}
 	}
-	m, flattenDiags := flatten(ctx, v)
+	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
 		return diags
@@ -288,10 +288,21 @@ func (r *Resource) setState(ctx context.Context, v *wrap_things_service.WrapThin
 	return diags
 }
 
+// priorModel returns the model in the state or the plan, or nil when there is none or it
+// cannot be read. The prior keeps a value the API does not return on its own: the order of a
+// list, the text of a document, or a configured empty string.
+func priorModel(ctx context.Context, data tfData) *WrapThingModel {
+	var m WrapThingModel
+	if data == nil || data.Get(ctx, &m).HasError() {
+		return nil
+	}
+	return &m
+}
+
 // Flatten returns the Terraform model of a resource in an API response, for a data source that
 // uses the schema and the model of this resource. It has no prior model.
 func Flatten(ctx context.Context, v *wrap_things_service.WrapThing) (*WrapThingModel, diag.Diagnostics) {
-	return flatten(ctx, v)
+	return flatten(ctx, v, nil)
 }
 
 // stateID returns the id in the state.

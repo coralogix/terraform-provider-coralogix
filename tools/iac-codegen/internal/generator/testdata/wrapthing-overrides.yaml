@@ -12,6 +12,7 @@ unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHo
 groups:
   home:
     fields: [homeId, homePath]
+    keepPriorArm: true
     optional: true
     markdownDescription: Where the thing lives, by id or by path.
 

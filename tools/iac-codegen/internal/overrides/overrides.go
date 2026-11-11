@@ -363,6 +363,11 @@ type Group struct {
 	// TypedArms, in a group of the resource, shows the group, which holds every arm of a oneOf
 	// of objects without fields, as one object: a type attribute that names the arm.
 	TypedArms *TypedArms `yaml:"typedArms"`
+	// KeepPriorArm keeps the arm that the user wrote. The API can answer another arm than the one
+	// that the plan or the state has (it answers a folder path with a folder id). When the prior
+	// value has a field that the response lacks, and the response has a field that the prior value
+	// lacks, flatten keeps the prior value. With no prior value (an import), the response is used.
+	KeepPriorArm bool `yaml:"keepPriorArm"`
 }
 
 // check checks the keys of a group that change its mode.
@@ -372,6 +377,10 @@ func (g Group) check() error {
 		return errors.New("computed needs optional: true: a required object cannot be computed")
 	case g.UseStateForUnknown && !g.Computed:
 		return errors.New("useStateForUnknown needs computed: true: only a computed object is unknown in a plan")
+	case g.KeepPriorArm && (g.Computed || g.TypedArms != nil):
+		return errors.New("keepPriorArm does not go with computed or typedArms: the prior value of those groups is not read")
+	case g.KeepPriorArm && len(g.Fields)+len(g.Groups) < 2:
+		return errors.New("keepPriorArm needs two or more fields: it keeps the arm that the API does not answer")
 	}
 	return nil
 }
@@ -380,7 +389,7 @@ func (g Group) check() error {
 // so the keys that give a group a mode of its own do not apply.
 func (g Group) checkInner() error {
 	switch {
-	case g.Computed || g.UseStateForUnknown || g.RequireOne || len(g.Groups) != 0 || g.TypedArms != nil:
+	case g.Computed || g.UseStateForUnknown || g.RequireOne || len(g.Groups) != 0 || g.TypedArms != nil || g.KeepPriorArm:
 		return errors.New("a group inside a group takes fields, optional, and markdownDescription only")
 	}
 	return nil
@@ -454,8 +463,12 @@ func (f *File) checkGroups() error {
 			return err
 		}
 		for _, group := range sortedKeys(f.Types[name].Groups) {
-			if g := f.Types[name].Groups[group]; len(g.Groups) != 0 || g.TypedArms != nil {
+			g := f.Types[name].Groups[group]
+			if len(g.Groups) != 0 || g.TypedArms != nil {
 				return fmt.Errorf("types.%s.groups.%s: groups and typedArms are keys of a group of the resource", name, group)
+			}
+			if g.KeepPriorArm {
+				return fmt.Errorf("types.%s.groups.%s: keepPriorArm is a key of a group of the resource", name, group)
 			}
 		}
 	}

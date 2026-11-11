@@ -655,6 +655,13 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}; it must have exactly one.", arms))
 	}
 {{- end}}
+{{- if .KeepPriorArm}}
+	if prior != nil && otherArm([]bool{ {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.SetIn "prior"}}{{end}} }, []bool{ {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.SetIn "out"}}{{end}} }) {
+		// The API answered another arm than the one that the user wrote, so the written arm stays.
+		kept := *prior
+		return &kept
+	}
+{{- end}}
 	return out
 }
 {{end}}
@@ -1636,6 +1643,21 @@ func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 		return v
 	}
 	return prior
+}
+{{- end}}
+{{- if .Conv.UsesKeepPriorArm}}
+
+// otherArm reports whether the prior value and the new value each have a field set, and no field is
+// set in both: the new value holds another arm than the prior one.
+func otherArm(prior, now []bool) bool {
+	anyPrior, anyNow := false, false
+	for i := range prior {
+		if prior[i] && now[i] {
+			return false
+		}
+		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
+	}
+	return anyPrior && anyNow
 }
 {{- end}}
 {{- if .Conv.UsesJoin}}
