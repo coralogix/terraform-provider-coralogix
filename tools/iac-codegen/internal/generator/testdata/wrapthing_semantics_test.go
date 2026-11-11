@@ -16,6 +16,7 @@ import (
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -822,5 +823,57 @@ func TestDistributedItemsAreOnlyInsideTheirPanel(t *testing.T) {
 	}
 	if _, ok := reflect.TypeOf(WrapNoteModel{}).FieldByName("PanelId"); ok {
 		t.Error("the model of a note has PanelId")
+	}
+}
+
+// An empty list of distributed items that the configuration sets (panel_notes = []) has to stay an
+// empty list in the state. The response has no notes for the panel either way, so flatten reads
+// null, and the state keeps the form of the plan, as for any list (keepPriorEmpty). A null stays
+// null, and a list that the configuration clears reads as the empty list that it planned.
+func TestEmptyDistributedListKeepsItsFormInTheState(t *testing.T) {
+	ctx := context.Background()
+	sch := Schema()
+	root := sch.Type().TerraformType(ctx).(tftypes.Object)
+	panelType := root.AttributeTypes["panels"].(tftypes.List).ElementType.(tftypes.Object)
+	notesType := panelType.AttributeTypes["panel_notes"]
+	thing := func(notes tftypes.Value) tftypes.Value {
+		values := map[string]tftypes.Value{}
+		for name, typ := range root.AttributeTypes {
+			values[name] = tftypes.NewValue(typ, nil)
+		}
+		values["id"] = tftypes.NewValue(tftypes.String, "thing-1")
+		values["query"] = tftypes.NewValue(tftypes.String, "q")
+		panel := map[string]tftypes.Value{
+			"id": tftypes.NewValue(tftypes.String, "p1"), "title": tftypes.NewValue(tftypes.String, nil), "panel_notes": notes,
+		}
+		values["panels"] = tftypes.NewValue(root.AttributeTypes["panels"], []tftypes.Value{tftypes.NewValue(panelType, panel)})
+		return tftypes.NewValue(root, values)
+	}
+	response := &wrap_things_service.WrapThing{Id: "thing-1", Query: wrap_things_service.LuceneQuery{Value: ptr("q")},
+		Panels: []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}}}}
+	tests := map[string]struct {
+		notes     tftypes.Value
+		wantNull  bool
+		wantCount int
+	}{
+		"an empty list":  {notes: tftypes.NewValue(notesType, []tftypes.Value{}), wantCount: 0},
+		"no list at all": {notes: tftypes.NewValue(notesType, nil), wantNull: true},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			plan := tfsdk.Plan{Schema: sch, Raw: thing(test.notes)}
+			state := tfsdk.State{Schema: sch, Raw: tftypes.NewValue(root, nil)}
+			if diags := (&Resource{}).setState(ctx, response, plan, &state); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var panels types.List
+			if diags := state.GetAttribute(ctx, path.Root("panels"), &panels); diags.HasError() {
+				t.Fatal(diags)
+			}
+			notes := panels.Elements()[0].(types.Object).Attributes()["panel_notes"].(types.List)
+			if notes.IsNull() != test.wantNull || (!test.wantNull && len(notes.Elements()) != test.wantCount) {
+				t.Errorf("panel_notes = %s, want null=%t", notes, test.wantNull)
+			}
+		})
 	}
 }
