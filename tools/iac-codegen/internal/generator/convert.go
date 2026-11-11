@@ -3704,11 +3704,13 @@ func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, reques
 		}
 	}
 	if request {
-		// The same object is flattened: a response can leave the object out, as expand does when no
+		// The same objects are flattened: a response can leave an object out, as expand does when no
 		// attribute of it is set, and flatten reads a missing one as an empty object, with null fields.
-		read := convParent{SDK: ref.Name, Type: b.qualify(typ.Name)}
-		if !slices.Contains(obj.FlattenParents, read) {
-			obj.FlattenParents = append(obj.FlattenParents, read)
+		for _, p := range pointers {
+			read := convParent{SDK: p.SDK, Type: p.Type}
+			if !slices.Contains(obj.FlattenParents, read) {
+				obj.FlattenParents = append(obj.FlattenParents, read)
+			}
 		}
 	}
 	return nil
