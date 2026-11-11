@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -77,9 +78,25 @@ func runUserFidelityStep(t *testing.T, fake *userFake, step fidelityStep, vars m
 	fake.mu.Unlock()
 	raw := roundTrip(t, response)
 	if step.Capture != "" && status == http.StatusOK {
-		vars[step.Capture] = firstUserID(raw)
+		vars[step.Capture] = userFidelityCapture(step.Capture, raw)
 	}
 	return status, userFidelityAnswer(t, redactor, raw, vars)
+}
+
+// userFidelityCapture returns the value that a step captures: the nextPageToken of the answer for a
+// name that ends in _TOKEN, and the userId of the first user for any other name. The token keeps the
+// text the API sent, so a later step sends it back unchanged.
+func userFidelityCapture(name string, response any) string {
+	if !strings.HasSuffix(name, "_TOKEN") {
+		return firstUserID(response)
+	}
+	switch token := asObject(response)["nextPageToken"].(type) {
+	case string:
+		return token
+	case float64:
+		return strconv.FormatFloat(token, 'f', -1, 64)
+	}
+	return ""
 }
 
 // userFidelityAnswer redacts an answer and replaces the run's emails with their tokens.
@@ -89,7 +106,8 @@ func userFidelityAnswer(t *testing.T, redactor *userFidelityRedactor, raw any, v
 }
 
 // unsubstLongestFirst replaces the values of the variables with their tokens, the longest value
-// first, because one value can be part of another. The ids are placeholders by now, so they stay.
+// first, because one value can be part of another. The ids are placeholders by now, so they stay. A page
+// token stays too: it can be a short number that appears anywhere in the answer.
 func unsubstLongestFirst(t *testing.T, v any, vars map[string]string) any {
 	t.Helper()
 	raw, err := json.Marshal(v)
@@ -98,7 +116,7 @@ func unsubstLongestFirst(t *testing.T, v any, vars map[string]string) any {
 	}
 	names := make([]string, 0, len(vars))
 	for name, value := range vars {
-		if value != "" && !strings.HasPrefix(name, "ID_") {
+		if value != "" && !strings.HasPrefix(name, "ID_") && !strings.HasSuffix(name, "_TOKEN") {
 			names = append(names, name)
 		}
 	}
@@ -147,6 +165,8 @@ func userFidelityVars(run string) map[string]string {
 		"USER_A":       userA,
 		"USER_B":       fmt.Sprintf("tf-acc-user-%s-b@coralogix.com", run),
 		"USER_A_UPPER": strings.ToUpper(userA),
+		// USER_A_RENAMED is the username that a PUT asks user A to take.
+		"USER_A_RENAMED": fmt.Sprintf("tf-acc-user-%s-a-renamed@coralogix.com", run),
 		// PARTIAL is part of both usernames, so a search for it shows the partial match.
 		"PARTIAL": fmt.Sprintf("tf-acc-user-%s-", run),
 	}
@@ -172,6 +192,7 @@ func newUserFidelityRunID(t *testing.T) string {
 //   - in a message, a run of five or more digits becomes <n> and a domain other than coralogix.com
 //     becomes <domain>, because a message can quote any value of the request
 //   - request and trace ids are dropped
+//   - a page token that is text and not a small offset becomes <page-token>
 //
 // The recorder only searches for usernames that this run's users match, so other members are not
 // expected in an answer. This is the second line of defense.
@@ -205,6 +226,9 @@ var (
 	userFidelityTokenPattern  = regexp.MustCompile(userFidelityEmailPattern.String() + "|" + userFidelityUUIDPattern.String())
 	userFidelityDomainPattern = regexp.MustCompile(`\b(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}\b`)
 	userFidelityDigitRun      = regexp.MustCompile(`[0-9]{5,}`)
+	// userFidelityOffsetToken is a page token that is a small offset. Any other text token is opaque:
+	// it can encode ids of the team, so the recording keeps only that it was text.
+	userFidelityOffsetToken = regexp.MustCompile(`^[0-9]{1,4}$`)
 )
 
 func newUserFidelityRedactor(t *testing.T, run string) *userFidelityRedactor {
@@ -323,6 +347,9 @@ func (r *userFidelityRedactor) redactObject(object map[string]any) map[string]an
 				out[key] = float64(1)
 				continue
 			}
+		case "nextPageToken":
+			out[key] = redactPageToken(item)
+			continue
 		case "message":
 			if text, ok := item.(string); ok {
 				out[key] = r.redactMessage(text)
@@ -337,6 +364,14 @@ func (r *userFidelityRedactor) redactObject(object map[string]any) map[string]an
 		out[key] = r.redact(item)
 	}
 	return out
+}
+
+// redactPageToken keeps a page token that is a number or a small offset, and replaces any other text.
+func redactPageToken(token any) any {
+	if text, ok := token.(string); ok && !userFidelityOffsetToken.MatchString(text) {
+		return "<page-token>"
+	}
+	return token
 }
 
 // redactText replaces ids and emails inside a string: a username, or a message that quotes one.
@@ -426,6 +461,35 @@ func TestUserFidelityRedactorRemovesMemberData(t *testing.T) {
 	}
 }
 
+// TestUserFidelityPageToken checks that a _TOKEN capture sends back the token text the API sent, and that
+// the recording keeps an opaque token only as its JSON type.
+func TestUserFidelityPageToken(t *testing.T) {
+	for name, test := range map[string]struct {
+		token    any
+		capture  string
+		recorded any
+	}{
+		"offset number": {float64(1), "1", float64(1)},
+		"offset text":   {"1", "1", "1"},
+		"opaque text":   {"eyJ0ZWFtIjo0NDU1NjY3fQ==", "eyJ0ZWFtIjo0NDU1NjY3fQ==", "<page-token>"},
+		"no next page":  {nil, "", nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			answer := map[string]any{"users": []any{}}
+			if test.token != nil {
+				answer["nextPageToken"] = test.token
+			}
+			if got := userFidelityCapture("NEXT_TOKEN", answer); got != test.capture {
+				t.Errorf("captured %q, want %q", got, test.capture)
+			}
+			redacted := asObject(newUserFidelityRedactor(t, "run1").redact(answer))
+			if got := redacted["nextPageToken"]; got != test.recorded {
+				t.Errorf("recorded %v, want %v", got, test.recorded)
+			}
+		})
+	}
+}
+
 func marshalUserFidelity(t *testing.T, value any) []byte {
 	t.Helper()
 	var buffer bytes.Buffer
@@ -509,7 +573,11 @@ func TestRecordUserFidelity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	recordUserFidelity(t, base, apiKey, filepath.Join(userGoldenDir, "fidelity", "recorded.json"))
+	memberCap, err := strconv.Atoi(os.Getenv("USER_FIDELITY_MEMBER_CAP"))
+	if err != nil || memberCap <= 0 {
+		t.Fatal("USER_FIDELITY_MEMBER_CAP is required to record: set it to the member cap of the team, so the recorder can check that its users fit")
+	}
+	recordUserFidelity(t, base, apiKey, filepath.Join(userGoldenDir, "fidelity", "recorded.json"), memberCap)
 }
 
 // userFidelityBaseURL returns the API URL to record against. USER_FIDELITY_BASE_URL wins, for a
@@ -562,14 +630,10 @@ func TestUserFidelityBaseURL(t *testing.T) {
 	}
 }
 
-func recordUserFidelity(t *testing.T, base, apiKey, outPath string) {
+func recordUserFidelity(t *testing.T, base, apiKey, outPath string, memberCap int) {
 	t.Helper()
-	rawCases, err := os.ReadFile(filepath.Join(userGoldenDir, "fidelity", "cases.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cases fidelityCases
-	if err := json.Unmarshal(rawCases, &cases); err != nil {
+	cases := loadUserFidelityCases(t)
+	if err := userFidelityCapacity(t, base, apiKey, userFidelityUsersPerRun(cases), memberCap); err != nil {
 		t.Fatal(err)
 	}
 	run := newUserFidelityRunID(t)
@@ -620,7 +684,7 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string) {
 				captureUserFidelityIDs(owned, body, run)
 			}
 			if step.Capture != "" && status == http.StatusOK {
-				vars[step.Capture] = firstUserID(body)
+				vars[step.Capture] = userFidelityCapture(step.Capture, body)
 			}
 			recordedCase.Steps = append(recordedCase.Steps, struct {
 				Status   int `json:"status"`
@@ -652,6 +716,88 @@ func ensureUserFidelityRunIsNew(t *testing.T, base, apiKey, run string) {
 	if users, _ := asObject(body)["users"].([]any); len(users) != 0 {
 		t.Fatal("preflight found users of this run id; refusing to record")
 	}
+}
+
+// userFidelityHeadroom is the number of member seats that a recording must leave free on the team.
+const userFidelityHeadroom = 2
+
+func loadUserFidelityCases(t *testing.T) fidelityCases {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(userGoldenDir, "fidelity", "cases.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases fidelityCases
+	if err := json.Unmarshal(raw, &cases); err != nil {
+		t.Fatal(err)
+	}
+	return cases
+}
+
+// userFidelityUsersPerRun counts the users that one recording creates: the distinct usernames that
+// each case sends in a create. A create of a username that the case already made adds no user.
+func userFidelityUsersPerRun(cases fidelityCases) int {
+	count := 0
+	for _, c := range cases.Cases {
+		vars := userFidelityVars("count")
+		usernames := map[string]struct{}{}
+		for _, step := range c.Steps {
+			if step.Method != http.MethodPost {
+				continue
+			}
+			items, _ := step.Body.([]any)
+			for _, item := range items {
+				username, _ := asObject(asObject(item)["userTemplate"])["username"].(string)
+				usernames[strings.ToLower(substString(username, vars))] = struct{}{}
+			}
+		}
+		count += len(usernames)
+	}
+	return count
+}
+
+// userFidelityCapacity refuses a recording that would fill the team. The Users API has no delete, so
+// every user that a recording creates keeps its seat. It reads only totalCount of two searches: the
+// users that earlier recordings left, and all the members of the team. Neither answer is kept or
+// recorded, which is why these searches do not go through userFidelityRequestProblem.
+func userFidelityCapacity(t *testing.T, base, apiKey string, need, memberCap int) error {
+	t.Helper()
+	leftovers, err := userFidelityTotalCount(base, apiKey, "?page_size=1&username="+url.QueryEscape("tf-acc-user-"))
+	if err != nil {
+		return fmt.Errorf("count the users of earlier recordings: %w", err)
+	}
+	members, err := userFidelityTotalCount(base, apiKey, "?page_size=1")
+	if err != nil {
+		return fmt.Errorf("count the members of the team: %w", err)
+	}
+	t.Logf("the team has %d members, %d of them left by earlier recordings; this recording creates %d", members, leftovers, need)
+	if members+need+userFidelityHeadroom > memberCap {
+		return fmt.Errorf("refusing to record: %d members + %d new users + %d headroom exceed the member cap of %d; ask the tenant owner for room", members, need, userFidelityHeadroom, memberCap)
+	}
+	return nil
+}
+
+// userFidelityTotalCount sends a search and returns only its totalCount. The API leaves a zero count out.
+func userFidelityTotalCount(base, apiKey, path string) (int, error) {
+	status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodGet, path, nil)
+	if err != nil {
+		return 0, err
+	}
+	if status != http.StatusOK {
+		return 0, fmt.Errorf("the search answered %d", status)
+	}
+	root := asObject(body)
+	switch count := root["totalCount"].(type) {
+	case float64:
+		return int(count), nil
+	case string:
+		return strconv.Atoi(count)
+	case nil:
+		if users, _ := root["users"].([]any); len(users) == 0 {
+			return 0, nil
+		}
+	}
+	return 0, errors.New("the search answered without a totalCount that the recorder can read")
 }
 
 // userFidelityRequestProblem is the safety net of the recorder. It names the problem with a request
@@ -843,6 +989,9 @@ func TestUserRecorderRefusesUnsafeRequests(t *testing.T) {
 	}{
 		"search for this run":            {fidelityStep{Method: http.MethodGet, Path: "?username=tf-acc-user-run1-"}, true},
 		"search of the whole team":       {fidelityStep{Method: http.MethodGet, Path: "?page_size=100"}, false},
+		"member count of the team":       {fidelityStep{Method: http.MethodGet, Path: "?page_size=1"}, false},
+		"count of earlier recordings":    {fidelityStep{Method: http.MethodGet, Path: "?page_size=1&username=tf-acc-user-"}, false},
+		"missing route for this run":     {fidelityStep{Method: http.MethodGet, Path: "/no-such-route?page_size=1&username=run1"}, true},
 		"search for another run":         {fidelityStep{Method: http.MethodGet, Path: "?username=tf-acc-user-run2-"}, false},
 		"create of this run":             {fidelityStep{Method: http.MethodPost, Body: safeCreate}, true},
 		"create with an invitation":      {fidelityStep{Method: http.MethodPost, Body: []any{map[string]any{"onboardingMode": "ONBOARDING_MODE_INVITE_LINK", "userTemplate": map[string]any{"username": "tf-acc-user-run1-a@coralogix.com"}}}}, false},
@@ -868,21 +1017,15 @@ func TestUserRecorderDryRun(t *testing.T) {
 	// The local server stands in for the region API URL.
 	srv := httptest.NewServer(fake)
 	t.Cleanup(srv.Close)
-	recordUserFidelity(t, srv.URL, "dry-run-key", outPath)
+	cases := loadUserFidelityCases(t)
+	need := userFidelityUsersPerRun(cases)
+	recordUserFidelity(t, srv.URL, "dry-run-key", outPath, need+userFidelityHeadroom)
 	raw, err := os.ReadFile(outPath)
 	if err != nil {
 		t.Fatalf("recorder did not write output: %v", err)
 	}
 	var recorded fidelityRecorded
 	if err := json.Unmarshal(raw, &recorded); err != nil {
-		t.Fatal(err)
-	}
-	rawCases, err := os.ReadFile(filepath.Join(userGoldenDir, "fidelity", "cases.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cases fidelityCases
-	if err := json.Unmarshal(rawCases, &cases); err != nil {
 		t.Fatal(err)
 	}
 	for ci, c := range cases.Cases {
@@ -905,7 +1048,42 @@ func TestUserRecorderDryRun(t *testing.T) {
 			t.Errorf("user %v is still %v after the recording", user["username"], user["status"])
 		}
 	}
-	if len(fake.users) == 0 {
-		t.Error("the dry run created no users")
+	// The member cap check counts the users that the run creates.
+	if len(fake.users) != need {
+		t.Errorf("the dry run created %d users, but the member cap check counted %d", len(fake.users), need)
+	}
+}
+
+// TestUserRecorderRefusesAFullTeam checks that the recorder stops before its first write when its
+// users and the headroom do not fit under the member cap.
+func TestUserRecorderRefusesAFullTeam(t *testing.T) {
+	need := userFidelityUsersPerRun(loadUserFidelityCases(t))
+	for name, test := range map[string]struct {
+		members int
+		fits    bool
+	}{
+		"empty team":        {0, true},
+		"room for the run":  {3, true},
+		"one seat short":    {4, false},
+		"at the member cap": {need + userFidelityHeadroom + 3, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			fake := newUserFidelityFake()
+			for i := range test.members {
+				fake.seed(map[string]any{"username": fmt.Sprintf("member-%d@coralogix.com", i)})
+			}
+			srv := httptest.NewServer(fake)
+			defer srv.Close()
+
+			err := userFidelityCapacity(t, srv.URL, "dry-run-key", need, need+userFidelityHeadroom+3)
+			if (err == nil) != test.fits {
+				t.Fatalf("recording allowed = %t, want %t (%v)", err == nil, test.fits, err)
+			}
+			for _, request := range fake.takeRequests() {
+				if request.Method != http.MethodGet {
+					t.Errorf("the member cap check sent %s %s", request.Method, request.Path)
+				}
+			}
+		})
 	}
 }
