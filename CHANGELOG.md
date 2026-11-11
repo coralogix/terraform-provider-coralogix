@@ -32,6 +32,9 @@
 #### data-source/coralogix_team
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
 
+#### resource/coralogix_archive_logs
+- FIX: A response without the `s3` object no longer crashes the read. The fields of the object read as null, as the generator now reads any inlined object that the API leaves out.
+
 #### resource/coralogix_alert
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of an alert that 3.24.0 created from the same configuration shows no change. The handwritten code stays only for what the contract cannot state: the schedule (stored in UTC), `access_policy`, the `group_by` and `override.priority` plans, and the validations that the schema no longer holds.
 - CHORE: Types that differ: `type_definition.logs_anomaly.percentage_of_deviation` and `type_definition.metric_anomaly.percentage_of_deviation` are 32-bit floats, `latency_threshold_ms` of `tracing_immediate` and `tracing_threshold` is an integer (a fraction or a negative value fails at validation, where the API refused it before). The descriptions come from the API contract, and the lists of valid values that some of them carried are gone. `type_definition` rejects a missing or a second type with one error per type instead of one error, and a webhook with both `integration_id` and `recipients` fails twice.
