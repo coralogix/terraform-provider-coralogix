@@ -164,3 +164,28 @@ func TestUpdateKeepsTheIDWhenGetOmitsIt(t *testing.T) {
 		t.Fatalf("state id = %q, want folder-1", id.ValueString())
 	}
 }
+
+// Expand is what Create sends in the place of the resource, and Flatten reads the same type: the
+// model comes back, except the id that the server sets. A value that is unknown is left out.
+func TestExpandIsTheResourceThatFlattenReads(t *testing.T) {
+	ctx := context.Background()
+	model := &FolderThingModel{Id: types.StringNull(), Name: types.StringValue("a"), ParentId: types.StringValue("p")}
+	thing, diags := Expand(ctx, model)
+	if diags.HasError() || thing == nil || thing.Id != nil || thing.Name == nil || *thing.Name != "a" {
+		t.Fatalf("Expand = %+v (%v), want the thing with the name and no id", thing, diags)
+	}
+	id := "server-id"
+	thing.Id = &id
+	got, diags := Flatten(ctx, thing)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	model.Id = types.StringValue(id)
+	if *got != *model {
+		t.Errorf("Flatten(Expand(model)) = %+v, want %+v", *got, *model)
+	}
+	thing, diags = Expand(ctx, &FolderThingModel{Id: types.StringUnknown(), Name: types.StringUnknown(), ParentId: types.StringNull()})
+	if diags.HasError() || thing.Id != nil || thing.Name != nil {
+		t.Errorf("Expand of unknown values = %+v (%v), want them left out", thing, diags)
+	}
+}
