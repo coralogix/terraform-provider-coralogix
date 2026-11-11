@@ -396,26 +396,10 @@
         "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/not"
       ]
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/1/not": false
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "GET"
-      }
+    "validateDiagnostics": [
+      "error: Duplicate Set Element [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\")] | This attribute lists the same alert twice with the same `not` value (id 00000000-0000-4000-8000-000000000001, not false). An omitted `not` is false."
     ],
-    "inconsistentResult": [
-      "type_definition.flow.stages[0].flow_stages_groups[0].alert_defs"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\").ElementKeyValue(tftypes.Object[\"id\":tftypes.String, \"not\":tftypes.Bool]<\"id\":tftypes.String<\"00000000-0000-4000-8000-000000000001\">, \"not\":tftypes.Bool<\"true\">>)",
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\").ElementKeyValue(tftypes.Object[\"id\":tftypes.String, \"not\":tftypes.Bool]<\"id\":tftypes.String<\"00000000-0000-4000-8000-000000000001\">, \"not\":tftypes.Bool<\"true\">>).AttributeName(\"id\")",
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\").ElementKeyValue(tftypes.Object[\"id\":tftypes.String, \"not\":tftypes.Bool]<\"id\":tftypes.String<\"00000000-0000-4000-8000-000000000001\">, \"not\":tftypes.Bool<\"true\">>).AttributeName(\"not\")"
-    ]
+    "stateDelta": {}
   },
   {
     "step": "update: the same alert in two groups",

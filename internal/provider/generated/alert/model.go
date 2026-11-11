@@ -366,7 +366,7 @@ type AlertDefWebhooksSettingsRetriggeringPeriodModel struct {
 }
 
 type AlertDefWebhooksSettingsModel struct {
-	IntegrationId      types.Int64  `tfsdk:"integration_id"`
+	IntegrationId      types.String `tfsdk:"integration_id"`
 	Recipients         types.Set    `tfsdk:"recipients"`
 	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"`
 	NotifyOn           types.String `tfsdk:"notify_on"`

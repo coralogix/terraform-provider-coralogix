@@ -3,8 +3,7 @@
 #
 # Not expressible with the keys of the generator, so the generated schema differs from the released one
 # (each needs a generator key or a hook):
-#   - webhooks_settings[].integration_id is a String in the released schema, an Int64 here (the API id is an
-#     int64); webhooks_settings[].recipients also has a ConflictsWith with integration_id, which the released
+#   - webhooks_settings[].recipients also has a ConflictsWith with integration_id, which the released
 #     schema leaves to the ExactlyOneOf on integration_id.
 #   - webhooks_settings[].retriggering_period keeps its state with the set-safe modifier of the generator
 #     (setItemStateModifier), not the built-in one, which gave a group the period of its neighbour.
@@ -184,6 +183,8 @@ types:
       minutes: {required: true}
       notifyOn: {computed: true, validators: [{enum: true}], markdownDescription: "Notify on. Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]. When omitted (along with retriggering_period), Advanced Notification is disabled."}
       integration: {inline: true, required: true}
+      # The released attribute is a String that holds the decimal id; the API id is an int64.
+      integrationId: {terraformType: String}
   LogsSimpleFilter:
     fields:
       labelFilters: {computed: true, default: {}}

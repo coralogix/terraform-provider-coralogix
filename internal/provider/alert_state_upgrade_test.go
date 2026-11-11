@@ -96,8 +96,8 @@ func TestAlertStateUpgrade(t *testing.T) {
 	})
 }
 
-// The released schema holds integration_id as a string, the generated one as a number. A state of the
-// current schema version that holds the string reads without an upgrade step.
+// The released schema holds integration_id as a string, and so does the generated one. A state of the
+// current schema version that holds the string reads without an upgrade step and keeps it.
 func TestAlertStateWithStringIntegrationID(t *testing.T) {
 	h := newAlertHarness(t)
 	created := h.Apply("create", h.null(), alertLogsImmediate("tfupgrade", nil))
@@ -111,7 +111,7 @@ func TestAlertStateWithStringIntegrationID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(got), `"integration_id":123`) {
-		t.Errorf("integration_id did not load as the number 123: %s", got)
+	if !strings.Contains(string(got), `"integration_id":"123"`) {
+		t.Errorf("integration_id did not load as the string 123: %s", got)
 	}
 }

@@ -281,9 +281,9 @@ func TestValidateWebhookTargets(t *testing.T) {
 	}{
 		"neither is rejected":         {map[string]tftypes.Value{"notify_on": stringValue("Triggered Only")}, true},
 		"recipients are fine":         {map[string]tftypes.Value{"recipients": recipients}, false},
-		"an integration is fine":      {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.Number, 1)}, false},
-		"an unknown one is fine":      {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.Number, tftypes.UnknownValue)}, false},
-		"both are left to the schema": {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.Number, 1), "recipients": recipients}, false},
+		"an integration is fine":      {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.String, "1")}, false},
+		"an unknown one is fine":      {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.String, tftypes.UnknownValue)}, false},
+		"both are left to the schema": {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.String, "1"), "recipients": recipients}, false},
 	} {
 		groupType := attributeType(alert.Schema().Type().TerraformType(ctx), "notification_group")
 		group := nullObject(groupType, map[string]tftypes.Value{"webhooks_settings": tftypes.NewValue(tftypes.Set{ElementType: webhookType}, []tftypes.Value{nullObject(webhookType, tc.webhook)})})

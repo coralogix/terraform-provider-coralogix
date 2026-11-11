@@ -141,7 +141,7 @@ notification_group.webhooks_settings  SetNestedAttribute optional
     markdown: "The settings for webhooks associated with the alert definition"
 notification_group.webhooks_settings[]  NestedObject
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
-notification_group.webhooks_settings[].integration_id  Int64Attribute optional
+notification_group.webhooks_settings[].integration_id  StringAttribute optional
     markdown: "The integration ID for the notification"
     validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.recipients]"
 notification_group.webhooks_settings[].notify_on  StringAttribute optional computed

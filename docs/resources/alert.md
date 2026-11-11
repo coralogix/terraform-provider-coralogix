@@ -2393,7 +2393,7 @@ Optional:
 
 Optional:
 
-- `integration_id` (Number) The integration ID for the notification
+- `integration_id` (String) The integration ID for the notification
 - `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. When omitted (along with retriggering_period), Advanced Notification is disabled.
 - `recipients` (Set of String) The recipients for the notification.
 - `retriggering_period` (Attributes) Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))

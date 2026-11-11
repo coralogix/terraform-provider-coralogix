@@ -16,6 +16,7 @@ package alerts
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -60,6 +61,7 @@ func validateAlertConfig(ctx context.Context, config tfsdk.Config) diag.Diagnost
 	diags.Append(checkAnalyticsNoDataPolicy(typeDefinition)...)
 	diags.Append(checkAnalyticsRuleCount(ctx, config, typeDefinition)...)
 	diags.Append(checkWebhookTargets(ctx, config)...)
+	diags.Append(checkFlowAlertDefs(typeDefinition)...)
 	return diags
 }
 
@@ -288,4 +290,90 @@ func checkWebhookTargets(ctx context.Context, config tfsdk.Config) diag.Diagnost
 			"No attribute specified when one (and only one) of [integration_id, recipients] is required")
 	}
 	return diags
+}
+
+// checkFlowAlertDefs rejects the same alert twice in one group of a flow stage. The API keeps one entry
+// for each alert and flag, so a group that lists an alert with `not` omitted and with `not = false`
+// would send two entries and read back one. An omitted `not` is false. The released provider rejected
+// such a group when it applied the plan, before it called the API; this rejects it at plan.
+func checkFlowAlertDefs(typeDefinition types.Object) diag.Diagnostics {
+	var diags diag.Diagnostics
+	flow, ok := attributeObject(typeDefinition, "flow")
+	if !ok {
+		return diags
+	}
+	stagesPath := path.Root("type_definition").AtName("flow").AtName("stages")
+	for i, stage := range collectionElements(flow.Attributes()["stages"]) {
+		stageObject, ok := stage.(types.Object)
+		if !ok || stageObject.IsNull() || stageObject.IsUnknown() {
+			continue
+		}
+		groupsPath := stagesPath.AtListIndex(i).AtName("flow_stages_groups")
+		for j, group := range collectionElements(stageObject.Attributes()["flow_stages_groups"]) {
+			groupObject, ok := group.(types.Object)
+			if !ok || groupObject.IsNull() || groupObject.IsUnknown() {
+				continue
+			}
+			defs := groupObject.Attributes()["alert_defs"]
+			seen := map[string]bool{}
+			for _, def := range collectionElements(defs) {
+				key, ok := flowAlertDefKey(def)
+				if !ok {
+					continue
+				}
+				if seen[key] {
+					diags.AddAttributeError(groupsPath.AtListIndex(j).AtName("alert_defs"), "Duplicate Set Element",
+						"This attribute lists the same alert twice with the same `not` value ("+key+"). An omitted `not` is false.")
+					break
+				}
+				seen[key] = true
+			}
+		}
+	}
+	return diags
+}
+
+// flowAlertDefKey identifies an alert of a flow group by its id and its not flag, or reports false when
+// either is unknown.
+func flowAlertDefKey(def attr.Value) (string, bool) {
+	object, ok := def.(types.Object)
+	if !ok || object.IsNull() || object.IsUnknown() {
+		return "", false
+	}
+	id, ok := object.Attributes()["id"].(types.String)
+	if !ok || id.IsNull() || id.IsUnknown() {
+		return "", false
+	}
+	not := false
+	if flag, ok := object.Attributes()["not"].(types.Bool); ok {
+		if flag.IsUnknown() {
+			return "", false
+		}
+		not = flag.ValueBool()
+	}
+	return fmt.Sprintf("id %s, not %t", id.ValueString(), not), true
+}
+
+// attributeObject returns the object attribute of an object, when both are known.
+func attributeObject(parent types.Object, name string) (types.Object, bool) {
+	if parent.IsNull() || parent.IsUnknown() {
+		return types.Object{}, false
+	}
+	child, ok := parent.Attributes()[name].(types.Object)
+	return child, ok && !child.IsNull() && !child.IsUnknown()
+}
+
+// collectionElements returns the elements of a known list or set, and none for anything else.
+func collectionElements(value attr.Value) []attr.Value {
+	switch v := value.(type) {
+	case types.List:
+		if !v.IsNull() && !v.IsUnknown() {
+			return v.Elements()
+		}
+	case types.Set:
+		if !v.IsNull() && !v.IsUnknown() {
+			return v.Elements()
+		}
+	}
+	return nil
 }

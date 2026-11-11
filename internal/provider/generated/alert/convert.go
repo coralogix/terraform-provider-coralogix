@@ -3283,7 +3283,7 @@ func expandAlertDefWebhooksSettings(ctx context.Context, p path.Path, m *AlertDe
 	}
 	out := &alert_definitions_service.AlertDefWebhooksSettings{}
 	out.Integration = &alert_definitions_service.V3IntegrationType{} // an inlined object: its fields are top-level attributes
-	out.Integration.IntegrationId = expandInt64(m.IntegrationId)
+	out.Integration.IntegrationId = expandStringAsInt64(p.AtName("integration_id"), m.IntegrationId, diags)
 	{
 		var inner []string
 		inner = expandStringsSet[string](ctx, p.AtName("recipients"), m.Recipients, diags)
@@ -3312,7 +3312,7 @@ func flattenAlertDefWebhooksSettings(ctx context.Context, p path.Path, v *alert_
 		v.Integration = &alert_definitions_service.V3IntegrationType{}
 	}
 	out := &AlertDefWebhooksSettingsModel{}
-	out.IntegrationId = types.Int64PointerValue(v.Integration.IntegrationId)
+	out.IntegrationId = types.StringPointerValue(int64AsString(v.Integration.IntegrationId))
 	{
 		inner := unwrapRecipients(v.Integration.Recipients)
 		out.Recipients = flattenStringsSet(ctx, inner, diags)
@@ -3329,7 +3329,7 @@ func flattenAlertDefWebhooksSettings(ctx context.Context, p path.Path, v *alert_
 
 func alertDefWebhooksSettingsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"integration_id":      types.Int64Type,
+		"integration_id":      types.StringType,
 		"recipients":          types.SetType{ElemType: types.StringType},
 		"retriggering_period": types.ObjectType{AttrTypes: alertDefWebhooksSettingsRetriggeringPeriodAttrTypes()},
 		"notify_on":           types.StringType,
@@ -4690,6 +4690,28 @@ func flattenInt64Wire(p path.Path, v *string, diags *diag.Diagnostics) types.Int
 		return types.Int64Null()
 	}
 	return types.Int64Value(n)
+}
+
+// expandStringAsInt64 returns the int64 id that a String attribute holds as decimal text.
+func expandStringAsInt64(p path.Path, v types.String, diags *diag.Diagnostics) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, err := strconv.ParseInt(v.ValueString(), 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid id", fmt.Sprintf("%q is not an integer id.", v.ValueString()))
+		return nil
+	}
+	return &n
+}
+
+// int64AsString returns the decimal text of an int64 id.
+func int64AsString(v *int64) *string {
+	if v == nil {
+		return nil
+	}
+	s := strconv.FormatInt(*v, 10)
+	return &s
 }
 
 // widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain

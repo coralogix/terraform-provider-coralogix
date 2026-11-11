@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	alertapi "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
@@ -49,5 +50,50 @@ func TestFlattenToleratesMissingInlinedObjects(t *testing.T) {
 	webhook := webhooks.Elements()[0].(types.Object).Attributes()
 	if !webhook["integration_id"].IsNull() || !webhook["recipients"].IsNull() {
 		t.Errorf("webhook = %v, want a null integration_id and null recipients", webhook)
+	}
+}
+
+func flowWithAlertDefs(defs ...types.Object) types.Object {
+	defType := types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "not": types.BoolType}}
+	groupType := map[string]attr.Type{"alert_defs": types.SetType{ElemType: defType}}
+	stageType := map[string]attr.Type{"flow_stages_groups": types.ListType{ElemType: types.ObjectType{AttrTypes: groupType}}}
+	flowType := map[string]attr.Type{"stages": types.ListType{ElemType: types.ObjectType{AttrTypes: stageType}}}
+	group := types.ObjectValueMust(groupType, map[string]attr.Value{"alert_defs": types.SetValueMust(defType, objectValues(defs))})
+	stage := types.ObjectValueMust(stageType, map[string]attr.Value{"flow_stages_groups": types.ListValueMust(types.ObjectType{AttrTypes: groupType}, []attr.Value{group})})
+	flow := types.ObjectValueMust(flowType, map[string]attr.Value{"stages": types.ListValueMust(types.ObjectType{AttrTypes: stageType}, []attr.Value{stage})})
+	return types.ObjectValueMust(map[string]attr.Type{"flow": types.ObjectType{AttrTypes: flowType}}, map[string]attr.Value{"flow": flow})
+}
+
+func objectValues(objects []types.Object) []attr.Value {
+	out := make([]attr.Value, len(objects))
+	for i, o := range objects {
+		out[i] = o
+	}
+	return out
+}
+
+func alertDef(id string, not types.Bool) types.Object {
+	return types.ObjectValueMust(map[string]attr.Type{"id": types.StringType, "not": types.BoolType},
+		map[string]attr.Value{"id": types.StringValue(id), "not": not})
+}
+
+// The same alert twice in one group is rejected at plan, also when one entry leaves `not` out and
+// the other sets it to false: the API keeps one entry for both.
+func TestFlowAlertDefsRejectDuplicates(t *testing.T) {
+	tests := map[string]struct {
+		defs    []types.Object
+		wantErr bool
+	}{
+		"one alert":                           {[]types.Object{alertDef("a", types.BoolNull())}, false},
+		"the same alert with and without not": {[]types.Object{alertDef("a", types.BoolNull()), alertDef("a", types.BoolValue(true))}, false},
+		"omitted not and false":               {[]types.Object{alertDef("a", types.BoolNull()), alertDef("a", types.BoolValue(false))}, true},
+		"two different alerts":                {[]types.Object{alertDef("a", types.BoolNull()), alertDef("b", types.BoolNull())}, false},
+		"an unknown flag":                     {[]types.Object{alertDef("a", types.BoolNull()), alertDef("a", types.BoolUnknown())}, false},
+	}
+	for name, test := range tests {
+		diags := checkFlowAlertDefs(flowWithAlertDefs(test.defs...))
+		if diags.HasError() != test.wantErr {
+			t.Errorf("%s: diagnostics = %v, want an error: %t", name, diags, test.wantErr)
+		}
 	}
 }
