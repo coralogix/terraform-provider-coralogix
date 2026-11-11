@@ -56,14 +56,11 @@ jobs:
               exit 1
             fi
           done
-          log=$(mktemp)
-          trap 'rm -f "$log"' EXIT
-          if ! docker build --quiet -t prepare-ci-team:experiment sdk/tools/prepare-ci-team >"$log" 2>&1; then
+          if ! docker build --quiet -t prepare-ci-team:experiment sdk/tools/prepare-ci-team >/dev/null 2>&1; then
             echo 'Preparation image build failed'
             exit 1
           fi
-          # Print only the three fixed catalog states. The filter never prints
-          # command errors, response bodies, integration IDs, or credentials.
+          # Do not send command output to the public Actions log.
           if ! docker run --rm --read-only \
             --tmpfs /tmp:rw,nosuid,nodev,mode=1777,size=32m \
             --cap-drop=ALL --security-opt no-new-privileges \
@@ -71,8 +68,7 @@ jobs:
             -e CORALOGIX_SEND_YOUR_DATA_API_KEY \
             -e PAGERDUTY_REST_API_KEY \
             -e PAGERDUTY_USER_EMAIL \
-            prepare-ci-team:experiment 2>&1 | \
-            awk '/^prepare CI team: catalog check [0-9]+: AI application=(ready|missing|retrying), unused evaluation target=(ready|missing|retrying|not checked), APM service \(V2\)=(ready|missing|retrying)$/ { print; fflush() }'; then
+            prepare-ci-team:experiment >/dev/null 2>&1; then
             echo 'EU2 team preparation failed'
             exit 1
           fi
@@ -90,13 +86,31 @@ jobs:
         include:
           - case: request-based
             test: TestAccCoralogixResourceSLOV2RequestBased
+            integration_field: none
           - case: apm-error
             test: TestAccCoralogixResourceSLOV2APMError
+            integration_field: none
           - case: ai-evaluation
             test: TestAccCoralogixResourceAIEvaluation/allowed_topics
+            integration_field: none
+          # These tests both read PD_INTEGRATION_ID, but need different values.
+          - case: pagerduty-one-way
+            test: TestAccCoralogixResourcePagerdutyConnector
+            integration_field: pagerDutyConnectorKey
+          - case: pagerduty-incidents
+            test: TestAccCoralogixResourcePagerdutyIncidentsConnector
+            integration_field: pagerDutyIntegrationId
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
+      - name: Check out pinned SDK for integration lookup
+        if: ${{ matrix.integration_field != 'none' }}
+        uses: actions/checkout@v4
+        with:
+          repository: coralogix/coralogix-management-sdk
+          ref: ${{ env.SDK_COMMIT }}
+          path: sdk
           persist-credentials: false
       - name: Install Go
         uses: actions/setup-go@v6
@@ -113,6 +127,7 @@ jobs:
           CORALOGIX_ENV: EU2
           CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
           TEST_NAME: ${{ matrix.test }}
+          INTEGRATION_FIELD: ${{ matrix.integration_field }}
         run: |
           set -euo pipefail
           set +x
@@ -121,12 +136,34 @@ jobs:
             echo 'An acceptance secret is missing'
             exit 1
           fi
-          log=$(mktemp)
-          trap 'rm -f "$log"' EXIT
+          if [ "$INTEGRATION_FIELD" != 'none' ]; then
+            private_dir=$(mktemp -d)
+            trap 'rm -rf "$private_dir"' EXIT
+            if ! PREPARE_CI_TEAM_OUTPUT_FILE="$private_dir/fixtures.json" \
+              go -C sdk run ./tools/prepare-ci-team lookup >/dev/null 2>&1; then
+              echo 'Integration lookup failed'
+              exit 1
+            fi
+            if ! PD_INTEGRATION_ID=$(python3 - "$private_dir/fixtures.json" "$INTEGRATION_FIELD" 2>/dev/null <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as file:
+              value = json.load(file).get(sys.argv[2])
+          if not isinstance(value, str) or not value:
+              raise SystemExit(1)
+          print(value)
+          PY
+            ); then
+              echo 'Integration lookup output was invalid'
+              exit 1
+            fi
+            export PD_INTEGRATION_ID
+          fi
           if ! TF_ACC=1 go test \
             -ldflags '-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn' \
             ./internal/provider -run "^${TEST_NAME}$" -count=1 -timeout=20m -parallel=1 \
-            >"$log" 2>&1; then
+            >/dev/null 2>&1; then
             echo 'Focused acceptance test failed'
             exit 1
           fi
