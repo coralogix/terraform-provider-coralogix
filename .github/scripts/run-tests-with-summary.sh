@@ -16,7 +16,7 @@ if [[ ${PRIVATE_ACC_OUTPUT:-} == true ]]; then
     fixture_dir=$(mktemp -d)
     trap 'rm -rf "$fixture_dir"' EXIT
     if ! PREPARE_CI_TEAM_OUTPUT_FILE="$fixture_dir/fixtures.json" \
-      env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH \
+      env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH -u GITHUB_STATE \
       go -C sdk run ./tools/prepare-ci-team lookup >/dev/null 2>&1; then
       echo 'Integration lookup failed'
       exit 1
@@ -46,7 +46,7 @@ PY
     IFS=$'\t' read -r TEST_TEAM_ID SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY <<< "$fields"
     export TEST_TEAM_ID SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY
   fi
-  if env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH "$@" >/dev/null 2>&1; then
+  if env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH -u GITHUB_STATE "$@" >/dev/null 2>&1; then
     echo 'Acceptance test passed'
     exit 0
   fi
