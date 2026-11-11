@@ -11,13 +11,9 @@
           "timeframeMinutes": 10
         },
         "enabled": true,
-        "groupByKeys": [],
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
-        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
       }
     },
@@ -29,7 +25,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
@@ -71,16 +67,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -95,11 +89,12 @@
             "dataprimeQuery": {
               "query": "source logs\n| filter $d.msg == \"a 'b'\"\n| count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -145,11 +140,12 @@
             "dataprimeQuery": {
               "query": "source logs\n| filter $d.msg == \"a 'b'\"\n| count as c"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -187,16 +183,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -211,11 +205,12 @@
             "dataprimeQuery": {
               "query": "source logs | count as c "
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -261,11 +256,12 @@
             "dataprimeQuery": {
               "query": "source logs | count as c "
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -303,16 +299,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -327,11 +321,12 @@
             "dataprimeQuery": {
               "query": "this is not a query"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -377,11 +372,12 @@
             "dataprimeQuery": {
               "query": "this is not a query"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -419,16 +415,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -443,11 +437,12 @@
             "dataprimeQuery": {
               "query": "x"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -493,11 +488,12 @@
             "dataprimeQuery": {
               "query": "x"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],

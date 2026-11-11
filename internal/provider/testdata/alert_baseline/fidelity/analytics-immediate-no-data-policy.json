@@ -11,13 +11,9 @@
           "timeframeMinutes": 10
         },
         "enabled": true,
-        "groupByKeys": [],
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
-        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
       }
     },
@@ -29,7 +25,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
@@ -79,7 +75,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "timeframeMinutes": 10
           },
           "dataSources": [],
@@ -125,16 +121,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -149,7 +143,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_ALERTING"
@@ -158,6 +152,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -203,7 +198,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_ALERTING"
@@ -212,6 +207,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -253,16 +249,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -277,7 +271,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
@@ -286,6 +280,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -331,7 +326,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
@@ -340,6 +335,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -381,16 +377,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -405,7 +399,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_NO_DATA"
@@ -414,6 +408,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -459,7 +454,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_NO_DATA"
@@ -468,6 +463,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -509,16 +505,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -533,7 +527,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -542,6 +536,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -587,7 +582,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -596,6 +591,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -637,16 +633,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -661,7 +655,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
@@ -670,6 +664,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -715,7 +710,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
@@ -724,6 +719,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -764,16 +760,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -788,7 +782,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
             },
@@ -796,6 +790,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -841,7 +836,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
             },
@@ -849,6 +844,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -890,16 +886,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -914,7 +908,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 1800,
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
@@ -923,6 +917,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -968,7 +963,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 1800,
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
@@ -977,6 +972,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -1022,7 +1018,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 1800,
               "state": "NO_DATA_POLICY_STATE_KEEP_LAST"
@@ -1031,6 +1027,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -1072,16 +1069,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -1109,16 +1104,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -1133,7 +1126,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 60,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -1142,6 +1135,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -1183,16 +1177,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -1220,16 +1212,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -1257,16 +1247,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -1294,16 +1282,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -1318,7 +1304,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 120,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -1327,6 +1313,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -1372,7 +1359,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 120,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -1381,6 +1368,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],

@@ -22,9 +22,7 @@
           "app"
         ],
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P2",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -38,8 +36,8 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
+            "effectiveEvaluationPeriodMinutes": 10,
             "evaluationDelayMs": 120000,
-            "evaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_ALERTING"
@@ -97,8 +95,8 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
+            "effectiveEvaluationPeriodMinutes": 10,
             "evaluationDelayMs": 120000,
-            "evaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_ALERTING"
@@ -156,8 +154,8 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
+            "effectiveEvaluationPeriodMinutes": 10,
             "evaluationDelayMs": 120000,
-            "evaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_ALERTING"
@@ -224,9 +222,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P4",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -241,8 +237,8 @@
             "dataprimeQuery": {
               "query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
+            "effectiveEvaluationPeriodMinutes": 10,
             "evaluationDelayMs": 60000,
-            "evaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 7200,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -301,8 +297,8 @@
             "dataprimeQuery": {
               "query": "source logs | filter $m.severity == 'Warning' | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
+            "effectiveEvaluationPeriodMinutes": 10,
             "evaluationDelayMs": 60000,
-            "evaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 7200,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -357,16 +353,14 @@
           },
           "timeframeMinutes": 10
         },
+        "description": "",
         "enabled": true,
-        "groupByKeys": [],
         "incidentsSettings": {
           "minutes": 10,
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P4",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -381,7 +375,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 7200,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -390,6 +384,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -435,7 +430,7 @@
             "dataprimeQuery": {
               "query": "source logs | count"
             },
-            "evaluationPeriodMinutes": 10,
+            "effectiveEvaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 7200,
               "state": "NO_DATA_POLICY_STATE_OK"
@@ -444,6 +439,7 @@
           },
           "dataSources": [],
           "deleted": false,
+          "description": "",
           "enabled": true,
           "entityLabels": {},
           "groupByKeys": [],
@@ -497,9 +493,7 @@
           "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
         },
         "name": "tfbaseline-analytics-immediate",
-        "notificationGroup": {
-          "groupByKeys": []
-        },
+        "notificationGroup": {},
         "phantomMode": false,
         "priority": "ALERT_DEF_PRIORITY_P2",
         "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -514,8 +508,8 @@
             "dataprimeQuery": {
               "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
             },
+            "effectiveEvaluationPeriodMinutes": 10,
             "evaluationDelayMs": 120000,
-            "evaluationPeriodMinutes": 10,
             "noDataPolicy": {
               "autoRetireSeconds": 3600,
               "state": "NO_DATA_POLICY_STATE_ALERTING"
