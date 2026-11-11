@@ -96,7 +96,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "metricThreshold": {
               "metricFilter": {
                 "promql": "sum(rate(tfbaseline_requests_total[5m]))"
@@ -125,11 +124,8 @@
               }
             },
             "name": "tfbaseline-mt-nodata",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
           }
         },
@@ -258,8 +254,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -295,9 +291,7 @@
               }
             },
             "name": "tfbaseline-mt-nodata",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
@@ -639,8 +633,7 @@
     },
     "planDelta": {
       "set": {
-        "/type_definition/metric_threshold/no_data_policy/auto_retire_seconds": 120,
-        "/type_definition/metric_threshold/no_data_policy/state": "(unknown)"
+        "/type_definition/metric_threshold/no_data_policy/auto_retire_seconds": 120
       }
     },
     "requests": [
@@ -648,22 +641,15 @@
         "deltaOf": "PUT",
         "set": {
           "/body/alertDefProperties/metricThreshold/noDataPolicy/autoRetireSeconds": 120
-        },
-        "remove": [
-          "/body/alertDefProperties/metricThreshold/noDataPolicy/state"
-        ]
+        }
       }
     ],
     "stateDelta": {
       "set": {
-        "/type_definition/metric_threshold/no_data_policy/auto_retire_seconds": 120,
-        "/type_definition/metric_threshold/no_data_policy/state": "UNSPECIFIED"
+        "/type_definition/metric_threshold/no_data_policy/auto_retire_seconds": 120
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -673,10 +659,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty block",
@@ -703,10 +686,7 @@
         "/type_definition/metric_threshold/no_data_policy/auto_retire_seconds": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -716,10 +696,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "state UNSPECIFIED (deprecated, accepted with a warning)",
@@ -736,8 +713,20 @@
         "/type_definition/metric_threshold/no_data_policy/state": "UNSPECIFIED"
       }
     },
-    "noChange": true,
-    "stateDelta": {}
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/metricThreshold/noDataPolicy/state": "NO_DATA_POLICY_STATE_UNSPECIFIED"
+        }
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/type_definition/metric_threshold/no_data_policy/state": "UNSPECIFIED"
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -747,10 +736,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove the block",
@@ -771,10 +757,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "auto_retire_seconds 90 is no multiple of 60",
@@ -803,7 +786,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"not_multiple_of\\\",\\n    \\\"multipleOf\\\": 60,\\n    \\\"message\\\": \\\"Number must be a multiple of 60\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -828,7 +811,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": false,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": false,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricThreshold\\\",\\n      \\\"noDataPolicy\\\",\\n      \\\"autoRetireSeconds\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   }

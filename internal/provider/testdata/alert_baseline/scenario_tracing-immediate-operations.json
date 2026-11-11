@@ -150,15 +150,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-immediate-ops",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "100",
@@ -394,20 +389,17 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-immediate-ops",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "100",

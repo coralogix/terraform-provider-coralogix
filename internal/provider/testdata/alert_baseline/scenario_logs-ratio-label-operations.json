@@ -165,7 +165,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsRatioThreshold": {
               "denominator": {
                 "simpleFilter": {
@@ -176,7 +175,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
@@ -190,7 +188,6 @@
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
                   "labelFilters": {
@@ -200,7 +197,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
@@ -232,11 +228,8 @@
               }
             },
             "name": "tfbaseline-logs-ratio-operations",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
           }
         },
@@ -398,8 +391,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -414,7 +407,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
@@ -428,7 +420,6 @@
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
                   "labelFilters": {
@@ -438,7 +429,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
@@ -470,9 +460,7 @@
               }
             },
             "name": "tfbaseline-logs-ratio-operations",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"

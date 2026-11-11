@@ -106,13 +106,9 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-analytics-threshold",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
           }
         },
@@ -248,6 +244,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -257,9 +254,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-threshold",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
@@ -344,9 +339,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/groupByKeys": []
-        }
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "stateDelta": {
@@ -380,17 +375,18 @@
     },
     "requests": [
       {
-        "deltaOf": "PUT"
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/groupByKeys": []
+        }
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/group_by": []
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh after the empty list",
@@ -400,10 +396,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: group_by with one key again",
@@ -460,18 +453,12 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
     "stateDelta": {
       "set": {
-        "/group_by": null
+        "/group_by": []
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: use_rows_as_permutations with a key that the query returns",
@@ -587,7 +574,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: groupByKeys [zzz] are not returned by the query. Available: [app, sub].\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: groupByKeys [zzz] are not returned by the query. Available: [app, sub].\"}"
     ],
     "stateDelta": {}
   },
@@ -615,7 +602,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: groupByKeys [zzz, yyy] are not returned by the query. Available: [app, sub].\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: groupByKeys [zzz, yyy] are not returned by the query. Available: [app, sub].\"}"
     ],
     "stateDelta": {}
   },
@@ -679,9 +666,11 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/analyticsThreshold/useRowsAsPermutations": true,
-          "/body/alertDefProperties/groupByKeys": []
-        }
+          "/body/alertDefProperties/analyticsThreshold/useRowsAsPermutations": true
+        },
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "stateDelta": {

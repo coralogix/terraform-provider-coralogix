@@ -72,22 +72,16 @@
           "alertDefProperties": {
             "description": "imported",
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-import",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P3",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
@@ -301,7 +295,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_alert \"00000000-0000-0000-0000-000000000000\" is in state, but no longer exists in Coralogix backend | 00000000-0000-0000-0000-000000000000 will be recreated when you apply"
+      "warning: Resource disappeared during read | alert with id 00000000-0000-0000-0000-000000000000 was not found. Terraform removed it from state."
     ],
     "stateDelta": {}
   },
@@ -320,7 +314,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_alert \"not-an-id\" is in state, but no longer exists in Coralogix backend | not-an-id will be recreated when you apply"
+      "warning: Resource disappeared during read | alert with id not-an-id was not found. Terraform removed it from state."
     ],
     "stateDelta": {}
   }

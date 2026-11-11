@@ -74,9 +74,7 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsUniqueCount": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -90,11 +88,8 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
           }
         },
@@ -213,6 +208,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "remote_addr_geoip.city_name"
@@ -224,14 +220,11 @@
             "logsUniqueCount": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
               "maxUniqueCountPerGroupByKey": "100",
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -245,9 +238,7 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
@@ -352,7 +343,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Logs Unique Count alerts cannot set maxUniqueCountPerGroupByKey without specifying group-by keys.\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsUniqueCount\\\",\\n      \\\"maxUniqueCountPerGroupByKey\\\"\\n    ],\\n    \\\"fatal\\\": true\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Logs Unique Count alerts cannot set maxUniqueCountPerGroupByKey without specifying group-by keys.\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsUniqueCount\\\",\\n      \\\"maxUniqueCountPerGroupByKey\\\"\\n    ],\\n    \\\"fatal\\\": true\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -379,19 +370,13 @@
         ]
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
     "stateDelta": {
       "set": {
-        "/group_by": null,
+        "/group_by": [],
         "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -401,10 +386,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: one key again",
@@ -461,13 +443,15 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/groupByKeys": [],
           "/status": 400
-        }
+        },
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Logs Unique Count alerts cannot set maxUniqueCountPerGroupByKey without specifying group-by keys.\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsUniqueCount\\\",\\n      \\\"maxUniqueCountPerGroupByKey\\\"\\n    ],\\n    \\\"fatal\\\": true\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Logs Unique Count alerts cannot set maxUniqueCountPerGroupByKey without specifying group-by keys.\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsUniqueCount\\\",\\n      \\\"maxUniqueCountPerGroupByKey\\\"\\n    ],\\n    \\\"fatal\\\": true\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },

@@ -68,15 +68,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-immediate-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "0",
@@ -188,20 +183,17 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-tracing-immediate-latency",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "1",
@@ -325,7 +317,7 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "1e+10"
+          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "10000000000"
         }
       }
     ],
@@ -362,22 +354,16 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "1.23456789e+10"
+          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "12345678901"
         }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.tracing_immediate.tracing_filter.latency_threshold_ms"
-    ],
     "stateDelta": {
       "set": {
-        "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 12345678900
+        "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 12345678901
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"latency_threshold_ms\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh 12345678901",
@@ -387,10 +373,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"latency_threshold_ms\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: a fraction",
@@ -399,22 +382,8 @@
         "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 1.5
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 1.5
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "1.5",
-          "/status": 400
-        }
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: proto: (line 1:401): invalid value for uint64 field value: \\\"1.5\\\"\"}\noperation - Replace"
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=1.5) is not an integer."
     ],
     "stateDelta": {}
   },
@@ -430,16 +399,8 @@
         "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": -1
       }
     },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "-1"
-        }
-      }
-    ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: proto: (line 1:401): invalid value for uint64 field value: \\\"-1\\\"\"}\noperation - Replace"
+      "error: Invalid value [AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"latency_threshold_ms\")] | The value -1 is negative. The API accepts only unsigned numbers."
     ],
     "stateDelta": {}
   },
@@ -459,13 +420,13 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "9.007199255e+15",
+          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "9007199254740992",
           "/status": 500
         }
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}"
     ],
     "stateDelta": {}
   },
@@ -476,21 +437,8 @@
         "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 9223372036854776000
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 9223372036854776000
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "9.223372037e+18"
-        }
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Replace"
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=9.223372037e+18) cannot be represented as a 64-bit integer."
     ],
     "stateDelta": {}
   },
@@ -501,21 +449,8 @@
         "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 18446744073709552000
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 18446744073709550000
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "1.844674407e+19"
-        }
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Replace"
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=1.844674407e+19) cannot be represented as a 64-bit integer."
     ],
     "stateDelta": {}
   },
@@ -526,27 +461,8 @@
         "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 9223372036854776000
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": "(unknown)",
-        "/deleted": "(unknown)",
-        "/id": "(unknown)",
-        "/incidents_settings": "(unknown)",
-        "/priority": "(unknown)",
-        "/type_definition/tracing_immediate/tracing_filter/latency_threshold_ms": 9223372036854776000
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "POST",
-        "set": {
-          "/body/alertDefProperties/tracingImmediate/tracingFilter/simpleFilter/latencyThresholdMs": "9.223372037e+18",
-          "/status": 500
-        }
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error creating coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Error deserializing request: Value is larger than Number.MAX_SAFE_INTEGER\"}\noperation - Create"
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=9.223372037e+18) cannot be represented as a 64-bit integer."
     ],
     "state": null
   }

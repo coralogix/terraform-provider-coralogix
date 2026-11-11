@@ -255,6 +255,12 @@ func flattenV2Target(ctx context.Context, p path.Path, v *target_service.V2Targe
 	if v == nil {
 		return nil
 	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.S3 == nil {
+		v.S3 = &target_service.S3TargetSpec{}
+	}
 	out := &V2TargetModel{}
 	out.ArchivingFormatId = types.StringPointerValue(v.ArchiveSpec.ArchivingFormatId)
 	out.EnableTags = types.BoolPointerValue(v.ArchiveSpec.EnableTags)

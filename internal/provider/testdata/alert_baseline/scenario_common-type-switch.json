@@ -69,24 +69,17 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-switch",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -215,14 +208,13 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "logsThreshold": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -243,9 +235,7 @@
               }
             },
             "name": "tfbaseline-common-switch",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
@@ -349,13 +339,10 @@
           "/body/alertDefProperties/logsImmediate": {
             "logsFilter": {
               "simpleFilter": {
-                "labelFilters": {
-                  "severities": []
-                },
+                "labelFilters": {},
                 "luceneQuery": "tfbaseline"
               }
-            },
-            "notificationPayloadFilter": []
+            }
           },
           "/body/alertDefProperties/type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
         },

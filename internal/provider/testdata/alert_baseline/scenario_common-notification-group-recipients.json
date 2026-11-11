@@ -89,21 +89,16 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-recipients",
             "notificationGroup": {
-              "groupByKeys": [],
               "webhooks": [
                 {
                   "integration": {
@@ -118,7 +113,6 @@
               ]
             },
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -202,7 +196,7 @@
       "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"recipients\").ElementKeyValue(tftypes.String<\"a@example.com\">)",
       "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"recipients\").ElementKeyValue(tftypes.String<\"b@example.com\">)",
       "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"retriggering_period\")",
-      "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<unknown>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>)"
+      "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<unknown>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<unknown>>)"
     ]
   },
   {
@@ -224,7 +218,7 @@
       "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"recipients\").ElementKeyValue(tftypes.String<\"a@example.com\">)",
       "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"recipients\").ElementKeyValue(tftypes.String<\"b@example.com\">)",
       "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<null>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>).AttributeName(\"retriggering_period\")",
-      "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<unknown>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<null>>)"
+      "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\").ElementKeyValue(tftypes.Object[\"integration_id\":tftypes.String, \"notify_on\":tftypes.String, \"recipients\":tftypes.Set[tftypes.String], \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]]<\"integration_id\":tftypes.String<null>, \"notify_on\":tftypes.String<unknown>, \"recipients\":tftypes.Set[tftypes.String]<tftypes.String<\"a@example.com\">, tftypes.String<\"b@example.com\">>, \"retriggering_period\":tftypes.Object[\"minutes\":tftypes.Number]<unknown>>)"
     ]
   },
   {
@@ -265,8 +259,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -274,17 +268,13 @@
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-recipients",
             "notificationGroup": {
-              "groupByKeys": [],
               "webhooks": [
                 {
                   "integration": {

@@ -98,9 +98,7 @@
               "app"
             ],
             "name": "tfbaseline-analytics-immediate",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -373,9 +371,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-immediate",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P4",
             "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
@@ -445,12 +441,12 @@
         "set": {
           "/body/alertDefProperties/analyticsImmediate/dataprimeQuery/query": "source logs | count",
           "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 10,
-          "/body/alertDefProperties/groupByKeys": []
+          "/body/alertDefProperties/description": ""
         },
         "remove": [
           "/body/alertDefProperties/analyticsImmediate/evaluationDelayMs",
           "/body/alertDefProperties/analyticsImmediate/useRowsAsPermutations",
-          "/body/alertDefProperties/description"
+          "/body/alertDefProperties/groupByKeys"
         ]
       }
     ],
@@ -519,21 +515,40 @@
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsImmediate/dataprimeQuery/query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c",
-          "/body/alertDefProperties/analyticsImmediate/evaluationDelayMs": 120000,
-          "/body/alertDefProperties/analyticsImmediate/noDataPolicy/autoRetireSeconds": 3600,
-          "/body/alertDefProperties/analyticsImmediate/noDataPolicy/state": "NO_DATA_POLICY_STATE_ALERTING",
-          "/body/alertDefProperties/analyticsImmediate/timeframeMinutes": 45,
-          "/body/alertDefProperties/analyticsImmediate/useRowsAsPermutations": true,
-          "/body/alertDefProperties/description": "full",
-          "/body/alertDefProperties/enabled": false,
-          "/body/alertDefProperties/groupByKeys": [
-            "app"
-          ],
-          "/body/alertDefProperties/priority": "ALERT_DEF_PRIORITY_P2"
-        }
+        "body": {
+          "alertDefProperties": {
+            "analyticsImmediate": {
+              "dataprimeQuery": {
+                "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+              },
+              "evaluationDelayMs": 120000,
+              "noDataPolicy": {
+                "autoRetireSeconds": 3600,
+                "state": "NO_DATA_POLICY_STATE_ALERTING"
+              },
+              "timeframeMinutes": 45,
+              "useRowsAsPermutations": true
+            },
+            "description": "full",
+            "enabled": false,
+            "groupByKeys": [
+              "app"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-immediate",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P2",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "status": 200
       }
     ],
     "stateDelta": {

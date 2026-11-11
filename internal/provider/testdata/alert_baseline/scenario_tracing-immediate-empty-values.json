@@ -80,15 +80,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-tracing-immediate-empty-values",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "tracingImmediate": {
-              "notificationPayloadFilter": [],
               "tracingFilter": {
                 "simpleFilter": {
                   "latencyThresholdMs": "100",
@@ -110,9 +105,6 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "type_definition.tracing_immediate.tracing_filter.tracing_label_filters.application_name"
     ],
     "state": {
       "access_policy": null,
@@ -162,7 +154,7 @@
               "application_name": [
                 {
                   "operation": "IS",
-                  "values": null
+                  "values": []
                 }
               ],
               "operation_name": null,
@@ -175,13 +167,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<>>)",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>)",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>).AttributeName(\"operation\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"application_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>).AttributeName(\"values\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create with an empty values set in a span field",
@@ -239,9 +225,6 @@
         ]
       }
     ],
-    "inconsistentResult": [
-      "type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields"
-    ],
     "stateDelta": {
       "set": {
         "/id": "00000000-0000-4000-8000-000000000003",
@@ -250,22 +233,14 @@
           {
             "filter_type": {
               "operation": "IS",
-              "values": null
+              "values": []
             },
             "key": "k"
           }
         ]
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\").ElementKeyValue(tftypes.Object[\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]], \"key\":tftypes.String]<\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<>>, \"key\":tftypes.String<\"k\">>)",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\").ElementKeyValue(tftypes.Object[\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]], \"key\":tftypes.String]<\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>, \"key\":tftypes.String<\"k\">>)",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\").ElementKeyValue(tftypes.Object[\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]], \"key\":tftypes.String]<\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>, \"key\":tftypes.String<\"k\">>).AttributeName(\"filter_type\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\").ElementKeyValue(tftypes.Object[\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]], \"key\":tftypes.String]<\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>, \"key\":tftypes.String<\"k\">>).AttributeName(\"filter_type\").AttributeName(\"operation\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\").ElementKeyValue(tftypes.Object[\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]], \"key\":tftypes.String]<\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>, \"key\":tftypes.String<\"k\">>).AttributeName(\"filter_type\").AttributeName(\"values\")",
-      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\").AttributeName(\"tracing_filter\").AttributeName(\"tracing_label_filters\").AttributeName(\"span_fields\").ElementKeyValue(tftypes.Object[\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]], \"key\":tftypes.String]<\"filter_type\":tftypes.Object[\"operation\":tftypes.String, \"values\":tftypes.Set[tftypes.String]]<\"operation\":tftypes.String<\"IS\">, \"values\":tftypes.Set[tftypes.String]<null>>, \"key\":tftypes.String<\"k\">>).AttributeName(\"key\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create with an empty key in a span field",

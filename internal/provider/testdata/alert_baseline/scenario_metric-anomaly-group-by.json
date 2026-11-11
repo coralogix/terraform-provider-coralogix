@@ -83,7 +83,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "metricAnomaly": {
               "metricFilter": {
                 "promql": "sum(rate(tfbaseline_requests_total[5m]))"
@@ -103,11 +102,8 @@
               ]
             },
             "name": "tfbaseline-ma-group",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           }
         },
@@ -217,8 +213,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -242,9 +238,7 @@
               ]
             },
             "name": "tfbaseline-ma-group",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
@@ -440,9 +434,11 @@
       {
         "deltaOf": "PUT",
         "set": {
-          "/body/alertDefProperties/groupByKeys": [],
           "/body/alertDefProperties/metricAnomaly/metricFilter/promql": "max by (node) (tfbaseline_queue_depth)"
-        }
+        },
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "stateDelta": {
@@ -479,7 +475,10 @@
     },
     "requests": [
       {
-        "deltaOf": "PUT"
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/groupByKeys": []
+        }
       }
     ],
     "inconsistentResult": [
@@ -526,19 +525,13 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
     "stateDelta": {
       "set": {
-        "/group_by": null,
+        "/group_by": [],
         "/type_definition/metric_anomaly/metric_filter/promql": "sum(rate(tfbaseline_requests_total[5m]))"
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -548,10 +541,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "group_by with a key that the query does not group by",
@@ -584,7 +574,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([\\\\\\\"pod\\\\\\\"]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([\\\\\\\"pod\\\\\\\"]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -612,7 +602,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -637,7 +627,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([\\\\\\\"namespace\\\\\\\",\\\\\\\"pod\\\\\\\"]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([\\\\\\\"namespace\\\\\\\",\\\\\\\"pod\\\\\\\"]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },
@@ -674,7 +664,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([\\\\\\\"pod\\\\\\\"]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"groupByKeys do not match the promql keys([\\\\\\\"pod\\\\\\\"]): Metric anomaly alerts are inferring the group by keys from the promql query. You can either provide an empty value and it will be inferred, otherwise it will have to match the promql query's inferred keys\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"groupByKeys\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   },

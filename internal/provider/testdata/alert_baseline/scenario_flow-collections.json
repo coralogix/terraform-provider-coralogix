@@ -57,15 +57,12 @@
           "alertDefProperties": {
             "enabled": true,
             "flow": {
-              "enforceSuppression": false
+              "enforceSuppression": false,
+              "stages": []
             },
-            "groupByKeys": [],
             "name": "tfbaseline-flow-coll",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_FLOW"
           }
         },
@@ -73,9 +70,6 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "type_definition.flow.stages"
     ],
     "state": {
       "access_policy": null,
@@ -108,7 +102,7 @@
         "analytics_threshold": null,
         "flow": {
           "enforce_suppression": false,
-          "stages": null
+          "stages": []
         },
         "logs_anomaly": null,
         "logs_immediate": null,
@@ -124,10 +118,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create with a stage that has no groups",
@@ -168,12 +159,15 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "flow": {
               "enforceSuppression": false,
               "stages": [
                 {
-                  "flowStagesGroups": {},
+                  "flowStagesGroups": {
+                    "groups": []
+                  },
                   "timeframeMs": "10",
                   "timeframeType": "TIMEFRAME_TYPE_UP_TO"
                 }
@@ -185,9 +179,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-flow-coll",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_FLOW"
@@ -199,24 +191,18 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.flow.stages[0].flow_stages_groups"
-    ],
     "stateDelta": {
       "set": {
         "/type_definition/flow/stages": [
           {
-            "flow_stages_groups": null,
+            "flow_stages_groups": [],
             "timeframe_ms": 10,
             "timeframe_type": "Up To"
           }
         ]
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create with a group that has no alert_defs",
@@ -248,6 +234,7 @@
         "set": {
           "/body/alertDefProperties/flow/stages/0/flowStagesGroups/groups": [
             {
+              "alertDefs": [],
               "alertsOp": "ALERTS_OP_OR",
               "nextOp": "NEXT_OP_AND_OR_UNSPECIFIED"
             }
@@ -255,24 +242,18 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.flow.stages[0].flow_stages_groups[0].alert_defs"
-    ],
     "stateDelta": {
       "set": {
         "/type_definition/flow/stages/0/flow_stages_groups": [
           {
-            "alert_defs": null,
+            "alert_defs": [],
             "alerts_op": "OR",
             "next_op": "AND"
           }
         ]
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create with one group",
@@ -415,13 +396,8 @@
         "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/0/not"
       ]
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/flow/stages/0/flow_stages_groups/0/alert_defs/1/not": false
-      }
-    },
-    "applyDiagnostics": [
-      "error: Duplicate Set Element [AttributeName(\"alert_defs\")] | This attribute contains duplicate values of: tftypes.Object[\"id\":tftypes.String, \"not\":tftypes.Bool]<\"id\":tftypes.String<\"00000000-0000-4000-8000-000000000001\">, \"not\":tftypes.Bool<\"false\">>"
+    "validateDiagnostics": [
+      "error: Duplicate Set Element [AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\").ElementKeyInt(0).AttributeName(\"flow_stages_groups\").ElementKeyInt(0).AttributeName(\"alert_defs\")] | This attribute lists the same alert twice with the same `not` value (id 00000000-0000-4000-8000-000000000001, not false). An omitted `not` is false."
     ],
     "stateDelta": {}
   },
@@ -779,23 +755,17 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "remove": [
-          "/body/alertDefProperties/flow/stages"
-        ]
+        "set": {
+          "/body/alertDefProperties/flow/stages": []
+        }
       }
-    ],
-    "inconsistentResult": [
-      "type_definition.flow.stages"
     ],
     "stateDelta": {
       "set": {
-        "/type_definition/flow/stages": null
+        "/type_definition/flow/stages": []
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -805,9 +775,6 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"flow\").AttributeName(\"stages\")"
-    ]
+    "replanEmpty": true
   }
 ]

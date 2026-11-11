@@ -89,12 +89,10 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsRatioThreshold": {
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numeratorAlias": "errors",
               "rules": [
                 {
@@ -116,11 +114,8 @@
               }
             },
             "name": "tfbaseline-logs-ratio-groupby",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
           }
         },
@@ -280,6 +275,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -291,21 +287,16 @@
             "logsRatioThreshold": {
               "denominator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -330,9 +321,7 @@
               }
             },
             "name": "tfbaseline-logs-ratio-groupby",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
@@ -427,9 +416,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/groupByKeys": []
-        }
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "stateDelta": {
@@ -463,17 +452,18 @@
     },
     "requests": [
       {
-        "deltaOf": "PUT"
+        "deltaOf": "PUT",
+        "set": {
+          "/body/alertDefProperties/groupByKeys": []
+        }
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/group_by": []
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -483,10 +473,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

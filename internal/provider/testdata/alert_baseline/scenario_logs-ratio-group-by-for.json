@@ -101,7 +101,6 @@
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numeratorAlias": "errors",
               "rules": [
                 {
@@ -123,11 +122,8 @@
               }
             },
             "name": "tfbaseline-logs-ratio-groupbyfor",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
           }
         },
@@ -309,6 +305,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -320,21 +317,16 @@
             "logsRatioThreshold": {
               "denominator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY",
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "numerator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -359,9 +351,7 @@
               }
             },
             "name": "tfbaseline-logs-ratio-groupbyfor",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
@@ -479,9 +469,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/groupByKeys": []
-        }
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "stateDelta": {

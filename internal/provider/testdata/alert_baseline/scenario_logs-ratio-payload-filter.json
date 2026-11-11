@@ -94,7 +94,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsRatioThreshold": {
               "denominatorAlias": "all",
               "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
@@ -123,11 +122,8 @@
               }
             },
             "name": "tfbaseline-logs-ratio-payload",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
           }
         },
@@ -291,8 +287,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -300,9 +296,7 @@
             "logsRatioThreshold": {
               "denominator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -315,9 +309,7 @@
               ],
               "numerator": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -342,9 +334,7 @@
               }
             },
             "name": "tfbaseline-logs-ratio-payload",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
@@ -396,18 +386,12 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.logs_ratio_threshold.notification_payload_filter"
-    ],
     "stateDelta": {
       "set": {
-        "/type_definition/logs_ratio_threshold/notification_payload_filter": null
+        "/type_definition/logs_ratio_threshold/notification_payload_filter": []
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_ratio_threshold\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -417,10 +401,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_ratio_threshold\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: removed by omission",
@@ -434,8 +415,20 @@
         "/type_definition/logs_ratio_threshold/notification_payload_filter": null
       }
     },
-    "noChange": true,
-    "stateDelta": {}
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "remove": [
+          "/body/alertDefProperties/logsRatioThreshold/notificationPayloadFilter"
+        ]
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_ratio_threshold/notification_payload_filter": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -445,9 +438,6 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_ratio_threshold\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   }
 ]

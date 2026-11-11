@@ -8,6 +8,7 @@
 
 coralogix_action
 coralogix_ai_evaluation
+coralogix_alert
 coralogix_alerts_scheduler
 coralogix_api_key
 coralogix_archive_logs

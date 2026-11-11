@@ -85,10 +85,8 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsTimeRelativeThreshold": {
               "ignoreInfinity": false,
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -107,11 +105,8 @@
               }
             },
             "name": "tfbaseline-relative-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"
           }
         },
@@ -236,6 +231,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "remote_addr_geoip.city_name"
@@ -248,13 +244,10 @@
               "ignoreInfinity": false,
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -273,9 +266,7 @@
               }
             },
             "name": "tfbaseline-relative-group-by",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD"
@@ -377,18 +368,12 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "group_by"
-    ],
     "stateDelta": {
       "set": {
-        "/group_by": null
+        "/group_by": []
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -398,10 +383,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: removed",
@@ -415,8 +397,20 @@
         "/group_by": null
       }
     },
-    "noChange": true,
-    "stateDelta": {}
+    "requests": [
+      {
+        "deltaOf": "PUT",
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
+      }
+    ],
+    "stateDelta": {
+      "set": {
+        "/group_by": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -426,9 +420,6 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   }
 ]

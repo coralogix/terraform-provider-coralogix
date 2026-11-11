@@ -75,16 +75,13 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsAnomaly": {
               "anomalyAlertSettings": {
                 "percentageOfDeviation": 0
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -94,11 +91,8 @@
               ]
             },
             "name": "tfbaseline-anomaly-percentage",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
           }
         },
@@ -212,8 +206,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -224,17 +218,13 @@
               },
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -244,9 +234,7 @@
               ]
             },
             "name": "tfbaseline-anomaly-percentage",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
@@ -258,18 +246,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.logs_anomaly.percentage_of_deviation"
-    ],
     "stateDelta": {
       "set": {
-        "/type_definition/logs_anomaly/percentage_of_deviation": 0.10000000149011612
+        "/type_definition/logs_anomaly/percentage_of_deviation": 0.1
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"percentage_of_deviation\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "percentage_of_deviation",
@@ -291,18 +273,12 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.logs_anomaly.percentage_of_deviation"
-    ],
     "stateDelta": {
       "set": {
-        "/type_definition/logs_anomaly/percentage_of_deviation": 33.29999923706055
+        "/type_definition/logs_anomaly/percentage_of_deviation": 33.3
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"percentage_of_deviation\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "percentage_of_deviation",

@@ -195,7 +195,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -205,11 +204,8 @@
               ]
             },
             "name": "tfbaseline-anomaly-unset",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
           }
         },
@@ -339,6 +335,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -387,7 +384,6 @@
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -397,9 +393,7 @@
               ]
             },
             "name": "tfbaseline-anomaly-unset",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
@@ -484,9 +478,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsAnomaly/notificationPayloadFilter": []
-        }
+        "remove": [
+          "/body/alertDefProperties/logsAnomaly/notificationPayloadFilter"
+        ]
       }
     ],
     "stateDelta": {
@@ -522,9 +516,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/groupByKeys": []
-        }
+        "remove": [
+          "/body/alertDefProperties/groupByKeys"
+        ]
       }
     ],
     "stateDelta": {

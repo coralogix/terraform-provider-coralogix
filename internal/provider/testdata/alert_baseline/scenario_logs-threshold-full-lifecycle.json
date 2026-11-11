@@ -209,9 +209,7 @@
               }
             },
             "name": "tfbaseline-logs-threshold-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P3",
             "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"
@@ -564,6 +562,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.subsystemName"
@@ -622,9 +621,7 @@
               }
             },
             "name": "tfbaseline-logs-threshold-full",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P2",
             "type": "ALERT_DEF_TYPE_LOGS_THRESHOLD"

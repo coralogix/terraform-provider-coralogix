@@ -17,21 +17,21 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 
 ### Required
 
-- `id` (String) Alert ID.
+- `id` (String) The alert definition's persistent ID
 
 ### Read-Only
 
 - `access_policy` (String) JSON string representing the access policy for this alert. It defines granular permissions for users and groups. When set, the provider owns the policy and re-applies it whenever the alert is updated, reverting changes made elsewhere; for keys with `alerts:ReadAccessPolicy`, changes made elsewhere also show as drift on refresh. Set to `""` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. When omitted, the policy is left unmanaged and unchanged. While this attribute is set (including `""`), every update of the alert sends the policy and therefore requires the `alerts:UpdateAccessPolicy` permission; remove the line to stop managing it. Reading the policy back requires `alerts:ReadAccessPolicy`: without it the attribute is not refreshed from the backend and drift is not detected.
 - `case_settings` (Attributes) Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings. (see [below for nested schema](#nestedatt--case_settings))
 - `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
-- `deleted` (Boolean)
-- `description` (String) Alert description.
+- `deleted` (Boolean) Whether the alert has been marked as deleted
+- `description` (String) A detailed description of what the alert monitors and when it triggers
 - `enabled` (Boolean) Alert enabled status. True by default.
-- `group_by` (List of String) Group by fields.
-- `incidents_settings` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings))
+- `group_by` (List of String) Keys used to group and aggregate alert data
+- `incidents_settings` (Attributes) Incident creation and management settings (see [below for nested schema](#nestedatt--incidents_settings))
 - `labels` (Map of String) Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected.
-- `name` (String) Alert name.
-- `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
+- `name` (String) The name of the alert definition
+- `notification_group` (Attributes) Primary notification group for alert events (see [below for nested schema](#nestedatt--notification_group))
 - `phantom_mode` (Boolean) When `true`, the alert is evaluated but stays silent: it sends no notifications and opens no incident of its own. Use it for alerts that serve as building blocks of a flow alert, which then notifies and opens the incident. The Coralogix API rejects a phantom alert whose `notification_group` sets `group_by_keys`, `webhooks_settings`, `destinations` or `router`. Omit `notification_group` or leave it empty. Defaults to `false`.
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
@@ -42,7 +42,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 
 Read-Only:
 
-- `auto_resolve_mode` (String) Whether the case is resolved automatically when the alert resolves. Valid values: ["enabled" "disabled"]. Defaults to `enabled`.
+- `auto_resolve_mode` (String) Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified. Valid values: ["disabled" "enabled"].
 - `destinations` (Attributes List) Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`. (see [below for nested schema](#nestedatt--case_settings--destinations))
 - `enrichment_queries` (Attributes List) Queries that enrich the cases opened by this alert. The API accepts at most one query. (see [below for nested schema](#nestedatt--case_settings--enrichment_queries))
 
@@ -51,9 +51,9 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (String) Notification Center routing condition that decides whether this destination is notified. Use `"true"` to notify on every case notification, or filter on `caseMetadata.notificationReason` (for example `caseMetadata.notificationReason == 'caseResolved'`).
-- `connector_id` (String) ID of the Notification Center connector to notify. The connector must support the `cases` entity type, for example through a `config_overrides` entry with `entity_type = "cases"`.
-- `preset_id` (String) ID of the Notification Center preset used to render the notification. The preset must be defined for the `cases` entity type and the connector's type (for example `preset_system_generic_https_cases_empty`). When omitted, the connector type's default preset is used.
+- `condition` (String) Notification Center routing condition, rendered to true or false against the case notification context to decide whether this destination is notified. Use "true" to notify on every case notification; otherwise filter on caseMetadata.notificationReason (for example caseActivated, caseResolved, casePriorityChanged, caseUnacknowledged). The expression syntax is documented with Notification Center routing conditions.
+- `connector_id` (String) ID of the Notification Center connector to notify. The connector must support the CASES entity type; list compatible connectors with GET /notifications/notification-center/v1/connectors?supported_by_entity_type=CASES.
+- `preset_id` (String) Optional Notification Center preset ID used to render the notification. The preset must be defined for the CASES entity type and for the selected connector's type; list compatible presets with GET /notifications/notification-center/v1/presets:summariesList?entity_type=CASES&connector_type=<type>. When omitted, the connector type's default preset is used.
 
 
 <a id="nestedatt--case_settings--enrichment_queries"></a>
@@ -61,8 +61,8 @@ Read-Only:
 
 Read-Only:
 
-- `query` (String) The enrichment query.
-- `type` (String) The query language. Valid values: ["dataprime"]. Defaults to `dataprime`.
+- `query` (String) The enrichment query string
+- `type` (String) The query language of the enrichment query. Defaults to DataPrime when omitted. Valid values: ["dataprime"].
 
 
 
@@ -71,8 +71,8 @@ Read-Only:
 
 Read-Only:
 
-- `data_set` (String) File name of the dataset.
-- `data_space` (String) Folder name of the data source.
+- `data_set` (String) File name of the dataset
+- `data_space` (String) Folder name of the datasource
 
 
 <a id="nestedatt--incidents_settings"></a>
@@ -80,7 +80,7 @@ Read-Only:
 
 Read-Only:
 
-- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"].
+- `notify_on` (String) The condition to notify about the alert Valid values: ["Triggered Only" "Triggered and Resolved"].
 - `retriggering_period` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings--retriggering_period))
 
 <a id="nestedatt--incidents_settings--retriggering_period"></a>
@@ -88,7 +88,7 @@ Read-Only:
 
 Read-Only:
 
-- `minutes` (Number)
+- `minutes` (Number) The time in minutes before the alert can be retriggered
 
 
 
@@ -97,39 +97,39 @@ Read-Only:
 
 Read-Only:
 
-- `destinations` (Attributes List) Link a 3rd party notification to an alert. (see [below for nested schema](#nestedatt--notification_group--destinations))
+- `destinations` (Attributes List) The destinations for notifications.  (Notification Center feature) (see [below for nested schema](#nestedatt--notification_group--destinations))
 - `group_by_keys` (List of String) Splits cases and notifications: one per combination of these keys' values. Omit for a single combined case (an empty list is rejected). Must be a subset of `group_by`, except for metric alerts.
-- `router` (Attributes) (see [below for nested schema](#nestedatt--notification_group--router))
-- `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
+- `router` (Attributes) The router for notifications.  (Notification Center feature) (see [below for nested schema](#nestedatt--notification_group--router))
+- `webhooks_settings` (Attributes Set) The settings for webhooks associated with the alert definition (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
 
 <a id="nestedatt--notification_group--destinations"></a>
 ### Nested Schema for `notification_group.destinations`
 
 Read-Only:
 
-- `connector_id` (String)
-- `notify_on` (String)
-- `preset_id` (String)
-- `resolved_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
+- `connector_id` (String) The connector ID used to send notifications
+- `notify_on` (String) The condition under which the notification should be sent Valid values: ["Triggered Only" "Triggered and Resolved"].
+- `preset_id` (String) Optional preset ID for the notification destination
+- `resolved_routing_overrides` (Attributes) Optional routing configuration to override from the connector/preset for resolved notifications. (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
 - `retriggering_period_minutes` (Number) Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence implicitly.
-- `triggered_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
+- `triggered_routing_overrides` (Attributes) The routing configuration to override from the connector/preset for triggered notifications. (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides"></a>
 ### Nested Schema for `notification_group.destinations.resolved_routing_overrides`
 
 Read-Only:
 
-- `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides))
-- `payload_type` (String)
-- `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides))
+- `connector_overrides` (Attributes List) Connector configuration fields (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides))
+- `payload_type` (String) the payload type for the notification
+- `preset_overrides` (Attributes List) Notification message configuration fields (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides))
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides"></a>
 ### Nested Schema for `notification_group.destinations.resolved_routing_overrides.connector_overrides`
 
 Read-Only:
 
-- `field_name` (String)
-- `template` (String)
+- `field_name` (String) The name of the configuration field
+- `template` (String) The template for the configuration field
 
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides"></a>
@@ -137,8 +137,8 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (String)
-- `template` (String)
+- `field_name` (String) The name of the configuration field
+- `template` (String) The template for the configuration field
 
 
 
@@ -147,17 +147,17 @@ Read-Only:
 
 Read-Only:
 
-- `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides))
-- `payload_type` (String)
-- `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides))
+- `connector_overrides` (Attributes List) Connector configuration fields (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides))
+- `payload_type` (String) the payload type for the notification
+- `preset_overrides` (Attributes List) Notification message configuration fields (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides))
 
 <a id="nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides"></a>
 ### Nested Schema for `notification_group.destinations.triggered_routing_overrides.connector_overrides`
 
 Read-Only:
 
-- `field_name` (String)
-- `template` (String)
+- `field_name` (String) The name of the configuration field
+- `template` (String) The template for the configuration field
 
 
 <a id="nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides"></a>
@@ -165,8 +165,8 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (String)
-- `template` (String)
+- `field_name` (String) The name of the configuration field
+- `template` (String) The template for the configuration field
 
 
 
@@ -177,7 +177,7 @@ Read-Only:
 Read-Only:
 
 - `id` (String) ID of the notification router. The default `""` uses label-based Global Router matching. Set `"router_default"` or another router ID to send notifications to that router. Removing this attribute sets it back to `""`.
-- `notify_on` (String)
+- `notify_on` (String) The condition under which the notification should be sent Valid values: ["Triggered Only" "Triggered and Resolved"].
 
 
 <a id="nestedatt--notification_group--webhooks_settings"></a>
@@ -185,9 +185,9 @@ Read-Only:
 
 Read-Only:
 
-- `integration_id` (String)
+- `integration_id` (String) The integration ID for the notification
 - `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. When omitted (along with retriggering_period), Advanced Notification is disabled.
-- `recipients` (Set of String)
+- `recipients` (Set of String) The recipients for the notification.
 - `retriggering_period` (Attributes) Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
 
 <a id="nestedatt--notification_group--webhooks_settings--retriggering_period"></a>
@@ -195,7 +195,7 @@ Read-Only:
 
 Read-Only:
 
-- `minutes` (Number)
+- `minutes` (Number) The time in minutes before the alert can be retriggered
 
 
 
@@ -205,17 +205,17 @@ Read-Only:
 
 Read-Only:
 
-- `active_on` (Attributes) (see [below for nested schema](#nestedatt--schedule--active_on))
+- `active_on` (Attributes) The window in which the alert is active. (see [below for nested schema](#nestedatt--schedule--active_on))
 
 <a id="nestedatt--schedule--active_on"></a>
 ### Nested Schema for `schedule.active_on`
 
 Read-Only:
 
-- `days_of_week` (Set of String) Days of the week. Valid values: ["Friday" "Monday" "Saturday" "Sunday" "Thursday" "Tuesday" "Wednesday"].
-- `end_time` (String)
-- `start_time` (String)
-- `utc_offset` (String)
+- `days_of_week` (Set of String) Days of the week.
+- `end_time` (String) End time.
+- `start_time` (String) Start time.
+- `utc_offset` (String) Time zone.
 
 
 
@@ -226,19 +226,19 @@ Read-Only:
 
 - `analytics_immediate` (Attributes) Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
 - `analytics_threshold` (Attributes) Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
-- `flow` (Attributes) (see [below for nested schema](#nestedatt--type_definition--flow))
-- `logs_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
-- `logs_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate))
-- `logs_new_value` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value))
-- `logs_ratio_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold))
-- `logs_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold))
-- `logs_time_relative_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold))
-- `logs_unique_count` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count))
-- `metric_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly))
-- `metric_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold))
-- `slo_threshold` (Attributes) SLO threshold alert type definition. (see [below for nested schema](#nestedatt--type_definition--slo_threshold))
-- `tracing_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate))
-- `tracing_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold))
+- `flow` (Attributes) Configuration for flow-based alerts (see [below for nested schema](#nestedatt--type_definition--flow))
+- `logs_anomaly` (Attributes) Configuration for log-based anomaly detection alerts (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
+- `logs_immediate` (Attributes) Configuration for immediate log-based alerts (see [below for nested schema](#nestedatt--type_definition--logs_immediate))
+- `logs_new_value` (Attributes) Configuration for alerts triggered by new log values (see [below for nested schema](#nestedatt--type_definition--logs_new_value))
+- `logs_ratio_threshold` (Attributes) Configuration for log-based ratio threshold alerts (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold))
+- `logs_threshold` (Attributes) Configuration for log-based threshold alerts (see [below for nested schema](#nestedatt--type_definition--logs_threshold))
+- `logs_time_relative_threshold` (Attributes) Configuration for time-relative log threshold alerts (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold))
+- `logs_unique_count` (Attributes) Configuration for alerts based on unique log value counts (see [below for nested schema](#nestedatt--type_definition--logs_unique_count))
+- `metric_anomaly` (Attributes) Configuration for metric-based anomaly detection alerts (see [below for nested schema](#nestedatt--type_definition--metric_anomaly))
+- `metric_threshold` (Attributes) Configuration for metric-based threshold alerts (see [below for nested schema](#nestedatt--type_definition--metric_threshold))
+- `slo_threshold` (Attributes) Configuration for SLO-based alerts (see [below for nested schema](#nestedatt--type_definition--slo_threshold))
+- `tracing_immediate` (Attributes) Configuration for immediate tracing-based alerts (see [below for nested schema](#nestedatt--type_definition--tracing_immediate))
+- `tracing_threshold` (Attributes) Configuration for tracing-based threshold alerts (see [below for nested schema](#nestedatt--type_definition--tracing_threshold))
 
 <a id="nestedatt--type_definition--analytics_immediate"></a>
 ### Nested Schema for `type_definition.analytics_immediate`
@@ -246,10 +246,10 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `dataprime_query` (Attributes) The DataPrime query that triggers the alert. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--dataprime_query))
+- `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--dataprime_query))
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
-- `timeframe_minutes` (Number) The evaluation window duration, in minutes. Minimum 1.
-- `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
+- `timeframe_minutes` (Number) The evaluation window duration in minutes
+- `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. Defaults to false for immediate alerts to avoid high-cardinality alerts by mistake.
 
 <a id="nestedatt--type_definition--analytics_immediate--dataprime_query"></a>
 ### Nested Schema for `type_definition.analytics_immediate.dataprime_query`
@@ -275,13 +275,13 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `dataprime_query` (Attributes) The DataPrime query that triggers the alert. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--dataprime_query))
+- `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--dataprime_query))
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
-- `operator` (String) The comparison operator applied to every threshold rule. Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
+- `operator` (String) The comparison operator applied to all threshold rules Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
 - `rules` (Attributes List) The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules))
-- `target_column` (String) The name of the numeric column in the DataPrime result to compare against the thresholds.
-- `timeframe_minutes` (Number) The evaluation window duration, in minutes. Minimum 1.
-- `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
+- `target_column` (String) The name of the numeric result column to compare
+- `timeframe_minutes` (Number) The evaluation window duration in minutes
+- `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. Defaults to true for threshold alerts as permutation count is easier to estimate.
 
 <a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>
 ### Nested Schema for `type_definition.analytics_threshold.dataprime_query`
@@ -305,15 +305,15 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules--override))
+- `condition` (Attributes) The condition for the threshold rule (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules--condition))
+- `override` (Attributes) The override settings for the alert (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules--override))
 
 <a id="nestedatt--type_definition--analytics_threshold--rules--condition"></a>
 ### Nested Schema for `type_definition.analytics_threshold.rules.condition`
 
 Read-Only:
 
-- `threshold` (Number) The value `target_column` is compared against.
+- `threshold` (Number) The threshold value to compare against
 
 
 <a id="nestedatt--type_definition--analytics_threshold--rules--override"></a>
@@ -321,7 +321,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -331,34 +331,34 @@ Read-Only:
 
 Read-Only:
 
-- `enforce_suppression` (Boolean)
-- `stages` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--flow--stages))
+- `enforce_suppression` (Boolean) The enforce suppression.
+- `stages` (Attributes List) The stages of the flow alert. (see [below for nested schema](#nestedatt--type_definition--flow--stages))
 
 <a id="nestedatt--type_definition--flow--stages"></a>
 ### Nested Schema for `type_definition.flow.stages`
 
 Read-Only:
 
-- `flow_stages_groups` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups))
-- `timeframe_ms` (Number)
-- `timeframe_type` (String)
+- `flow_stages_groups` (Attributes List) The flow stages groups. (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups))
+- `timeframe_ms` (Number) The timeframe ms.
+- `timeframe_type` (String) The type of timeframe for the flow alert. Valid values: ["Unspecified" "Up To"].
 
 <a id="nestedatt--type_definition--flow--stages--flow_stages_groups"></a>
 ### Nested Schema for `type_definition.flow.stages.flow_stages_groups`
 
 Read-Only:
 
-- `alert_defs` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs))
-- `alerts_op` (String) Alerts operation. Valid values: ["AND" "OR"].
-- `next_op` (String) Next operation. Valid values: ["AND" "OR"].
+- `alert_defs` (Attributes Set) The alert definitions for the flow stage group. (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs))
+- `alerts_op` (String) The logical operation to apply to the alerts in the group. Valid values: ["AND" "OR"].
+- `next_op` (String) The logical operation to apply to the next stage. Valid values: ["AND" "OR"].
 
 <a id="nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs"></a>
 ### Nested Schema for `type_definition.flow.stages.flow_stages_groups.alert_defs`
 
 Read-Only:
 
-- `id` (String)
-- `not` (Boolean)
+- `id` (String) The alert definition ID
+- `not` (Boolean) Whether to negate the alert definition or not.
 
 
 
@@ -370,34 +370,34 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
-- `notification_payload_filter` (Set of String)
-- `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules))
+- `logs_filter` (Attributes) Filter configuration for log-based alerts (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
+- `notification_payload_filter` (Set of String) The filter to specify which fields to include in the notification payload
+- `percentage_of_deviation` (Number) Anomaly alert settings configuration
+- `rules` (Attributes Set) The rules for the log anomaly alert (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules))
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter"></a>
 ### Nested Schema for `type_definition.logs_anomaly.logs_filter`
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter))
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name`
@@ -405,7 +405,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -414,7 +414,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -425,16 +425,16 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules--condition))
+- `condition` (Attributes) The condition for the threshold alert (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules--condition))
 
 <a id="nestedatt--type_definition--logs_anomaly--rules--condition"></a>
 ### Nested Schema for `type_definition.logs_anomaly.rules.condition`
 
 Read-Only:
 
-- `condition_type` (String)
-- `minimum_threshold` (Number)
-- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `condition_type` (String) The type of condition for the alert
+- `minimum_threshold` (Number) The threshold value for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -444,32 +444,32 @@ Read-Only:
 
 Read-Only:
 
-- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter))
-- `notification_payload_filter` (Set of String)
+- `logs_filter` (Attributes) The filter to match log entries for immediate alerts. (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter))
+- `notification_payload_filter` (Set of String) The notification payload filter.
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter"></a>
 ### Nested Schema for `type_definition.logs_immediate.logs_filter`
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter))
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name`
@@ -477,7 +477,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -486,7 +486,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -498,33 +498,33 @@ Read-Only:
 
 Read-Only:
 
-- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter))
-- `notification_payload_filter` (Set of String)
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--rules))
+- `logs_filter` (Attributes) The filter to match log entries for the alert. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter))
+- `notification_payload_filter` (Set of String) The filter to specify which fields to include in the notification payload.
+- `rules` (Attributes Set) The rules for the log new value alert. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--rules))
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter"></a>
 ### Nested Schema for `type_definition.logs_new_value.logs_filter`
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter))
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter.label_filters.application_name`
@@ -532,7 +532,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -541,7 +541,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -552,15 +552,15 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--rules--condition))
+- `condition` (Attributes) The condition for detecting new values in logs. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--rules--condition))
 
 <a id="nestedatt--type_definition--logs_new_value--rules--condition"></a>
 ### Nested Schema for `type_definition.logs_new_value.rules.condition`
 
 Read-Only:
 
-- `keypath_to_track` (String)
-- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"].
+- `keypath_to_track` (String) The keypath to track for new values
+- `time_window` (String) The time window for detecting new values Valid values: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"].
 
 
 
@@ -571,14 +571,14 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
-- `denominator_alias` (String)
-- `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
+- `denominator` (Attributes) The filter to match log entries for the denominator of the ratio (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
+- `denominator_alias` (String) The alias for the denominator filter, used for display purposes
+- `group_by_for` (String) The group by settings for the numerator and denominator filters Valid values: ["Both" "Denominator Only" "Numerator Only"].
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
-- `notification_payload_filter` (Set of String)
-- `numerator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
-- `numerator_alias` (String)
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules))
+- `notification_payload_filter` (Set of String) The notification payload filter.
+- `numerator` (Attributes) The filter to match log entries for the numerator of the ratio (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
+- `numerator_alias` (String) The alias for the numerator filter, used for display purposes
+- `rules` (Attributes Set) The rules for the ratio alert (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules))
 - `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator"></a>
@@ -586,24 +586,24 @@ Read-Only:
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name`
@@ -611,7 +611,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name"></a>
@@ -620,7 +620,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -631,24 +631,24 @@ Read-Only:
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name`
@@ -656,7 +656,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name"></a>
@@ -665,7 +665,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -676,17 +676,17 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules--override))
+- `condition` (Attributes) The condition for the ratio alert (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules--condition))
+- `override` (Attributes) The override settings for the alert (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules--override))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--rules--condition"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.rules.condition`
 
 Read-Only:
 
-- `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
-- `threshold` (Number)
-- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `condition_type` (String) The type of condition for the alert Valid values: ["LESS_THAN" "MORE_THAN"].
+- `threshold` (Number) The threshold value for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--rules--override"></a>
@@ -694,7 +694,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -703,8 +703,8 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
-- `trigger_undetected_values` (Boolean)
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
+- `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
 
@@ -714,10 +714,10 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
-- `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
-- `notification_payload_filter` (Set of String)
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules))
+- `logs_filter` (Attributes) The filter to match log entries for threshold alerts (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
+- `notification_payload_filter` (Set of String) The filter to specify which fields to include in the notification payload
+- `rules` (Attributes Set) The rules for the threshold alert (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules))
 - `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter"></a>
@@ -725,24 +725,24 @@ Read-Only:
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter))
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name`
@@ -750,7 +750,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -759,7 +759,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -770,7 +770,7 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`. When `state` is `OK`, the Coralogix UI disables auto-retire ("Never") and a later UI save may clear this value.
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.
 - `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
 
 
@@ -779,17 +779,17 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules--override))
+- `condition` (Attributes) The condition for the threshold alert (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules--condition))
+- `override` (Attributes) The override settings for the alert (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules--override))
 
 <a id="nestedatt--type_definition--logs_threshold--rules--condition"></a>
 ### Nested Schema for `type_definition.logs_threshold.rules.condition`
 
 Read-Only:
 
-- `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["EQUALS" "LESS_THAN" "MORE_THAN" "NOT_EQUALS"].
-- `threshold` (Number)
-- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `condition_type` (String) The type of condition for the alert Valid values: ["EQUALS" "LESS_THAN" "MORE_THAN" "NOT_EQUALS"].
+- `threshold` (Number) The threshold value for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 <a id="nestedatt--type_definition--logs_threshold--rules--override"></a>
@@ -797,7 +797,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -806,8 +806,8 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
-- `trigger_undetected_values` (Boolean)
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
+- `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
 
@@ -818,9 +818,9 @@ Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
-- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
-- `notification_payload_filter` (Set of String)
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules))
+- `logs_filter` (Attributes) The filter to match log entries for the alert. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
+- `notification_payload_filter` (Set of String) The notification payload filter.
+- `rules` (Attributes Set) The rules for the time-relative alert (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules))
 - `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter"></a>
@@ -828,24 +828,24 @@ Read-Only:
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.application_name`
@@ -853,7 +853,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -862,7 +862,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -873,17 +873,17 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules--override))
+- `condition` (Attributes) The condition for the time-relative alert. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules--condition))
+- `override` (Attributes) The override settings for the alert. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules--override))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--rules--condition"></a>
 ### Nested Schema for `type_definition.logs_time_relative_threshold.rules.condition`
 
 Read-Only:
 
-- `compared_to` (String) Compared to a different time frame. Valid values: ["Previous Hour" "Same Day Last Month" "Same Day Last Week" "Same Hour Last Week" "Same Hour Yesterday" "Yesterday"].
-- `condition_type` (String) Condition . Valid values: ["LESS_THAN" "MORE_THAN"].
-- `threshold` (Number)
+- `compared_to` (String) The time frame to compare the current value against Valid values: ["Previous Hour" "Same Day Last Month" "Same Day Last Week" "Same Hour Last Week" "Same Hour Yesterday" "Yesterday"].
+- `condition_type` (String) The type of condition for the alert Valid values: ["LESS_THAN" "MORE_THAN"].
+- `threshold` (Number) The threshold value for the alert condition.
 
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--rules--override"></a>
@@ -891,7 +891,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -900,8 +900,8 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
-- `trigger_undetected_values` (Boolean)
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
+- `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
 
@@ -910,35 +910,35 @@ Read-Only:
 
 Read-Only:
 
-- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter))
-- `max_unique_count_per_group_by_key` (Number)
-- `notification_payload_filter` (Set of String)
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--rules))
-- `unique_count_keypath` (String)
+- `logs_filter` (Attributes) The filter to match log entries for the alert. (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter))
+- `max_unique_count_per_group_by_key` (Number) The maximum unique count per group by key
+- `notification_payload_filter` (Set of String) The filter to specify which fields to include in the notification payload
+- `rules` (Attributes Set) The rules for the log unique count alert (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--rules))
+- `unique_count_keypath` (String) The keypath in the logs to be used for unique count
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter"></a>
 ### Nested Schema for `type_definition.logs_unique_count.logs_filter`
 
 Read-Only:
 
-- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter))
+- `simple_filter` (Attributes) A simple filter that uses a Lucene query and label filters (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter))
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter"></a>
 ### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter`
 
 Read-Only:
 
-- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters))
-- `lucene_query` (String)
+- `label_filters` (Attributes) Filters for application name, subsystem name, and log severities (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String) The lucene query.
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters"></a>
 ### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter.label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name))
+- `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name"></a>
 ### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.application_name`
@@ -946,7 +946,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -955,7 +955,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
-- `value` (String)
+- `value` (String) The value of the label to filter by
 
 
 
@@ -966,15 +966,15 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--rules--condition))
+- `condition` (Attributes) The condition for detecting unique counts in logs. (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--rules--condition))
 
 <a id="nestedatt--type_definition--logs_unique_count--rules--condition"></a>
 ### Nested Schema for `type_definition.logs_unique_count.rules.condition`
 
 Read-Only:
 
-- `max_unique_count` (Number)
-- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `max_unique_count` (Number) The maximum unique count
+- `time_window` (String) The time window for the unique count alert. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -985,16 +985,16 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
-- `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
+- `metric_filter` (Attributes) The filter to match metric entries for the alert. (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
+- `percentage_of_deviation` (Number) Configuration for anomaly alert settings.
+- `rules` (Attributes Set) The rules for the metric anomaly alert. (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
 
 <a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>
 ### Nested Schema for `type_definition.metric_anomaly.metric_filter`
 
 Read-Only:
 
-- `promql` (String)
+- `promql` (String) A PromQL filter for metrics
 
 
 <a id="nestedatt--type_definition--metric_anomaly--rules"></a>
@@ -1002,18 +1002,18 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules--condition))
+- `condition` (Attributes) The condition for the metric anomaly alert. (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules--condition))
 
 <a id="nestedatt--type_definition--metric_anomaly--rules--condition"></a>
 ### Nested Schema for `type_definition.metric_anomaly.rules.condition`
 
 Read-Only:
 
-- `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
-- `for_over_pct` (Number) Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'.
-- `min_non_null_values_pct` (Number)
+- `condition_type` (String) The type of condition for the alert. Valid values: ["LESS_THAN" "MORE_THAN"].
+- `for_over_pct` (Number) The percentage of the metric that must exceed the threshold to trigger the alert
+- `min_non_null_values_pct` (Number) The percentage of non-null values required to trigger the alert
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
-- `threshold` (Number)
+- `threshold` (Number) The threshold value for the alert condition
 
 
 
@@ -1024,10 +1024,10 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--metric_filter))
-- `missing_values` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--missing_values))
-- `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules))
+- `metric_filter` (Attributes) The filter to match metric entries for the alert. (see [below for nested schema](#nestedatt--type_definition--metric_threshold--metric_filter))
+- `missing_values` (Attributes) Configuration for handling missing values in the alert. (see [below for nested schema](#nestedatt--type_definition--metric_threshold--missing_values))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
+- `rules` (Attributes Set) The rules for the metric threshold alert (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules))
 - `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>
@@ -1035,7 +1035,7 @@ Read-Only:
 
 Read-Only:
 
-- `promql` (String)
+- `promql` (String) A PromQL filter for metrics
 
 
 <a id="nestedatt--type_definition--metric_threshold--missing_values"></a>
@@ -1043,8 +1043,8 @@ Read-Only:
 
 Read-Only:
 
-- `min_non_null_values_pct` (Number)
-- `replace_with_zero` (Boolean)
+- `min_non_null_values_pct` (Number) If set, specifies the minimum percentage of non-null values required for the alert to be triggered
+- `replace_with_zero` (Boolean) If set to true, missing values will be replaced with zero
 
 
 <a id="nestedatt--type_definition--metric_threshold--no_data_policy"></a>
@@ -1052,7 +1052,7 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`. When `state` is `OK`, the Coralogix UI disables auto-retire ("Never") and a later UI save may clear this value.
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.
 - `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
 
 
@@ -1061,20 +1061,20 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules--override))
+- `condition` (Attributes) The condition for the metric threshold alert (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules--condition))
+- `override` (Attributes) Alert override settings (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules--override))
 
 <a id="nestedatt--type_definition--metric_threshold--rules--condition"></a>
 ### Nested Schema for `type_definition.metric_threshold.rules.condition`
 
 Read-Only:
 
-- `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
-- `for_over_pct` (Number) Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'.
+- `condition_type` (String) The type of the alert condition Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
+- `for_over_pct` (Number) The percentage of values that must exceed the threshold to trigger the alert
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 Or having valid time duration - Supported units: y, w, d, h, m, s, ms.
 Examples: `30s`, `1m`, `1h20m15s`, `15d`
-- `threshold` (Number)
+- `threshold` (Number) The threshold value for the alert condition
 
 
 <a id="nestedatt--type_definition--metric_threshold--rules--override"></a>
@@ -1082,7 +1082,7 @@ Examples: `30s`, `1m`, `1h20m15s`, `15d`
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -1091,8 +1091,8 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
-- `trigger_undetected_values` (Boolean)
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
+- `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
 
@@ -1101,33 +1101,33 @@ Read-Only:
 
 Read-Only:
 
-- `burn_rate` (Attributes) Burn rate threshold configuration. (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate))
-- `error_budget` (Attributes) Error budget threshold configuration. (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget))
-- `slo_definition` (Attributes) Configuration for the referenced SLO. (see [below for nested schema](#nestedatt--type_definition--slo_threshold--slo_definition))
+- `burn_rate` (Attributes) Burn rate threshold (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate))
+- `error_budget` (Attributes) Error budget threshold (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget))
+- `slo_definition` (Attributes) SLO definition (see [below for nested schema](#nestedatt--type_definition--slo_threshold--slo_definition))
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate"></a>
 ### Nested Schema for `type_definition.slo_threshold.burn_rate`
 
 Read-Only:
 
-- `dual` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual))
-- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
-- `single` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single))
+- `dual` (Attributes) Burn rate type dual (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual))
+- `rules` (Attributes List) The rules for the burn rate threshold (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
+- `single` (Attributes) Burn rate type single (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single))
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate--dual"></a>
 ### Nested Schema for `type_definition.slo_threshold.burn_rate.dual`
 
 Read-Only:
 
-- `time_duration` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual--time_duration))
+- `time_duration` (Attributes) Configuration for time duration (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual--time_duration))
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate--dual--time_duration"></a>
 ### Nested Schema for `type_definition.slo_threshold.burn_rate.dual.time_duration`
 
 Read-Only:
 
-- `duration` (Number)
-- `unit` (String)
+- `duration` (Number) The duration value
+- `unit` (String) The unit of the duration Valid values: ["HOURS" "UNSPECIFIED"].
 
 
 
@@ -1136,15 +1136,15 @@ Read-Only:
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules--override))
+- `condition` (Attributes) Condition for the SLO threshold rule (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules--condition))
+- `override` (Attributes) The override settings for the alert (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules--override))
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate--rules--condition"></a>
 ### Nested Schema for `type_definition.slo_threshold.burn_rate.rules.condition`
 
 Read-Only:
 
-- `threshold` (Number)
+- `threshold` (Number) Threshold value.
 
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate--rules--override"></a>
@@ -1152,7 +1152,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -1161,15 +1161,15 @@ Read-Only:
 
 Read-Only:
 
-- `time_duration` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single--time_duration))
+- `time_duration` (Attributes) Configuration for time duration (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single--time_duration))
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate--single--time_duration"></a>
 ### Nested Schema for `type_definition.slo_threshold.burn_rate.single.time_duration`
 
 Read-Only:
 
-- `duration` (Number)
-- `unit` (String)
+- `duration` (Number) The duration value
+- `unit` (String) The unit of the duration Valid values: ["HOURS" "UNSPECIFIED"].
 
 
 
@@ -1179,22 +1179,22 @@ Read-Only:
 
 Read-Only:
 
-- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
+- `rules` (Attributes List) The rules for the error budget threshold (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
 
 <a id="nestedatt--type_definition--slo_threshold--error_budget--rules"></a>
 ### Nested Schema for `type_definition.slo_threshold.error_budget.rules`
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules--condition))
-- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules--override))
+- `condition` (Attributes) Condition for the SLO threshold rule (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules--condition))
+- `override` (Attributes) The override settings for the alert (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules--override))
 
 <a id="nestedatt--type_definition--slo_threshold--error_budget--rules--condition"></a>
 ### Nested Schema for `type_definition.slo_threshold.error_budget.rules.condition`
 
 Read-Only:
 
-- `threshold` (Number)
+- `threshold` (Number) Threshold value.
 
 
 <a id="nestedatt--type_definition--slo_threshold--error_budget--rules--override"></a>
@@ -1202,7 +1202,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -1212,7 +1212,7 @@ Read-Only:
 
 Read-Only:
 
-- `slo_id` (String) The SLO ID.
+- `slo_id` (String) The SLO ID
 
 
 
@@ -1221,27 +1221,27 @@ Read-Only:
 
 Read-Only:
 
-- `notification_payload_filter` (Set of String)
-- `tracing_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter))
+- `notification_payload_filter` (Set of String) Notification payload field filter
+- `tracing_filter` (Attributes) A filter to match trace entries for immediate alerts (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter))
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter"></a>
 ### Nested Schema for `type_definition.tracing_immediate.tracing_filter`
 
 Read-Only:
 
-- `latency_threshold_ms` (Number)
-- `tracing_label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters))
+- `latency_threshold_ms` (Number) The latency threshold to filter traces in milliseconds
+- `tracing_label_filters` (Attributes) Trace label filters (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters))
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters"></a>
 ### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--application_name))
-- `operation_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--operation_name))
-- `service_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--service_name))
-- `span_fields` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields))
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--subsystem_name))
+- `application_name` (Attributes Set) Filter by application names (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--application_name))
+- `operation_name` (Attributes Set) Filter by operation names (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--operation_name))
+- `service_name` (Attributes Set) Filter by service names (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--service_name))
+- `span_fields` (Attributes Set) Filter by span fields (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields))
+- `subsystem_name` (Attributes Set) Filter by subsystem names (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--application_name"></a>
 ### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.application_name`
@@ -1249,7 +1249,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--operation_name"></a>
@@ -1258,7 +1258,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--service_name"></a>
@@ -1267,7 +1267,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields"></a>
@@ -1275,8 +1275,8 @@ Read-Only:
 
 Read-Only:
 
-- `filter_type` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields--filter_type))
-- `key` (String)
+- `filter_type` (Attributes) The FilterType to filter by. (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields--filter_type))
+- `key` (String) The key of the span field to filter by
 
 <a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields--filter_type"></a>
 ### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields.filter_type`
@@ -1284,7 +1284,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 
@@ -1294,7 +1294,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 
@@ -1305,25 +1305,25 @@ Read-Only:
 
 Read-Only:
 
-- `notification_payload_filter` (Set of String)
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--rules))
-- `tracing_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter))
+- `notification_payload_filter` (Set of String) Notification payload field filter
+- `rules` (Attributes Set) The rules for the trace threshold alert. (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--rules))
+- `tracing_filter` (Attributes) The filter to match trace entries for the alert. (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter))
 
 <a id="nestedatt--type_definition--tracing_threshold--rules"></a>
 ### Nested Schema for `type_definition.tracing_threshold.rules`
 
 Read-Only:
 
-- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--rules--condition))
+- `condition` (Attributes) The condition for the threshold alert. (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--rules--condition))
 
 <a id="nestedatt--type_definition--tracing_threshold--rules--condition"></a>
 ### Nested Schema for `type_definition.tracing_threshold.rules.condition`
 
 Read-Only:
 
-- `condition_type` (String)
-- `span_amount` (Number)
-- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `condition_type` (String) The type of condition for the alert
+- `span_amount` (Number) The threshold value for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -1332,19 +1332,19 @@ Read-Only:
 
 Read-Only:
 
-- `latency_threshold_ms` (Number)
-- `tracing_label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters))
+- `latency_threshold_ms` (Number) The latency threshold to filter traces in milliseconds
+- `tracing_label_filters` (Attributes) Trace label filters (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters))
 
 <a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters"></a>
 ### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters`
 
 Read-Only:
 
-- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--application_name))
-- `operation_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--operation_name))
-- `service_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--service_name))
-- `span_fields` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields))
-- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--subsystem_name))
+- `application_name` (Attributes Set) Filter by application names (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--application_name))
+- `operation_name` (Attributes Set) Filter by operation names (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--operation_name))
+- `service_name` (Attributes Set) Filter by service names (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--service_name))
+- `span_fields` (Attributes Set) Filter by span fields (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields))
+- `subsystem_name` (Attributes Set) Filter by subsystem names (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--application_name"></a>
 ### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name`
@@ -1352,7 +1352,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 <a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--operation_name"></a>
@@ -1361,7 +1361,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 <a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--service_name"></a>
@@ -1370,7 +1370,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 <a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields"></a>
@@ -1378,8 +1378,8 @@ Read-Only:
 
 Read-Only:
 
-- `filter_type` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields--filter_type))
-- `key` (String)
+- `filter_type` (Attributes) The FilterType to filter by. (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields--filter_type))
+- `key` (String) The key of the span field to filter by
 
 <a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields--filter_type"></a>
 ### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields.filter_type`
@@ -1387,7 +1387,7 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by
 
 
 
@@ -1397,4 +1397,4 @@ Read-Only:
 Read-Only:
 
 - `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "IS_NOT" "STARTS_WITH"]. 'IS' by default.
-- `values` (Set of String)
+- `values` (Set of String) The values of the label to filter by

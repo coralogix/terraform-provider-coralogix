@@ -255,6 +255,12 @@ func flattenTarget(ctx context.Context, p path.Path, v *upsert_service.Target, d
 	if v == nil {
 		return nil
 	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Spec == nil {
+		v.Spec = &upsert_service.Spec{}
+	}
 	out := &TargetModel{}
 	out.Enabled = types.BoolPointerValue(v.Meta.Enabled)
 	out.Version = types.StringPointerValue(v.Meta.Version)

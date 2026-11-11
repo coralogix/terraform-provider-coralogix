@@ -193,9 +193,7 @@
               }
             },
             "name": "tfbaseline-mt-removal",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P3",
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
@@ -377,9 +375,7 @@
               }
             },
             "name": "tfbaseline-mt-removal",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P3",
             "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"
@@ -554,19 +550,17 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "remove": [
-          "/body/alertDefProperties/description"
-        ]
+        "set": {
+          "/body/alertDefProperties/description": ""
+        }
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/description": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -576,9 +570,6 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   }
 ]

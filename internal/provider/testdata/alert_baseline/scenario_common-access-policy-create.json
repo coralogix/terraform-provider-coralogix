@@ -71,24 +71,17 @@
           "accessPolicy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-common-policy-create",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -426,7 +419,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Access policy rejected: Invalid argument: Provided access_policy_raw_json is not a valid JSON: expected ident at line 1 column 2\"}\noperation - Create"
+      "error: Unable to create alert | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Access policy rejected: Invalid argument: Provided access_policy_raw_json is not a valid JSON: expected ident at line 1 column 2\"}"
     ],
     "stateDelta": {}
   }

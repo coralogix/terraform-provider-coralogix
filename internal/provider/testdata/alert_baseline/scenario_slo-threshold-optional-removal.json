@@ -100,9 +100,7 @@
               "service"
             ],
             "name": "tfbaseline-slo-removal",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P3",
             "sloThreshold": {
@@ -262,9 +260,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-slo-removal",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P3",
             "sloThreshold": {
@@ -366,19 +362,17 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "remove": [
-          "/body/alertDefProperties/description"
-        ]
+        "set": {
+          "/body/alertDefProperties/description": ""
+        }
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/description": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -388,10 +382,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

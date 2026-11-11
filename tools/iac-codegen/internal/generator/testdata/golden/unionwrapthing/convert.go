@@ -369,6 +369,12 @@ func flattenUnionWrapThing(ctx context.Context, p path.Path, v *union_wrap_thing
 	if v == nil {
 		return nil
 	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Thing == nil {
+		v.Thing = &union_wrap_things_service.Thing{}
+	}
 	out := &UnionWrapThingModel{}
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(&v.Thing.Name)

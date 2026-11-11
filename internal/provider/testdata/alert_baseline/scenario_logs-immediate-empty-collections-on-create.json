@@ -75,12 +75,13 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
                   "labelFilters": {
-                    "severities": []
+                    "applicationName": [],
+                    "severities": [],
+                    "subsystemName": []
                   },
                   "luceneQuery": "q"
                 }
@@ -88,11 +89,8 @@
               "notificationPayloadFilter": []
             },
             "name": "tfbaseline-logs-immediate-empty-create",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
@@ -100,12 +98,6 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name",
-      "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities",
-      "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name",
-      "type_definition.logs_immediate.notification_payload_filter"
     ],
     "state": {
       "access_policy": null,
@@ -142,14 +134,14 @@
           "logs_filter": {
             "simple_filter": {
               "label_filters": {
-                "application_name": null,
-                "severities": null,
-                "subsystem_name": null
+                "application_name": [],
+                "severities": [],
+                "subsystem_name": []
               },
               "lucene_query": "q"
             }
           },
-          "notification_payload_filter": null
+          "notification_payload_filter": []
         },
         "logs_new_value": null,
         "logs_ratio_threshold": null,
@@ -163,13 +155,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"application_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"severities\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"subsystem_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -181,13 +167,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"application_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"severities\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"subsystem_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

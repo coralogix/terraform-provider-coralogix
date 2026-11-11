@@ -83,7 +83,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "metricAnomaly": {
               "metricFilter": {
                 "promql": "sum(rate(tfbaseline_requests_total[5m]))"
@@ -103,11 +102,8 @@
               ]
             },
             "name": "tfbaseline-ma-deviation",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           }
         },
@@ -218,8 +214,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -246,9 +242,7 @@
               ]
             },
             "name": "tfbaseline-ma-deviation",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
@@ -361,18 +355,12 @@
         }
       }
     ],
-    "inconsistentResult": [
-      "type_definition.metric_anomaly.percentage_of_deviation"
-    ],
     "stateDelta": {
       "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 33.29999923706055
+        "/type_definition/metric_anomaly/percentage_of_deviation": 33.3
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"percentage_of_deviation\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -382,10 +370,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"percentage_of_deviation\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "100",
@@ -512,7 +497,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricAnomaly\\\",\\n      \\\"anomalyAlertSettings\\\",\\n      \\\"percentageOfDeviation\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricAnomaly\\\",\\n      \\\"anomalyAlertSettings\\\",\\n      \\\"percentageOfDeviation\\\"\\n    ]\\n  }\\n]\"}"
     ],
     "stateDelta": {}
   }

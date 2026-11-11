@@ -15,6 +15,8 @@
 - FIX: Importing with any id stores the fixed id `archive-retention-settings`.
 - FIX: An update that cannot find a retention tag keeps the state and asks for a refresh and a retry. Before, the error said that the refresh removes the retentions and the plan creates them again.
 - CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
+- CHORE: A flow group that lists the same alert twice with the same `not` value (an omitted `not` is false) is rejected at plan with `Duplicate Set Element`. The released provider rejected it at apply, before it called the API.
+- FIX: A key without `alerts:ReadAccessPolicy` keeps the `access_policy` of the state when the alert is read. The API answers such a key with the access block, `canReadAccessPolicy: false`, and no policy (checked on EU2: no 403), and the provider read that as an alert without a policy and cleared the value, so every refresh showed a change that the key could not apply. The data source reads the same way.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. CI runs it in the archive shard, one test at a time.
 
 #### data-source/coralogix_archive_retentions
@@ -51,6 +53,29 @@
 #### data-source/coralogix_api_key
 - CHORE: The data source is generated with the resource. It reads a key by `id`, and a hashed key is still an error (`Key value is required`). `access_policy` has the description of the resource, which also says how to clear a policy, and the owner ids have a description. API errors read `Unable to read coralogix_api_key`, and a key that is gone reads `coralogix_api_key not found`.
 
+#### resource/coralogix_archive_logs
+- FIX: A response without the `s3` object no longer crashes the read. The fields of the object read as null, as the generator now reads any inlined object that the API leaves out.
+
+#### resource/coralogix_alert
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of an alert that 3.24.0 created from the same configuration shows no change. The handwritten code stays only for what the contract cannot state: the schedule (stored in UTC), `access_policy`, the `group_by` and `override.priority` plans, and the validations that the schema no longer holds.
+- CHORE: Types that differ: `type_definition.logs_anomaly.percentage_of_deviation` and `type_definition.metric_anomaly.percentage_of_deviation` are 32-bit floats, `latency_threshold_ms` of `tracing_immediate` and `tracing_threshold` is an integer (a fraction or a negative value fails at validation, where the API refused it before). The descriptions come from the API contract, and the lists of valid values that some of them carried are gone. `type_definition` rejects a missing or a second type with one error per type instead of one error, and a webhook with both `integration_id` and `recipients` fails twice.
+- CHORE: API errors read `Unable to create alert`, `Unable to update alert`, `Unable to delete alert`, and `Unable to read alert`, and a refresh that finds the alert gone warns `Resource disappeared during read`. A request omits the empty lists, the empty strings, and the zero enums that it sent before (`group_by`, `notification_payload_filter`, `priority = P5`, `lucene_query = ""`), which the API stores the same.
+- CHORE: Read and Delete treat only the 404 of the alert itself (`Not Found: <message>`, which the alert API answers for an unknown, a malformed, and a deleted id) as "the alert is gone". A 404 of a route that does not exist, for example in a region without the service, is an error. Before, any 404 meant that the alert was gone.
+- CHORE: `of_the_last = ""` of a metric alert is refused by the API (400) when the apply runs. Before, the apply succeeded and then failed as inconsistent.
+- CHORE: An empty or doubled `type_definition` reports one error for each alert type (15), where the released resource reported one or two. A flow stage that lists the same alert twice in `alert_defs` is applied and then reported as inconsistent; before, it failed with `Duplicate Set Element`.
+- CHORE: A state upgrade from schema version 1 or 2 reads the alert with the access policy (`include_access_permissions=true`, retried without it on a 403), so the upgraded state also has `access_policy`.
+- FIX: An explicit empty collection (`group_by = []`, `notification_payload_filter`, label filters, tracing label filters, flow `stages`, groups, and `alert_defs`) round-trips. Before, the apply failed with `Provider produced inconsistent result after apply` and the next plan was not empty.
+- FIX: `percentage_of_deviation` of a logs or metric anomaly alert reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, `0.1` read back as `0.10000000149011612` and failed the apply.
+- FIX: A span field in `tracing_label_filters.span_fields` without `filter_type` works. Before, the apply failed with a value conversion error.
+- FIX: `no_data_policy.state` of a `logs_threshold` or `metric_threshold` alert keeps its value when only `auto_retire_seconds` is configured. Before, the plan showed the state as unknown, the API answered `UNSPECIFIED`, and every later plan showed a change.
+- FIX: An update of an alert that was deleted outside Terraform fails with `Resource no longer exists` and the advice to refresh. Before, it failed with `Missing Resource State After Update`.
+- FIX: The webhook `retriggering_period` that the configuration leaves out comes from the state webhook with the same `integration_id` or `recipients`. Before, it came from the webhook at the same position in the set, which gave a webhook the period of its neighbour.
+- FIX: Removing `description` from the configuration clears it on the alert. The API keeps a stored description that an update omits, so an update now sends `description: ""` when the configuration has none, and an empty description reads back as null (a configured `description = ""` stays). Before, the apply failed with `Provider produced inconsistent result after apply` and the alert kept the old text.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0 (also for a schedule with a UTC offset).
+
+#### data-source/coralogix_alert
+- CHORE: The data source is generated with the resource. It reads an alert by `id` with the schema of the resource, shows `access_policy` for a key that may read it, and fails with `coralogix_alert not found` for an id that does not exist.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
 - FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.
@@ -68,6 +93,8 @@
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that has `updateAs`, `updateDefault`, the request-only wrapper, and `itemName`.
 - CHORE: Bump the generator to `v0.1.0-beta.76`. The generated packages are the same; only `versions.yaml` changes.
 - CHORE: Bump the generator to `v0.1.0-beta.77`. The generated files of every resource are the same.
+- CHORE: Bump the generator to `v0.1.0-beta.78`.
+- FIX: The generated flatten reads an inlined object that the API leaves out (a field moved out of an optional object with `inline`) as an empty object, so its fields are null. Before, it read through the missing pointer and the provider crashed on refresh and import.
 - FEAT: `inline` accepts an object that holds a `oneOf`. Its arms become top-level fields of the resource, and a `groups` line collects them as for any top-level `oneOf`. `required: true` on an `inline` line states that the API always has the object, for a contract that cannot write it (a message field of a request has no `required` list). Before, the generator stopped with `INLINE_UNSUPPORTED`.
 - FEAT: `modifyPlan: true` adds a `ModifyPlan` hook to an existing resource. It runs after the generated plan steps (enum aliases, plan equals state, equality), is skipped on destroy and when a generated step failed, and sees the final plan, so a rule that no attribute modifier expresses, such as a planned value inside a set of objects, can be set there.
 - FEAT: `extraAttributes` can be a `bool`, a `list`, or an `object` with nested `attributes`, and can be Optional+Computed (`optional: true` with `computed: true`) with a static `default`, `useStateForUnknown`, and, on a string, `equality: json` or `yaml`. They are Terraform-only: expand sends nothing, flatten starts them as a typed null, and a hook converts them. Before, an extra attribute was a plain optional string, set of strings, map, or dynamic value.

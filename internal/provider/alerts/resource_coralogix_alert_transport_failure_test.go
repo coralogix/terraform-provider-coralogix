@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
-	alertschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -41,17 +41,17 @@ func (alertTransportErrorRoundTripper) RoundTrip(*http.Request) (*http.Response,
 	return nil, errors.New(alertTransportFailureError)
 }
 
-func alertTransportFailureResource() *AlertResource {
+func alertTransportFailureResource() frameworkresource.Resource {
 	cfg := alerts.NewConfiguration()
 	cfg.Servers = alerts.ServerConfigurations{{URL: "https://example.com"}}
 	cfg.HTTPClient = &http.Client{Transport: alertTransportErrorRoundTripper{}}
 
-	return &AlertResource{client: alerts.NewAPIClient(cfg).AlertDefinitionsServiceAPI}
+	return alert.NewResourceWithClient(alerts.NewAPIClient(cfg).AlertDefinitionsServiceAPI, alertHooks())
 }
 
 func TestAlertResourceTransportFailureDoesNotPanic(t *testing.T) {
 	ctx := context.Background()
-	resourceSchema := alertschema.V3()
+	resourceSchema := alert.Schema()
 
 	t.Run("read", func(t *testing.T) {
 		priorState := alertTransportFailureState(ctx, resourceSchema, alertTransportFailureTestID)
@@ -59,7 +59,7 @@ func TestAlertResourceTransportFailureDoesNotPanic(t *testing.T) {
 
 		alertTransportFailureResource().Read(ctx, frameworkresource.ReadRequest{State: priorState}, &response)
 
-		assertAlertTransportFailureDiagnostics(t, response.Diagnostics, "Error reading coralogix_alert")
+		assertAlertTransportFailureDiagnostics(t, response.Diagnostics, "Unable to read alert")
 		if response.State.Raw.IsNull() {
 			t.Fatal("Read() removed the resource from state, want prior state preserved for a retryable failure")
 		}
@@ -76,7 +76,7 @@ func TestAlertResourceTransportFailureDoesNotPanic(t *testing.T) {
 
 		alertTransportFailureResource().Update(ctx, frameworkresource.UpdateRequest{Plan: plan, State: priorState, Config: config}, &response)
 
-		assertAlertTransportFailureDiagnostics(t, response.Diagnostics, "Error replacing coralogix_alert")
+		assertAlertTransportFailureDiagnostics(t, response.Diagnostics, "Unable to update alert")
 		if response.State.Raw.IsNull() {
 			t.Fatal("Update() removed the resource from state, want prior state preserved for a retryable failure")
 		}

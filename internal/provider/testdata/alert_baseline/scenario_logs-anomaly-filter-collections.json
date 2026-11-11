@@ -88,21 +88,16 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsAnomaly": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": "tfbaseline"
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -112,11 +107,8 @@
               ]
             },
             "name": "tfbaseline-anomaly-filters",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
           }
         },
@@ -260,8 +252,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -270,16 +262,16 @@
               "logsFilter": {
                 "simpleFilter": {
                   "labelFilters": {
-                    "severities": []
+                    "applicationName": [],
+                    "severities": [],
+                    "subsystemName": []
                   },
                   "luceneQuery": "tfbaseline"
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
-                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
                     "minimumThreshold": 5,
                     "timeWindow": {
                       "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
@@ -289,9 +281,7 @@
               ]
             },
             "name": "tfbaseline-anomaly-filters",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
@@ -303,18 +293,14 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name",
-      "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.severities",
-      "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"application_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"severities\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"subsystem_name\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_anomaly/logs_filter/simple_filter/label_filters/application_name": [],
+        "/type_definition/logs_anomaly/logs_filter/simple_filter/label_filters/severities": [],
+        "/type_definition/logs_anomaly/logs_filter/simple_filter/label_filters/subsystem_name": []
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -324,12 +310,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"application_name\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"severities\")",
-      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"subsystem_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "severity Debug",
@@ -374,14 +355,20 @@
           "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/severities": [
             "LOG_SEVERITY_DEBUG"
           ]
-        }
+        },
+        "remove": [
+          "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/applicationName",
+          "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/subsystemName"
+        ]
       }
     ],
     "stateDelta": {
       "set": {
+        "/type_definition/logs_anomaly/logs_filter/simple_filter/label_filters/application_name": null,
         "/type_definition/logs_anomaly/logs_filter/simple_filter/label_filters/severities": [
           "Debug"
-        ]
+        ],
+        "/type_definition/logs_anomaly/logs_filter/simple_filter/label_filters/subsystem_name": null
       }
     },
     "replanEmpty": true
@@ -594,14 +581,16 @@
               "value": "a"
             }
           ],
-          "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/severities": [],
           "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/subsystemName": [
             {
               "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
               "value": "s"
             }
           ]
-        }
+        },
+        "remove": [
+          "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/severities"
+        ]
       }
     ],
     "stateDelta": {
@@ -865,9 +854,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/severities": []
-        }
+        "remove": [
+          "/body/alertDefProperties/logsAnomaly/logsFilter/simpleFilter/labelFilters/severities"
+        ]
       }
     ],
     "stateDelta": {

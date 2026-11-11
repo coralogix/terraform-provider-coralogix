@@ -74,9 +74,7 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsUniqueCount": {
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -90,11 +88,8 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-payload",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
           }
         },
@@ -207,8 +202,8 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -216,9 +211,7 @@
             "logsUniqueCount": {
               "logsFilter": {
                 "simpleFilter": {
-                  "labelFilters": {
-                    "severities": []
-                  },
+                  "labelFilters": {},
                   "luceneQuery": ""
                 }
               },
@@ -236,9 +229,7 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-payload",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
@@ -250,14 +241,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.logs_unique_count.notification_payload_filter"
-    ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_unique_count\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "stateDelta": {
+      "set": {
+        "/type_definition/logs_unique_count/notification_payload_filter": []
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -269,10 +258,7 @@
       }
     ],
     "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"logs_unique_count\").AttributeName(\"notification_payload_filter\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: two values",
@@ -328,9 +314,9 @@
     "requests": [
       {
         "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsUniqueCount/notificationPayloadFilter": []
-        }
+        "remove": [
+          "/body/alertDefProperties/logsUniqueCount/notificationPayloadFilter"
+        ]
       }
     ],
     "stateDelta": {
