@@ -1624,6 +1624,41 @@ func TestSignedDigitStringKeyIsChecked(t *testing.T) {
 	}
 }
 
+// A field of a group is an attribute of the group: it can have the name of a field of the resource,
+// but not the name of another field of its own group, and the group cannot have the name of a field
+// of the resource.
+func TestGroupFieldNamesAreCheckedInsideTheGroup(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "wrapthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct{ old, new, want string }{
+		"two fields of the group with one name": {"      homePath: {name: path}", "      homePath: {name: id}", `name "id" is also the name of homeId`},
+		"a group named like a field":            {"  home:\n    fields: [homeId, homePath]", "  name:\n    fields: [homeId, homePath]", "the name is also the top-level attribute name"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(string(base), test.old) {
+				t.Fatalf("the overrides file has no %q", test.old)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(strings.Replace(string(base), test.old, test.new, 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			options := Options{Resource: "WrapThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
 // asString needs a oneOf of an enum and a string, and a pattern that no spelling of the enum
 // matches: a text that is both would be ambiguous.
 func TestFoldedOneOfKeyIsChecked(t *testing.T) {

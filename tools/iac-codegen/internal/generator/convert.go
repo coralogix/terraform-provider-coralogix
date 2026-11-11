@@ -1939,15 +1939,16 @@ func checkObjects(objects []*convObject) error {
 }
 
 // checkOptionalGroups reports an optional group that has a field whose absence flatten cannot tell: a
-// field that the SDK holds as a value, in wrappers, or as a list or a map. The group is null when
-// every field is absent, so each one must be a pointer.
+// field that the SDK holds as a value, or as a list or a map. A field in wrappers is held by its
+// outer wrapper, so that wrapper must be a pointer: a nil wrapper tells that the field is absent. The
+// group is null when every field is absent, so each one must be a pointer.
 func checkOptionalGroups(objects []*convObject) error {
 	for _, obj := range objects {
 		if !obj.OptionalGroup {
 			continue
 		}
 		for _, f := range obj.Fields {
-			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj && f.Conv != convGroup) || f.Value || f.Wrap != nil {
+			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj && f.Conv != convGroup) || f.Value || f.Wrap != nil && !strings.HasPrefix(f.Wrap.Outer, "*") {
 				return fmt.Errorf("%s: an optional group needs fields that the SDK holds by pointer (a scalar or an object), so that a missing value tells the group is absent; %s is not one", obj.Model, f.TFName)
 			}
 		}

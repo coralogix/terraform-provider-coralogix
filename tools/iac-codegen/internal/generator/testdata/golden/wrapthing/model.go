@@ -8,22 +8,23 @@ import (
 )
 
 type WrapThingModel struct {
-	Id         types.String       `tfsdk:"id"`
-	Name       types.String       `tfsdk:"name"`
-	Query      types.String       `tfsdk:"query"`
-	RawQuery   *LuceneQueryModel  `tfsdk:"raw_query"`
-	Priority   types.String       `tfsdk:"priority"`
-	Threshold  types.Float64      `tfsdk:"threshold"`
-	WidgetIds  types.List         `tfsdk:"widget_ids"`
-	Filter     *SimpleFilterModel `tfsdk:"filter"`
-	Selection  types.List         `tfsdk:"selection"`
-	Tags       types.Set          `tfsdk:"tags"`
-	Window     types.String       `tfsdk:"window"`
-	MainLabel  types.String       `tfsdk:"main_label"`
-	ExtraLabel *LabelModel        `tfsdk:"extra_label"`
-	Panels     types.List         `tfsdk:"panels"`
-	FolderPath types.String       `tfsdk:"folder_path"`
-	Offset     types.Int64        `tfsdk:"offset"`
+	Id         types.String        `tfsdk:"id"`
+	Name       types.String        `tfsdk:"name"`
+	Query      types.String        `tfsdk:"query"`
+	RawQuery   *LuceneQueryModel   `tfsdk:"raw_query"`
+	Priority   types.String        `tfsdk:"priority"`
+	Threshold  types.Float64       `tfsdk:"threshold"`
+	WidgetIds  types.List          `tfsdk:"widget_ids"`
+	Filter     *SimpleFilterModel  `tfsdk:"filter"`
+	Selection  types.List          `tfsdk:"selection"`
+	Tags       types.Set           `tfsdk:"tags"`
+	Window     types.String        `tfsdk:"window"`
+	MainLabel  types.String        `tfsdk:"main_label"`
+	ExtraLabel *LabelModel         `tfsdk:"extra_label"`
+	Panels     types.List          `tfsdk:"panels"`
+	FolderPath types.String        `tfsdk:"folder_path"`
+	Home       *WrapThingHomeModel `tfsdk:"home"`
+	Offset     types.Int64         `tfsdk:"offset"`
 }
 
 type LuceneQueryModel struct {
@@ -54,4 +55,9 @@ type WrapPanelModel struct {
 	Id         types.String `tfsdk:"id"`
 	Title      types.String `tfsdk:"title"`
 	PanelNotes types.List   `tfsdk:"panel_notes"`
+}
+
+type WrapThingHomeModel struct {
+	HomeId   types.String `tfsdk:"id"`
+	HomePath types.String `tfsdk:"path"`
 }

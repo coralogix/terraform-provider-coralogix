@@ -199,7 +199,7 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		if !nested && !requested[line.Component] {
 			byCreate = createOptional
 		}
-		return fieldLineProblem(schema, line, nested, responseOnly, byCreate)
+		return fieldLineProblem(schema, line, siblingFields(file, resource, line), nested, responseOnly, byCreate)
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
@@ -478,10 +478,11 @@ func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is
 // stale when the contract states the same fact.
+// group lists the fields of the group that holds the field, or is nil (see siblingFields).
 // shared is true for a nested component, which the requests and the response usually share, so
 // its required list binds the requests too. responseOnly is true for a nested component that no
 // request reaches: its required list binds no request, so a required or optional line is not stale.
-func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool, createOptional map[string]bool) *lineIssue {
+func fieldLineProblem(schema *base.Schema, line overrides.Line, group []string, shared, responseOnly bool, createOptional map[string]bool) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
@@ -518,7 +519,7 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 		}
 	}
 	if line.Name != "" {
-		if problem := nameProblem(schema, line); problem != nil {
+		if problem := nameProblem(schema, line, group); problem != nil {
 			return problem
 		}
 	}
@@ -902,13 +903,39 @@ func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	return nil
 }
 
+// siblingFields returns the fields that share an object with the field of a field line, when
+// the resource component puts the field in a group: the group is an object, so the field is an
+// attribute of it, next to the other fields of the group. It returns nil for any other field,
+// which is an attribute of its component.
+func siblingFields(file *overrides.File, resource string, line overrides.Line) []string {
+	if line.Component != resource {
+		return nil
+	}
+	path := file.GroupPath(line.Field)
+	if len(path) == 0 {
+		return nil
+	}
+	g := file.Groups[path[0]]
+	if len(path) == 2 {
+		g = g.Groups[path[1]]
+	}
+	return g.Fields
+}
+
 // nameProblem checks a name line. The name must differ from the name that the JSON name
-// gives, and from the name of every other field of the component that has an attribute.
-func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+// gives, and from the name of every other field of the object that holds the attribute that has an
+// attribute. That object is the component, or the group when the field is in one: a group is an
+// attribute of the component, so its fields can use the name of a field of the component. group
+// lists the fields of the group, or is nil. The Terraform names come from TerraformName, as the
+// attributes of the resource do.
+func nameProblem(schema *base.Schema, line overrides.Line, group []string) *lineIssue {
 	if line.Name == TerraformName(line.Field) {
 		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
 	}
 	for field := range schema.Properties.KeysFromOldest() {
+		if group != nil && !slices.Contains(group, field) {
+			continue
+		}
 		if field != line.Field && TerraformName(field) == line.Name && !slices.Contains(line.NoAttribute, field) {
 			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
 		}

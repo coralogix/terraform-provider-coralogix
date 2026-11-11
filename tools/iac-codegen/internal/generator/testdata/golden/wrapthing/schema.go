@@ -160,6 +160,20 @@ func Schema() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "",
 			},
+			"home": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+					"path": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "Where the thing lives, by id or by path.",
+			},
 			"offset": schema.Int64Attribute{
 				Optional:            true,
 				MarkdownDescription: "",

@@ -58,6 +58,7 @@ var createFields = []struct {
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
 	{attr: "folder_path", serverDefault: false},
+	{attr: "home", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }
 
@@ -376,6 +377,7 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		inner = splitText(m.FolderPath, "/")
 		out.FolderPath = wrapFolderPath(inner)
 	}
+	expandCreateWrapThingRequestHome(ctx, p.AtName("home"), m.Home, out, diags)
 	out.Offset = expandInt64Wire(m.Offset)
 	out.Notes = collectedNotes.items
 	return out
@@ -505,6 +507,23 @@ func wrapPanelAttrTypes() map[string]attr.Type {
 	}
 }
 
+// expandCreateWrapThingRequestHome writes the fields of a group, which the API holds in the parent object, to out.
+func expandCreateWrapThingRequestHome(ctx context.Context, p path.Path, m *WrapThingHomeModel, out *wrap_things_service.CreateWrapThingRequest, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	{
+		var inner *string
+		inner = expandString(m.HomeId)
+		out.HomeId = wrapUUID(inner)
+	}
+	{
+		var inner []string
+		inner = splitText(m.HomePath, "/")
+		out.HomePath = wrapFolderPath(inner)
+	}
+}
+
 func expandWrapNote(ctx context.Context, p path.Path, m *WrapNoteModel, diags *diag.Diagnostics) *wrap_things_service.WrapNote {
 	if m == nil {
 		return nil
@@ -630,9 +649,27 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		inner = splitText(m.FolderPath, "/")
 		out.FolderPath = wrapFolderPath(inner)
 	}
+	expandReplaceWrapThingRequestHome(ctx, p.AtName("home"), m.Home, out, diags)
 	out.Offset = expandInt64Wire(m.Offset)
 	out.Notes = collectedNotes.items
 	return out
+}
+
+// expandReplaceWrapThingRequestHome writes the fields of a group, which the API holds in the parent object, to out.
+func expandReplaceWrapThingRequestHome(ctx context.Context, p path.Path, m *WrapThingHomeModel, out *wrap_things_service.ReplaceWrapThingRequest, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	{
+		var inner *string
+		inner = expandString(m.HomeId)
+		out.HomeId = wrapUUID(inner)
+	}
+	{
+		var inner []string
+		inner = splitText(m.HomePath, "/")
+		out.HomePath = wrapFolderPath(inner)
+	}
 }
 
 func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, diags *diag.Diagnostics) *WrapThingModel {
@@ -700,7 +737,27 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		inner := unwrapFolderPath(v.FolderPath)
 		out.FolderPath = joinText(inner, "/")
 	}
+	out.Home = flattenWrapThingHome(ctx, p.AtName("home"), v, diags)
 	out.Offset = flattenInt64Wire(p.AtName("offset"), v.Offset, diags)
+	return out
+}
+
+func flattenWrapThingHome(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, diags *diag.Diagnostics) *WrapThingHomeModel {
+	if v == nil {
+		return nil
+	}
+	if v.HomeId == nil && v.HomePath == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &WrapThingHomeModel{}
+	{
+		inner := unwrapUUID(v.HomeId)
+		out.HomeId = types.StringPointerValue(inner)
+	}
+	{
+		inner := unwrapFolderPath(v.HomePath)
+		out.HomePath = joinText(inner, "/")
+	}
 	return out
 }
 

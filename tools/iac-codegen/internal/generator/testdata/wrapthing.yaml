@@ -44,6 +44,8 @@ paths:
                   type: array
                   items: {$ref: '#/components/schemas/WrapNote'}
                 folderPath: {$ref: '#/components/schemas/FolderPath'}
+                homeId: {$ref: '#/components/schemas/UUID'}
+                homePath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -96,6 +98,8 @@ paths:
                   type: array
                   items: {$ref: '#/components/schemas/WrapNote'}
                 folderPath: {$ref: '#/components/schemas/FolderPath'}
+                homeId: {$ref: '#/components/schemas/UUID'}
+                homePath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -148,6 +152,8 @@ components:
           type: array
           items: {$ref: '#/components/schemas/WrapNote'}
         folderPath: {$ref: '#/components/schemas/FolderPath'}
+        homeId: {$ref: '#/components/schemas/UUID'}
+        homePath: {$ref: '#/components/schemas/FolderPath'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     LuceneQuery:
       type: object

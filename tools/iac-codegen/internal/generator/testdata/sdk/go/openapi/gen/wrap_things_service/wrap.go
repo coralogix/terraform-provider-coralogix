@@ -110,6 +110,8 @@ type WrapThing struct {
 	Panels     []WrapPanel
 	Notes      []WrapNote
 	FolderPath *FolderPath
+	HomeId     *UUID
+	HomePath   *FolderPath
 	Offset     *string
 }
 
@@ -129,6 +131,8 @@ type CreateWrapThingRequest struct {
 	Panels     []WrapPanel
 	Notes      []WrapNote
 	FolderPath *FolderPath
+	HomeId     *UUID
+	HomePath   *FolderPath
 	Offset     *string
 }
 
@@ -148,6 +152,8 @@ type ReplaceWrapThingRequest struct {
 	Panels     []WrapPanel
 	Notes      []WrapNote
 	FolderPath *FolderPath
+	HomeId     *UUID
+	HomePath   *FolderPath
 	Offset     *string
 }
 

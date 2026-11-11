@@ -562,6 +562,58 @@ func TestJoinedSegmentsAreOneText(t *testing.T) {
 	}
 }
 
+// A group can name a field like a field of the resource, and its fields can sit in wrappers. The
+// home has an id (a UUID wrapper) and a path (the segments), next to the id of the thing.
+func homeModel(home *WrapThingHomeModel) *WrapThingModel {
+	return &WrapThingModel{
+		Query: types.StringNull(), Priority: types.StringNull(), Threshold: types.Float64Null(),
+		WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), Tags: types.SetNull(types.StringType), MainLabel: types.StringNull(),
+		FolderPath: types.StringNull(), Home: home,
+	}
+}
+
+// A null group sends neither arm. The id sends the wrapper. The path "Team/Sub" sends two segments.
+func TestGroupFieldsInWrappersAreSent(t *testing.T) {
+	ctx := context.Background()
+	body, diags := expandCreate(ctx, homeModel(nil))
+	if diags.HasError() || body.HomeId != nil || body.HomePath != nil {
+		t.Fatalf("a null group sent %+v %+v (%v), want neither arm", body.HomeId, body.HomePath, diags)
+	}
+	body, diags = expandCreate(ctx, homeModel(&WrapThingHomeModel{HomeId: types.StringValue("abc"), HomePath: types.StringNull()}))
+	if diags.HasError() || body.HomeId == nil || *body.HomeId.Value != "abc" || body.HomePath != nil {
+		t.Fatalf("the id sent %+v %+v (%v), want only the id", body.HomeId, body.HomePath, diags)
+	}
+	body, diags = expandCreate(ctx, homeModel(&WrapThingHomeModel{HomeId: types.StringNull(), HomePath: types.StringValue("Team/Sub")}))
+	if diags.HasError() || body.HomeId != nil || body.HomePath == nil || !reflect.DeepEqual(body.HomePath.Segments, []string{"Team", "Sub"}) {
+		t.Fatalf("the path sent %+v %+v (%v), want two segments", body.HomeId, body.HomePath, diags)
+	}
+}
+
+// A response with neither arm reads as a null group. The id and the path are read from their wrappers,
+// and the id of the thing is not changed by the id of the home.
+func TestGroupFieldsInWrappersAreRead(t *testing.T) {
+	ctx := context.Background()
+	got, diags := flatten(ctx, fullResponse())
+	if diags.HasError() || got.Home != nil {
+		t.Fatalf("a response with neither arm read as %+v (%v), want a null group", got.Home, diags)
+	}
+	resp := fullResponse()
+	resp.HomeId = &wrap_things_service.UUID{Value: ptr("abc")}
+	got, diags = flatten(ctx, resp)
+	if diags.HasError() || got.Home == nil || got.Home.HomeId.ValueString() != "abc" || !got.Home.HomePath.IsNull() {
+		t.Fatalf("the id read as %+v (%v), want the id and a null path", got.Home, diags)
+	}
+	if got.Id.ValueString() != fullResponse().Id {
+		t.Errorf("the id of the thing is %q: the home must not change it", got.Id.ValueString())
+	}
+	resp = fullResponse()
+	resp.HomePath = &wrap_things_service.FolderPath{Segments: []string{"Team", "Sub"}}
+	got, diags = flatten(ctx, resp)
+	if diags.HasError() || got.Home == nil || got.Home.HomePath.ValueString() != "Team/Sub" || !got.Home.HomeId.IsNull() {
+		t.Fatalf("the path read as %+v (%v), want the path and a null id", got.Home, diags)
+	}
+}
+
 func noteList(t *testing.T, notes ...WrapNoteModel) types.List {
 	t.Helper()
 	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: wrapNoteAttrTypes()}, notes)
