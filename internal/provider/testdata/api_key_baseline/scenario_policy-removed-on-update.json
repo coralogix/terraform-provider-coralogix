@@ -39,7 +39,6 @@
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
           "accessPolicy": "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" } }, \"rules\": [] }",
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"

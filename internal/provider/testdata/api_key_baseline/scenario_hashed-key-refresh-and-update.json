@@ -88,17 +88,38 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "old-secret"
     },
-    "applyDiagnostics": [
-      "error: Error updating ApiKey | ApiKey hashing can not be updated."
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "body": {
+          "isActive": true,
+          "newName": "hashed-renamed",
+          "permissions": {
+            "permissions": []
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
     ],
     "state": {
       "access_policy": "",
       "active": true,
       "hashed": true,
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": "hashed",
+      "name": "hashed-renamed",
       "owner": {
         "organisation_id": null,
         "team_id": "4000001",
@@ -109,7 +130,8 @@
         "APM"
       ],
       "value": "old-secret"
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -125,7 +147,7 @@
       "active": true,
       "hashed": true,
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": "hashed",
+      "name": "hashed-renamed",
       "owner": {
         "organisation_id": null,
         "team_id": "4000001",
@@ -137,11 +159,6 @@
       ],
       "value": "old-secret"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"hashed\")",
-      "AttributeName(\"name\")",
-      "AttributeName(\"value\")"
-    ]
+    "replanEmpty": true
   }
 ]

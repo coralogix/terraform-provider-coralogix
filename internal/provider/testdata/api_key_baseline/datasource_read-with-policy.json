@@ -12,7 +12,7 @@
       }
     ],
     "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"team-custom-api-keys:Manage\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:Manage\":\"deny\"}},\"rules\":[]}",
       "active": true,
       "hashed": false,
       "id": "00000000-0000-4000-8000-000000000001",

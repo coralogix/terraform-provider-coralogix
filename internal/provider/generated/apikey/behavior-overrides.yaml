@@ -1,0 +1,67 @@
+# Where coralogix_api_key differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: KeyInfo
+mode: existing
+typeName: api_key
+
+markdownDescription: "Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/."
+
+schema:
+  version: 1
+
+validators:
+  inferred: false
+
+# Create returns {keyId, name, value}, and Update returns {}: both read the key with Get.
+api:
+  operations:
+    create: ApiKeysService_CreateApiKey
+    get: ApiKeysService_GetApiKey
+    update: ApiKeysService_UpdateApiKey
+    delete: ApiKeysService_DeleteApiKey
+  idProperty: id
+  createResponseOnlyIDProperty: keyId
+
+# Update holds each list in a one-property object; Create and Get hold the list.
+unwrap: [UpdateApiKeyRequest.Permissions, Presets]
+
+types:
+  KeyInfo:
+    fields:
+      id: {markdownDescription: "ApiKey ID."}
+      # Update takes the name as newName.
+      name: {updateAs: newName, markdownDescription: "Api Key name."}
+      # Create cannot set active: a new key is active, and Update sets it.
+      active: {updateAs: isActive, updateDefault: true, computed: true, default: true, markdownDescription: "Api Key Is Active."}
+      # The released attribute is computed: Create sends no hashed, which the API reads as false.
+      hashed: {readOnly: true, markdownDescription: "Api Key Is Hashed."}
+      # The lists are in keyPermissions, and the resource shows them as attributes.
+      keyPermissions: {inline: true}
+      presets: {itemName: name, required: true, collection: set, markdownDescription: "Api Key Presets"}
+      permissions: {required: true, collection: set, markdownDescription: "Api Key Permissions"}
+      # The secret that Get returns for a key that is not hashed.
+      value:
+        sensitive: true
+        # The value does not change, so a plan keeps it. A hashed key that schema version 0 created
+        # has its value only in the state, and its update needs the plan to hold that value.
+        useStateForUnknown: true
+        markdownDescription: "The API key's secret value. The Coralogix API returns it for every key that is not hashed, so an imported key and a data source have it. A key that schema version 0 of the provider created as hashed has no value to read: Terraform keeps the one in its state."
+      # The API stores the policy as compact JSON in another key order.
+      accessPolicy:
+        equality: json
+        computed: true
+        useStateForUnknown: true
+        # A key without a policy reads as "", as the released resource did.
+        readNullAs: empty
+        markdownDescription: "Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (\"\"). Omitting the attribute will preserve the existing policy."
+      owner:
+        requireOne: true
+        markdownDescription: "Api Key Owner. It can either be a team_id, organisation_id, or a user_id "
+  Owner:
+    fields:
+      teamId: {terraformType: String}
+
+# The released data source read a key by id, and its schema was the resource schema.
+dataSource: {}

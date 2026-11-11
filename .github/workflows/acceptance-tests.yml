@@ -524,6 +524,8 @@ jobs:
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
+          # The coralogix_api_key upgrade test creates keys that the team of the CI key owns.
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=${{ !matrix.paused && '1' || '' }} TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,

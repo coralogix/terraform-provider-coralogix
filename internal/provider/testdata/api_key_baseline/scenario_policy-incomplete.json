@@ -39,7 +39,6 @@
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
           "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:Manage\":\"deny\"}},\"rules\":[]}",
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -86,8 +85,7 @@
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"access_policy\")",
-      "AttributeName(\"hashed\")",
-      "AttributeName(\"value\")"
+      "AttributeName(\"hashed\")"
     ]
   }
 ]

@@ -39,7 +39,6 @@
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
           "accessPolicy": "not json",
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -57,7 +56,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid argument: provided access_policy_raw_json is not a valid json: expected ident at line 1 column 2\"}\noperation - Create"
+      "error: Unable to create api_key | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid argument: provided access_policy_raw_json is not a valid json: expected ident at line 1 column 2\"}"
     ],
     "state": null
   }

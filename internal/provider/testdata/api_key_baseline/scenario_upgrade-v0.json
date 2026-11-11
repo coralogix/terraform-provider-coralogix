@@ -85,7 +85,7 @@
         "team-roles:ReadConfig"
       ],
       "presets": [],
-      "value": "(unknown)"
+      "value": "old-secret"
     },
     "state": {
       "access_policy": null,
