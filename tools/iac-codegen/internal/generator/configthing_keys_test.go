@@ -50,3 +50,20 @@ func TestFloatAndNumberKeysRefuseOtherFields(t *testing.T) {
 		})
 	}
 }
+
+// A validator target must exist, and equals is true only.
+func TestValidatorKeysRefuseBadTargets(t *testing.T) {
+	tests := map[string]struct{ from, to, want string }{
+		"a target that goes too far up":                            {`alsoRequires: ["../name"]`, `alsoRequires: ["../../../name"]`, "goes up 3 levels"},
+		"a target that is not above":                               {`alsoRequires: ["../name"]`, `alsoRequires: ["../nothing"]`, "is not another attribute"},
+		"a target at the level of the attribute that has the line": {`alsoRequires: ["../name"]`, `alsoRequires: ["name"]`, "is not another attribute"},
+		"equals false": {"- equals: true", "- equals: false", "equals is true only"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateConfigThingWith(t, test.from, test.to); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

@@ -36,6 +36,7 @@ type ConfigThing struct {
 	Ratio    *float32
 	Retries  *int32
 	Scale    *float64
+	Marker   *bool
 	Remotes  []ConfigRemote
 	Labels   []string
 	Metadata map[string]string
@@ -48,6 +49,7 @@ type CreateConfigThingRequest struct {
 	Ratio    *float32
 	Retries  *int32
 	Scale    *float64
+	Marker   *bool
 	Remotes  []ConfigRemoteCreate
 	Labels   []string
 	Metadata map[string]string
@@ -59,6 +61,7 @@ type ReplaceConfigThingRequest struct {
 	Ratio    *float32
 	Retries  *int32
 	Scale    *float64
+	Marker   *bool
 	Remotes  []ConfigRemoteCreate
 	Labels   []string
 	Metadata map[string]string

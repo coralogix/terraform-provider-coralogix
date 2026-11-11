@@ -16,6 +16,7 @@ type ConfigThingModel struct {
 	Ratio    types.Float64 `tfsdk:"ratio"`
 	Retries  types.Number  `tfsdk:"retries"`
 	Scale    types.Number  `tfsdk:"scale"`
+	Marker   types.Bool    `tfsdk:"marker"`
 	Remotes  types.List    `tfsdk:"remotes"`
 	Labels   types.List    `tfsdk:"labels"`
 	Metadata types.Map     `tfsdk:"metadata"`

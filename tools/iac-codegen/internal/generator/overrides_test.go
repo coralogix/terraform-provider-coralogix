@@ -964,6 +964,7 @@ func TestBetweenOnIntegersNeedsExactBounds(t *testing.T) {
 func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 	a := &tfAttr{Name: "static_values"}
 	siblings := []*tfAttr{a, {Name: "label_keys"}}
+	above := [][]*tfAttr{{{Name: "title"}, {Name: "outer"}}, {{Name: "root_only"}}}
 	tests := []struct {
 		v    overrides.Validator
 		fail bool
@@ -973,9 +974,15 @@ func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 		{overrides.Validator{ExactlyOneOf: []string{"labelKeys"}}, true},
 		{overrides.Validator{AtLeastOneOf: []string{"missing"}}, true},
 		{overrides.Validator{ExactlyOneOf: []string{"static_values"}}, true},
+		// "../" goes up one level for each step, to an attribute of an object above.
+		{overrides.Validator{AlsoRequires: []string{"../root_only"}}, false},
+		{overrides.Validator{AlsoRequires: []string{"../../title"}}, false},
+		{overrides.Validator{AlsoRequires: []string{"../title"}}, true},
+		{overrides.Validator{AlsoRequires: []string{"../../../title"}}, true},
+		{overrides.Validator{AlsoRequires: []string{"../static_values"}}, true},
 	}
 	for _, test := range tests {
-		err := checkSiblingTargets(a, siblings, []overrides.Validator{test.v})
+		err := checkSiblingTargets(a, siblings, above, []overrides.Validator{test.v})
 		if (err != nil) != test.fail {
 			t.Errorf("checkSiblingTargets(%+v) = %v, want error %v", test.v, err, test.fail)
 		}

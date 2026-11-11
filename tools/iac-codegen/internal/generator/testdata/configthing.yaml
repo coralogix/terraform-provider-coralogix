@@ -25,6 +25,7 @@ paths:
                 ratio: {type: number, format: float, x-coralogix-presence: true}
                 retries: {type: integer, format: int32, x-coralogix-presence: true}
                 scale: {type: number, format: double, x-coralogix-presence: true}
+                marker: {type: boolean, x-coralogix-presence: true}
                 remotes:
                   type: array
                   items: {$ref: '#/components/schemas/ConfigRemoteCreate'}
@@ -69,6 +70,7 @@ paths:
                 ratio: {type: number, format: float, x-coralogix-presence: true}
                 retries: {type: integer, format: int32, x-coralogix-presence: true}
                 scale: {type: number, format: double, x-coralogix-presence: true}
+                marker: {type: boolean, x-coralogix-presence: true}
                 remotes:
                   type: array
                   items: {$ref: '#/components/schemas/ConfigRemoteCreate'}
@@ -116,6 +118,7 @@ components:
         ratio: {type: number, format: float, x-coralogix-presence: true}
         retries: {type: integer, format: int32, x-coralogix-presence: true}
         scale: {type: number, format: double, x-coralogix-presence: true}
+        marker: {type: boolean, x-coralogix-presence: true}
         remotes:
           type: array
           items: {$ref: '#/components/schemas/ConfigRemote'}

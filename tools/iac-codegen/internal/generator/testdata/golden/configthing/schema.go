@@ -6,9 +6,11 @@ package configthing
 import (
 	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -67,6 +69,13 @@ func Schema() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "",
 			},
+			"marker": schema.BoolAttribute{
+				Optional: true,
+				Validators: []validator.Bool{
+					boolvalidator.Equals(true),
+				},
+				MarkdownDescription: "",
+			},
 			"remotes": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
@@ -94,8 +103,11 @@ func Schema() schema.Schema {
 							Optional: true,
 							Attributes: map[string]schema.Attribute{
 								"attributes": schema.MapAttribute{
-									Optional:            true,
-									ElementType:         types.StringType,
+									Optional:    true,
+									ElementType: types.StringType,
+									Validators: []validator.Map{
+										mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtParent().AtName("name")),
+									},
 									MarkdownDescription: "",
 								},
 							},

@@ -37,6 +37,7 @@ var createFields = []struct {
 	{attr: "ratio", serverDefault: false},
 	{attr: "retries", serverDefault: false},
 	{attr: "scale", serverDefault: false},
+	{attr: "marker", serverDefault: false},
 	{attr: "remotes", serverDefault: false},
 	{attr: "labels", serverDefault: false},
 	{attr: "metadata", serverDefault: false},
@@ -335,6 +336,7 @@ func expandCreateConfigThingRequest(ctx context.Context, p path.Path, m *ConfigT
 	out.Ratio = expandFloat64AsFloat32(m.Ratio)
 	out.Retries = expandNumberAsInt32(p.AtName("retries"), m.Retries, diags)
 	out.Scale = expandNumberAsFloat64(p.AtName("scale"), m.Scale, diags)
+	out.Marker = expandBool(m.Marker)
 	if items := expandElements[ConfigRemoteModel](ctx, p.AtName("remotes"), m.Remotes, diags); items != nil {
 		out.Remotes = make([]config_things_service.ConfigRemoteCreate, 0, len(items))
 		for i := range items {
@@ -390,6 +392,7 @@ func expandReplaceConfigThingRequest(ctx context.Context, p path.Path, m *Config
 	out.Ratio = expandFloat64AsFloat32(m.Ratio)
 	out.Retries = expandNumberAsInt32(p.AtName("retries"), m.Retries, diags)
 	out.Scale = expandNumberAsFloat64(p.AtName("scale"), m.Scale, diags)
+	out.Marker = expandBool(m.Marker)
 	if items := expandElements[ConfigRemoteModel](ctx, p.AtName("remotes"), m.Remotes, diags); items != nil {
 		out.Remotes = make([]config_things_service.ConfigRemoteCreate, 0, len(items))
 		for i := range items {
@@ -423,6 +426,7 @@ func flattenConfigThing(ctx context.Context, p path.Path, v *config_things_servi
 	}
 	out.Retries = int32AsNumber(v.Retries)
 	out.Scale = float64AsNumber(v.Scale)
+	out.Marker = types.BoolPointerValue(v.Marker)
 	out.Remotes = types.ListNull(types.ObjectType{AttrTypes: configRemoteAttrTypes()})
 	srcRemotes := v.Remotes
 	if prior != nil {

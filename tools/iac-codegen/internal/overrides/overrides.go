@@ -740,12 +740,16 @@ type Validator struct {
 	EnumExceptZero bool `yaml:"enumExceptZero"`
 	// Between is a released numeric Between validator: the minimum and the maximum.
 	Between []float64 `yaml:"between"`
-	// ExactlyOneOf and AtLeastOneOf name sibling attributes, by their Terraform names, for a
-	// released ExactlyOneOf or AtLeastOneOf validator.
+	// ExactlyOneOf, AtLeastOneOf, AlsoRequires, and ConflictsWith name attributes, by their
+	// Terraform names: a sibling of the attribute, or with a leading "../" for each level up, an
+	// attribute of the object that holds the parent ("../title").
 	ExactlyOneOf  []string `yaml:"exactlyOneOf"`
 	AtLeastOneOf  []string `yaml:"atLeastOneOf"`
 	AlsoRequires  []string `yaml:"alsoRequires"`
 	ConflictsWith []string `yaml:"conflictsWith"`
+	// Equals is a released boolvalidator.Equals of a bool: the only value that a configuration may
+	// hold. The released marker bool rejects false at plan, where asBool alone rejects it at apply.
+	Equals *bool `yaml:"equals"`
 	// AtLeast is a released AtLeast validator of a number.
 	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
@@ -1710,6 +1714,12 @@ func checkValidators(validators []Validator) error {
 		if len(v.ConflictsWith) != 0 {
 			set++
 		}
+		if v.Equals != nil {
+			if !*v.Equals {
+				return errors.New("equals is true only: a marker bool has one valid value")
+			}
+			set++
+		}
 		if v.AtLeast != nil {
 			set++
 		}
@@ -1726,7 +1736,7 @@ func checkValidators(validators []Validator) error {
 			}
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, atLeast, regexMatches, and keysAre")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, equals, atLeast, regexMatches, and keysAre")
 		}
 	}
 	return nil

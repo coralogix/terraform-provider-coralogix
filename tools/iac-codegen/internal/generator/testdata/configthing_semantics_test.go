@@ -1043,3 +1043,80 @@ func TestNumberOverAnInt32RejectsWhatTheAPICannotHold(t *testing.T) {
 		}
 	}
 }
+
+// validationErrors validates the config of the resource and returns the errors as one text.
+func validationErrors(t *testing.T, objectType tftypes.Object, server tfprotov6.ProviderServer, config tftypes.Value) string {
+	t.Helper()
+	resp, err := server.ValidateResourceConfig(context.Background(), &tfprotov6.ValidateResourceConfigRequest{
+		TypeName: "test_config_thing", Config: encodeValue(t, objectType, config),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got string
+	for _, d := range resp.Diagnostics {
+		if d.Severity == tfprotov6.DiagnosticSeverityError {
+			got += d.Summary + " " + d.Detail + " " + fmt.Sprint(d.Attribute)
+		}
+	}
+	return got
+}
+
+// A marker bool accepts true, and rejects a configured false at plan. A value that is not set is
+// no error.
+func TestEqualsTrueRejectsFalseAtPlan(t *testing.T) {
+	server, objectType := protocolServer(t)
+	tests := map[string]struct {
+		marker tftypes.Value
+		bad    bool
+	}{
+		"true":    {tftypes.NewValue(tftypes.Bool, true), false},
+		"false":   {tftypes.NewValue(tftypes.Bool, false), true},
+		"not set": {tftypes.NewValue(tftypes.Bool, nil), false},
+		"unknown": {tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue), false},
+	}
+	for name, test := range tests {
+		got := validationErrors(t, objectType, server, withNulls(objectType, map[string]tftypes.Value{"name": str("n"), "marker": test.marker}))
+		if (got != "") != test.bad {
+			t.Errorf("%s: errors %q, want an error: %v", name, got, test.bad)
+		}
+	}
+	// The bool reads back as set, so the second plan has no change.
+	true_ := true
+	got, diags := flatten(context.Background(), &config_things_service.ConfigThing{Id: "thing-1", Marker: &true_}, &ConfigThingModel{Marker: types.BoolValue(true)})
+	if diags.HasError() || !got.Marker.ValueBool() {
+		t.Errorf("marker = %v, %v, want true", got.Marker, diags)
+	}
+}
+
+// The selector attributes need the name of their remote, which is an attribute of the object above
+// the selector: the target "../name" goes up one level.
+func TestAlsoRequiresReachesAnAttributeAboveTheParent(t *testing.T) {
+	server, objectType := protocolServer(t)
+	remoteType := objectType.AttributeTypes["remotes"].(tftypes.List).ElementType.(tftypes.Object)
+	selectorType := remoteType.AttributeTypes["selector"].(tftypes.Object)
+	remote := func(name tftypes.Value, attributes tftypes.Value) tftypes.Value {
+		return withNulls(objectType, map[string]tftypes.Value{"name": str("n"), "remotes": tftypes.NewValue(tftypes.List{ElementType: remoteType}, []tftypes.Value{
+			tftypes.NewValue(remoteType, map[string]tftypes.Value{
+				"name": name, "raw_configuration": str(inlineYAML), "id": tftypes.NewValue(tftypes.String, nil), "hash": tftypes.NewValue(tftypes.String, nil),
+				"selector": tftypes.NewValue(selectorType, map[string]tftypes.Value{"attributes": attributes}),
+			}),
+		})})
+	}
+	attrs := tftypes.NewValue(selectorType.AttributeTypes["attributes"], map[string]tftypes.Value{"app": str("web")})
+	noAttrs := tftypes.NewValue(selectorType.AttributeTypes["attributes"], nil)
+	tests := map[string]struct {
+		config tftypes.Value
+		bad    bool
+	}{
+		"both set":         {remote(str("collector"), attrs), false},
+		"attributes alone": {remote(tftypes.NewValue(tftypes.String, nil), attrs), true},
+		"name alone":       {remote(str("collector"), noAttrs), false},
+	}
+	for name, test := range tests {
+		got := validationErrors(t, objectType, server, test.config)
+		if (got != "") != test.bad || test.bad && !strings.Contains(got, "name") {
+			t.Errorf("%s: errors %q, want an error naming the remote name: %v", name, got, test.bad)
+		}
+	}
+}

@@ -30,6 +30,7 @@ var updateFields = []struct {
 	{attr: "ratio", serverDefault: false},
 	{attr: "retries", serverDefault: false},
 	{attr: "scale", serverDefault: false},
+	{attr: "marker", serverDefault: false},
 	{attr: "remotes", serverDefault: false},
 	{attr: "labels", serverDefault: false},
 	{attr: "metadata", serverDefault: false},

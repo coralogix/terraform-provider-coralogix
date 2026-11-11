@@ -478,8 +478,8 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 		}
 	}
 	collect(out.Attributes)
-	var walk func(attrs []*tfAttr) error
-	walk = func(attrs []*tfAttr) error {
+	var walk func(attrs []*tfAttr, above [][]*tfAttr) error
+	walk = func(attrs []*tfAttr, above [][]*tfAttr) error {
 		for _, a := range attrs {
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
@@ -514,7 +514,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
 					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
 				}
-				if err := checkSiblingTargets(a, attrs, line.Validators); err != nil {
+				if err := checkSiblingTargets(a, attrs, above, line.Validators); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
 				if err := applyField(a, line, file); err != nil {
@@ -535,13 +535,13 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
 			}
-			if err := walk(a.Attributes); err != nil {
+			if err := walk(a.Attributes, append(slices.Clone(above), attrs)); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	if err := walk(out.Attributes); err != nil {
+	if err := walk(out.Attributes, nil); err != nil {
 		return err
 	}
 	// Field lines run after markComputed, so they can put validators and document
@@ -919,6 +919,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return pkg + ".AlsoRequires(" + siblingPaths(v.AlsoRequires) + ")", nil
 	case len(v.ConflictsWith) != 0:
 		return pkg + ".ConflictsWith(" + siblingPaths(v.ConflictsWith) + ")", nil
+	case v.Equals != nil && a.ValueKind == "Bool":
+		return fmt.Sprintf("boolvalidator.Equals(%t)", *v.Equals), nil
 	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
 		if err := checkIntegerBound(a.ValueKind, "atLeast", *v.AtLeast); err != nil {
 			return "", err
@@ -2505,22 +2507,45 @@ func numberLiteral(kind string, v float64) string {
 // checkSiblingTargets rejects an exactlyOneOf or atLeastOneOf name that is not another attribute
 // of the same object. The validator renders the name into a path, so a typo would still compile
 // and fail only when a configuration reaches it.
-func checkSiblingTargets(a *tfAttr, siblings []*tfAttr, validators []overrides.Validator) error {
+// A name with "../" in front names an attribute of an object further up: above lists the attributes
+// of each level above the siblings, the nearest last.
+func checkSiblingTargets(a *tfAttr, siblings []*tfAttr, above [][]*tfAttr, validators []overrides.Validator) error {
 	for _, v := range validators {
-		for _, name := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf, v.AlsoRequires, v.ConflictsWith) {
-			found := name != a.Name && slices.ContainsFunc(siblings, func(s *tfAttr) bool { return s.Name == name })
+		for _, target := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf, v.AlsoRequires, v.ConflictsWith) {
+			ups, name := splitTarget(target)
+			level := siblings
+			if ups > 0 {
+				if ups > len(above) {
+					return fmt.Errorf("validator target %q goes up %d levels, and the attribute has only %d above its object", target, ups, len(above))
+				}
+				level = above[len(above)-ups]
+			}
+			found := (ups > 0 || name != a.Name) && slices.ContainsFunc(level, func(s *tfAttr) bool { return s.Name == name })
 			if !found {
-				return fmt.Errorf("validator target %q is not another attribute of the same object", name)
+				return fmt.Errorf("validator target %q is not another attribute of the same object", target)
 			}
 		}
 	}
 	return nil
 }
 
-func siblingPaths(names []string) string {
-	paths := make([]string, 0, len(names))
-	for _, name := range names {
-		paths = append(paths, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name))
+// splitTarget splits a validator target into the levels that it goes up and the attribute name.
+func splitTarget(target string) (ups int, name string) {
+	name = target
+	for strings.HasPrefix(name, "../") {
+		ups++
+		name = strings.TrimPrefix(name, "../")
+	}
+	return ups, name
+}
+
+// siblingPaths are the path expressions of the targets of a validator. A sibling is one AtParent
+// away, and each "../" goes one more level up.
+func siblingPaths(targets []string) string {
+	paths := make([]string, 0, len(targets))
+	for _, target := range targets {
+		ups, name := splitTarget(target)
+		paths = append(paths, fmt.Sprintf("path.MatchRelative().AtParent()%s.AtName(%q)", strings.Repeat(".AtParent()", ups), name))
 	}
 	return strings.Join(paths, ", ")
 }
