@@ -42,10 +42,20 @@ type ItemOptionsModel struct {
 	Internal  *InternalOptionsModel `tfsdk:"internal"`
 }
 
+type TagAtUnionItemFirstModel struct {
+	Label types.String `tfsdk:"title"`
+}
+
+type TagModel struct {
+	Label types.String `tfsdk:"label"`
+}
+
 type UnionItemModel struct {
-	Name    types.String      `tfsdk:"name"`
-	Note    types.String      `tfsdk:"note"`
-	Value   types.String      `tfsdk:"value"`
-	Label   types.String      `tfsdk:"label"`
-	Options *ItemOptionsModel `tfsdk:"options"`
+	Name    types.String              `tfsdk:"name"`
+	Note    types.String              `tfsdk:"note"`
+	Value   types.String              `tfsdk:"value"`
+	Label   types.String              `tfsdk:"label"`
+	Options *ItemOptionsModel         `tfsdk:"options"`
+	First   *TagAtUnionItemFirstModel `tfsdk:"first"`
+	Second  *TagModel                 `tfsdk:"second"`
 }

@@ -434,12 +434,27 @@ type Type struct {
 	// or set that holds this component, for a released schema that has it there. A modifier on
 	// the item, unlike one on an attribute inside it, is not an attribute of the item.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// At states lines for the places of this component, for a component that the API uses in
+	// several places and that Terraform names differently by place. The key is the API path of the
+	// holder: the component that holds this one, a dot, and its field, such as `Filter.Source.metrics`.
+	At map[string]Place `yaml:"at"`
+}
+
+// Place holds the field lines of a component at one place. Only a name is a place line: the model
+// struct of the place has the names, and the other keys do not depend on the place.
+type Place struct {
+	Fields map[string]PlaceField `yaml:"fields"`
+}
+
+// PlaceField is the Terraform name of a field at a place.
+type PlaceField struct {
+	Name string `yaml:"name"`
 }
 
 // isEmpty reports whether the type line sets nothing.
 func (t Type) isEmpty() bool {
 	return t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
-		t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && !t.UseStateForUnknown && t.TypedArms == nil
+		t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && !t.UseStateForUnknown && t.TypedArms == nil && len(t.At) == 0
 }
 
 // TypedArms shows a oneOf object as one object. A required string attribute (Field) names the arm.
@@ -1018,6 +1033,24 @@ func (f *File) checkSections() error {
 	return nil
 }
 
+// checkPlaces checks the at lines of a type: the key names a holder, and each field has a name.
+func (t Type) checkPlaces() error {
+	for _, place := range sortedKeys(t.At) {
+		if !strings.Contains(place, ".") || strings.HasPrefix(place, ".") || strings.HasSuffix(place, ".") {
+			return fmt.Errorf("at.%s: the key is the API path of the holder, such as Component.field", place)
+		}
+		if len(t.At[place].Fields) == 0 {
+			return fmt.Errorf("at.%s has no fields", place)
+		}
+		for _, field := range sortedKeys(t.At[place].Fields) {
+			if name := t.At[place].Fields[field].Name; !tfNamePattern.MatchString(name) {
+				return fmt.Errorf("at.%s.fields.%s.name %q must be lower case letters, digits, and _", place, field, name)
+			}
+		}
+	}
+	return nil
+}
+
 // checkTypes checks the type lines: the required list, the field lines, and the extra attributes.
 func (f *File) checkTypes() error {
 	for name, t := range f.Types {
@@ -1037,6 +1070,9 @@ func (f *File) checkTypes() error {
 		}
 		if t.RequestWrapper != "" && name == f.Resource {
 			return fmt.Errorf("types.%s.requestWrapper: the resource component uses api.requestWrapper", name)
+		}
+		if err := t.checkPlaces(); err != nil {
+			return fmt.Errorf("types.%s.%w", name, err)
 		}
 		names := map[string]string{}
 		for _, field := range sortedKeys(t.Fields) {

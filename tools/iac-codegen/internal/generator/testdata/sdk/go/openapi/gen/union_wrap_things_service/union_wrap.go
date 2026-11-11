@@ -45,11 +45,17 @@ type ItemOptions struct {
 	Internal map[string]interface{}
 }
 
+type Tag struct {
+	Label *string
+}
+
 type UnionItem struct {
 	Name    string
 	Extra   *ItemExtra
 	Value   *Labelled
 	Options *ItemOptions
+	First   *Tag
+	Second  *Tag
 }
 
 // Thing holds the common fields and the arms of the oneOf. The requests and the response hold it

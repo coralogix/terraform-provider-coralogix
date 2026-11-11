@@ -353,6 +353,8 @@ func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags 
 	out.Value.Value = expandString(m.Value)
 	out.Value.Label = expandString(m.Label)
 	out.Options = expandItemOptions(ctx, p.AtName("options"), m.Options, diags)
+	out.First = expandTagAtUnionItemFirst(ctx, p.AtName("first"), m.First, diags)
+	out.Second = expandTag(ctx, p.AtName("second"), m.Second, diags)
 	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
 		out.Value = nil // an optional object that the configuration sets no attribute of is left out
 	}
@@ -381,6 +383,8 @@ func flattenUnionItem(ctx context.Context, p path.Path, v *union_wrap_things_ser
 	out.Value = types.StringPointerValue(v.Value.Value)
 	out.Label = types.StringPointerValue(v.Value.Label)
 	out.Options = flattenItemOptions(ctx, p.AtName("options"), v.Options, diags)
+	out.First = flattenTagAtUnionItemFirst(ctx, p.AtName("first"), v.First, diags)
+	out.Second = flattenTag(ctx, p.AtName("second"), v.Second, diags)
 	return out
 }
 
@@ -391,6 +395,8 @@ func unionItemAttrTypes() map[string]attr.Type {
 		"value":   types.StringType,
 		"label":   types.StringType,
 		"options": types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
+		"first":   types.ObjectType{AttrTypes: tagAtUnionItemFirstAttrTypes()},
+		"second":  types.ObjectType{AttrTypes: tagAttrTypes()},
 	}
 }
 
@@ -435,6 +441,54 @@ func itemOptionsAttrTypes() map[string]attr.Type {
 		"title":     types.StringType,
 		"collapsed": types.BoolType,
 		"internal":  types.ObjectType{AttrTypes: map[string]attr.Type{}},
+	}
+}
+
+func expandTagAtUnionItemFirst(ctx context.Context, p path.Path, m *TagAtUnionItemFirstModel, diags *diag.Diagnostics) *union_wrap_things_service.Tag {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Tag{}
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenTagAtUnionItemFirst(ctx context.Context, p path.Path, v *union_wrap_things_service.Tag, diags *diag.Diagnostics) *TagAtUnionItemFirstModel {
+	if v == nil {
+		return nil
+	}
+	out := &TagAtUnionItemFirstModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+func tagAtUnionItemFirstAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"title": types.StringType,
+	}
+}
+
+func expandTag(ctx context.Context, p path.Path, m *TagModel, diags *diag.Diagnostics) *union_wrap_things_service.Tag {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Tag{}
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenTag(ctx context.Context, p path.Path, v *union_wrap_things_service.Tag, diags *diag.Diagnostics) *TagModel {
+	if v == nil {
+		return nil
+	}
+	out := &TagModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+func tagAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label": types.StringType,
 	}
 }
 

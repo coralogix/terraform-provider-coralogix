@@ -146,6 +146,14 @@ components:
           allOf: [{$ref: '#/components/schemas/Labelled'}]
           description: The value, held in an object with the same field.
         options: {$ref: '#/components/schemas/ItemOptions'}
+        first: {$ref: '#/components/schemas/Tag'}
+        second: {$ref: '#/components/schemas/Tag'}
+    # One component in two places. Terraform names its label title in the first place and label in the
+    # second, as the released resource names a metric in two kinds of filter.
+    Tag:
+      type: object
+      properties:
+        label: {type: string, x-coralogix-presence: true}
     ItemExtra:
       type: object
       properties:

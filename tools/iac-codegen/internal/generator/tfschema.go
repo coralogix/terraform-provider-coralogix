@@ -222,6 +222,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if err := groups.check(out.Attributes); err != nil {
 		return nil, err
 	}
+	if err := b.checkPlacesUsed(); err != nil {
+		return nil, err
+	}
 	if err := b.checkNestedGroupsUsed(); err != nil {
 		return nil, err
 	}
@@ -1203,6 +1206,7 @@ type tfBuilder struct {
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
 	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+	places       map[string]bool   // the places of types.<Type>.at lines that the builder found
 	itemModified map[string]bool   // components whose items carry types.<Type>.useStateForUnknown
 	// carried are the siblings that a carrySiblings arm holds, with the component whose lines they
 	// take. flags are the fold flags that an arm holds.
@@ -1585,6 +1589,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
+	if err := checkPlaceFields(b.file, t); err != nil {
+		return nil, err
+	}
 	groups := newNestedGroups(b, t.Schema, slices.Contains(p, anySetItem))
 	for _, f := range t.Fields {
 		if fold, ok := b.flags[f]; ok {
@@ -1602,15 +1609,24 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			continue
 		}
 		group := groups.of(f.Name)
-		child := append(append(attrPath{}, p...), terraformName(b.policy, component, f.Name))
+		tfName := terraformName(b.policy, component, f.Name)
+		if placed, ok := placeFieldName(b.file, t, f.Name); ok {
+			tfName = placed // the component has another name for the field at this place
+		}
+		ftype := placedType(b.file, f.Type, component+"."+f.Name)
+		if ftype != f.Type {
+			b.markPlace(component + "." + f.Name)
+		}
+		child := append(append(attrPath{}, p...), tfName)
 		if group != "" {
-			child = append(append(attrPath{}, p...), group, terraformName(b.policy, component, f.Name))
+			child = append(append(attrPath{}, p...), group, tfName)
 		}
 		only := b.sent.responseOnly(component, f)
-		a, err := b.attribute(child, component, f.Name, f.Description, f.Type, nestedAttrs(f), only)
+		a, err := b.attribute(child, component, f.Name, f.Description, ftype, nestedAttrs(f), only)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		a.Name = tfName
 		if f.Attrs.Computed && !a.Required {
 			// A computed line, or an attribute of a keyedBy object, which the API can fill.
 			a.Computed = true
@@ -1625,7 +1641,8 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if err := b.nestedServerDefault(a, child, component, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(component, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
+		field := b.modelField(component, f.Name, ftype, f.Behavior, only, f.Attrs.Computed)
+		field.TFName = tfName
 		if group != "" {
 			if err := groups.add(group, f, a, field); err != nil {
 				return nil, err

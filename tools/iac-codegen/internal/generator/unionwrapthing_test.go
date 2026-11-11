@@ -213,3 +213,30 @@ func TestInlineOfAnOptionalObjectAndAKeptArm(t *testing.T) {
 		})
 	}
 }
+
+// A types.<Type>.at line names the holder of the component and the fields with another name there.
+// A line that matches no place, or no field, is an error: its names would be dropped without a word.
+func TestPlaceLinesAreChecked(t *testing.T) {
+	tests := map[string]struct{ from, to, want string }{
+		"a holder that the resource does not have": {"UnionItem.first:", "UnionItem.nothing:", "no field of that holder holds Tag"},
+		"a field that the component does not have": {"fields: {label: {name: title}}", "fields: {other: {name: title}}", "Tag has no field other"},
+		"a key that is no holder path":             {"UnionItem.first:", "first:", "the key is the API path of the holder"},
+		"a name that is no Terraform name":         {"name: title", "name: Title", "must be lower case letters"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec, overrides := unionWrapThingInputs(t)
+			dir := t.TempDir()
+			path := filepath.Join(dir, "unionwrapthing-overrides.yaml")
+			if err := os.WriteFile(path, []byte(replaceOnce(t, overrides, test.from, test.to)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = []byte(spec)
+			err := generateFromInput(Options{Resource: "UnionWrapThing", OutputDir: filepath.Join(dir, "out"), OverridesPath: path}, input, loadDir)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

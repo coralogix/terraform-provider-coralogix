@@ -2466,7 +2466,11 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 	byName := map[string]*convField{}
 	var lines []string
 	for _, f := range t.Fields {
-		cf := findField(fields, terraformName(b.resource.Policy, component, f.Name))
+		name := terraformName(b.resource.Policy, component, f.Name)
+		if placed, ok := placeFieldName(b.file, t, f.Name); ok {
+			name = placed
+		}
+		cf := findField(fields, name)
 		if cf == nil {
 			return nil, fmt.Errorf("%s: no conversion of the field", f.Name)
 		}
@@ -3224,9 +3228,13 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
 		name := terraformName(b.resource.Policy, component, f.Name)
+		if placed, ok := placeFieldName(b.file, t, f.Name); ok {
+			name = placed // the component has another name for the field at this place
+		}
+		ftype := placedType(b.file, f.Type, component+"."+f.Name)
 		if findField(obj.Fields, name) != nil {
 			// The field is there, but an object inside it can still miss fields.
-			if err := b.mergeNested(f.Type); err != nil {
+			if err := b.mergeNested(ftype); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 			// The component is a request and a response. The first pass made one list of parents.
@@ -3238,10 +3246,11 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 			continue
 		}
 		responseOnly := b.sent.responseOnly(component, f)
-		cf, err := b.field(sdkPath, component, f.Name, f.Type, responseOnly, f.Attrs.Presence)
+		cf, err := b.field(sdkPath, component, f.Name, ftype, responseOnly, f.Attrs.Presence)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
+		cf.TFName = name
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
 		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
 			// An inline line moved the field out of its object: the Go expression goes through it.

@@ -39,6 +39,11 @@ types:
   ItemOptions:
     fields:
       custom: {inline: true}
+  # The same component has another name for its label in the first place than in the second.
+  Tag:
+    at:
+      UnionItem.first:
+        fields: {label: {name: title}}
 
 enums:
   ThingVariant:

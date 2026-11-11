@@ -280,7 +280,8 @@ func TestInlinedArmConflictsWithTheKeptArm(t *testing.T) {
 			values[name] = tftypes.NewValue(typ, nil)
 		}
 		nullString := tftypes.NewValue(tftypes.String, nil)
-		item := tftypes.NewValue(itemType, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, "i"), "note": nullString, "value": nullString, "label": nullString, "options": opts})
+		item := tftypes.NewValue(itemType, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, "i"), "note": nullString, "value": nullString, "label": nullString, "options": opts,
+			"first": tftypes.NewValue(itemType.AttributeTypes["first"], nil), "second": tftypes.NewValue(itemType.AttributeTypes["second"], nil)})
 		values["name"] = tftypes.NewValue(tftypes.String, "n")
 		kindType := objectType.AttributeTypes["kind"].(tftypes.Object)
 		armValues := map[string]tftypes.Value{}
@@ -320,5 +321,41 @@ func TestInlinedArmConflictsWithTheKeptArm(t *testing.T) {
 		if (got != "") != test.bad {
 			t.Errorf("%s: errors %q, want an error: %v", name, got, test.bad)
 		}
+	}
+}
+
+// One component in two places: the label of the first place is title, the label of the second is
+// label. Each is sent to the label of the API, and read back from it, in its own place.
+func TestOneComponentHasAnotherNameInEachPlace(t *testing.T) {
+	ctx := context.Background()
+	null := types.StringNull()
+	got := sentItems(t, UnionItemModel{
+		Name: types.StringValue("i"), Note: null, Value: null, Label: null,
+		First:  &TagAtUnionItemFirstModel{Label: types.StringValue("one")},
+		Second: &TagModel{Label: types.StringValue("two")},
+	}, UnionItemModel{Name: types.StringValue("none"), Note: null, Value: null, Label: null})
+	if got[0].First == nil || *got[0].First.Label != "one" || got[0].Second == nil || *got[0].Second.Label != "two" {
+		t.Fatalf("sent = %+v %+v, want one in the first place and two in the second", got[0].First, got[0].Second)
+	}
+	if got[1].First != nil || got[1].Second != nil {
+		t.Fatalf("an item without tags sent %+v %+v", got[1].First, got[1].Second)
+	}
+	id, one, two := "thing-1", "one", "two"
+	flat, diags := flatten(ctx, &union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{
+		Name: "n", ArmC: &union_wrap_things_service.ArmC{},
+		Items: []union_wrap_things_service.UnionItem{{Name: "i", First: &union_wrap_things_service.Tag{Label: &one}, Second: &union_wrap_things_service.Tag{Label: &two}}, {Name: "none"}},
+	}})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var items []UnionItemModel
+	if diags := flat.Items.ElementsAs(ctx, &items, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if items[0].First == nil || items[0].First.Label.ValueString() != "one" || items[0].Second == nil || items[0].Second.Label.ValueString() != "two" {
+		t.Fatalf("read = %+v %+v, want one and two", items[0].First, items[0].Second)
+	}
+	if items[1].First != nil || items[1].Second != nil {
+		t.Fatalf("an item without tags read %+v %+v, want null objects", items[1].First, items[1].Second)
 	}
 }
