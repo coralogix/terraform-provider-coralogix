@@ -195,7 +195,50 @@ func afterReadAlert(ctx context.Context, state *tfsdk.State, prior any) diag.Dia
 	if diags.HasError() {
 		return diags
 	}
-	return append(diags, keepDestinationPeriodsUnset(ctx, state, prior)...)
+	diags = append(diags, keepDestinationPeriodsUnset(ctx, state, prior)...)
+	if diags.HasError() {
+		return diags
+	}
+	return append(diags, keepEvaluationPeriodsUnset(ctx, state, prior)...)
+}
+
+// evaluationPeriodPaths are the evaluation_period_minutes attributes of the analytics alert types.
+var evaluationPeriodPaths = []path.Path{
+	path.Root("type_definition").AtName("analytics_immediate").AtName("evaluation_period_minutes"),
+	path.Root("type_definition").AtName("analytics_threshold").AtName("evaluation_period_minutes"),
+}
+
+// keepEvaluationPeriodsUnset reads an evaluation period that the plan or the prior state leaves null as
+// null. An API that still fills the default in (the smaller of 10 and timeframe_minutes) returns it for
+// every analytics alert, and writing it to the state would fail the apply with "was null, but now 10"
+// and show a change on every plan. An API that returns the period only when it was set has no value to
+// clear. A period that the plan sets, or that it does not know yet, keeps the API value. An import and a
+// state upgrade have no prior value, so a returned period is read as null there too; a configuration
+// that sets it plans one update.
+func keepEvaluationPeriodsUnset(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	data, _ := prior.(priorData)
+	for _, p := range evaluationPeriodPaths {
+		var current types.Int32
+		if diags := state.GetAttribute(ctx, p, &current); diags.HasError() {
+			return diags
+		}
+		if current.IsNull() || current.IsUnknown() {
+			continue
+		}
+		if data != nil {
+			var kept types.Int32
+			if diags := data.GetAttribute(ctx, p, &kept); diags.HasError() {
+				return diags
+			}
+			if !kept.IsNull() {
+				continue
+			}
+		}
+		if diags := state.SetAttribute(ctx, p, types.Int32Null()); diags.HasError() {
+			return diags
+		}
+	}
+	return nil
 }
 
 var descriptionAttrPath = path.Root("description")
