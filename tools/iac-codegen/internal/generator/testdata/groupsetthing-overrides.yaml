@@ -32,6 +32,18 @@ groups:
     markdownDescription: The window of the set.
     groups:
       relative: {fields: [relativeWindow], optional: true}
+  # The refresh holds the arms of a oneOf of objects without fields. It is one object with a type
+  # that names the arm, and the type is off when the configuration leaves it out. The object is
+  # Optional and Computed, so the API can choose the arm when the configuration sets none.
+  refresh:
+    fields: [off, fiveMinutes, oneHour]
+    optional: true
+    computed: true
+    useStateForUnknown: true
+    markdownDescription: How often the set refreshes.
+    typedArms:
+      default: off
+      names: {oneHour: hourly}
 
 types:
   GroupSetThing:

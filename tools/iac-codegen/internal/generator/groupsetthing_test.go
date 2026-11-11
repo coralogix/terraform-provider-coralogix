@@ -239,3 +239,78 @@ func TestGroupInsideAGroupIsChecked(t *testing.T) {
 		})
 	}
 }
+
+// A group with a typedArms line holds every arm of one oneOf of the resource, and each arm is an
+// object without fields. The default must be a value of the type, and a names line must name arms.
+func TestTypedGroupIsChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "groupsetthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const window = "    fields: [absoluteWindow]\n    optional: true\n    requireOne: true\n    markdownDescription: The window of the set.\n    groups:\n      relative: {fields: [relativeWindow], optional: true}\n"
+	tests := map[string]struct{ old, new, want string }{
+		"a default that is no value": {"default: off", "default: never", `typedArms.default "never" is no value of the type`},
+		"a name of no arm":           {"names: {oneHour: hourly}", "names: {nothing: x}", "typedArms.names.nothing is no arm of the oneOf"},
+		"two arms with one value":    {"names: {oneHour: hourly}", "names: {oneHour: off}", "both have the value"},
+		"a field that is no arm":     {"fields: [off, fiveMinutes, oneHour]", "fields: [off, fiveMinutes, oneHour, name]", "typedArms needs the arms of one oneOf of the resource, and no other field"},
+		"arms that have fields": {window, "    fields: [absoluteWindow, relativeWindow]\n    optional: true\n    typedArms: {}\n",
+			"typedArms needs arms that are objects without fields, and absoluteWindow is not one"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(string(base), test.old) {
+				t.Fatalf("the overrides file has no %q", test.old)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(strings.Replace(string(base), test.old, test.new, 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			options := Options{Resource: "GroupSetThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A computed group without useStateForUnknown has no plan modifier: the plan of an omitted object
+// is unknown, and Create and Update send none of its arms.
+func TestComputedGroupWithoutStateHasNoModifier(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "groupsetthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const line = "    useStateForUnknown: true\n    markdownDescription: How often the set refreshes.\n"
+	if !strings.Contains(string(base), line) {
+		t.Fatalf("the overrides file has no %q", line)
+	}
+	path := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(path, []byte(strings.Replace(string(base), line, "    markdownDescription: How often the set refreshes.\n", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "out")
+	if err := generateFromInput(Options{Resource: "GroupSetThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, refresh, _ := strings.Cut(string(schema), `"refresh": schema.SingleNestedAttribute{`)
+	refresh, _, _ = strings.Cut(refresh, `MarkdownDescription: "How often the set refreshes."`)
+	if refresh == "" || strings.Contains(refresh, "PlanModifiers") {
+		t.Fatalf("the refresh attribute has a plan modifier:\n%s", refresh)
+	}
+}

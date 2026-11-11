@@ -27,12 +27,26 @@ paths:
                     anyOf:
                       - {required: [absoluteWindow], type: object}
                       - {required: [relativeWindow], type: object}
+              allOf:
+                - oneOf:
+                    - {required: [off], type: object}
+                    - {required: [fiveMinutes], type: object}
+                    - {required: [oneHour], type: object}
+                    - type: object
+                      not:
+                        anyOf:
+                          - {required: [off], type: object}
+                          - {required: [fiveMinutes], type: object}
+                          - {required: [oneHour], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
                 groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
                 schedule: {$ref: '#/components/schemas/Schedule'}
                 absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
                 relativeWindow: {type: string, minLength: 1}
+                off: {$ref: '#/components/schemas/RefreshOff'}
+                fiveMinutes: {$ref: '#/components/schemas/RefreshFiveMinutes'}
+                oneHour: {$ref: '#/components/schemas/RefreshOneHour'}
       responses:
         '200':
           description: ok
@@ -69,12 +83,26 @@ paths:
                     anyOf:
                       - {required: [absoluteWindow], type: object}
                       - {required: [relativeWindow], type: object}
+              allOf:
+                - oneOf:
+                    - {required: [off], type: object}
+                    - {required: [fiveMinutes], type: object}
+                    - {required: [oneHour], type: object}
+                    - type: object
+                      not:
+                        anyOf:
+                          - {required: [off], type: object}
+                          - {required: [fiveMinutes], type: object}
+                          - {required: [oneHour], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
                 groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
                 schedule: {$ref: '#/components/schemas/Schedule'}
                 absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
                 relativeWindow: {type: string, minLength: 1}
+                off: {$ref: '#/components/schemas/RefreshOff'}
+                fiveMinutes: {$ref: '#/components/schemas/RefreshFiveMinutes'}
+                oneHour: {$ref: '#/components/schemas/RefreshOneHour'}
       responses:
         '200':
           description: ok
@@ -108,6 +136,17 @@ components:
             anyOf:
               - {required: [absoluteWindow], type: object}
               - {required: [relativeWindow], type: object}
+      allOf:
+        - oneOf:
+            - {required: [off], type: object}
+            - {required: [fiveMinutes], type: object}
+            - {required: [oneHour], type: object}
+            - type: object
+              not:
+                anyOf:
+                  - {required: [off], type: object}
+                  - {required: [fiveMinutes], type: object}
+                  - {required: [oneHour], type: object}
       properties:
         id: {type: string, minLength: 1}
         name: {type: string, minLength: 1}
@@ -115,6 +154,9 @@ components:
         schedule: {$ref: '#/components/schemas/Schedule'}
         absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
         relativeWindow: {type: string, minLength: 1}
+        off: {$ref: '#/components/schemas/RefreshOff'}
+        fiveMinutes: {$ref: '#/components/schemas/RefreshFiveMinutes'}
+        oneHour: {$ref: '#/components/schemas/RefreshOneHour'}
     InGroupThing:
       type: object
       required: [name]
@@ -189,3 +231,8 @@ components:
     ModeFast: {type: object, additionalProperties: false}
     ModeSlow: {type: object, additionalProperties: false}
     ModeBalanced: {type: object, additionalProperties: false}
+    # A oneOf of arms without fields at the top level, as an automatic refresh interval is: the released
+    # resource shows it as an object with a type, refresh = { type = "off" }.
+    RefreshOff: {type: object, additionalProperties: false}
+    RefreshFiveMinutes: {type: object, additionalProperties: false}
+    RefreshOneHour: {type: object, additionalProperties: false}

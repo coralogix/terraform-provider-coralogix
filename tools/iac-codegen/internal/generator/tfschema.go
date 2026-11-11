@@ -2487,14 +2487,22 @@ func (b *tfBuilder) addToRootGroup(out *tfResource, root *tfModel, g *tfGroups, 
 	line := g.file.Groups[outer]
 	if g.attrs[outer] == nil {
 		attr := &tfAttr{Name: outer, Kind: "SingleNested", ValueKind: "Object", Required: !line.Optional, Optional: line.Optional,
-			Description: line.MarkdownDescription}
+			Computed: line.Computed, Description: line.MarkdownDescription}
+		if line.UseStateForUnknown {
+			attr.Modifiers = []string{"objectplanmodifier.UseStateForUnknown()"}
+		}
 		g.attrs[outer] = attr
 		g.models[outer] = &tfModel{Name: groupModelName(g.resource, outer)}
 		if err := b.claimModel(g.models[outer].Name, "groups."+outer); err != nil {
 			return err
 		}
 		out.Attributes = append(out.Attributes, attr)
-		root.Fields = append(root.Fields, tfModelField{Name: camelize(outer), Type: "*" + g.models[outer].Name, TFName: outer})
+		goType := "*" + g.models[outer].Name
+		if line.Computed {
+			// The plan of an omitted computed object is unknown, which a pointer cannot hold.
+			goType = "types.Object"
+		}
+		root.Fields = append(root.Fields, tfModelField{Name: camelize(outer), Type: goType, TFName: outer})
 		b.models = append(b.models, g.models[outer])
 	}
 	if len(path) == 1 {
@@ -2537,7 +2545,7 @@ func (g *tfGroups) oneOf(o model.OneOfGroup) (string, error) {
 
 // check reports a group field that is no top-level field of the resource, a group whose Terraform
 // or Go name is also the name of another top-level attribute, and a group inside a group that is
-// not the one arm of a oneOf.
+// not the one arm of a oneOf. It then shows each group with a typedArms line as its type attribute.
 func (g *tfGroups) check(r *model.Resource, root []*tfAttr) error {
 	for _, name := range g.file.GroupNames() {
 		line := g.file.Groups[name]
@@ -2560,7 +2568,72 @@ func (g *tfGroups) check(r *model.Resource, root []*tfAttr) error {
 			return fmt.Errorf("groups.%s: requireOne needs the arms of one oneOf of the resource, and no other field", name)
 		}
 	}
+	return g.typedArms(r)
+}
+
+// typedArms replaces the attributes of each group with a typedArms line by its type attribute. The
+// group holds every arm of one oneOf of the resource, and each arm is an object without fields, so
+// the type names the arm and nothing else is left to show. A default makes the type optional and
+// computed.
+func (g *tfGroups) typedArms(r *model.Resource) error {
+	for _, name := range g.file.GroupNames() {
+		line := g.file.Groups[name].TypedArms
+		if line == nil {
+			continue
+		}
+		arms, err := typedGroupArms(r, name, g.file.Groups[name])
+		if err != nil {
+			return err
+		}
+		values, err := typedValues(&model.Type{Schema: r.Name}, line, arms, func(arm string) string { return terraformName(r.Policy, r.Name, arm) })
+		if err != nil {
+			return fmt.Errorf("groups.%s: %w", name, err)
+		}
+		quoted := make([]string, 0, len(arms))
+		for _, arm := range arms {
+			quoted = append(quoted, fmt.Sprintf("%q", values[arm.Name]))
+		}
+		typeName := line.TypeField()
+		oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+		a := &tfAttr{Name: typeName, Kind: "String", ValueKind: "String", Required: true, Property: typeName,
+			Validators: []string{oneOf}, GroupValidators: []string{oneOf},
+			Description: "Which arm of the oneOf the object holds. One of " + strings.Join(quoted, ", ") + "."}
+		if line.Default != "" {
+			if !slices.Contains(slices.Collect(maps.Values(values)), line.Default) {
+				return fmt.Errorf("groups.%s: typedArms.default %q is no value of the type: %s", name, line.Default, strings.Join(quoted, ", "))
+			}
+			a.Required, a.Optional, a.Computed = false, true, true
+			a.Default = fmt.Sprintf("stringdefault.StaticString(%q)", line.Default)
+			a.Description += fmt.Sprintf(" The default is %q.", line.Default)
+		}
+		g.attrs[name].Attributes = []*tfAttr{a}
+		g.models[name].Fields = []tfModelField{{Name: camelize(typeName), Type: "types.String", TFName: typeName}}
+	}
 	return nil
+}
+
+// typedGroupArms returns the arms of the oneOf that the group holds, for a typedArms line: the group
+// must hold every arm of one oneOf of the resource and no other field, and each arm is an object
+// without fields.
+func typedGroupArms(r *model.Resource, name string, line overrides.Group) ([]*model.Field, error) {
+	for _, o := range r.Groups {
+		if !slices.Contains(line.Fields, o.Arms[0]) {
+			continue
+		}
+		if len(o.Arms) != len(line.Fields) || slices.ContainsFunc(line.Fields, func(f string) bool { return !slices.Contains(o.Arms, f) }) {
+			break
+		}
+		var arms []*model.Field
+		for _, arm := range o.Arms {
+			i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == arm })
+			if i < 0 || !emptyObject(r.Fields[i].Type) {
+				return nil, fmt.Errorf("groups.%s: typedArms needs arms that are objects without fields, and %s is not one", name, arm)
+			}
+			arms = append(arms, &model.Field{Name: arm, Type: r.Fields[i].Type})
+		}
+		return arms, nil
+	}
+	return nil, fmt.Errorf("groups.%s: typedArms needs the arms of one oneOf of the resource, and no other field", name)
 }
 
 // checkInner checks the groups inside the group name. A group inside a group stands for one arm of a
@@ -2738,7 +2811,7 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if err := checkGroupField(r, f, group); err != nil {
 			return err
 		}
-		a, err := b.resourceAttribute(out, r, f, path)
+		a, err := b.rootFieldAttribute(out, r, f, path)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -2753,6 +2826,26 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		}
 	}
 	return checkSplitNames(out, root, r, file)
+}
+
+// rootFieldAttribute builds the attribute of a top-level field in its groups. A group with a typedArms
+// line shows its arms as a type attribute, so the model struct of an arm that nothing else shows is
+// not needed.
+func (b *tfBuilder) rootFieldAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, path []string) (*tfAttr, error) {
+	typedArm := len(path) != 0 && b.file.Groups[path[0]].TypedArms != nil && emptyObject(f.Type)
+	owned := typedArm && !b.seen[typeModelName(f.Type)]
+	a, err := b.resourceAttribute(out, r, f, path)
+	if err == nil && owned {
+		b.dropModel(typeModelName(f.Type))
+	}
+	return a, err
+}
+
+// dropModel removes the model struct with the name, which the builder made and nothing shows.
+func (b *tfBuilder) dropModel(name string) {
+	delete(b.seen, name)
+	delete(b.owners, name)
+	b.models = slices.DeleteFunc(b.models, func(m *tfModel) bool { return m.Name == name })
 }
 
 // checkSplitNames rejects a split arm with the Terraform or Go name of another top-level attribute,
@@ -2837,10 +2930,7 @@ func (b *tfBuilder) asListAttribute(a *tfAttr, p attrPath, t *model.Type) error 
 	}
 	if owned {
 		// Nothing else shows the list arm as an object, so its model struct would be unused.
-		name := typeModelName(list.Type)
-		delete(b.seen, name)
-		delete(b.owners, name)
-		b.models = slices.DeleteFunc(b.models, func(m *tfModel) bool { return m.Name == name })
+		b.dropModel(typeModelName(list.Type))
 	}
 	if len(inner) != 1 || inner[0].Kind != "List" || inner[0].ElementType != "types.StringType" {
 		return fmt.Errorf("%s: typedArms.asList needs a list arm with one list of strings", t.Schema)
@@ -2986,6 +3076,9 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		if group, err := groups.oneOf(g); err != nil {
 			return err
 		} else if group != "" {
+			if file.Groups[group].TypedArms != nil {
+				continue // the type attribute is the one arm
+			}
 			// The arms are in one group, which is an object: they check each other inside it. An arm
 			// in a group inside the group is checked as that group, the object that stands for it.
 			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string {

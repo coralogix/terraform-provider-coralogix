@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -191,6 +192,25 @@ func Schema() schema.Schema {
 					},
 				},
 				MarkdownDescription: "The window of the set.",
+			},
+			"refresh": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString("off"),
+						Validators: []validator.String{
+							stringvalidator.OneOf("off", "five_minutes", "hourly"),
+						},
+						MarkdownDescription: "Which arm of the oneOf the object holds. One of \"off\", \"five_minutes\", \"hourly\". The default is \"off\".",
+					},
+				},
+				MarkdownDescription: "How often the set refreshes.",
 			},
 			"document": schema.StringAttribute{
 				Optional: true,

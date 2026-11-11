@@ -13,6 +13,7 @@ type GroupSetThingModel struct {
 	Groups   types.Set                 `tfsdk:"groups"`
 	Schedule *ScheduleModel            `tfsdk:"schedule"`
 	Window   *GroupSetThingWindowModel `tfsdk:"window"`
+	Refresh  types.Object              `tfsdk:"refresh"`
 	Document types.String              `tfsdk:"document"`
 }
 
@@ -55,4 +56,8 @@ type GroupSetThingWindowModel struct {
 
 type GroupSetThingWindowRelativeModel struct {
 	RelativeWindow types.String `tfsdk:"duration"`
+}
+
+type GroupSetThingRefreshModel struct {
+	Type types.String `tfsdk:"type"`
 }

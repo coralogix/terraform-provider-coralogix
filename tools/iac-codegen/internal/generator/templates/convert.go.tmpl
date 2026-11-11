@@ -544,7 +544,9 @@ func (d *distributed{{.Name}}) of(id string) []{{.SDKType}} {
 }
 {{- end}}
 {{range .Objects}}
-{{- if and .Expand .Group}}
+{{- if and .Expand .Typed}}
+{{- template "typedExpand" .}}
+{{else if and .Expand .Group}}
 // expand{{.Func}} writes the fields of a group, which the API holds in the parent object, to out.
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) {
 	if m == nil {
@@ -554,8 +556,6 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- template "expandField" .}}
 {{- end}}
 }
-{{else if and .Expand .Typed}}
-{{- template "typedExpand" .}}
 {{else if and .Expand .Carry}}
 {{- template "carryExpand" .}}
 {{else if .Expand}}
@@ -2753,6 +2753,14 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 {{- define "typedExpand"}}
 {{- $typed := .Typed}}
 {{- $type := .Typed.TypeField}}
+{{- if .Group}}
+// expand{{.Func}} sets the arm that the type attribute names in out, the API object that holds the
+// arms of the group.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$typed.Pkg}}.{{.SDK}}, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+{{- else}}
 // expand{{.Func}} sends the arm that the type attribute names, with the merged fields that the arm
 // holds in the API.
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$typed.Pkg}}.{{.SDK}} {
@@ -2760,6 +2768,7 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{$typed.Pkg}}.{{.SDK}}{}
+{{- end}}
 {{- range .Parents}}
 	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its arms are the arms of this object
 {{- end}}
@@ -2805,7 +2814,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	default:
 		diags.AddAttributeError(p.AtName({{printf "%q" $type.TFName}}), "Unknown {{$type.TFName}}", fmt.Sprintf({{printf "%q" (print "The " $type.TFName " %q is not one of " $typed.Allowed ".")}}, m.{{$type.Model}}.ValueString()))
 	}
+{{- if not .Group}}
 	return out
+{{- end}}
 }
 {{- end}}
 
@@ -2817,6 +2828,11 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 	if v == nil {
 		return nil
 	}
+{{- if .OptionalGroup}}
+	if {{range $i, $f := .LeafSDK}}{{if $i}} && {{end}}v.{{$f}} == nil{{end}} {
+		return nil // the response has none of the arms: the group is null
+	}
+{{- end}}
 {{- if .FlattenParents}}
 	// A response without the inlined object has no arm, which the switch below reports.
 	copied := *v

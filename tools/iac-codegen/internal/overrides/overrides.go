@@ -286,6 +286,9 @@ type Group struct {
 	// Groups, in a group of the resource, are groups inside the group: each holds one arm of a
 	// oneOf whose other arms are fields of the group itself.
 	Groups map[string]Group `yaml:"groups"`
+	// TypedArms, in a group of the resource, shows the group, which holds every arm of a oneOf
+	// of objects without fields, as one object: a type attribute that names the arm.
+	TypedArms *TypedArms `yaml:"typedArms"`
 }
 
 // check checks the keys of a group that change its mode.
@@ -303,7 +306,7 @@ func (g Group) check() error {
 // so the keys that give a group a mode of its own do not apply.
 func (g Group) checkInner() error {
 	switch {
-	case g.Computed || g.UseStateForUnknown || g.RequireOne || len(g.Groups) != 0:
+	case g.Computed || g.UseStateForUnknown || g.RequireOne || len(g.Groups) != 0 || g.TypedArms != nil:
 		return errors.New("a group inside a group takes fields, optional, and markdownDescription only")
 	}
 	return nil
@@ -365,8 +368,8 @@ func (f *File) checkGroups() error {
 	}
 	for _, name := range sortedKeys(f.Groups) {
 		g := f.Groups[name]
-		if g.Computed || g.UseStateForUnknown {
-			return fmt.Errorf("groups.%s: computed and useStateForUnknown are keys of types.<Type>.groups, not of a group of the resource", name)
+		if err := g.checkTypedArms(); err != nil {
+			return fmt.Errorf("groups.%s: %w", name, err)
 		}
 		if err := checkInnerGroups("groups."+name, g); err != nil {
 			return err
@@ -377,12 +380,42 @@ func (f *File) checkGroups() error {
 			return err
 		}
 		for _, group := range sortedKeys(f.Types[name].Groups) {
-			if len(f.Types[name].Groups[group].Groups) != 0 {
-				return fmt.Errorf("types.%s.groups.%s: a group inside a group is a key of a group of the resource", name, group)
+			if g := f.Types[name].Groups[group]; len(g.Groups) != 0 || g.TypedArms != nil {
+				return fmt.Errorf("types.%s.groups.%s: groups and typedArms are keys of a group of the resource", name, group)
 			}
 		}
 	}
 	return nil
+}
+
+// checkTypedArms checks the typedArms line of a type. A default is a key of the line of a group.
+func (t Type) checkTypedArms() error {
+	if t.TypedArms == nil {
+		return nil
+	}
+	if t.TypedArms.Default != "" {
+		return errors.New("typedArms: default is a key of the typedArms line of a group of the resource")
+	}
+	return t.TypedArms.check()
+}
+
+// checkTypedArms checks the typedArms line of a group of the resource. The group shows the arms as
+// a type attribute, so the keys that need a value or fields in an arm, and the keys that stand for
+// the arms as attributes, do not apply.
+func (g Group) checkTypedArms() error {
+	line := g.TypedArms
+	if line == nil {
+		return nil
+	}
+	switch {
+	case line.Infer || line.AsList || line.Value != "":
+		return errors.New("typedArms of a group takes field, names, and default only")
+	case g.RequireOne:
+		return errors.New("typedArms and requireOne cannot both be set: the type attribute is the one arm")
+	case len(g.Groups) != 0:
+		return errors.New("typedArms and groups cannot both be set: the group holds every arm")
+	}
+	return line.check()
 }
 
 // checkInnerGroups checks the groups inside the group at prefix: Terraform names, keys, and that no
@@ -588,12 +621,19 @@ type TypedArms struct {
 	// list: no values are the arm without fields, and some values are the list arm. No other key
 	// goes with it, because there is no object, no type, and no merged field.
 	AsList bool `yaml:"asList"`
+	// Default is the value of the type attribute when the configuration leaves it out, for a
+	// released attribute whose type is Optional and Computed with a default. It is a key of the
+	// typedArms line of a group only.
+	Default string `yaml:"default"`
 }
 
 // check checks the names of a typedArms line and that no two arms have one value.
 func (t *TypedArms) check() error {
-	if t.AsList && (t.Field != "" || t.Value != "" || len(t.Names) != 0 || t.Infer) {
-		return errors.New("typedArms.asList shows the oneOf as a list, so it takes no field, value, names, or infer")
+	if t.AsList && (t.Field != "" || t.Value != "" || len(t.Names) != 0 || t.Infer || t.Default != "") {
+		return errors.New("typedArms.asList shows the oneOf as a list, so it takes no field, value, names, infer, or default")
+	}
+	if t.Default != "" && t.Infer {
+		return errors.New("typedArms.default and typedArms.infer both choose the arm of an omitted type: set one")
 	}
 	for _, name := range []struct{ key, value string }{{"field", t.Field}, {"value", t.Value}} {
 		if name.value != "" && !tfNamePattern.MatchString(name.value) {
@@ -1295,10 +1335,8 @@ func (f *File) checkTypes() error {
 		if err := t.checkUnsupported(); err != nil {
 			return fmt.Errorf("types.%s: %w", name, err)
 		}
-		if t.TypedArms != nil {
-			if err := t.TypedArms.check(); err != nil {
-				return fmt.Errorf("types.%s.%w", name, err)
-			}
+		if err := t.checkTypedArms(); err != nil {
+			return fmt.Errorf("types.%s.%w", name, err)
 		}
 		if t.RequestWrapper != "" && name == f.Resource {
 			return fmt.Errorf("types.%s.requestWrapper: the resource component uses api.requestWrapper", name)

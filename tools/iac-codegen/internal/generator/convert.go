@@ -855,6 +855,9 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
+			if file != nil && file.Groups[file.GroupOf(arm)].TypedArms != nil {
+				continue // the type attribute names the arm: no attribute is the arm
+			}
 			out = append(out, rootPath(file.GroupPath(arm), terraformName(r.Policy, r.Name, arm)).dotted())
 		}
 	}
@@ -1083,7 +1086,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
-	if err := b.rootLists(obj, root, fieldsPath); err != nil {
+	if err := b.rootListsAndGroups(obj, root, fieldsPath, groups); err != nil {
 		return err
 	}
 	if err := b.mark(obj, root.expand); err != nil {
@@ -1091,6 +1094,15 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	}
 	*root.obj = obj
 	return nil
+}
+
+// rootListsAndGroups finishes the fields of the root that need all of them: the typedArms groups, which
+// replace the arms that they hold, and the lists that other components distribute into.
+func (b *convBuilder) rootListsAndGroups(obj *convObject, root convRoot, fieldsPath string, groups map[string]*convObject) error {
+	if err := b.typedGroups(groups); err != nil {
+		return err
+	}
+	return b.rootLists(obj, root, fieldsPath)
 }
 
 // rootField returns the conversion of the top-level field f of type typ in the root: the Go
@@ -3305,7 +3317,11 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 		g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
 		groups[outer] = g
 		b.objects = append(b.objects, g)
-		root.Fields = append(root.Fields, &convField{TFName: outer, Model: camelize(outer), Conv: convGroup, Object: g})
+		// The model holds a computed group as a types.Object, which can be unknown in a plan.
+		root.Fields = append(root.Fields, &convField{TFName: outer, Model: camelize(outer), Conv: convGroup, Object: g, ObjectValue: line.Computed})
+		if line.Computed {
+			b.listed = append(b.listed, g)
+		}
 	}
 	if len(path) == 1 {
 		g.Fields = append(g.Fields, cf)
@@ -3323,9 +3339,61 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 	inner.Fields = append(inner.Fields, cf)
 }
 
-// LeafSDK returns the SDK fields that the fields of the object hold, also inside its groups.
+// typedGroups turns each group of the resource with a typedArms line into a typedArms object: the
+// type attribute replaces the arms, which stay the SDK fields that expand sets and flatten reads. The
+// arms are objects without fields.
+func (b *convBuilder) typedGroups(groups map[string]*convObject) error {
+	for name, g := range groups {
+		line := b.file.Groups[name].TypedArms
+		if line == nil || strings.Contains(name, ".") {
+			continue
+		}
+		values, err := typedValues(&model.Type{Schema: b.resource.Name}, line, groupArmFields(b.resource, b.file.Groups[name]), func(arm string) string { return terraformName(b.resource.Policy, b.resource.Name, arm) })
+		if err != nil {
+			return fmt.Errorf("groups.%s: %w", name, err)
+		}
+		typeField := &convField{TFName: line.TypeField(), Model: camelize(line.TypeField()), Conv: convString, Carried: true}
+		typed := &convTyped{Pkg: b.ix.pkg.Name, TypeField: typeField}
+		var allowed []string
+		for _, f := range b.resource.Fields {
+			if !slices.Contains(b.file.Groups[name].Fields, f.Name) {
+				continue
+			}
+			cf := fieldByModel(g.Fields, camelize(f.Name))
+			if cf == nil || cf.Conv != convEmpty {
+				return fmt.Errorf("groups.%s: typedArms needs arms that are objects without fields, and %s is not one", name, f.Name)
+			}
+			typed.Arms = append(typed.Arms, &typedArm{Value: values[f.Name], SDK: cf.SDK, Empty: true})
+			allowed = append(allowed, values[f.Name])
+		}
+		typed.Allowed = strings.Join(allowed, ", ")
+		g.Fields, g.Typed = []*convField{typeField}, typed
+	}
+	return nil
+}
+
+// groupArmFields returns the fields that the group holds, as the arms of a oneOf, in the order of
+// the resource.
+func groupArmFields(r *model.Resource, line overrides.Group) []*model.Field {
+	var arms []*model.Field
+	for _, f := range r.Fields {
+		if slices.Contains(line.Fields, f.Name) {
+			arms = append(arms, &model.Field{Name: f.Name, Type: f.Type})
+		}
+	}
+	return arms
+}
+
+// LeafSDK returns the SDK fields that the fields of the object hold, also inside its groups. A
+// typedArms object holds the fields of its arms.
 func (o *convObject) LeafSDK() []string {
 	var out []string
+	if o.Typed != nil {
+		for _, arm := range o.Typed.Arms {
+			out = append(out, arm.SDK)
+		}
+		return out
+	}
 	for _, f := range o.Fields {
 		if f.Conv == convGroup {
 			out = append(out, f.Object.LeafSDK()...)

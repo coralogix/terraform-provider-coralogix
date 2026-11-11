@@ -34,6 +34,7 @@ var createFields = []struct {
 	{attr: "groups", serverDefault: false},
 	{attr: "schedule", serverDefault: false},
 	{attr: "window", serverDefault: false},
+	{attr: "refresh", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -182,6 +183,8 @@ var computedAttrs = map[string]bool{
 	"groups.limit":        true,
 	"groups.period":       true,
 	"groups.items.labels": true,
+	"refresh":             true,
+	"refresh.type":        true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -366,6 +369,11 @@ func expandCreateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThin
 	}
 	out.Schedule = expandSchedule(ctx, p.AtName("schedule"), m.Schedule, diags)
 	expandCreateGroupSetThingWindow(ctx, p.AtName("window"), m.Window, out, diags)
+	if v := m.Refresh; !v.IsNull() && !v.IsUnknown() {
+		var nested GroupSetThingRefreshModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expandCreateGroupSetThingRefresh(ctx, p.AtName("refresh"), &nested, out, diags)
+	}
 	return out
 }
 
@@ -512,6 +520,25 @@ func expandCreateGroupSetThingWindowRelative(ctx context.Context, p path.Path, m
 	out.RelativeWindow = expandString(m.RelativeWindow)
 }
 
+// expandCreateGroupSetThingRefresh sets the arm that the type attribute names in out, the API object that holds the
+// arms of the group.
+func expandCreateGroupSetThingRefresh(ctx context.Context, p path.Path, m *GroupSetThingRefreshModel, out *group_set_things_service.CreateGroupSetThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	kind := m.Type.ValueString()
+	switch kind {
+	case "off":
+		out.Off = map[string]interface{}{}
+	case "five_minutes":
+		out.FiveMinutes = map[string]interface{}{}
+	case "hourly":
+		out.OneHour = map[string]interface{}{}
+	default:
+		diags.AddAttributeError(p.AtName("type"), "Unknown type", fmt.Sprintf("The type %q is not one of off, five_minutes, hourly.", m.Type.ValueString()))
+	}
+}
+
 func expandUpdateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThingModel, diags *diag.Diagnostics) *group_set_things_service.UpdateGroupSetThing {
 	if m == nil {
 		return nil
@@ -526,6 +553,11 @@ func expandUpdateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThin
 	}
 	out.Schedule = expandSchedule(ctx, p.AtName("schedule"), m.Schedule, diags)
 	expandUpdateGroupSetThingWindow(ctx, p.AtName("window"), m.Window, out, diags)
+	if v := m.Refresh; !v.IsNull() && !v.IsUnknown() {
+		var nested GroupSetThingRefreshModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expandUpdateGroupSetThingRefresh(ctx, p.AtName("refresh"), &nested, out, diags)
+	}
 	return out
 }
 
@@ -546,6 +578,25 @@ func expandUpdateGroupSetThingWindowRelative(ctx context.Context, p path.Path, m
 	out.RelativeWindow = expandString(m.RelativeWindow)
 }
 
+// expandUpdateGroupSetThingRefresh sets the arm that the type attribute names in out, the API object that holds the
+// arms of the group.
+func expandUpdateGroupSetThingRefresh(ctx context.Context, p path.Path, m *GroupSetThingRefreshModel, out *group_set_things_service.UpdateGroupSetThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	kind := m.Type.ValueString()
+	switch kind {
+	case "off":
+		out.Off = map[string]interface{}{}
+	case "five_minutes":
+		out.FiveMinutes = map[string]interface{}{}
+	case "hourly":
+		out.OneHour = map[string]interface{}{}
+	default:
+		diags.AddAttributeError(p.AtName("type"), "Unknown type", fmt.Sprintf("The type %q is not one of off, five_minutes, hourly.", m.Type.ValueString()))
+	}
+}
+
 func flattenGroupSetThing(ctx context.Context, p path.Path, v *group_set_things_service.GroupSetThing, diags *diag.Diagnostics) *GroupSetThingModel {
 	if v == nil {
 		return nil
@@ -563,6 +614,12 @@ func flattenGroupSetThing(ctx context.Context, p path.Path, v *group_set_things_
 	}
 	out.Schedule = flattenSchedule(ctx, p.AtName("schedule"), v.Schedule, diags)
 	out.Window = flattenGroupSetThingWindow(ctx, p.AtName("window"), v, diags)
+	out.Refresh = types.ObjectNull(groupSetThingRefreshAttrTypes())
+	if nested := flattenGroupSetThingRefresh(ctx, p.AtName("refresh"), v, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, groupSetThingRefreshAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Refresh = value
+	}
 	out.Document = types.StringNull()
 	return out
 }
@@ -670,6 +727,34 @@ func flattenGroupSetThingWindowRelative(ctx context.Context, p path.Path, v *gro
 	out := &GroupSetThingWindowRelativeModel{}
 	out.RelativeWindow = types.StringPointerValue(v.RelativeWindow)
 	return out
+}
+
+// flattenGroupSetThingRefresh reads the arm of GroupSetThing as the type attribute and the merged fields.
+func flattenGroupSetThingRefresh(ctx context.Context, p path.Path, v *group_set_things_service.GroupSetThing, diags *diag.Diagnostics) *GroupSetThingRefreshModel {
+	if v == nil {
+		return nil
+	}
+	if v.Off == nil && v.FiveMinutes == nil && v.OneHour == nil {
+		return nil // the response has none of the arms: the group is null
+	}
+	out := &GroupSetThingRefreshModel{}
+	switch {
+	case v.Off != nil:
+		out.Type = types.StringValue("off")
+	case v.FiveMinutes != nil:
+		out.Type = types.StringValue("five_minutes")
+	case v.OneHour != nil:
+		out.Type = types.StringValue("hourly")
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of Off FiveMinutes OneHour; it must have one.")
+	}
+	return out
+}
+
+func groupSetThingRefreshAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type": types.StringType,
+	}
 }
 
 // valueOf returns the value of p, or the zero value for nil. It fills an SDK
