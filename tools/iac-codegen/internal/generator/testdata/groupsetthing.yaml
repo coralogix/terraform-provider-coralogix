@@ -22,6 +22,7 @@ paths:
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
                 groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+                schedule: {$ref: '#/components/schemas/Schedule'}
       responses:
         '200':
           description: ok
@@ -53,6 +54,7 @@ paths:
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
                 groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+                schedule: {$ref: '#/components/schemas/Schedule'}
       responses:
         '200':
           description: ok
@@ -82,6 +84,7 @@ components:
         id: {type: string, minLength: 1}
         name: {type: string, minLength: 1}
         groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/OutGroupThing'}}
+        schedule: {$ref: '#/components/schemas/Schedule'}
     InGroupThing:
       type: object
       required: [name]
@@ -113,3 +116,24 @@ components:
       properties:
         key: {type: string, minLength: 1}
         labels: {type: object, additionalProperties: {type: string}}
+    # A window that is absolute or relative. The released resource shows the relative arm, a plain
+    # duration, as an object: relative = { duration = "15m" }.
+    Schedule:
+      type: object
+      oneOf:
+        - {required: [absoluteWindow], type: object}
+        - {required: [relativeWindow], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [absoluteWindow], type: object}
+              - {required: [relativeWindow], type: object}
+      properties:
+        absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+        relativeWindow: {type: string, minLength: 1}
+    AbsoluteWindow:
+      type: object
+      required: [start]
+      properties:
+        start: {type: string, minLength: 1}
+        end: {type: string, x-coralogix-presence: true}

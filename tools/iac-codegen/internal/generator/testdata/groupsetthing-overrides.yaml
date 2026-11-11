@@ -55,3 +55,11 @@ types:
   OutItemThing:
     fields:
       labels: {computed: true}
+  # The relative arm, a plain duration, is an object of its own, as the released resource shows it:
+  # relative = { duration = "15m" } beside absolute = { start, end }. The group stands for the arm.
+  Schedule:
+    groups:
+      relative: {fields: [relativeWindow], optional: true}
+    fields:
+      absoluteWindow: {name: absolute}
+      relativeWindow: {name: duration, required: true}

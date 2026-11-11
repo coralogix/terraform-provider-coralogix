@@ -1178,14 +1178,16 @@ func TestDefaultArmNeedsAFullReplace(t *testing.T) {
 	}
 }
 
-// A group of a nested component holds fields of that component, every arm of a oneOf or none, and
-// needs a full replace, as a top-level group does.
+// A group of a nested component holds fields of that component, every arm of a oneOf or none (or one
+// arm, as the object of that arm), and needs a full replace, as a top-level group does.
 func TestNestedGroupErrors(t *testing.T) {
 	const from = "        fields: [daily, weekly]\n"
 	tests := map[string]struct{ to, want string }{
-		"no such field":      {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
-		"split oneOf":        {"        fields: [daily]\n", "must all be in one group, or in none"},
-		"requireOne non-arm": {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
+		"no such field": {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
+		// One arm in a group stands for the arm, so the group must be optional.
+		"split oneOf":                           {"        fields: [daily]\n", "so the other arms can be set instead: add optional: true"},
+		"split oneOf, an arm and another field": {"        fields: [daily, every]\n        optional: true\n", "so a group holds one arm and no other field"},
+		"requireOne non-arm":                    {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

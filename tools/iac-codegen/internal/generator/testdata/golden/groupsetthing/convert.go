@@ -32,6 +32,7 @@ var createFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "groups", serverDefault: false},
+	{attr: "schedule", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -163,7 +164,10 @@ func flatten(ctx context.Context, v *group_set_things_service.GroupSetThing) (*G
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
-var oneOfArms = map[string]bool{}
+var oneOfArms = map[string]bool{
+	"schedule.absolute":          true,
+	"schedule.relative.duration": true,
+}
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
@@ -183,6 +187,8 @@ var requiredAttrs = map[string]bool{
 	"groups.period.period_minutes": true,
 	"groups.items":                 true,
 	"groups.items.key":             true,
+	"schedule.absolute.start":      true,
+	"schedule.relative.duration":   true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -353,6 +359,7 @@ func expandCreateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThin
 			out.Groups = append(out.Groups, *expandInGroupThing(ctx, p.AtName("groups"), &items[i], diags))
 		}
 	}
+	out.Schedule = expandSchedule(ctx, p.AtName("schedule"), m.Schedule, diags)
 	return out
 }
 
@@ -396,6 +403,66 @@ func expandInItemThing(ctx context.Context, p path.Path, m *OutItemThingModel, d
 	return out
 }
 
+func expandSchedule(ctx context.Context, p path.Path, m *ScheduleModel, diags *diag.Diagnostics) *group_set_things_service.Schedule {
+	if m == nil {
+		return nil
+	}
+	out := &group_set_things_service.Schedule{}
+	out.AbsoluteWindow = expandAbsoluteWindow(ctx, p.AtName("absolute"), m.AbsoluteWindow, diags)
+	expandScheduleRelative(ctx, p.AtName("relative"), m.Relative, out, diags)
+	return out
+}
+
+func flattenSchedule(ctx context.Context, p path.Path, v *group_set_things_service.Schedule, diags *diag.Diagnostics) *ScheduleModel {
+	if v == nil {
+		return nil
+	}
+	out := &ScheduleModel{}
+	out.AbsoluteWindow = flattenAbsoluteWindow(ctx, p.AtName("absolute"), v.AbsoluteWindow, diags)
+	out.Relative = flattenScheduleRelative(ctx, p.AtName("relative"), v, diags)
+	return out
+}
+
+func expandAbsoluteWindow(ctx context.Context, p path.Path, m *AbsoluteWindowModel, diags *diag.Diagnostics) *group_set_things_service.AbsoluteWindow {
+	if m == nil {
+		return nil
+	}
+	out := &group_set_things_service.AbsoluteWindow{}
+	out.Start = valueOf(expandString(m.Start))
+	out.End = expandString(m.End)
+	return out
+}
+
+func flattenAbsoluteWindow(ctx context.Context, p path.Path, v *group_set_things_service.AbsoluteWindow, diags *diag.Diagnostics) *AbsoluteWindowModel {
+	if v == nil {
+		return nil
+	}
+	out := &AbsoluteWindowModel{}
+	out.Start = types.StringPointerValue(&v.Start)
+	out.End = types.StringPointerValue(v.End)
+	return out
+}
+
+// expandScheduleRelative writes the fields of a group, which the API holds in the parent object, to out.
+func expandScheduleRelative(ctx context.Context, p path.Path, m *ScheduleRelativeModel, out *group_set_things_service.Schedule, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.RelativeWindow = expandString(m.RelativeWindow)
+}
+
+func flattenScheduleRelative(ctx context.Context, p path.Path, v *group_set_things_service.Schedule, diags *diag.Diagnostics) *ScheduleRelativeModel {
+	if v == nil {
+		return nil
+	}
+	if v.RelativeWindow == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &ScheduleRelativeModel{}
+	out.RelativeWindow = types.StringPointerValue(v.RelativeWindow)
+	return out
+}
+
 func expandUpdateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThingModel, diags *diag.Diagnostics) *group_set_things_service.UpdateGroupSetThing {
 	if m == nil {
 		return nil
@@ -408,6 +475,7 @@ func expandUpdateGroupSetThing(ctx context.Context, p path.Path, m *GroupSetThin
 			out.Groups = append(out.Groups, *expandInGroupThing(ctx, p.AtName("groups"), &items[i], diags))
 		}
 	}
+	out.Schedule = expandSchedule(ctx, p.AtName("schedule"), m.Schedule, diags)
 	return out
 }
 
@@ -426,6 +494,7 @@ func flattenGroupSetThing(ctx context.Context, p path.Path, v *group_set_things_
 		}
 		out.Groups = flattenSet(ctx, types.ObjectType{AttrTypes: outGroupThingAttrTypes()}, items, diags)
 	}
+	out.Schedule = flattenSchedule(ctx, p.AtName("schedule"), v.Schedule, diags)
 	out.Document = types.StringNull()
 	return out
 }

@@ -2949,10 +2949,24 @@ func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup)
 	name := func(arm string) string { return terraformName(g.b.policy, g.component, arm) }
 	for _, o := range oneOfs {
 		group := g.of(o.Arms[0])
+		split := false
 		for _, arm := range o.Arms[1:] {
-			if g.of(arm) != group {
-				return fmt.Errorf("types.%s.groups: the oneOf arms %s must all be in one group, or in none", g.component, strings.Join(o.Arms, ", "))
+			split = split || g.of(arm) != group
+		}
+		if split {
+			// The arms are in different places: each group holds one arm of the oneOf, as the
+			// object that stands for the arm. The arms then check each other at the level of the
+			// component, where the group objects are attributes.
+			if err := g.checkSingleArmGroups(o); err != nil {
+				return err
 			}
+			addGroupValidators(attrs, []model.OneOfGroup{o}, func(arm string) string {
+				if in := g.of(arm); in != "" {
+					return in
+				}
+				return name(arm)
+			})
+			continue
 		}
 		if group == "" {
 			addGroupValidators(attrs, []model.OneOfGroup{o}, name)
@@ -2961,6 +2975,26 @@ func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup)
 		addGroupValidators(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
 		if g.lines[group].RequireOne {
 			requireOneArm(g.attrs[group])
+		}
+	}
+	return nil
+}
+
+// checkSingleArmGroups checks the groups of a oneOf whose arms are in different places: a group
+// holds one arm of the oneOf and no other field, and it is optional, because the other arms are
+// not in it. The group object stands for the arm.
+func (g *nestedGroups) checkSingleArmGroups(o model.OneOfGroup) error {
+	for _, arm := range o.Arms {
+		group := g.of(arm)
+		if group == "" {
+			continue
+		}
+		line := g.lines[group]
+		if len(line.Fields) != 1 {
+			return fmt.Errorf("types.%s.groups.%s: the oneOf arms %s are in different places, so a group holds one arm and no other field", g.component, group, strings.Join(o.Arms, ", "))
+		}
+		if !line.Optional {
+			return fmt.Errorf("types.%s.groups.%s: the group holds the arm %s of a oneOf, so the other arms can be set instead: add optional: true", g.component, group, arm)
 		}
 	}
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -65,6 +66,7 @@ func plannedSet(root tftypes.Object) tftypes.Value {
 		"name":     tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
 		"groups":   tftypes.NewValue(groups, []tftypes.Value{groupValue}),
 		"document": tftypes.NewValue(tftypes.String, "doc"),
+		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
 	})
 }
 
@@ -183,6 +185,7 @@ func thingWithGroups(root tftypes.Object, groups ...tftypes.Value) tftypes.Value
 		"name":     tftypes.NewValue(tftypes.String, nil),
 		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
 		"document": tftypes.NewValue(tftypes.String, nil),
+		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
 	})
 }
 
@@ -658,7 +661,8 @@ func TestSetItemStateModifierTakesTheMatchingItem(t *testing.T) {
 	}
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, map[string]tftypes.Value{
 		"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
-		"groups": tftypes.NewValue(root.AttributeTypes["groups"], []tftypes.Value{stateGroup("b", 7, 0), stateGroup("a", 3, 0)}),
+		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], []tftypes.Value{stateGroup("b", 7, 0), stateGroup("a", 3, 0)}),
 	})}
 	for _, test := range []struct {
 		name  string
@@ -717,7 +721,8 @@ func TestSetItemStateModifierKeepsAnUnknownConfigurationUnknown(t *testing.T) {
 	top := func(groups ...tftypes.Value) tftypes.Value {
 		return tftypes.NewValue(root, map[string]tftypes.Value{
 			"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
-			"groups": tftypes.NewValue(root.AttributeTypes["groups"], groups),
+			"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+			"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
 		})
 	}
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: top(
@@ -797,4 +802,70 @@ func TestEquivalentDocumentPlansNoChangeWithRealTerraform(t *testing.T) {
 		{Config: config("{\"a\":1}")},
 		{Config: config("{ \"a\": 1 }"), ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
 	}})
+}
+
+func scheduleConfig(body string) string {
+	return "resource \"test_group_set_thing\" \"s\" {\n  groups = [{ name = \"g\", items = [{ key = \"k\" }] }]\n" + body + "}\n"
+}
+
+// The relative arm, a plain duration, is an object of its own beside the absolute arm: schedule =
+// { relative = { duration } }. Each arm reads back as it was sent, the plan after each apply is
+// empty (the test framework checks it), a change of arm replaces the other, removing the schedule
+// sends none, and both arms are an error at plan.
+func TestSingleArmGroupIsTheObjectOfItsArm(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			{
+				Config: scheduleConfig("  schedule = { relative = { duration = \"15m\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.relative.duration", "15m"),
+					resource.TestCheckNoResourceAttr(res, "schedule.absolute.start"),
+					func(*terraform.State) error {
+						body := group_set_things_service.Created[len(group_set_things_service.Created)-1]
+						if body.Schedule == nil || body.Schedule.RelativeWindow == nil || *body.Schedule.RelativeWindow != "15m" || body.Schedule.AbsoluteWindow != nil {
+							return fmt.Errorf("sent schedule = %+v, want only the relative window 15m", body.Schedule)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = { absolute = { start = \"a\", end = \"b\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.absolute.start", "a"),
+					resource.TestCheckResourceAttr(res, "schedule.absolute.end", "b"),
+					resource.TestCheckNoResourceAttr(res, "schedule.relative.duration"),
+					func(*terraform.State) error {
+						body := group_set_things_service.Updated[len(group_set_things_service.Updated)-1]
+						if body.Schedule == nil || body.Schedule.AbsoluteWindow == nil || body.Schedule.RelativeWindow != nil {
+							return fmt.Errorf("sent schedule = %+v, want only the absolute window", body.Schedule)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = {}\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(res, "schedule.relative.duration"),
+					resource.TestCheckNoResourceAttr(res, "schedule.absolute.start"),
+				),
+			},
+			{Config: scheduleConfig(""), Check: resource.TestCheckNoResourceAttr(res, "schedule.relative.duration")},
+			{
+				Config:      scheduleConfig("  schedule = { absolute = { start = \"a\" }, relative = { duration = \"15m\" } }\n"),
+				ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`),
+			},
+			{
+				Config:      scheduleConfig("  schedule = { relative = {} }\n"),
+				ExpectError: regexp.MustCompile(`duration`),
+			},
+			// An import reads the arm that the API has, so the state matches the configuration.
+			{Config: scheduleConfig("  schedule = { relative = { duration = \"15m\" } }\n")},
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
 }

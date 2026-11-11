@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -107,6 +108,42 @@ func Schema() schema.Schema {
 					},
 					PlanModifiers: []planmodifier.Object{
 						objectplanmodifier.UseStateForUnknown(),
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"schedule": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"absolute": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("relative")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"start": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+							"end": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+					"relative": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("absolute")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"duration": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
 					},
 				},
 				MarkdownDescription: "",

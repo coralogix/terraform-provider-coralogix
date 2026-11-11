@@ -5,14 +5,27 @@ import (
 	"net/http"
 )
 
+type AbsoluteWindow struct {
+	End   *string
+	Start string
+}
+
+// A oneOf: AbsoluteWindow, or RelativeWindow, a plain duration.
+type Schedule struct {
+	AbsoluteWindow *AbsoluteWindow
+	RelativeWindow *string
+}
+
 type CreateGroupSetThing struct {
-	Groups []InGroupThing
-	Name   *string
+	Groups   []InGroupThing
+	Name     *string
+	Schedule *Schedule
 }
 
 type UpdateGroupSetThing struct {
-	Groups []InGroupThing
-	Name   *string
+	Groups   []InGroupThing
+	Name     *string
+	Schedule *Schedule
 }
 
 type CreateGroupSetThingResult struct {
@@ -20,9 +33,10 @@ type CreateGroupSetThingResult struct {
 }
 
 type GroupSetThing struct {
-	Groups []OutGroupThing
-	Id     string
-	Name   string
+	Groups   []OutGroupThing
+	Id       string
+	Name     string
+	Schedule *Schedule
 }
 
 type InGroupThing struct {
@@ -104,8 +118,8 @@ func (r ApiGroupSetsUpdateRequest) UpdateGroupSetThing(updateGroupSetThing Updat
 	return r
 }
 
-func store(id string, name *string, groups []InGroupThing) {
-	Stored = GroupSetThing{Id: id, Name: id}
+func store(id string, name *string, groups []InGroupThing, schedule *Schedule) {
+	Stored = GroupSetThing{Id: id, Name: id, Schedule: schedule}
 	if name != nil {
 		Stored.Name = *name
 	}
@@ -131,7 +145,7 @@ func store(id string, name *string, groups []InGroupThing) {
 
 func (r ApiGroupSetsCreateRequest) Execute() (*CreateGroupSetThingResult, *http.Response, error) {
 	Created = append(Created, r.body)
-	store("set-1", r.body.Name, r.body.Groups)
+	store("set-1", r.body.Name, r.body.Groups, r.body.Schedule)
 	return &CreateGroupSetThingResult{Id: "set-1"}, nil, nil
 }
 
@@ -146,7 +160,7 @@ func (r ApiGroupSetsUpdateRequest) Execute() (map[string]interface{}, *http.Resp
 	if r.body.Name != nil {
 		name = r.body.Name
 	}
-	store(r.id, name, r.body.Groups)
+	store(r.id, name, r.body.Groups, r.body.Schedule)
 	return map[string]interface{}{}, nil, nil
 }
 
