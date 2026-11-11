@@ -36,6 +36,9 @@ paths:
                 window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
+                panels:
+                  type: array
+                  items: {$ref: '#/components/schemas/WrapPanel'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -81,6 +84,9 @@ paths:
                 window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
+                panels:
+                  type: array
+                  items: {$ref: '#/components/schemas/WrapPanel'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -126,6 +132,9 @@ components:
         window: {$ref: '#/components/schemas/Window'}
         mainLabel: {$ref: '#/components/schemas/Label'}
         extraLabel: {$ref: '#/components/schemas/Label'}
+        panels:
+          type: array
+          items: {$ref: '#/components/schemas/WrapPanel'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     LuceneQuery:
       type: object
@@ -204,3 +213,10 @@ components:
       required: []
       properties:
         value: {type: string, x-coralogix-presence: true}
+    # A panel has an id that the client makes: a UUID held in a wrapper, which the API requires.
+    WrapPanel:
+      type: object
+      required: [id]
+      properties:
+        id: {$ref: '#/components/schemas/UUID'}
+        title: {type: string, x-coralogix-presence: true}

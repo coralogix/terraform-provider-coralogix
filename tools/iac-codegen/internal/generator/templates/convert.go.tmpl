@@ -4,6 +4,7 @@ package {{.Package}}
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"maps"
 	"math"
@@ -1580,6 +1581,26 @@ func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 	return prior
 }
 {{- end}}
+{{- if .Conv.UsesClientID}}
+
+// expandClientUUID returns the id that the client makes: the value of a known id, and a new version 4
+// UUID for an id that is unknown. A null id is no id.
+func expandClientUUID(v types.String) *string {
+	if v.IsNull() {
+		return nil
+	}
+	if !v.IsUnknown() {
+		return expandString(v)
+	}
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6], b[8] = b[6]&0x0f|0x40, b[8]&0x3f|0x80
+	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+	return &id
+}
+{{- end}}
 {{- if or (.Conv.Uses "int32asnumber") (.Conv.Uses "float64asnumber")}}
 
 // expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
@@ -1879,6 +1900,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	} else {
 		{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 	}
+{{- else if and (eq .Conv "string") .ClientID}}
+	{{.Dst}} = {{$l}}expandClientUUID(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "string"}}
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "split"}}

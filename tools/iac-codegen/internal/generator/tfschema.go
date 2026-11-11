@@ -767,6 +767,13 @@ func applyMode(a *tfAttr, l overrides.Field) error {
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
+	if l.ClientID != "" {
+		// The client makes the id, so the user may leave it out although the request requires it.
+		if a.Kind != "String" {
+			return fmt.Errorf("clientID: uuid needs a string attribute, not %s", a.Kind)
+		}
+		a.Required, a.Optional = false, true
+	}
 	if l.SchemaOptional {
 		if !a.Required {
 			return errors.New("schemaOptional needs a field that the API request requires")

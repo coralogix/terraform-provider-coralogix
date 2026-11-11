@@ -5,6 +5,7 @@ package wrapthing
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"math"
 	"sort"
@@ -54,6 +55,7 @@ var createFields = []struct {
 	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
+	{attr: "panels", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }
 
@@ -111,7 +113,8 @@ var oneOfArms = map[string]bool{}
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id": true,
+	"id":        true,
+	"panels.id": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -317,6 +320,12 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		out.MainLabel = wrapLabel(inner)
 	}
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
+	if items := expandElements[WrapPanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
+		out.Panels = make([]wrap_things_service.WrapPanel, 0, len(items))
+		for i := range items {
+			out.Panels = append(out.Panels, *expandWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &items[i], diags))
+		}
+	}
 	out.Offset = expandInt64Wire(m.Offset)
 	return out
 }
@@ -379,6 +388,40 @@ func flattenLabel(ctx context.Context, p path.Path, v *wrap_things_service.Label
 	return out
 }
 
+func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags *diag.Diagnostics) *wrap_things_service.WrapPanel {
+	if m == nil {
+		return nil
+	}
+	out := &wrap_things_service.WrapPanel{}
+	{
+		var inner *string
+		inner = expandClientUUID(m.Id)
+		out.Id = valueOf(wrapUUID(inner))
+	}
+	out.Title = expandString(m.Title)
+	return out
+}
+
+func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.WrapPanel, diags *diag.Diagnostics) *WrapPanelModel {
+	if v == nil {
+		return nil
+	}
+	out := &WrapPanelModel{}
+	{
+		inner := unwrapUUID(&v.Id)
+		out.Id = types.StringPointerValue(inner)
+	}
+	out.Title = types.StringPointerValue(v.Title)
+	return out
+}
+
+func wrapPanelAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":    types.StringType,
+		"title": types.StringType,
+	}
+}
+
 func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThingModel, diags *diag.Diagnostics) *wrap_things_service.ReplaceWrapThingRequest {
 	if m == nil {
 		return nil
@@ -438,6 +481,12 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		out.MainLabel = wrapLabel(inner)
 	}
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
+	if items := expandElements[WrapPanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
+		out.Panels = make([]wrap_things_service.WrapPanel, 0, len(items))
+		for i := range items {
+			out.Panels = append(out.Panels, *expandWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &items[i], diags))
+		}
+	}
 	out.Offset = expandInt64Wire(m.Offset)
 	return out
 }
@@ -494,6 +543,14 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.MainLabel = types.StringPointerValue(inner)
 	}
 	out.ExtraLabel = flattenLabel(ctx, p.AtName("extra_label"), v.ExtraLabel, diags)
+	out.Panels = types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()})
+	if v.Panels != nil {
+		items := make([]WrapPanelModel, 0, len(v.Panels))
+		for i := range v.Panels {
+			items = append(items, *flattenWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &v.Panels[i], diags))
+		}
+		out.Panels = flattenList(ctx, types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, items, diags)
+	}
 	out.Offset = flattenInt64Wire(p.AtName("offset"), v.Offset, diags)
 	return out
 }
@@ -910,6 +967,24 @@ func expandInt32(v types.Int32) *int32 {
 	}
 	n := v.ValueInt32()
 	return &n
+}
+
+// expandClientUUID returns the id that the client makes: the value of a known id, and a new version 4
+// UUID for an id that is unknown. A null id is no id.
+func expandClientUUID(v types.String) *string {
+	if v.IsNull() {
+		return nil
+	}
+	if !v.IsUnknown() {
+		return expandString(v)
+	}
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6], b[8] = b[6]&0x0f|0x40, b[8]&0x3f|0x80
+	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+	return &id
 }
 
 // expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.

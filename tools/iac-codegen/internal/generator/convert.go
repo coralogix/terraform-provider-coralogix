@@ -415,6 +415,8 @@ type convField struct {
 	StringFold *foldArms
 	// ListFold holds the arms of a oneOf that Terraform shows as one list (typedArms.asList).
 	ListFold *foldList
+	// ClientID: expand makes a UUID for an unknown value (clientID: uuid).
+	ClientID bool
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -646,6 +648,19 @@ func (d *convData) UsesEnumsMapped() bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Conv == convStrings && f.EnumMap != nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesClientID reports whether a field gets a UUID that the client makes (clientID: uuid). The template
+// then emits the function that makes it.
+func (d *convData) UsesClientID() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.ClientID {
 				return true
 			}
 		}
@@ -1519,6 +1534,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
+	cf.ClientID = line.ClientID != ""
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
 	cf.ShowInverted = line.ShowInverted

@@ -28,6 +28,10 @@ types:
     fields:
       values:
         collection: set
+  # The client makes the id of a panel when the configuration leaves it out.
+  WrapPanel:
+    fields:
+      id: {clientID: uuid}
 enums:
   WindowValue:
     zero: 1_MINUTE

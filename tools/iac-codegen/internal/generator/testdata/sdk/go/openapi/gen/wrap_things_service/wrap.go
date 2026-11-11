@@ -70,6 +70,12 @@ type Label struct {
 	Value *string
 }
 
+// WrapPanel requires its id, so the SDK holds it as a value.
+type WrapPanel struct {
+	Id    UUID
+	Title *string
+}
+
 // WrapThing requires query, so the SDK holds it as a value, not a pointer.
 type WrapThing struct {
 	Id         string
@@ -85,6 +91,7 @@ type WrapThing struct {
 	Window     *Window
 	MainLabel  *Label
 	ExtraLabel *Label
+	Panels     []WrapPanel
 	Offset     *string
 }
 
@@ -101,6 +108,7 @@ type CreateWrapThingRequest struct {
 	Window     *Window
 	MainLabel  *Label
 	ExtraLabel *Label
+	Panels     []WrapPanel
 	Offset     *string
 }
 
@@ -117,6 +125,7 @@ type ReplaceWrapThingRequest struct {
 	Window     *Window
 	MainLabel  *Label
 	ExtraLabel *Label
+	Panels     []WrapPanel
 	Offset     *string
 }
 

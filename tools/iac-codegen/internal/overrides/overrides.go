@@ -646,6 +646,11 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// ClientID: uuid makes a string the id that the client makes. The attribute is Optional and
+	// Computed with UseNonNullStateForUnknown, so a new value plans unknown and an existing one keeps
+	// its state. Expand sends a UUID that it makes for a value that is unknown, and the value that
+	// the configuration or the state has otherwise.
+	ClientID string `yaml:"clientID"`
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
@@ -1033,6 +1038,27 @@ func (f *File) checkSections() error {
 	return nil
 }
 
+// applyClientIDs makes the fields with a clientID line computed with UseNonNullStateForUnknown, as
+// the key states. A line that sets either of them too is an error: the key says both.
+func (t Type) applyClientIDs(component string) error {
+	for _, field := range sortedKeys(t.Fields) {
+		line := t.Fields[field]
+		if line.ClientID == "" {
+			continue
+		}
+		if line.ClientID != "uuid" {
+			return fmt.Errorf("types.%s.fields.%s.clientID is %q, want \"uuid\"", component, field, line.ClientID)
+		}
+		if line.Computed != nil || line.UseNonNullStateForUnknown || line.UseStateForUnknown || line.Default != nil || line.ReadOnly || line.Skip {
+			return fmt.Errorf("types.%s.fields.%s: clientID makes the attribute computed with useNonNullStateForUnknown, so the line sets no computed, default, useStateForUnknown, useNonNullStateForUnknown, readOnly, or skip", component, field)
+		}
+		computed := true
+		line.Computed, line.UseNonNullStateForUnknown = &computed, true
+		t.Fields[field] = line
+	}
+	return nil
+}
+
 // checkPlaces checks the at lines of a type: the key names a holder, and each field has a name.
 func (t Type) checkPlaces() error {
 	for _, place := range sortedKeys(t.At) {
@@ -1073,6 +1099,9 @@ func (f *File) checkTypes() error {
 		}
 		if err := t.checkPlaces(); err != nil {
 			return fmt.Errorf("types.%s.%w", name, err)
+		}
+		if err := t.applyClientIDs(name); err != nil {
+			return err
 		}
 		names := map[string]string{}
 		for _, field := range sortedKeys(t.Fields) {

@@ -3,13 +3,19 @@ package wrapthing
 import (
 	"context"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
@@ -45,6 +51,7 @@ func fullModel() *WrapThingModel {
 		Filter:     &SimpleFilterModel{Text: types.StringValue("text"), Limit: types.Int32Value(3), Span: types.Int64Value(-3)},
 		Selection:  strings("x", "y"),
 		Tags:       stringSet("p", "q"),
+		Panels:     types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()}),
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
 		Offset:     types.Int64Value(-9007199254740993),
@@ -340,5 +347,158 @@ func TestFoldedOneOfValidatorAcceptsTheUnionOfBothArms(t *testing.T) {
 		if diags.Diagnostics.HasError() == valid {
 			t.Errorf("window %q: valid = %v, want %v (%v)", value, !diags.Diagnostics.HasError(), valid, diags.Diagnostics)
 		}
+	}
+}
+
+func panelList(t *testing.T, panels ...WrapPanelModel) types.List {
+	t.Helper()
+	list, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, panels)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return list
+}
+
+var uuidV4 = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+
+// An id that the client makes: a known id is sent as it is, and an unknown id is a new version 4 UUID
+// that differs from the next one. A null id is no id. The id is in a wrapper that the API holds.
+func TestClientIDIsMadeOnlyForAnUnknownValue(t *testing.T) {
+	body, diags := expandCreate(context.Background(), &WrapThingModel{
+		Query: types.StringNull(), Priority: types.StringNull(), Threshold: types.Float64Null(),
+		WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), Tags: types.SetNull(types.StringType), MainLabel: types.StringNull(),
+		Panels: panelList(t,
+			WrapPanelModel{Id: types.StringValue("fixed-id"), Title: types.StringNull()},
+			WrapPanelModel{Id: types.StringUnknown(), Title: types.StringValue("a")},
+			WrapPanelModel{Id: types.StringUnknown(), Title: types.StringValue("b")},
+			WrapPanelModel{Id: types.StringNull(), Title: types.StringNull()},
+		),
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if len(body.Panels) != 4 {
+		t.Fatalf("sent %d panels, want 4", len(body.Panels))
+	}
+	if got := body.Panels[0].Id.Value; got == nil || *got != "fixed-id" {
+		t.Errorf("known id = %v, want fixed-id", got)
+	}
+	first, second := body.Panels[1].Id.Value, body.Panels[2].Id.Value
+	if first == nil || second == nil || !uuidV4.MatchString(*first) || !uuidV4.MatchString(*second) || *first == *second {
+		t.Errorf("made ids = %v and %v, want two different version 4 UUIDs", first, second)
+	}
+	if body.Panels[3].Id.Value != nil {
+		t.Errorf("null id = %v, want none", *body.Panels[3].Id.Value)
+	}
+}
+
+// The read puts the id that the API has in state, also with no prior value (an import), so the plan
+// after an apply or an import has nothing to change.
+func TestClientIDReadsBackAsTheAPIHasIt(t *testing.T) {
+	ctx := context.Background()
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{
+		{Id: wrap_things_service.UUID{Value: ptr("id-1")}, Title: ptr("a")},
+		{Id: wrap_things_service.UUID{Value: ptr("id-2")}},
+	}
+	{
+		name := "an import, no prior"
+		got, diags := flatten(ctx, resp)
+		if diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		var panels []WrapPanelModel
+		if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() {
+			t.Fatal(diags)
+		}
+		if len(panels) != 2 || panels[0].Id.ValueString() != "id-1" || panels[1].Id.ValueString() != "id-2" || panels[0].Title.ValueString() != "a" || !panels[1].Title.IsNull() {
+			t.Fatalf("%s: panels = %+v, want the ids and titles of the API", name, panels)
+		}
+	}
+}
+
+type clientIDProvider struct{}
+
+func (clientIDProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "test"
+}
+func (clientIDProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {}
+func (clientIDProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {
+}
+func (clientIDProvider) Resources(context.Context) []func() frameworkresource.Resource {
+	return []func() frameworkresource.Resource{func() frameworkresource.Resource { return NewResource(Hooks{}) }}
+}
+func (clientIDProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
+
+// The plan of an item without an id has the id unknown for a new item, and the id of the state for an
+// item that the state has: Terraform plans an id that the configuration leaves out as unknown, and
+// UseNonNullStateForUnknown keeps the state value.
+func TestClientIDPlansUnknownForANewItemAndKeepsTheStateId(t *testing.T) {
+	ctx := context.Background()
+	server, err := providerserver.NewProtocol6WithError(clientIDProvider{})()
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemaResp, err := server.GetProviderSchema(ctx, &tfprotov6.GetProviderSchemaRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := schemaResp.ResourceSchemas["test_wrap_thing"].ValueType().(tftypes.Object)
+	panelType := root.AttributeTypes["panels"].(tftypes.List).ElementType.(tftypes.Object)
+	panel := func(id tftypes.Value) tftypes.Value {
+		return tftypes.NewValue(panelType, map[string]tftypes.Value{"id": id, "title": tftypes.NewValue(tftypes.String, nil)})
+	}
+	thing := func(id string, panels ...tftypes.Value) tftypes.Value {
+		values := map[string]tftypes.Value{}
+		for name, typ := range root.AttributeTypes {
+			values[name] = tftypes.NewValue(typ, nil)
+		}
+		values["id"] = tftypes.NewValue(tftypes.String, id)
+		values["query"] = tftypes.NewValue(tftypes.String, "q")
+		values["panels"] = tftypes.NewValue(root.AttributeTypes["panels"], panels)
+		return tftypes.NewValue(root, values)
+	}
+	encode := func(v tftypes.Value) *tfprotov6.DynamicValue {
+		dv, err := tfprotov6.NewDynamicValue(root, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &dv
+	}
+	null := tftypes.NewValue(tftypes.String, nil)
+	prior := thing("thing-1", panel(tftypes.NewValue(tftypes.String, "kept")))
+	config := thing("thing-1", panel(null), panel(null))
+	proposed := thing("thing-1", panel(tftypes.NewValue(tftypes.String, "kept")), panel(tftypes.NewValue(tftypes.String, tftypes.UnknownValue)))
+	plan, err := server.PlanResourceChange(ctx, &tfprotov6.PlanResourceChangeRequest{TypeName: "test_wrap_thing", PriorState: encode(prior), Config: encode(config), ProposedNewState: encode(proposed)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range plan.Diagnostics {
+		t.Fatalf("plan: %s: %s", d.Summary, d.Detail)
+	}
+	planned, err := plan.PlannedState.Unmarshal(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var values map[string]tftypes.Value
+	if err := planned.As(&values); err != nil {
+		t.Fatal(err)
+	}
+	var panels []tftypes.Value
+	if err := values["panels"].As(&panels); err != nil {
+		t.Fatal(err)
+	}
+	var first, second map[string]tftypes.Value
+	if err := panels[0].As(&first); err != nil {
+		t.Fatal(err)
+	}
+	if err := panels[1].As(&second); err != nil {
+		t.Fatal(err)
+	}
+	if !first["id"].Equal(tftypes.NewValue(tftypes.String, "kept")) {
+		t.Errorf("the first panel id = %v, want the id of the state", first["id"])
+	}
+	if second["id"].IsKnown() {
+		t.Errorf("the new panel id = %v, want unknown", second["id"])
 	}
 }

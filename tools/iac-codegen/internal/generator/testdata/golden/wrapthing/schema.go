@@ -106,6 +106,26 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"panels": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
+							MarkdownDescription: "",
+						},
+						"title": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+					},
+				},
+				MarkdownDescription: "",
+			},
 			"offset": schema.Int64Attribute{
 				Optional:            true,
 				MarkdownDescription: "",
