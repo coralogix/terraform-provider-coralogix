@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
@@ -75,9 +76,79 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
+		p = requestValue(ctx, field.attr, p, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
+}
+
+// serverAttrs are the paths of the computed attributes inside the values
+// that a request sends, with list and map steps left out. The server sets
+// them.
+var serverAttrs = map[string]bool{
+	"marks.created_at": true,
+}
+
+// requestValue returns v with a null value for each attribute that the server
+// sets. When the resource changes, Terraform plans these attributes as
+// unknown. A request does not send them, so a change check and an
+// unknown-value check must not see them.
+func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diagnostics) attr.Value {
+	if v == nil || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	switch v := v.(type) {
+	case types.Object:
+		attrTypes := v.AttributeTypes(ctx)
+		out := make(map[string]attr.Value, len(attrTypes))
+		for name, child := range v.Attributes() {
+			if serverAttrs[at+"."+name] {
+				out[name] = nullValue(ctx, attrTypes[name], diags)
+			} else {
+				out[name] = requestValue(ctx, at+"."+name, child, diags)
+			}
+		}
+		value, d := types.ObjectValue(attrTypes, out)
+		diags.Append(d...)
+		return value
+	case types.List:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.ListValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Set:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.SetValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Map:
+		elems := v.Elements()
+		out := make(map[string]attr.Value, len(elems))
+		for key, child := range elems {
+			out[key] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.MapValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	}
+	return v
+}
+
+// nullValue returns the null value of type t.
+func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.Value {
+	value, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
+	if err != nil {
+		diags.AddError("Invalid value", err.Error())
+	}
+	return value
 }
 
 // expandCreate returns the Create request body. A null value is not sent.
@@ -122,6 +193,7 @@ var computedAttrs = map[string]bool{
 	"panels.id":             true,
 	"panels.panel_notes.id": true,
 	"marks.title":           true,
+	"marks.created_at":      true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -547,6 +619,7 @@ func flattenWrapMark(ctx context.Context, p path.Path, v *wrap_things_service.Wr
 		out.Link = types.StringPointerValue(inner)
 	}
 	out.Title = types.StringPointerValue(v.Title)
+	out.CreatedAt = flattenTime(v.CreatedAt)
 	return out
 }
 
@@ -556,15 +629,17 @@ func sameWrapMark(a, b *wrap_things_service.WrapMark) bool {
 	return pointerValue(a.Label) == pointerValue(b.Label) &&
 		pointerValue(a.Ratio) == pointerValue(b.Ratio) &&
 		pointerValue(unwrapLinkRefAtWrapMarkLink(a.Link)) == pointerValue(unwrapLinkRefAtWrapMarkLink(b.Link)) &&
-		pointerValue(a.Title) == pointerValue(b.Title)
+		pointerValue(a.Title) == pointerValue(b.Title) &&
+		pointerValue(a.CreatedAt) == pointerValue(b.CreatedAt)
 }
 
 func wrapMarkAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"label": types.StringType,
-		"ratio": types.NumberType,
-		"link":  types.StringType,
-		"title": types.StringType,
+		"label":      types.StringType,
+		"ratio":      types.NumberType,
+		"link":       types.StringType,
+		"title":      types.StringType,
+		"created_at": types.StringType,
 	}
 }
 

@@ -62,6 +62,8 @@ types:
       ratio: {terraformType: Number}
       # An omitted title is the label, as a released label was the value.
       title: {computed: true, defaultFromSibling: label}
+      # The server sets the time, and the requests share the component: a response-only time is not sent.
+      createdAt: {readOnly: true}
   FolderPath:
     fields:
       segments: {join: "/"}

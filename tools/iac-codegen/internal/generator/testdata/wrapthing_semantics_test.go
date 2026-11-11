@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -1047,7 +1048,7 @@ func TestPlaceThatSkipsAFieldUnwrapsTheComponent(t *testing.T) {
 	ctx := context.Background()
 	model := fullModel()
 	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
-		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringValue("there"), "title": types.StringNull()}),
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringValue("there"), "title": types.StringNull(), "created_at": types.StringNull()}),
 	})
 	body, diags := expandCreate(ctx, model)
 	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].Link == nil || *body.Marks[0].Link.Target != "there" || body.Marks[0].Link.Hint != nil {
@@ -1103,5 +1104,28 @@ func TestSiblingDefaultPlansTheValueOfTheSibling(t *testing.T) {
 		if resp.Diagnostics.HasError() || !resp.PlanValue.Equal(want) {
 			t.Errorf("%s: plan = %v (%v), want %v", name, resp.PlanValue, resp.Diagnostics, want)
 		}
+	}
+}
+
+// A time that only the server sets can be in a component that the requests share, when its line says
+// readOnly: the request does not send it, and the response shows it.
+func TestResponseOnlyTimeInASharedComponentIsNotSent(t *testing.T) {
+	ctx := context.Background()
+	model := fullModel()
+	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringNull(), "title": types.StringNull(), "created_at": types.StringUnknown()}),
+	})
+	body, diags := expandCreate(ctx, model)
+	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].CreatedAt != nil {
+		t.Fatalf("sent marks = %+v (%v), want no time", body.Marks, diags)
+	}
+	when := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	label := "a"
+	resp := fullResponse()
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &label, CreatedAt: &when}}
+	got, diags := flatten(ctx, resp, nil)
+	var marks []WrapMarkModel
+	if diags.HasError() || got.Marks.ElementsAs(ctx, &marks, false).HasError() || len(marks) != 1 || marks[0].CreatedAt.ValueString() != "2026-01-02T03:04:05Z" {
+		t.Fatalf("read marks = %+v (%v), want the time of the server", marks, diags)
 	}
 }

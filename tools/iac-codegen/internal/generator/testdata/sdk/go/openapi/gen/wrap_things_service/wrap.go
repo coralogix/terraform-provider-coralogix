@@ -3,6 +3,7 @@ package wrap_things_service
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 type WrapPriority string
@@ -36,6 +37,8 @@ type WrapMark struct {
 	Ratio *float64
 	Link  *LinkRef
 	Title *string
+	// CreatedAt is set by the server: the component is shared by the requests and the response.
+	CreatedAt *time.Time
 }
 
 type UUID struct {

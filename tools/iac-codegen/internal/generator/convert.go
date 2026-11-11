@@ -2755,7 +2755,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch {
-		case f.Conv == convTime && expand:
+		case f.Conv == convTime && expand && !f.FlattenOnly:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
 		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects || f.Conv == convDistributed:
 			if err := b.mark(f.Object, expand); err != nil {

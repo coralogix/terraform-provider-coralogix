@@ -274,6 +274,7 @@ components:
         ratio: {type: number, format: double, x-coralogix-presence: true}
         link: {$ref: '#/components/schemas/LinkRef'}
         title: {type: string, x-coralogix-presence: true}
+        createdAt: {type: string, format: date-time, x-coralogix-presence: true}
     # A folder path: the segments, held in an object, which Terraform shows as one text "Team/Sub".
     FolderPath:
       type: object

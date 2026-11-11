@@ -185,6 +185,10 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+						"created_at": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",
