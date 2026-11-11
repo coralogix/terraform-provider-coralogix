@@ -1,0 +1,146 @@
+resource: Dashboard
+mode: existing
+typeName: dashboard
+validators:
+  inferred: false
+api:
+  operations:
+    create: DashboardsService_CreateDashboard
+    get: DashboardsService_GetDashboard
+    update: DashboardsService_ReplaceDashboard
+    delete: DashboardsService_DeleteDashboard
+  requestWrapper: dashboard
+  updateIDInBody: true
+  idProperty: id
+  createResponseOnlyIDProperty: dashboardId
+  serverSetID: true
+enums:
+  ActionDataSourceType: {zero: unspecified, values: [ACTION_DATA_SOURCE_TYPE_LOGS, ACTION_DATA_SOURCE_TYPE_SPANS, ACTION_DATA_SOURCE_TYPE_METRICS, ACTION_DATA_SOURCE_TYPE_DATAPRIME]}
+  widgets.common.DataModeType: {zero: unspecified, trimPrefix: DATA_MODE_TYPE_, values: [DATA_MODE_TYPE_ARCHIVE]}
+  v1.common.DataModeType: {zero: unspecified, trimPrefix: DATA_MODE_TYPE_, values: [DATA_MODE_TYPE_ARCHIVE]}
+  AnnotationOrientation: {zero: unspecified, values: [ANNOTATION_ORIENTATION_HORIZONTAL]}
+  SpanRelationType: {zero: unspecified, values: [SPAN_RELATION_TYPE_OTHER, SPAN_RELATION_TYPE_PARENT, SPAN_RELATION_TYPE_ROOT]}
+
+# Metrics operators: unwrap Selection + ListSelection, so each arm is an object with one list (risk 1).
+unwrap: [LuceneQuery, UUID, SectionColor, Constant, ConstantListSource, SpanFieldSource, PromQlQuery, common.DataprimeQuery, Query.MetricsQuery.Selection, Query.MetricsQuery.Selection.ListSelection, QuerySource.MetricsQuery.Selection, QuerySource.MetricsQuery.Selection.ListSelection]
+
+groups:
+  time_frame:
+    fields: [absoluteTimeFrame]
+    optional: true
+    requireOne: true
+    markdownDescription: Specifies the time frame. Can be either absolute or relative.
+    groups:
+      relative: {fields: [relativeTimeFrame], optional: true}
+  auto_refresh:
+    fields: [off, oneMinute, twoMinutes, fiveMinutes, fifteenMinutes]
+    optional: true
+    computed: true
+    typedArms: {field: type, default: off}
+
+types:
+  Dashboard: {fields: {id: {readOnly: true}, absoluteTimeFrame: {name: absolute}, relativeTimeFrame: {name: duration, required: true}, actions: {distributeTo: {item: Widget, as: custom_actions, by: {listField: widgetId, itemField: id}, keep: definition.customAction}}}}
+  LogsAggregation: {typedArms: {names: {average: avg}}}
+  SpansAggregation: {typedArms: {names: {metricAggregation: metric, dimensionAggregation: dimension}}}
+  Filter.Operator: {typedArms: {names: {notEquals: not_equals}}}
+  Equals.Selection: {typedArms: {field: selection_type, infer: true}}
+  NotEquals.Selection: {typedArms: {field: selection_type, infer: true}}
+  Equals.Selection.ListSelection: {fields: {values: {name: selected_values, computed: true, default: []}}}
+  NotEquals.Selection.ListSelection: {fields: {values: {name: selected_values, computed: true, default: []}}}
+  SpanField: {typedArms: {names: {metadataField: metadata, tagField: tag, processTagField: process_tag}}}
+  Query.MetricsQuery.Operator: {typedArms: {names: {notEquals: not_equals}}}
+  Query.MetricsQuery.NotEquals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: "null"}}}
+  QuerySource.MetricsQuery.Operator: {typedArms: {names: {notEquals: not_equals}}}
+  QuerySource.MetricsQuery.NotEquals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: "null"}}}
+  Query.MetricsQuery.Equals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: "null"}}}
+  QuerySource.MetricsQuery.Equals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: "null"}}}
+
+  Query.MetricsQuery.Type.LabelValue: {fields: {labelFilters: {readEmptyAs: "null"}}}
+  QuerySource.MetricsQuery.Type.LabelValue: {fields: {labelFilters: {readEmptyAs: "null"}}}
+  TimeFrame: {fields: {from: {name: start}, to: {name: end}}}
+  # R25: the relative arm, a plain duration, is an object: relative = { duration }.
+  TimeFrameSelect:
+    groups:
+      relative: {fields: [relativeTimeFrame], optional: true}
+    fields:
+      absoluteTimeFrame: {name: absolute}
+      relativeTimeFrame: {name: duration, required: true}
+  BarChart.Query: {fields: {dataprime: {name: data_prime}}}
+  BarChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  DataTable.Query: {fields: {dataprime: {name: data_prime}}}
+  DataTable.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  Gauge.Query: {fields: {dataprime: {name: data_prime}}}
+  Gauge.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  Hexagon.Query: {fields: {dataprime: {name: data_prime}}}
+  Hexagon.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  HorizontalBarChart.Query: {fields: {dataprime: {name: data_prime}}}
+  HorizontalBarChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  LineChart.Query: {fields: {dataprime: {name: data_prime}}}
+  LineChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  PieChart.Query: {fields: {dataprime: {name: data_prime}}}
+  PieChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query}}}
+  Dynamic.Query: {fields: {dataprime: {name: data_prime}}}
+  Dataprime: {fields: {dataprimeQuery: {name: query}}}
+  widgets.Dynamic: {fields: {query: {skip: true}}}
+  Gauge.LogsQuery: {fields: {aggregation: {skip: true}}}   # deprecated
+  Gauge.SpansQuery: {fields: {aggregation: {skip: true}}}   # deprecated
+  Hexagon.LogsQuery: {fields: {logsAggregation: {name: aggregation}}}
+  Hexagon.SpansQuery: {fields: {spansAggregation: {name: aggregation}}}
+  Logs: {fields: {aggregation: {name: aggregations}}}
+  Spans: {fields: {aggregation: {name: aggregations}}}
+  BarChart: {fields: {xAxis: {name: xaxis}}}
+  MetricsSource.Strategy: {fields: {startTimeMetric: {name: start_time}}}
+  Row: {fields: {appearance: {inline: true, required: true}}}
+  Widget: {fields: {appearance: {inline: true}}}   # R31: width is sent as appearance.width
+  Variable.Definition: {fields: {constant: {name: constant_value}}}
+  MultiSelect.Query: {fields: {logsQuery: {name: logs}, metricsQuery: {name: metrics}, spansQuery: {name: spans}}}
+  Query.LogsQuery: {fields: {type: {inline: true, required: true}}}
+  Query.MetricsQuery: {fields: {type: {inline: true, required: true}}}
+  Query.SpansQuery: {fields: {type: {inline: true, required: true}}}
+  LineChart.MetricsQuery:
+    extraAttributes:
+      promql_query_type: {type: string, optional: true, computed: true, default: unspecified, markdownDescription: "Not sent to the API; kept for compatibility."}
+  # R32: two arms call their field by different API names and show it as one.
+  MetricAggregation: {fields: {metricField: {name: field}}}
+  DimensionAggregation: {fields: {dimensionField: {name: field}}}
+  # R34: one component, two names by place (metric_name in filters, metric in widget metric filters).
+  MetricsFilter: {at: {Filter.Source.metrics: {fields: {metric: {name: metric_name}}}}}
+  # R29: the custom arm of a section's options joins the options, beside the internal arm.
+  SectionOptions: {fields: {custom: {inline: true}}}
+  # R30: the object of a variable value holds a field named value.
+  IntervalValue: {fields: {value: {inline: true}}}
+  LuceneQueryValue: {fields: {value: {inline: true}}}
+  RegexValue: {fields: {value: {inline: true}}}
+  SingleStringValue: {at: {VariableValueV2.singleString: {fields: {value: {inline: true}}}}}
+  VariableValueV2.SingleNumericValue: {fields: {value: {inline: true}}}
+  # R31: the selection options are an optional object.
+  MultiSelect: {fields: {selected: {skip: true}, selectionOptions: {inline: true}, selection: {name: selected_values, computed: true, default: []}}}
+  # R33: the legacy selected_values is the list of the selection.
+  MultiSelect.Selection: {typedArms: {asList: true}}
+  MultiSelect.Selection.ListSelection: {fields: {labels: {skip: true}}}
+# DECISIONS FOR PR 3 (not overrides lines)
+# operator, not_equals with an empty selected_values:
+#   Released: plan-time error "when type is `not_equals`, `selected_values` must contain at least one value".
+#   Probe (EU2, scratch/probe-dashboard-not-equals-empty.sh): the API accepts it (200, reads back values: []).
+#   Decision (Mark): drop the check. Config that failed at plan now applies. Changelog entry in PR 3.
+# metrics operators, explicit empty list (variables and variables_v2: label_filters, operator.selected_values):
+#   Released: NormalizeEmptyListToNull plan modifier. `selected_values = []` plans null, state null.
+#   Generated: readEmptyAs "null" covers read and import. The plan and the state keep an explicit [].
+#   Terraform core rejects a plan that nulls a configured value, so no key can plan [] as null.
+#   Decision (Mark, 2026-11-11): the explicit [] stays [] in the plan and the state.
+# Decision (Mark, 2026-11-11): expose contract fields that the released resource never had, when an
+#   existing key handles them (slug_name, variables[].description, created_at/updated_at, ...).
+#   Each needs a read check: a value the API fills in when unset makes plain Optional fail ("was null, but now").
+# READ PROBE (EU2, 2026-11-11, probe-dashboard-new-fields-read.sh; reply in .out.json): a create that sends none
+# of the new fields reads back:
+#   absent:   slugName, widget createdAt/updatedAt/layoutColumns/appearance, variable description  -> plain Optional
+#   []:       actions, multiSelect.selected, selection.list.labels                                 -> readEmptyAs "null" (import)
+#   zero:     variable displayType VARIABLE_DISPLAY_TYPE_UNSPECIFIED -> flattenEnum reads null; add an enums line
+#             (trimPrefix VARIABLE_DISPLAY_TYPE_) for the released spelling style
+#   zero:     annotation logs/spans dataModeType DATA_MODE_TYPE_HIGH_UNSPECIFIED -> mapped to "unspecified";
+#             plain Optional would fail ("was null, but now unspecified"). Use the released dataprime shape:
+#             computed: true, default: unspecified (13 released data_mode_type paths have it).
+#   The dashboard createdAt/updatedAt are on the response wrapper, not the resource: nothing to expose.
+  Query.SpansQuery.Type.FieldValue: {fields: {value: {inline: true}, observationField: {skip: true}}}
+  DashboardAction: {fields: {definition: {inline: true}}}
+  ActionDefinition: {fields: {customAction: {inline: true, required: true}, goToDashboardAction: {skip: true}}}

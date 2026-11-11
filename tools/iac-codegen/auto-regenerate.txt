@@ -16,6 +16,7 @@ coralogix_archive_metrics
 coralogix_archive_retentions
 coralogix_configuration_group
 coralogix_connector
+coralogix_dashboard
 coralogix_dashboards_folder
 coralogix_events2metric
 coralogix_global_router
