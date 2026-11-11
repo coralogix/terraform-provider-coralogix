@@ -33,7 +33,7 @@
       "value": "(unknown)"
     },
     "applyDiagnostics": [
-      "error: Invalid team id | Team id must be a int"
+      "error: Invalid id [AttributeName(\"owner\").AttributeName(\"team_id\")] | \"not-a-number\" is not an integer id."
     ],
     "state": null
   }

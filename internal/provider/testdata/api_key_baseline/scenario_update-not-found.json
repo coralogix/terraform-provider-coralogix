@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -111,22 +110,50 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "newName": "gone-renamed"
+          "isActive": true,
+          "newName": "gone-renamed",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
         },
         "status": 404
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_api_key \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply",
-      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+      "error: Resource no longer exists | The API did not find api_key with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
-    "state": null
+    "state": {
+      "access_policy": "",
+      "active": true,
+      "hashed": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "fake-secret-1"
+    }
   }
 ]

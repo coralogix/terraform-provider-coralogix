@@ -15,87 +15,13 @@
 package aaa
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/apikey"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-var _ datasource.DataSourceWithConfigure = &ApiKeyDataSource{}
-
+// NewApiKeyDataSource returns the coralogix_api_key data source, which is generated with the resource
+// (internal/provider/generated/apikey).
 func NewApiKeyDataSource() datasource.DataSource {
-	return &ApiKeyDataSource{}
-}
-
-type ApiKeyDataSource struct {
-	client *apiKeys.APIKeysServiceAPIService
-}
-
-func (r *ApiKeyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_api_key"
-}
-
-func (r *ApiKeyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *apiKeys.APIKeysServiceAPIService, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = clientSet.APIKeys()
-}
-
-func (r *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var d ApiKeyResource
-	var resourceResp resource.SchemaResponse
-	d.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-	if accessPolicyAttr, ok := resp.Schema.Attributes["access_policy"].(schema.StringAttribute); ok {
-		accessPolicyAttr.MarkdownDescription = "Api Key Access Policy"
-		resp.Schema.Attributes["access_policy"] = accessPolicyAttr
-	}
-}
-
-func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *ApiKeyModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	id := data.ID.ValueString()
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	result, _, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer(), data.AccessPolicy)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	diags = resp.State.Set(ctx, result)
-	resp.Diagnostics.Append(diags...)
-
-	if result.Hashed.ValueBool() {
-		resp.Diagnostics.AddError(
-			"Error reading API Keys",
-			"Reading an hashed key is impossible",
-		)
-		return
-	}
-
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
+	return apikey.NewDataSource(apikey.Hooks{BeforeFlatten: rejectHashedKey})
 }

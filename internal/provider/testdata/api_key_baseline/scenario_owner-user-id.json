@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -55,7 +54,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | error - 403 Forbidden — {\"code\":403,\"message\":\"Permission Denied: Permission denied \\\"The user specified as the API key owner, '11111111-1111-4111-8111-111111111111', either does not exist or is not a member of the current team.\\\"\"}\noperation - Create"
+      "error: Unable to create api_key | 403 Forbidden — {\"code\":403,\"message\":\"Permission Denied: Permission denied \\\"The user specified as the API key owner, '11111111-1111-4111-8111-111111111111', either does not exist or is not a member of the current team.\\\"\"}"
     ],
     "state": null
   }

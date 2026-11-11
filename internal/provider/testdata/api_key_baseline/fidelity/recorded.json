@@ -1393,6 +1393,248 @@
           }
         }
       ]
+    },
+    {
+      "name": "whole-resource-update",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "keyId": "\u003ckey-id\u003e",
+            "name": "{{NAME}}-w",
+            "value": "\u003csecret\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "keyInfo": {
+              "active": true,
+              "hashed": false,
+              "id": "\u003ckey-id\u003e",
+              "keyPermissions": {
+                "permissions": [
+                  "livetail:Read"
+                ],
+                "presets": [
+                  {
+                    "name": "APM",
+                    "permissions": [
+                      "serverless:Read",
+                      "service-catalog:Read",
+                      "service-catalog:ReadApdexConfig",
+                      "service-catalog:ReadDimensionsConfig",
+                      "service-catalog:ReadSLIConfig",
+                      "service-catalog:Update",
+                      "service-catalog:UpdateApdexConfig",
+                      "service-catalog:UpdateDimensionsConfig",
+                      "service-catalog:UpdateSLIConfig",
+                      "service-map:Read"
+                    ]
+                  }
+                ]
+              },
+              "name": "{{NAME}}-w",
+              "owner": {
+                "teamId": "\u003cteam-id\u003e"
+              },
+              "value": "\u003csecret\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "keyInfo": {
+              "active": true,
+              "hashed": false,
+              "id": "\u003ckey-id\u003e",
+              "keyPermissions": {
+                "permissions": [
+                  "livetail:Read"
+                ],
+                "presets": [
+                  {
+                    "name": "APM",
+                    "permissions": [
+                      "serverless:Read",
+                      "service-catalog:Read",
+                      "service-catalog:ReadApdexConfig",
+                      "service-catalog:ReadDimensionsConfig",
+                      "service-catalog:ReadSLIConfig",
+                      "service-catalog:Update",
+                      "service-catalog:UpdateApdexConfig",
+                      "service-catalog:UpdateDimensionsConfig",
+                      "service-catalog:UpdateSLIConfig",
+                      "service-map:Read"
+                    ]
+                  }
+                ]
+              },
+              "name": "{{NAME}}-w",
+              "owner": {
+                "teamId": "\u003cteam-id\u003e"
+              },
+              "value": "\u003csecret\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "keyInfo": {
+              "accessPolicy": {
+                "default": {
+                  "permissions": {
+                    "team-custom-api-keys:Manage": "deny",
+                    "team-custom-api-keys:ReadAccessPolicy": "grant",
+                    "team-custom-api-keys:ReadConfig": "grant",
+                    "team-custom-api-keys:UpdateAccessPolicy": "deny"
+                  }
+                },
+                "rules": [],
+                "version": "2025-01-01"
+              },
+              "active": true,
+              "hashed": false,
+              "id": "\u003ckey-id\u003e",
+              "keyPermissions": {
+                "permissions": [
+                  "livetail:Read"
+                ],
+                "presets": [
+                  {
+                    "name": "APM",
+                    "permissions": [
+                      "serverless:Read",
+                      "service-catalog:Read",
+                      "service-catalog:ReadApdexConfig",
+                      "service-catalog:ReadDimensionsConfig",
+                      "service-catalog:ReadSLIConfig",
+                      "service-catalog:Update",
+                      "service-catalog:UpdateApdexConfig",
+                      "service-catalog:UpdateDimensionsConfig",
+                      "service-catalog:UpdateSLIConfig",
+                      "service-map:Read"
+                    ]
+                  }
+                ]
+              },
+              "name": "{{NAME}}-w",
+              "owner": {
+                "teamId": "\u003cteam-id\u003e"
+              },
+              "value": "\u003csecret\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "keyInfo": {
+              "accessPolicy": {
+                "default": {
+                  "permissions": {
+                    "team-custom-api-keys:Manage": "deny",
+                    "team-custom-api-keys:ReadAccessPolicy": "grant",
+                    "team-custom-api-keys:ReadConfig": "grant",
+                    "team-custom-api-keys:UpdateAccessPolicy": "deny"
+                  }
+                },
+                "rules": [],
+                "version": "2025-01-01"
+              },
+              "active": true,
+              "hashed": false,
+              "id": "\u003ckey-id\u003e",
+              "keyPermissions": {
+                "permissions": [
+                  "livetail:Read"
+                ],
+                "presets": [
+                  {
+                    "name": "APM",
+                    "permissions": [
+                      "serverless:Read",
+                      "service-catalog:Read",
+                      "service-catalog:ReadApdexConfig",
+                      "service-catalog:ReadDimensionsConfig",
+                      "service-catalog:ReadSLIConfig",
+                      "service-catalog:Update",
+                      "service-catalog:UpdateApdexConfig",
+                      "service-catalog:UpdateDimensionsConfig",
+                      "service-catalog:UpdateSLIConfig",
+                      "service-map:Read"
+                    ]
+                  }
+                ]
+              },
+              "name": "{{NAME}}-w",
+              "owner": {
+                "teamId": "\u003cteam-id\u003e"
+              },
+              "value": "\u003csecret\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "keyInfo": {
+              "active": true,
+              "hashed": false,
+              "id": "\u003ckey-id\u003e",
+              "keyPermissions": {
+                "permissions": [
+                  "livetail:Read"
+                ],
+                "presets": [
+                  {
+                    "name": "APM",
+                    "permissions": [
+                      "serverless:Read",
+                      "service-catalog:Read",
+                      "service-catalog:ReadApdexConfig",
+                      "service-catalog:ReadDimensionsConfig",
+                      "service-catalog:ReadSLIConfig",
+                      "service-catalog:Update",
+                      "service-catalog:UpdateApdexConfig",
+                      "service-catalog:UpdateDimensionsConfig",
+                      "service-catalog:UpdateSLIConfig",
+                      "service-map:Read"
+                    ]
+                  }
+                ]
+              },
+              "name": "{{NAME}}-w",
+              "owner": {
+                "teamId": "\u003cteam-id\u003e"
+              },
+              "value": "\u003csecret\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }

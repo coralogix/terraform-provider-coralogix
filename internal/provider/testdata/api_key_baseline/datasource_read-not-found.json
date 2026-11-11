@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_api_key | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Key with id KeyId(00000000-0000-4000-8000-000000000009) does not exist\"}\noperation - Read"
+      "error: coralogix_api_key not found | The API did not find coralogix_api_key with id 00000000-0000-4000-8000-000000000009: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Key with id KeyId(00000000-0000-4000-8000-000000000009) does not exist\"}"
     ],
     "state": {
       "access_policy": null,

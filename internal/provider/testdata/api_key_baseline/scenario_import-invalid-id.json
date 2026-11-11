@@ -13,7 +13,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: key_id invalid length: expected length 32 for simple format, found 3\"}\noperation - Read"
+      "error: Unable to read api_key | id abc: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: key_id invalid length: expected length 32 for simple format, found 3\"}"
     ],
     "state": {
       "access_policy": null,

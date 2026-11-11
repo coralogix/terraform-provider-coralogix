@@ -38,7 +38,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -58,14 +57,35 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "status": 200
+      },
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "body": {
+          "isActive": false,
+          "newName": "inactive",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "active"
     ],
     "state": {
       "access_policy": "",
-      "active": true,
+      "active": false,
       "hashed": false,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": "inactive",
@@ -82,11 +102,6 @@
       ],
       "value": "fake-secret-1"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"active\")",
-      "AttributeName(\"hashed\")",
-      "AttributeName(\"value\")"
-    ]
+    "replanEmpty": true
   }
 ]

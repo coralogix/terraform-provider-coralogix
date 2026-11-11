@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -55,7 +54,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: name must be not empty\"}\noperation - Create"
+      "error: Unable to create api_key | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: name must be not empty\"}"
     ],
     "state": null
   }

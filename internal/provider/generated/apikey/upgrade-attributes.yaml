@@ -1,0 +1,17 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.24.0
+attributes:
+    access_policy: {type: String}
+    active: {type: Bool}
+    hashed: {type: Bool}
+    id: {type: String}
+    name: {type: String, required: true}
+    owner: {type: SingleNested, required: true}
+    owner.organisation_id: {type: String}
+    owner.team_id: {type: String}
+    owner.user_id: {type: String}
+    permissions: {type: Set(String), required: true}
+    presets: {type: Set(String), required: true}
+    value: {type: String}

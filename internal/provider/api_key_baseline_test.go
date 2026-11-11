@@ -123,6 +123,14 @@ var apiKeyScenarios = map[string]func(h *grHarness){
 	"create-inactive": func(h *grHarness) {
 		h.Apply("create with active = false", h.null(), apiKeyConfig("inactive", j{"active": false}))
 	},
+	// Update omits an isActive that the configuration no longer sets, and the API keeps the stored
+	// value, so removing active = false has to send isActive: true, or every plan updates again.
+	"active-removed": func(h *grHarness) {
+		s := h.Apply("create", h.null(), apiKeyConfig("toggled", nil))
+		s = h.Apply("update: deactivate", s, apiKeyConfig("toggled", j{"active": false}))
+		s = h.Apply("update: remove active from the configuration", s, apiKeyConfig("toggled", nil))
+		h.RefreshPlan("refresh and replan", s)
+	},
 	"active-drift": func(h *grHarness) {
 		s := h.Apply("create", h.null(), apiKeyConfig("drifting", nil))
 		h.apiKeys().edit(apiKeyFirstID, func(r *apiKeyRecord) { r.active = false })
@@ -290,6 +298,10 @@ var apiKeyScenarios = map[string]func(h *grHarness){
 	"policy-untouched-by-rename": func(h *grHarness) {
 		s := h.Apply("create with a policy", h.null(), apiKeyConfig("policy", j{"access_policy": apiKeyPolicyComplete}))
 		h.Apply("update: rename", s, apiKeyConfig("policy-renamed", j{"access_policy": apiKeyPolicyComplete}))
+	},
+	"policy-reformatted-with-rename": func(h *grHarness) {
+		s := h.Apply("create with a policy", h.null(), apiKeyConfig("policy", j{"access_policy": apiKeyPolicyComplete}))
+		h.Apply("update: rename, and the same policy with other white space and key order", s, apiKeyConfig("policy-renamed", j{"access_policy": apiKeyPolicyCompleteReformatted}))
 	},
 	"policy-invalid-on-update": func(h *grHarness) {
 		s := h.Apply("create", h.null(), apiKeyConfig("policy", nil))

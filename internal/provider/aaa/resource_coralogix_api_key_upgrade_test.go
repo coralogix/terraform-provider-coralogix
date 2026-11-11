@@ -30,7 +30,7 @@ import (
 func TestUpgradeApiKeyStateV0ToV1(t *testing.T) {
 	ctx := context.Background()
 
-	upgrader, ok := (&ApiKeyResource{}).UpgradeState(ctx)[0]
+	upgrader, ok := NewApiKeyResource().(resource.ResourceWithUpgradeState).UpgradeState(ctx)[0]
 	if !ok {
 		t.Fatal("no state upgrader registered for schema version 0")
 	}
@@ -43,7 +43,7 @@ func TestUpgradeApiKeyStateV0ToV1(t *testing.T) {
 	priorSchema := *upgrader.PriorSchema
 
 	var schemaResp resource.SchemaResponse
-	(&ApiKeyResource{}).Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	NewApiKeyResource().Schema(ctx, resource.SchemaRequest{}, &schemaResp)
 	currentSchema := schemaResp.Schema
 
 	sendDataPermissions := []string{

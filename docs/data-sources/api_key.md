@@ -27,20 +27,20 @@ data "coralogix_api_key" "same_key_by_id" {
 
 ### Read-Only
 
-- `access_policy` (String) Api Key Access Policy
+- `access_policy` (String) Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (""). Omitting the attribute will preserve the existing policy.
 - `active` (Boolean) Api Key Is Active.
 - `hashed` (Boolean) Api Key Is Hashed.
 - `name` (String) Api Key name.
 - `owner` (Attributes) Api Key Owner. It can either be a team_id, organisation_id, or a user_id (see [below for nested schema](#nestedatt--owner))
 - `permissions` (Set of String) Api Key Permissions
 - `presets` (Set of String) Api Key Presets
-- `value` (String) The API key's secret value. The Coralogix backend returns this only when the key is first created; the Terraform provider captures it then and preserves it in resource state. Imported resources and data-source lookups cannot recover the value and will surface it as null.
+- `value` (String) The API key's secret value. The Coralogix API returns it for every key that is not hashed, so an imported key and a data source have it. A key that schema version 0 of the provider created as hashed has no value to read: Terraform keeps the one in its state.
 
 <a id="nestedatt--owner"></a>
 ### Nested Schema for `owner`
 
 Read-Only:
 
-- `organisation_id` (String)
-- `team_id` (String)
-- `user_id` (String)
+- `organisation_id` (String) Organisation identifier of the API key owner.
+- `team_id` (String) The team id.
+- `user_id` (String) User identifier of the API key owner.
