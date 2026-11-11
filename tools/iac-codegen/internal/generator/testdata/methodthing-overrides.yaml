@@ -1,0 +1,33 @@
+# A released resource whose Create is a PUT and whose Update is a POST. Create returns only the
+# integer id; Get wraps the thing; Update holds the permissions in a one-property object. Create
+# takes the parent by id or by name, and the resource shows the name only.
+resource: MethodThing
+mode: existing
+typeName: method_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: MethodThingsService_CreateMethodThing
+    get: MethodThingsService_GetMethodThing
+    update: MethodThingsService_UpdateMethodThing
+    delete: MethodThingsService_DeleteMethodThing
+  methods: {create: PUT, update: POST}
+  idProperty: thingId
+  createResponseOnlyIDProperty: id
+
+unwrap: [MethodThingPermissions]
+
+types:
+  MethodThing:
+    fields:
+      thingId: {name: id, terraformType: String, readOnly: true}
+      name: {updateAs: newName, required: true}
+      description: {updateAs: newDescription, required: true}
+      # The oneOf has one arm left: the id is skipped, and the name is the only way to name a parent.
+      parentName: {required: true}
+      parentId: {skip: true}
+      # The API returns a permission in the case that it was given, or in the case of a twin.
+      permissions: {updateAs: newPermissions, collection: set, required: true, equality: caseInsensitive}

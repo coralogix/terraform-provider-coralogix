@@ -1327,6 +1327,30 @@ func flattenTimesSet(ctx context.Context, v []time.Time, diags *diag.Diagnostics
 }
 {{- end}}
 
+{{if .Conv.UsesElementCase -}}
+// keepPriorElementCase returns the API elements, each in the spelling of the prior element that
+// differs from it only in case. An element without a prior twin keeps the API spelling.
+func keepPriorElementCase(prior []attr.Value, api []string) []string {
+	if api == nil {
+		return nil
+	}
+	byFold := make(map[string]string, len(prior))
+	for _, element := range prior {
+		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
+			byFold[strings.ToLower(s.ValueString())] = s.ValueString()
+		}
+	}
+	out := make([]string, len(api))
+	for i, element := range api {
+		if spelled, ok := byFold[strings.ToLower(element)]; ok {
+			element = spelled
+		}
+		out[i] = element
+	}
+	return out
+}
+
+{{end -}}
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
 		return types.SetNull(types.StringType)
@@ -2235,6 +2259,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else if .Projection}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Projection.Func}}({{.Src}}), diags)
+	{{- else if eq .Equality "caseInsensitive"}}
+	// The API can return an element in another case, so the spelling of the plan or the state stays.
+	var priorElements []attr.Value
+	if prior != nil {
+		priorElements = prior.{{.Model}}.Elements()
+	}
+	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, keepPriorElementCase(priorElements, {{.Src}}), diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)
 	{{- end}}

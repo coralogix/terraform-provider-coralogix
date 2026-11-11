@@ -773,7 +773,7 @@ func applyModifiers(a *tfAttr, l overrides.Field) error {
 		// A null state value stays unknown, so the server can fill it in. A known one stays.
 		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseNonNullStateForUnknown()")
 	}
-	if l.Equality != "" {
+	if l.Equality != "" && l.Equality != overrides.EqualityCaseInsensitive {
 		if a.ValueKind != "String" {
 			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)
 		}

@@ -658,7 +658,9 @@ type Field struct {
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
 	// Validators are the released validators of the field.
 	Validators []Validator `yaml:"validators"`
-	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
+	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. "caseInsensitive"
+	// keeps the spelling of the prior element of a list or set of strings that the API returns in
+	// another case. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
 	Equality string `yaml:"equality"`
 	// RequiresReplace: a change of this top-level field replaces the resource, although Update
@@ -720,6 +722,9 @@ func (c *Carry) check() error {
 const (
 	EqualityYAML = "yaml"
 	EqualityJSON = "json"
+	// EqualityCaseInsensitive is for a list or set of strings that the API returns in another case
+	// than the configuration wrote.
+	EqualityCaseInsensitive = "caseInsensitive"
 )
 
 // Validator is one released validator. Exactly one key is set.
@@ -1457,8 +1462,8 @@ func (l Field) checkConflicts() error {
 			return errors.New("requestValueBy maps a field name to an API value")
 		}
 	}
-	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
-		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON && l.Equality != EqualityCaseInsensitive {
+		return fmt.Errorf("equality is %q, want %q, %q, or %q", l.Equality, EqualityYAML, EqualityJSON, EqualityCaseInsensitive)
 	}
 	return nil
 }

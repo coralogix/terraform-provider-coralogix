@@ -156,6 +156,9 @@ type crudOp struct {
 	ResponseIDValue bool
 	// ResponseIDWrap: the id field is the wrapper of the id, as the id field of the resource is.
 	ResponseIDWrap bool
+	// ResponseIDZero is the Go zero value of the id field: the id that the API never gives to a
+	// resource, so a response without an id is an error. "\"\"" for a string, "0" for an integer.
+	ResponseIDZero string
 	// Empty: the response has no fields, so the generated call reads the resource with Get.
 	Empty bool
 	// Copy are the Go fields that the write of an overwrite resource returns
@@ -430,10 +433,15 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		if err != nil {
 			return out, err
 		}
-		if field.Want != "*string" && field.Want != "string" {
-			return out, fmt.Errorf("SDK field %s has type %s, want *string", field.SDKName(), field.Want)
+		// The id of the response is the id of the resource: a string, or the same integer.
+		goType, zero := "string", `""`
+		if r.IDType.Kind == model.Integer {
+			goType, zero = r.IDType.Format, "0"
 		}
-		out.ResponseID, out.ResponseIDValue = field.Name, field.Want == "string"
+		if field.Want != "*"+goType && field.Want != goType {
+			return out, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, goType)
+		}
+		out.ResponseID, out.ResponseIDValue, out.ResponseIDZero = field.Name, field.Want == goType, zero
 		return out, nil
 	}
 	if (o.name == "update" || o.name == "create") && o.op.Response.Empty || writes {

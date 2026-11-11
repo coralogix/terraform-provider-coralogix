@@ -705,7 +705,7 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	}
 	id := *created
 {{- else}}
-	if out == nil || {{if not .Create.ResponseIDValue}}out.{{.Create.ResponseID}} == nil || *out.{{.Create.ResponseID}} == ""{{else}}out.{{.Create.ResponseID}} == ""{{end}} {
+	if out == nil || {{if not .Create.ResponseIDValue}}out.{{.Create.ResponseID}} == nil || *out.{{.Create.ResponseID}} == {{.Create.ResponseIDZero}}{{else}}out.{{.Create.ResponseID}} == {{.Create.ResponseIDZero}}{{end}} {
 		return nil, fmt.Errorf("the API did not return the id of the new resource")
 	}
 	id := {{if not .Create.ResponseIDValue}}*{{end}}out.{{.Create.ResponseID}}

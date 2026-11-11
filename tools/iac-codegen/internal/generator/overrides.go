@@ -552,6 +552,9 @@ func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if err != nil {
 		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
 	}
+	if line.Equality == overrides.EqualityCaseInsensitive {
+		return caseInsensitiveElementsProblem(built, line)
+	}
 	if !slices.Equal(built.Type, []string{"string"}) || len(built.Enum) != 0 || built.Format != "" {
 		return &lineIssue{
 			code:    "OVERRIDE_EQUALITY_NOT_STRING",
@@ -563,6 +566,33 @@ func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 		return &lineIssue{
 			code:    "OVERRIDE_EQUALITY_COMPUTED",
 			message: fmt.Sprintf("equality: %s keeps the text that the user writes, but only the server sets %q", line.Equality, line.Field),
+			fix:     "Delete the equality key: Terraform never compares a configured value of a computed-only field.",
+		}
+	}
+	return nil
+}
+
+// caseInsensitiveElementsProblem checks equality: caseInsensitive. The key keeps the spelling of
+// the prior element of a list or set of plain strings, so any other field has nothing to keep.
+func caseInsensitiveElementsProblem(built *base.Schema, line overrides.Line) *lineIssue {
+	plain := func(s *base.Schema) bool {
+		return s != nil && slices.Equal(s.Type, []string{"string"}) && len(s.Enum) == 0 && s.Format == ""
+	}
+	var items *base.Schema
+	if slices.Equal(built.Type, []string{"array"}) && built.Items != nil && built.Items.IsA() {
+		items, _ = built.Items.A.BuildSchema()
+	}
+	if !plain(items) {
+		return &lineIssue{
+			code:    "OVERRIDE_EQUALITY_NOT_STRING",
+			message: fmt.Sprintf("equality: caseInsensitive keeps the spelling of the elements of a list or set of plain strings, but %q is not one", line.Field),
+			fix:     "Delete the equality key, or set it on a list of strings.",
+		}
+	}
+	if line.ReadOnly || built.ReadOnly != nil && *built.ReadOnly {
+		return &lineIssue{
+			code:    "OVERRIDE_EQUALITY_COMPUTED",
+			message: fmt.Sprintf("equality: caseInsensitive keeps the text that the user writes, but only the server sets %q", line.Field),
 			fix:     "Delete the equality key: Terraform never compares a configured value of a computed-only field.",
 		}
 	}

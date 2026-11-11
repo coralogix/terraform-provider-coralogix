@@ -592,6 +592,23 @@ func (obj *convObject) PositionField() *convField {
 	return nil
 }
 
+// UsesElementCase reports whether a field keeps the spelling of the prior elements of a list or
+// set of strings (equality: caseInsensitive).
+func (d *convData) UsesElementCase() bool {
+	objects := d.Objects
+	if d.Resource != nil {
+		objects = append(slices.Clone(objects), d.Resource)
+	}
+	for _, obj := range objects {
+		for _, f := range obj.Fields {
+			if f.Equality == overrides.EqualityCaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UsesCaseInsensitive reports whether a field is an enum that reads in any case.
 func (d *convData) UsesCaseInsensitive() bool {
 	for _, obj := range d.Objects {
@@ -1666,7 +1683,10 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		}
 		cf.Conv, cf.Split, cf.Collection = convSplit, sep, "Set"
 	}
-	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
+	// A caseInsensitive line acts on the read, and the field of an Update body is only expanded, so
+	// a wrapper that only Update holds does not meet it.
+	updateOnly := cf.Equality == overrides.EqualityCaseInsensitive && strings.HasPrefix(refPath, "update.body.")
+	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "" && !updateOnly) {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
 	if err := b.applyValueNames(cf, component, name); err != nil {
@@ -2853,7 +2873,13 @@ func markPrior(d *convData) error {
 func markPriorFields(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Equality != "" {
+			if f.Equality == overrides.EqualityCaseInsensitive {
+				// The elements of a list or set of strings keep the spelling of the prior elements.
+				if f.Conv != convStrings || f.Enum || f.Projection != nil || f.EnumMap != nil {
+					return fmt.Errorf("%s.%s: equality caseInsensitive needs a list or set of plain strings", obj.Model, f.TFName)
+				}
+				obj.NeedsPrior = true
+			} else if f.Equality != "" {
 				if f.Conv != convString {
 					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
 				}
@@ -3078,7 +3104,8 @@ func (d *convData) UsesEquality(kind ...string) bool {
 func (d *convData) UsesFieldEquality(kind ...string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Equality != "" && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
+			// A caseInsensitive line is a flatten step, with no document comparison or ModifyPlan.
+			if f.Equality != "" && f.Equality != overrides.EqualityCaseInsensitive && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
 				return true
 			}
 		}
