@@ -1475,7 +1475,18 @@ type keyedFields struct {
 
 // foldArms are the arms of a oneOf that asString shows as one string. Enum converts the spelling of
 // an enum value, and Str holds any other text.
-type foldArms struct{ Enum, Str *convField }
+type foldArms struct {
+	Enum, Str *convField
+	// Empty are the arms of a oneOf of objects without fields: the string is the Terraform name of
+	// the arm that is set.
+	Empty []emptyFoldArm
+}
+
+// emptyFoldArm is one arm of a oneOf of objects without fields that asString shows as a string.
+type emptyFoldArm struct {
+	Value string // the Terraform name of the arm
+	SDK   string // the Go field of the oneOf
+}
 
 // fixedBy is the API value that expand sends when the object field Model is set.
 type fixedBy struct {
@@ -1747,6 +1758,9 @@ func (b *convBuilder) fieldConvOf(cf *convField, t *model.Type, computed bool, c
 // text that is both would be ambiguous: the generator stops when a pattern of the line matches a
 // spelling.
 func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, name string) (string, error) {
+	if arms := emptyArms(t); arms != nil {
+		return b.foldEmptyArmsConv(cf, t, arms)
+	}
 	enum, str, err := stringArms(t)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", cf.TFName, err)
@@ -1779,6 +1793,25 @@ func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, na
 		}
 	}
 	cf.Conv, cf.StringFold, cf.SDKType = convFoldString, arms, b.qualify(obj.SDK)
+	return "*" + obj.SDK, nil
+}
+
+// foldEmptyArmsConv sets the conversion of a oneOf of objects without fields that Terraform shows
+// as one string: the name of the arm that is set. The SDK holds each arm as a map.
+func (b *convBuilder) foldEmptyArmsConv(cf *convField, t *model.Type, arms []*model.Field) (string, error) {
+	obj, err := b.nested(t)
+	if err != nil {
+		return "", err
+	}
+	fold := &foldArms{}
+	for _, arm := range arms {
+		field := fieldByModel(obj.Fields, camelize(arm.Name))
+		if field == nil || field.Conv != convEmpty {
+			return "", fmt.Errorf("%s: asString needs arms that are objects without fields, and %s is not", cf.TFName, arm.Name)
+		}
+		fold.Empty = append(fold.Empty, emptyFoldArm{Value: terraformName(b.resource.Policy, t.Schema, arm.Name), SDK: field.SDK})
+	}
+	cf.Conv, cf.StringFold, cf.SDKType = convFoldString, fold, b.qualify(obj.SDK)
 	return "*" + obj.SDK, nil
 }
 

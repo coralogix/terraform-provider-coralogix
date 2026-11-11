@@ -10,10 +10,18 @@ type AbsoluteWindow struct {
 	Start string
 }
 
-// A oneOf: AbsoluteWindow, or RelativeWindow, a plain duration.
+// A oneOf whose arms have no fields.
+type Mode struct {
+	Fast         map[string]interface{}
+	Slow         map[string]interface{}
+	BalancedMode map[string]interface{}
+}
+
+// A oneOf: AbsoluteWindow, or RelativeWindow, a plain duration. Mode is a field of its own.
 type Schedule struct {
 	AbsoluteWindow *AbsoluteWindow
 	RelativeWindow *string
+	Mode           *Mode
 }
 
 type CreateGroupSetThing struct {

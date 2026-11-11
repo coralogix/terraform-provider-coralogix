@@ -149,6 +149,9 @@ type tfAttr struct {
 	// FoldEnum is the enum component of the oneOf that the attribute shows as one string
 	// (asString), "" for any other attribute.
 	FoldEnum string
+	// FoldArms are the Terraform values of a oneOf of arms without fields that the attribute shows
+	// as one string (asString): the name of the arm that is set.
+	FoldArms []string
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
@@ -578,7 +581,7 @@ func addEnumValues(attrs []*tfAttr, enabled bool) {
 // list or set of one). Every validator must pass, so with more than one, such as an inferred one
 // and an enumExceptZero line, the accepted values are the ones that all of them accept.
 func enumValidatorValues(a *tfAttr) ([]string, bool) {
-	if a.EnumSchema == "" && a.FoldEnum == "" {
+	if a.EnumSchema == "" && a.FoldEnum == "" && len(a.FoldArms) == 0 {
 		return nil, false
 	}
 	var values []string
@@ -666,7 +669,7 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 // applyValidators adds the validators of a line to the attribute. A oneOf that shows as one string
 // (asString) gets one validator made from the enum and the pattern of the line.
 func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
-	if l.AsString && a.FoldEnum == "" {
+	if l.AsString && a.FoldEnum == "" && len(a.FoldArms) == 0 {
 		return errors.New("asString needs a field that holds a oneOf")
 	}
 	enumOnly := false
@@ -691,10 +694,26 @@ func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
 		}
 	}
+	if l.AsString && len(a.FoldArms) != 0 {
+		// The names of the arms are the only values: there is no free text arm.
+		oneOf := "stringvalidator.OneOf(" + strings.Join(quoteAll(a.FoldArms), ", ") + ")"
+		a.Validators = append(a.Validators, oneOf)
+		a.recordEnumValues(oneOf, slices.Clone(a.FoldArms))
+		return nil
+	}
 	if l.AsString {
 		return foldStringValidators(a, file, enumOnly)
 	}
 	return nil
+}
+
+// quoteAll quotes each text as a Go string literal.
+func quoteAll(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		out = append(out, strconv.Quote(v))
+	}
+	return out
 }
 
 // serverSetInRequest makes an item field of an overwrite resource computed-only when the write
@@ -1321,6 +1340,13 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
 		if asString(b.file, a.Component, a.Property) {
+			if arms := emptyArms(t); arms != nil {
+				a.Kind, a.ValueKind = "String", "String"
+				for _, arm := range arms {
+					a.FoldArms = append(a.FoldArms, terraformName(b.policy, t.Schema, arm.Name))
+				}
+				return nil
+			}
 			enum, _, err := stringArms(t)
 			if err != nil {
 				return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
@@ -2662,6 +2688,20 @@ func (b *tfBuilder) scalarOneOf(component, name string) string {
 // asString reports whether the field has an asString line.
 func asString(file *overrides.File, component, field string) bool {
 	return file != nil && file.Types[component].Fields[field].AsString
+}
+
+// emptyArms returns the arms of a oneOf whose arms are all objects without fields, which asString
+// shows as one string that names the arm that is set, or nil.
+func emptyArms(t *model.Type) []*model.Field {
+	if t.Kind != model.OneOf || len(t.Fields) == 0 || len(t.Wrappers) != 0 {
+		return nil
+	}
+	for _, arm := range t.Fields {
+		if !emptyObject(arm.Type) {
+			return nil
+		}
+	}
+	return t.Fields
 }
 
 // stringArms returns the enum arm and the string arm of a oneOf that asString shows as one

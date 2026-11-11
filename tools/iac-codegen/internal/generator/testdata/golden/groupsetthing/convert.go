@@ -410,6 +410,21 @@ func expandSchedule(ctx context.Context, p path.Path, m *ScheduleModel, diags *d
 	out := &group_set_things_service.Schedule{}
 	out.AbsoluteWindow = expandAbsoluteWindow(ctx, p.AtName("absolute"), m.AbsoluteWindow, diags)
 	expandScheduleRelative(ctx, p.AtName("relative"), m.Relative, out, diags)
+	if v := m.Mode; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &group_set_things_service.Mode{}
+		switch v.ValueString() {
+		case "fast":
+			fold.Fast = map[string]interface{}{}
+		case "slow":
+			fold.Slow = map[string]interface{}{}
+		case "balanced":
+			fold.BalancedMode = map[string]interface{}{}
+		default:
+			diags.AddAttributeError(p.AtName("mode"), "Unknown value", fmt.Sprintf("%q is not one of fast slow balanced.", v.ValueString()))
+		}
+		out.Mode = fold
+	}
 	return out
 }
 
@@ -420,6 +435,17 @@ func flattenSchedule(ctx context.Context, p path.Path, v *group_set_things_servi
 	out := &ScheduleModel{}
 	out.AbsoluteWindow = flattenAbsoluteWindow(ctx, p.AtName("absolute"), v.AbsoluteWindow, diags)
 	out.Relative = flattenScheduleRelative(ctx, p.AtName("relative"), v, diags)
+	out.Mode = types.StringNull()
+	if fold := v.Mode; fold != nil {
+		switch {
+		case fold.Fast != nil:
+			out.Mode = types.StringValue("fast")
+		case fold.Slow != nil:
+			out.Mode = types.StringValue("slow")
+		case fold.BalancedMode != nil:
+			out.Mode = types.StringValue("balanced")
+		}
+	}
 	return out
 }
 

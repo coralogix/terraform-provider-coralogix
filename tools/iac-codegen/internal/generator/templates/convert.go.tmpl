@@ -1956,6 +1956,20 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if and (eq .Conv "foldstring") .StringFold.Empty}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &{{.SDKType}}{}
+		switch v.ValueString() {
+{{- range .StringFold.Empty}}
+		case {{printf "%q" .Value}}:
+			fold.{{.SDK}} = map[string]interface{}{}
+{{- end}}
+		default:
+			diags.AddAttributeError({{$p}}, "Unknown value", fmt.Sprintf("%q is not one of{{range .StringFold.Empty}} {{.Value}}{{end}}.", v.ValueString()))
+		}
+		{{.Dst}} = {{$l}}fold{{$r}}
+	}
 {{- else if eq .Conv "foldstring"}}
 	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
 		// A spelling of the enum is the enum arm. Any other text is the string arm.
@@ -2299,6 +2313,16 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 	{{- end}}
+{{- else if and (eq .Conv "foldstring") .StringFold.Empty}}
+	out.{{.Model}} = types.StringNull()
+	if fold := {{$v}}; fold != nil {
+		switch {
+{{- range .StringFold.Empty}}
+		case fold.{{.SDK}} != nil:
+			out.{{$.Model}} = types.StringValue({{printf "%q" .Value}})
+{{- end}}
+		}
+	}
 {{- else if eq .Conv "foldstring"}}
 	out.{{.Model}} = types.StringNull()
 	if fold := {{$v}}; fold != nil {

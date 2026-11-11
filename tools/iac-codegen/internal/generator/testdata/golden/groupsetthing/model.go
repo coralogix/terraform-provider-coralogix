@@ -44,4 +44,5 @@ type ScheduleRelativeModel struct {
 type ScheduleModel struct {
 	AbsoluteWindow *AbsoluteWindowModel   `tfsdk:"absolute"`
 	Relative       *ScheduleRelativeModel `tfsdk:"relative"`
+	Mode           types.String           `tfsdk:"mode"`
 }

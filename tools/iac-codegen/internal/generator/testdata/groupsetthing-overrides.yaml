@@ -63,3 +63,9 @@ types:
     fields:
       absoluteWindow: {name: absolute}
       relativeWindow: {name: duration, required: true}
+      # A oneOf of arms without fields is a string that names the arm: mode = "fast".
+      mode: {asString: true}
+  # The name of an arm is the string. A name line gives the released spelling.
+  Mode:
+    fields:
+      balancedMode: {name: balanced}

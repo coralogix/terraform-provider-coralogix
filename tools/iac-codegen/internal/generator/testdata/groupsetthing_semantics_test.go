@@ -869,3 +869,58 @@ func TestSingleArmGroupIsTheObjectOfItsArm(t *testing.T) {
 		},
 	})
 }
+
+// A oneOf of arms without fields is a string that names the arm that is set. A name line gives the
+// released spelling (balanced for balancedMode). The arm reads back as its name, a text that names
+// no arm is an error at plan, and an omitted mode sends no arm.
+func TestEmptyArmsAreAStringWithRealTerraform(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	group_set_things_service.Created, group_set_things_service.Updated = nil, nil
+	sentMode := func(check func(*group_set_things_service.Mode) bool, what string) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			var schedule *group_set_things_service.Schedule
+			if n := len(group_set_things_service.Updated); n > 0 {
+				schedule = group_set_things_service.Updated[n-1].Schedule
+			} else {
+				schedule = group_set_things_service.Created[len(group_set_things_service.Created)-1].Schedule
+			}
+			if schedule == nil || !check(schedule.Mode) {
+				return fmt.Errorf("sent schedule = %+v, want %s", schedule, what)
+			}
+			return nil
+		}
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			{
+				Config: scheduleConfig("  schedule = { mode = \"fast\" }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.mode", "fast"),
+					sentMode(func(m *group_set_things_service.Mode) bool {
+						return m != nil && m.Fast != nil && m.Slow == nil && m.BalancedMode == nil
+					}, "only the arm fast"),
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = { mode = \"balanced\" }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.mode", "balanced"),
+					sentMode(func(m *group_set_things_service.Mode) bool { return m != nil && m.BalancedMode != nil && m.Fast == nil }, "only the arm balanced"),
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = { relative = { duration = \"1m\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(res, "schedule.mode"),
+					sentMode(func(m *group_set_things_service.Mode) bool { return m == nil }, "no mode"),
+				),
+			},
+			{Config: scheduleConfig("  schedule = { mode = \"bold\" }\n"), ExpectError: regexp.MustCompile(`mode`)},
+			{Config: scheduleConfig("  schedule = { mode = \"slow\" }\n")},
+			// An import reads the arm that the API has, so the state matches the configuration.
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
+}
