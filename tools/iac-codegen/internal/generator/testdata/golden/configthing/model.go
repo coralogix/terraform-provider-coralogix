@@ -16,6 +16,9 @@ type ConfigThingModel struct {
 	Remotes  types.List   `tfsdk:"remotes"`
 	Labels   types.List   `tfsdk:"labels"`
 	Metadata types.Map    `tfsdk:"metadata"`
+	Limits   types.Object `tfsdk:"limits"`
+	Policy   types.String `tfsdk:"policy"`
+	Schedule types.Object `tfsdk:"schedule"`
 }
 
 type ConfigSelectorResponseModel struct {

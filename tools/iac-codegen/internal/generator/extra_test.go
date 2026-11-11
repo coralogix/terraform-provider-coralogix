@@ -277,3 +277,139 @@ func TestComputedEmptyExtraFlatten(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+func objectExtra() overrides.ExtraAttribute {
+	return overrides.ExtraAttribute{
+		Type: "object", MarkdownDescription: "Window.",
+		Attributes: map[string]overrides.ExtraAttribute{
+			"days": {Type: "set", ElementType: "string", Required: true, ElementValues: []string{"Monday"}, MarkdownDescription: "Days."},
+			"zone": {Type: "string", Optional: true, Computed: true, Default: "+0000", MarkdownDescription: "Zone."},
+			"on":   {Type: "bool", Optional: true, Computed: true, Default: true, MarkdownDescription: "On."},
+			"max":  {Type: "int64", Optional: true, Computed: true, Default: 3, MarkdownDescription: "Max."},
+			"tags": {Type: "list", ElementType: "string", MarkdownDescription: "Tags."},
+		},
+	}
+}
+
+// An object extra attribute is a SingleNested attribute with the attributes that the line declares,
+// in name order, a types.Object model field that can be unknown, and a typed null for flatten. On a
+// component that two schema paths share, each path gets its own copy.
+func TestObjectExtraAttribute(t *testing.T) {
+	first := &tfAttr{Name: "first", ObjectComponent: "SharedConfig", Optional: true, Attributes: []*tfAttr{{Name: "first_field"}}}
+	second := &tfAttr{Name: "second", ObjectComponent: "SharedConfig", Optional: true, Attributes: []*tfAttr{{Name: "second_field"}}}
+	out := &tfResource{Attributes: []*tfAttr{first, second}, Models: []*tfModel{{Name: "SharedConfigModel"}}}
+	file := &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
+		"SharedConfig": {ExtraAttributes: map[string]overrides.ExtraAttribute{"window": objectExtra()}},
+	}}
+	if err := attachExtraAttributes(out, file); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.Models[0].Fields; len(got) != 1 || got[0].Type != "types.Object" {
+		t.Fatalf("model fields = %#v, want one types.Object", got)
+	}
+	window := first.Attributes[1]
+	if window.Kind != "SingleNested" || window.ValueKind != "Object" || !window.Optional || window.Computed || !window.Extra {
+		t.Fatalf("window = %#v, want an optional SingleNested extra attribute", window)
+	}
+	var names []string
+	for _, child := range window.Attributes {
+		names = append(names, child.Name)
+	}
+	if strings.Join(names, ",") != "days,max,on,tags,zone" {
+		t.Fatalf("window attributes = %v, want them in name order", names)
+	}
+	byName := map[string]*tfAttr{}
+	for _, child := range window.Attributes {
+		byName[child.Name] = child
+	}
+	if !byName["days"].Required || byName["zone"].Default != `stringdefault.StaticString("+0000")` ||
+		byName["on"].Default != "booldefault.StaticBool(true)" || byName["max"].Default != "int64default.StaticInt64(3)" ||
+		!byName["zone"].Optional || !byName["zone"].Computed || byName["tags"].Computed || !byName["tags"].Optional {
+		t.Fatalf("window attributes = %#v", byName)
+	}
+	if !slices.Contains(out.RequiredPaths, "first.window.days") || !slices.Contains(out.ComputedPaths, "second.window.zone") {
+		t.Fatalf("required paths %v, computed paths %v", out.RequiredPaths, out.ComputedPaths)
+	}
+	if !slices.Contains(out.DefaultPkgs, "booldefault") || !slices.Contains(out.DefaultPkgs, "stringdefault") || !slices.Contains(out.DefaultPkgs, "int64default") {
+		t.Fatalf("default packages = %v", out.DefaultPkgs)
+	}
+	if first.Attributes[1] == second.Attributes[1] {
+		t.Fatal("the two schema paths share one object")
+	}
+}
+
+// An object that the server fills in has an unknown-capable model field and keeps the state value of
+// a plan modifier. An object cannot sit in a computed-only object, which makes every descendant
+// computed.
+func TestObjectExtraModes(t *testing.T) {
+	computed := objectExtra()
+	computed.Optional, computed.Computed, computed.UseStateForUnknown = true, true, true
+	a, field, _, _, err := extraAttr("window", computed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !a.Optional || !a.Computed || field.Type != "types.Object" {
+		t.Fatalf("attribute %#v, field %#v, want Optional and Computed with a types.Object field", a, field)
+	}
+	if err := configureExtraAttribute(a, computed, &overrides.File{}); err != nil || !slices.Contains(a.Modifiers, "objectplanmodifier.UseStateForUnknown()") {
+		t.Fatalf("modifiers = %v, err = %v", a.Modifiers, err)
+	}
+
+	out := &tfResource{
+		Attributes: []*tfAttr{{Name: "response", ObjectComponent: "SharedConfig", Computed: true}},
+		Models:     []*tfModel{{Name: "SharedConfigModel"}},
+	}
+	file := &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
+		"SharedConfig": {ExtraAttributes: map[string]overrides.ExtraAttribute{"window": objectExtra()}},
+	}}
+	if err := attachExtraAttributes(out, file); err == nil || !strings.Contains(err.Error(), "cannot be inside a computed-only object") {
+		t.Fatalf("err = %v, want the computed-only object error", err)
+	}
+}
+
+// A default must fit the type of its attribute, and an equality line only applies to an attribute of
+// the resource: inside a set item, a plan modifier reads another item.
+func TestExtraDefaultAndEqualityErrors(t *testing.T) {
+	out := &tfResource{Models: []*tfModel{{Name: "ThingModel"}}}
+	file := &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
+		"Thing": {ExtraAttributes: map[string]overrides.ExtraAttribute{
+			"zone": {Type: "string", Optional: true, Computed: true, Default: 5, MarkdownDescription: "Zone."},
+		}},
+	}}
+	if err := attachExtraAttributes(out, file); err == nil || !strings.Contains(err.Error(), "default: a default of type int does not fit a String attribute") {
+		t.Fatalf("err = %v, want the default type error", err)
+	}
+	out = &tfResource{Attributes: []*tfAttr{{Name: "items", ObjectComponent: "Item", Optional: true}}, Models: []*tfModel{{Name: "ItemModel"}}}
+	file = &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
+		"Item": {ExtraAttributes: map[string]overrides.ExtraAttribute{
+			"doc": {Type: "string", Equality: "json", MarkdownDescription: "Doc."},
+		}},
+	}}
+	if err := attachExtraAttributes(out, file); err == nil || !strings.Contains(err.Error(), "equality applies to an attribute of the resource") {
+		t.Fatalf("err = %v, want the equality error", err)
+	}
+}
+
+// An equality line of an extra attribute makes the package compare documents of that kind and emit
+// the ModifyPlan, as an equality line of a field does.
+func TestExtraEqualityUsesTheDocumentComparison(t *testing.T) {
+	out := &tfResource{Models: []*tfModel{{Name: "ThingModel"}}, CRUD: &crudData{},
+		Conv: &convData{Objects: []*convObject{{Model: "ThingModel", Flatten: true}}}}
+	file := &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
+		"Thing": {ExtraAttributes: map[string]overrides.ExtraAttribute{
+			"policy": {Type: "string", Optional: true, Computed: true, Equality: "json", UseStateForUnknown: true, MarkdownDescription: "Policy."},
+		}},
+	}}
+	if err := attachExtraAttributes(out, file); err != nil {
+		t.Fatal(err)
+	}
+	if !out.Conv.UsesEquality("json") || out.Conv.UsesEquality("yaml") {
+		t.Fatalf("equality kinds = %v, want json only", out.Conv.ExtraEquality)
+	}
+	if got := out.Attributes[0].Modifiers; len(got) != 2 || got[0] != "equivalentDocument{equal: jsonEqual}" {
+		t.Fatalf("modifiers = %v, want the document comparison first", got)
+	}
+	if len(out.CRUD.KeptExtras) != 1 || out.CRUD.KeptExtras[0].TFName != "policy" {
+		t.Fatalf("kept extras = %#v, want the policy", out.CRUD.KeptExtras)
+	}
+}

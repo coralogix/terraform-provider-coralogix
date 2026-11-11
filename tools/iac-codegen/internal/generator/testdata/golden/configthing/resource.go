@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -47,9 +48,16 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *config_things_service.ConfigThing) diag.Diagnostics
+	// AfterFlatten projects API values into the Terraform model before it enters state.
+	AfterFlatten func(context.Context, *ConfigThingModel, *config_things_service.ConfigThing) diag.Diagnostics
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
+	// ModifyPlan runs last in the generated ModifyPlan, never on destroy, after the generated
+	// plan steps. req.Plan is the plan before the hook; resp.Plan starts as the plan after the
+	// generated steps, so the hook sets a planned value there. It must tolerate null and unknown
+	// values.
+	ModifyPlan func(context.Context, resource.ModifyPlanRequest, *resource.ModifyPlanResponse)
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
@@ -273,6 +281,58 @@ func (r *Resource) setState(ctx context.Context, v *config_things_service.Config
 	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
+		return diags
+	}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.Object
+		if !prior.GetAttribute(ctx, path.Root("limits"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			// A value of another shape cannot enter state. One with an unknown value inside, such
+			// as an Optional and Computed child that the configuration leaves out, is kept for
+			// AfterFlatten to fill in; it is checked below, after the hook has run.
+			if _, err := kept.ToTerraformValue(ctx); err == nil && kept.Type(ctx).Equal(types.ObjectType{AttrTypes: map[string]attr.Type{"max": types.Int64Type}}) {
+				m.Limits = kept
+			}
+		}
+	}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.String
+		if !prior.GetAttribute(ctx, path.Root("policy"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			m.Policy = kept
+		}
+	}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.Object
+		if !prior.GetAttribute(ctx, path.Root("schedule"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			// A value of another shape cannot enter state. One with an unknown value inside, such
+			// as an Optional and Computed child that the configuration leaves out, is kept for
+			// AfterFlatten to fill in; it is checked below, after the hook has run.
+			if _, err := kept.ToTerraformValue(ctx); err == nil && kept.Type(ctx).Equal(types.ObjectType{AttrTypes: map[string]attr.Type{"active_on": types.ObjectType{AttrTypes: map[string]attr.Type{"days_of_week": types.SetType{ElemType: types.StringType}, "enabled": types.BoolType, "limit": types.Int64Type, "start_time": types.StringType, "tags": types.ListType{ElemType: types.StringType}, "utc_offset": types.StringType}}}}) {
+				m.Schedule = kept
+			}
+		}
+	}
+	if r.hooks.AfterFlatten != nil {
+		diags.Append(r.hooks.AfterFlatten(ctx, m, v)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
+	// State cannot hold an unknown value. A value that the plan left unknown inside the object
+	// must have been set by AfterFlatten.
+	if value, err := m.Limits.ToTerraformValue(ctx); err == nil && !value.IsFullyKnown() {
+		diags.AddError("Unable to write the state of "+TypeName, fmt.Sprintf("the attribute %q has a value inside it that is still unknown after the API response was read; the AfterFlatten hook must set it", "limits"))
+		return diags
+	}
+	// State cannot hold an unknown value. A value that the plan left unknown inside the object
+	// must have been set by AfterFlatten.
+	if value, err := m.Schedule.ToTerraformValue(ctx); err == nil && !value.IsFullyKnown() {
+		diags.AddError("Unable to write the state of "+TypeName, fmt.Sprintf("the attribute %q has a value inside it that is still unknown after the API response was read; the AfterFlatten hook must set it", "schedule"))
 		return diags
 	}
 	diags.Append(state.Set(ctx, m)...)

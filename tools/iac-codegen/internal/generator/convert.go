@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -17,6 +18,9 @@ import (
 // and flatten (SDK response → Terraform model). Every SDK name comes from
 // the checked sdkRefs.
 type convData struct {
+	// ExtraEquality are the kinds ("yaml", "json") of the equality lines of extra attributes. They
+	// are no API field, so no field of an object carries them.
+	ExtraEquality []string
 	// IDGuard is the model field of the resource id when flatten must check that the response
 	// has it, or "".
 	IDGuard  string
@@ -190,6 +194,9 @@ type convObject struct {
 	// RequireOne: the group holds the arms of a oneOf that the user must set. Flatten fails when
 	// the response has none of them, because the object would have no arm.
 	RequireOne bool
+	// OptionalGroup: the group is optional (the line has optional). Flatten returns nil, a null
+	// group, when the response has none of its fields.
+	OptionalGroup bool
 	// AttrTypes are the Terraform attribute types, when a list holds the
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
@@ -277,12 +284,17 @@ const (
 	convBool    = "bool"    // types.Bool ↔ *bool
 	convFloat64 = "float64" // types.Float64 ↔ *float64
 	convUint64  = "uint64"  // types.Int64 ↔ *string (D7)
-	convTime    = "time"    // types.String ← *time.Time: a time that only the response has
-	convRFC3339 = "rfc3339" // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
-	convTimes   = "times"   // types.Set/List of timetypes.RFC3339 ↔ []time.Time
-	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
-	convObj     = "object"  // *<Model> ↔ *<SDK type>
-	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
+	// convInt64Wire is a signed 64-bit number that the API sends as a string, shown as an Int64
+	// (terraformType: Int64 on a string whose pattern is ^-?[0-9]+$).
+	convInt64Wire = "int64wire" // types.Int64 ↔ *string
+	// convFoldString shows a oneOf of an enum and a string as one string (asString).
+	convFoldString = "foldstring" // types.String ↔ *<oneOf SDK type>
+	convTime       = "time"       // types.String ← *time.Time: a time that only the response has
+	convRFC3339    = "rfc3339"    // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
+	convTimes      = "times"      // types.Set/List of timetypes.RFC3339 ↔ []time.Time
+	convEnum       = "enum"       // types.String ↔ *<enum type> (D12)
+	convObj        = "object"     // *<Model> ↔ *<SDK type>
+	convEmpty      = "empty"      // *<Model> ↔ map[string]interface{} (F16)
 	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
 	convEmptyBool = "emptybool"
 	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
@@ -390,6 +402,8 @@ type convField struct {
 	// FixedValue is its Go expression: an enum cast, a quoted string, or a bool.
 	RequestValue string
 	FixedValue   string
+	// StringFold holds the two arms of a oneOf that Terraform shows as one string (asString).
+	StringFold *foldArms
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -725,7 +739,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	unmarkCarriedOneOfs(b.objects)
-	if err := checkPositions(b.objects); err != nil {
+	if err := checkObjects(b.objects); err != nil {
 		return nil, err
 	}
 	rootUnsupported, err := b.unsupportedArms(&model.Type{Schema: b.resource.Name}, "fields")
@@ -785,8 +799,8 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 		}
 	}
 	for _, f := range r.Fields {
-		if splitArms(file, r.Name, f.Name) {
-			// The arms are collections of values, not objects of the state.
+		if splitArms(file, r.Name, f.Name) || asString(file, r.Name, f.Name) {
+			// The arms are collections of values, or the arms of a string, not objects of the state.
 			continue
 		}
 		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
@@ -804,22 +818,7 @@ func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string,
 		return typeArmPaths(p, file, out, at, t.Elem, seen)
 	}
 	if carry := carryField(file, t); carry != nil {
-		// The arms of the oneOf are attributes of the object, and each holds the other fields.
-		line := file.Types[t.Schema].Fields[carry.Name].CarrySiblings
-		for _, arm := range carry.Type.Fields {
-			if _, folded := line.Fold[arm.Name]; folded {
-				continue
-			}
-			child := at + "." + terraformName(p, model.ComponentOf(carry.Type), arm.Name)
-			out = append(out, child)
-			out = typeArmPaths(p, file, out, child, arm.Type, seen)
-			for _, sibling := range t.Fields {
-				if sibling != carry {
-					out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
-				}
-			}
-		}
-		return out
+		return carryArmPaths(p, file, out, at, t, carry, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -835,7 +834,31 @@ func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string,
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
+		if asString(file, model.ComponentOf(t), f.Name) {
+			// The arms of the oneOf are one string of the state.
+			continue
+		}
 		out = typeArmPaths(p, file, out, child, f.Type, seen)
+	}
+	return out
+}
+
+// carryArmPaths adds the arm paths of a carrySiblings object: the arms of the oneOf are attributes
+// of the object, and each holds the other fields.
+func carryArmPaths(p model.Policy, file *overrides.File, out []string, at string, t *model.Type, carry *model.Field, seen map[*model.Type]bool) []string {
+	line := file.Types[t.Schema].Fields[carry.Name].CarrySiblings
+	for _, arm := range carry.Type.Fields {
+		if _, folded := line.Fold[arm.Name]; folded {
+			continue
+		}
+		child := at + "." + terraformName(p, model.ComponentOf(carry.Type), arm.Name)
+		out = append(out, child)
+		out = typeArmPaths(p, file, out, child, arm.Type, seen)
+		for _, sibling := range t.Fields {
+			if sibling != carry {
+				out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
+			}
+		}
 	}
 	return out
 }
@@ -1115,7 +1138,7 @@ func (f *convField) ValueKind() string {
 	case convInt64AsString:
 		return "String"
 	}
-	return "Int64" // int64, uint64
+	return "Int64" // int64, uint64, int64wire
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -1195,6 +1218,9 @@ func replaceOnlyLines(file *overrides.File) error {
 			line := file.Types[component].Fields[field]
 			if len(line.RequestValueBy) != 0 {
 				return fmt.Errorf("%s.%s: requestValueBy needs an Update that replaces the resource; an update mask would leave the derived value out", component, field)
+			}
+			if line.AsString {
+				return fmt.Errorf("%s.%s: asString needs an Update that replaces the resource; the update mask names the arms of the oneOf, not the string that Terraform shows", component, field)
 			}
 			if line.CarrySiblings != nil {
 				return fmt.Errorf("%s.%s: carrySiblings needs an Update that replaces the resource; the update mask names API fields, not the arms that Terraform shows", component, field)
@@ -1434,11 +1460,20 @@ type keyedFields struct {
 	KeyValue, ValueValue bool
 }
 
+// foldArms are the arms of a oneOf that asString shows as one string. Enum converts the spelling of
+// an enum value, and Str holds any other text.
+type foldArms struct{ Enum, Str *convField }
+
 // fixedBy is the API value that expand sends when the object field Model is set.
 type fixedBy struct {
 	Model, Value string
 	// ObjectValue is true when the model holds the object as a types.Object.
 	ObjectValue bool
+	// Group is the Go field of the top-level group that holds the object, "" for an object outside
+	// a group. NestedGroup: a group of types.<Type>.groups holds it, which the model reaches
+	// through the object of the component, not through m.
+	Group       string
+	NestedGroup bool
 }
 
 func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
@@ -1457,8 +1492,15 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
 	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
-		cf.RequestValueBy = append(cf.RequestValueBy, fixedBy{Model: camelize(field), Value: line.RequestValueBy[field],
-			ObjectValue: b.resource.Policy.ComputedLine(component, field)})
+		by := fixedBy{Model: camelize(field), Value: line.RequestValueBy[field], ObjectValue: b.resource.Policy.ComputedLine(component, field)}
+		if component == b.resource.Name {
+			if group := b.file.GroupOf(field); group != "" {
+				by.Group = camelize(group)
+			}
+		} else {
+			by.NestedGroup = nestedGroupOf(b.file, component, field) != ""
+		}
+		cf.RequestValueBy = append(cf.RequestValueBy, by)
 	}
 }
 
@@ -1494,13 +1536,13 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string, 
 		return nil
 	}
 	switch {
-	case cf.Conv == convUint64:
+	case cf.Conv == convUint64, cf.Conv == convInt64Wire:
 	case cf.Conv == convInt32:
 		cf.Conv = convInt32AsInt64
 	case cf.Conv == convScalars && cf.SDKType == "int32":
 		cf.Conv, cf.ElemType = convInts32AsInt64, "types.Int64Type"
 	default:
-		return fmt.Errorf("%s: terraformType Int64 needs an int32 or uint64 field, or a list or set of int32", cf.TFName)
+		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, a 64-bit number that the API sends as a string, or a list or set of int32", cf.TFName)
 	}
 	return nil
 }
@@ -1524,6 +1566,9 @@ func (b *convBuilder) applyValueNames(cf *convField, component, name string) err
 func (b *convBuilder) applyFixedRequest(cf *convField) error {
 	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
 		return nil
+	}
+	if i := slices.IndexFunc(cf.RequestValueBy, func(by fixedBy) bool { return by.NestedGroup }); i >= 0 {
+		return fmt.Errorf("%s: requestValueBy names %s, which is in a group of types.<Type>.groups: only an object outside a group, or in a group of the resource, is supported", cf.TFName, cf.RequestValueBy[i].Model)
 	}
 	switch {
 	case cf.RequestValue == "":
@@ -1606,7 +1651,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
 		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
 	}
-	want, err := b.fieldConv(cf, t, computed)
+	want, err := b.fieldConvOf(cf, t, computed, component, name)
 	if err != nil {
 		return nil, err
 	}
@@ -1646,6 +1691,80 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		return nil, err
 	}
 	return checkFieldType(cf, ref, want)
+}
+
+// fieldConvOf is fieldConv for the field name of component: a oneOf that asString shows as one
+// string converts as the string.
+func (b *convBuilder) fieldConvOf(cf *convField, t *model.Type, computed bool, component, name string) (string, error) {
+	if asString(b.file, component, name) {
+		return b.foldStringConv(cf, t, component, name)
+	}
+	return b.fieldConv(cf, t, computed)
+}
+
+// foldStringConv sets the conversion of a oneOf of an enum and a string that Terraform shows as one
+// string. A spelling of the enum selects the enum arm, and any other text is the string arm, so a
+// text that is both would be ambiguous: the generator stops when a pattern of the line matches a
+// spelling.
+func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, name string) (string, error) {
+	enum, str, err := stringArms(t)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", cf.TFName, err)
+	}
+	obj, err := b.nested(t)
+	if err != nil {
+		return "", err
+	}
+	arms := &foldArms{Enum: fieldByModel(obj.Fields, camelize(enum.Name)), Str: fieldByModel(obj.Fields, camelize(str.Name))}
+	switch {
+	case arms.Enum == nil || arms.Str == nil:
+		return "", fmt.Errorf("%s: asString needs the arms %s and %s to be fields of the oneOf", cf.TFName, enum.Name, str.Name)
+	case arms.Enum.EnumMap == nil:
+		return "", fmt.Errorf("%s: asString needs an enums line for %s, which gives the Terraform spelling of each value", cf.TFName, enum.Type.Schema)
+	case arms.Enum.CaseInsensitive || arms.Enum.Wrap != nil || arms.Str.Wrap != nil || arms.Enum.Value || arms.Str.Value:
+		return "", fmt.Errorf("%s: asString needs arms that are pointers, without wrappers, and an enum that is not caseInsensitive", cf.TFName)
+	}
+	for _, v := range b.file.Types[component].Fields[name].Validators {
+		if v.RegexMatches == nil {
+			continue
+		}
+		re, err := regexp.Compile(v.RegexMatches.Pattern)
+		if err != nil {
+			return "", fmt.Errorf("%s: regexMatches: %w", cf.TFName, err)
+		}
+		for _, value := range arms.Enum.EnumMap.Values {
+			if re.MatchString(value.TF) {
+				return "", fmt.Errorf("%s: asString is ambiguous: the text %q is a spelling of the enum and matches the pattern %q of the string arm", cf.TFName, value.TF, v.RegexMatches.Pattern)
+			}
+		}
+	}
+	cf.Conv, cf.StringFold, cf.SDKType = convFoldString, arms, b.qualify(obj.SDK)
+	return "*" + obj.SDK, nil
+}
+
+// checkObjects checks the objects that the fields of the resource built.
+func checkObjects(objects []*convObject) error {
+	if err := checkOptionalGroups(objects); err != nil {
+		return err
+	}
+	return checkPositions(objects)
+}
+
+// checkOptionalGroups reports an optional group that has a field whose absence flatten cannot tell: a
+// field that the SDK holds as a value, in wrappers, or as a list or a map. The group is null when
+// every field is absent, so each one must be a pointer.
+func checkOptionalGroups(objects []*convObject) error {
+	for _, obj := range objects {
+		if !obj.OptionalGroup {
+			continue
+		}
+		for _, f := range obj.Fields {
+			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj) || f.Value || f.Wrap != nil {
+				return fmt.Errorf("%s: an optional group needs fields that the SDK holds by pointer (a scalar or an object), so that a missing value tells the group is absent; %s is not one", obj.Model, f.TFName)
+			}
+		}
+	}
+	return nil
 }
 
 // checkPositions reports a requestPosition field outside the items of a list: only a list gives
@@ -1928,6 +2047,9 @@ func scalarConv(cf *convField, t *model.Type, computed bool) (string, error) {
 		return "*float32", nil
 	case t.WireString && t.Format == "uint64":
 		cf.Conv = convUint64
+		return "*string", nil
+	case t.WireString && t.Format == "int64":
+		cf.Conv = convInt64Wire
 		return "*string", nil
 	case !t.WireString && t.Format == "int64":
 		cf.Conv = convInt64
@@ -2467,7 +2589,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convFoldString: "types.StringType", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convIntegerAsString: "types.StringType",
 	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
@@ -2855,7 +2977,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convInt64Wire, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
@@ -2938,6 +3060,17 @@ func (d *convData) PriorLists() bool {
 // UsesEquality reports whether a field compares its value as a document of the kind ("yaml" or
 // "json"). With no kind, it reports whether any field does.
 func (d *convData) UsesEquality(kind ...string) bool {
+	for _, k := range d.ExtraEquality {
+		if len(kind) == 0 || slices.Contains(kind, k) {
+			return true
+		}
+	}
+	return d.UsesFieldEquality(kind...)
+}
+
+// UsesFieldEquality is UsesEquality for the equality lines of API fields only. An equality line of an
+// extra attribute is a plan modifier of that attribute, and needs no ModifyPlan.
+func (d *convData) UsesFieldEquality(kind ...string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Equality != "" && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
@@ -3041,11 +3174,16 @@ func (b *convBuilder) nestedGroup(obj *convObject, component, group string) *con
 			return cf.Object
 		}
 	}
+	line := b.file.Types[component].Groups[group]
 	g := &convObject{Func: obj.Func + camelize(group), Model: groupModelName(component, group), SDK: obj.SDK, Group: true,
-		RequireOne: b.file.Types[component].Groups[group].RequireOne}
+		RequireOne: line.RequireOne, OptionalGroup: line.Optional}
 	g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
 	b.objects = append(b.objects, g)
-	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+	// The model holds a computed group as a types.Object, which can be unknown in a plan.
+	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g, ObjectValue: line.Computed})
+	if line.Computed {
+		b.listed = append(b.listed, g)
+	}
 	return g
 }
 

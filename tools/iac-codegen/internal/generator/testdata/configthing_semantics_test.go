@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -315,7 +317,7 @@ func TestSetStateKeepsTheFormOfEmptyCollections(t *testing.T) {
 			"name": str("collector"), "raw_configuration": str(inlineYAML), "id": null, "hash": null,
 			"selector": tftypes.NewValue(remoteType.AttributeTypes["selector"], nil),
 		})
-		return tftypes.NewValue(objectType, map[string]tftypes.Value{
+		return withNulls(objectType, map[string]tftypes.Value{
 			"id": str("thing-1"), "name": null, "settings": null, "template": null, "version": str("v1"),
 			"remotes": tftypes.NewValue(tftypes.List{ElementType: remoteType}, []tftypes.Value{remote}),
 			"labels":  labels, "metadata": metadata,
@@ -374,6 +376,7 @@ func (testProvider) DataSources(context.Context) []func() datasource.DataSource 
 
 type thing struct {
 	settings, name, template tftypes.Value // a zero template is null
+	policy                   tftypes.Value // a zero policy is null
 	remotes                  []string
 	unknownRemoteIDs         bool // the server-set id and hash of each remote are unknown, not null
 }
@@ -398,7 +401,11 @@ func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tfty
 	if template.Type() == nil {
 		template = tftypes.NewValue(tftypes.String, nil)
 	}
-	return tftypes.NewValue(objectType, map[string]tftypes.Value{
+	policy := th.policy
+	if policy.Type() == nil {
+		policy = tftypes.NewValue(tftypes.String, nil)
+	}
+	return withNulls(objectType, map[string]tftypes.Value{
 		"id":       id,
 		"name":     th.name,
 		"settings": th.settings,
@@ -407,7 +414,21 @@ func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tfty
 		"remotes":  tftypes.NewValue(tftypes.List{ElementType: remoteType}, items),
 		"labels":   tftypes.NewValue(objectType.AttributeTypes["labels"], nil),
 		"metadata": tftypes.NewValue(objectType.AttributeTypes["metadata"], nil),
+		"policy":   policy,
 	})
+}
+
+// withNulls is the value of the resource with the given attributes, and null for the others, the
+// Terraform-only ones included.
+func withNulls(objectType tftypes.Object, values map[string]tftypes.Value) tftypes.Value {
+	out := map[string]tftypes.Value{}
+	for name, typ := range objectType.AttributeTypes {
+		out[name] = tftypes.NewValue(typ, nil)
+	}
+	for name, v := range values {
+		out[name] = v
+	}
+	return tftypes.NewValue(objectType, out)
 }
 
 // plan plans the config against a prior state that the API wrote with the prior documents.
@@ -571,5 +592,379 @@ func TestUnknownConfigValueStaysAChange(t *testing.T) {
 	}
 	if !at(t, planned, "settings").Equal(str(compactJSON)) || !at(t, planned, "remotes", 0, "raw_configuration").Equal(str(inlineYAML)) {
 		t.Fatalf("planned documents = %v, want the state text", planned)
+	}
+}
+
+// planFixture is the state of a thing with compact settings, the configuration that spells the same
+// settings with another format, and the plan that Terraform proposes after the plan modifiers: the
+// settings of the state, and the version that the server sets, unknown.
+func planFixture(t *testing.T) (schemaResp frameworkresource.SchemaResponse, state, config, plan tftypes.Value) {
+	t.Helper()
+	ctx := context.Background()
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := func(settings string, version tftypes.Value) tftypes.Value {
+		out := map[string]tftypes.Value{}
+		for name, typ := range objectType.AttributeTypes {
+			out[name] = tftypes.NewValue(typ, nil)
+		}
+		out["id"], out["settings"], out["version"] = str("thing-1"), str(settings), version
+		return tftypes.NewValue(objectType, out)
+	}
+	version := tftypes.NewValue(tftypes.String, "v1")
+	return schemaResp, values(compactJSON, version), values(spacedJSON, tftypes.NewValue(tftypes.String, nil)), values(compactJSON, tftypes.NewValue(tftypes.String, tftypes.UnknownValue))
+}
+
+// The ModifyPlan hook runs after the equality steps: it sees the plan that they leave, which is the
+// state for a change of format alone, and what it sets stays in the plan. It never runs on destroy,
+// and a resource without the hook plans as before.
+func TestModifyPlanHookRunsAfterTheEqualitySteps(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, state, config, plan := planFixture(t)
+	var sawPlan tftypes.Value
+	calls := 0
+	hook := func(ctx context.Context, req frameworkresource.ModifyPlanRequest, resp *frameworkresource.ModifyPlanResponse) {
+		calls++
+		sawPlan = resp.Plan.Raw
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("name"), "from-hook")...)
+	}
+	r := NewResource(Hooks{ModifyPlan: hook}).(frameworkresource.ResourceWithModifyPlan)
+	req := frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}
+	resp := &frameworkresource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}}
+	r.ModifyPlan(ctx, req, resp)
+	if resp.Diagnostics.HasError() || calls != 1 {
+		t.Fatalf("calls = %d, diagnostics = %v, want one call and no error", calls, resp.Diagnostics)
+	}
+	if !sawPlan.Equal(state) {
+		t.Fatalf("the hook saw %v, want the state that the equality steps leave", sawPlan)
+	}
+	var name types.String
+	resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("name"), &name)...)
+	var settings types.String
+	resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("settings"), &settings)...)
+	if name.ValueString() != "from-hook" || settings.ValueString() != compactJSON {
+		t.Fatalf("planned name %q and settings %q, want the value of the hook and the state's settings", name, settings)
+	}
+
+	// Destroy: the plan is null, and the hook does not run.
+	destroy := frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: tftypes.NewValue(config.Type(), nil)},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: tftypes.NewValue(config.Type(), nil)},
+	}
+	r.ModifyPlan(ctx, destroy, &frameworkresource.ModifyPlanResponse{Plan: destroy.Plan})
+	if calls != 1 {
+		t.Fatalf("the hook ran on destroy")
+	}
+
+	// No hook: the equality steps alone plan no change.
+	plain := NewResource(Hooks{}).(frameworkresource.ResourceWithModifyPlan)
+	plainResp := &frameworkresource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}}
+	plain.ModifyPlan(ctx, req, plainResp)
+	if plainResp.Diagnostics.HasError() || !plainResp.Plan.Raw.Equal(state) {
+		t.Fatalf("without a hook the plan is %v, want the state", plainResp.Plan.Raw)
+	}
+}
+
+// An error of the hook stays in the response.
+func TestModifyPlanHookErrorIsReported(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, state, config, plan := planFixture(t)
+	r := NewResource(Hooks{ModifyPlan: func(_ context.Context, _ frameworkresource.ModifyPlanRequest, resp *frameworkresource.ModifyPlanResponse) {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("rejected", "no"))
+	}}).(frameworkresource.ResourceWithModifyPlan)
+	resp := &frameworkresource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}}
+	r.ModifyPlan(ctx, frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}, resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("the error of the hook is lost")
+	}
+}
+
+// protocolServer serves the generated resource, and returns the type of its value.
+func protocolServer(t *testing.T) (tfprotov6.ProviderServer, tftypes.Object) {
+	t.Helper()
+	server, err := providerserver.NewProtocol6WithError(testProvider{})()
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemaResp, err := server.GetProviderSchema(context.Background(), &tfprotov6.GetProviderSchemaRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return server, schemaResp.ResourceSchemas["test_config_thing"].ValueType().(tftypes.Object)
+}
+
+func encodeValue(t *testing.T, objectType tftypes.Object, v tftypes.Value) *tfprotov6.DynamicValue {
+	t.Helper()
+	dv, err := tfprotov6.NewDynamicValue(objectType, v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &dv
+}
+
+// planOf plans a change of the thing from prior to the proposed new state, with config.
+func planOf(t *testing.T, prior, config, proposed tftypes.Value) tftypes.Value {
+	t.Helper()
+	server, objectType := protocolServer(t)
+	resp, err := server.PlanResourceChange(context.Background(), &tfprotov6.PlanResourceChangeRequest{
+		TypeName:         "test_config_thing",
+		PriorState:       encodeValue(t, objectType, prior),
+		Config:           encodeValue(t, objectType, config),
+		ProposedNewState: encodeValue(t, objectType, proposed),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range resp.Diagnostics {
+		if d.Severity == tfprotov6.DiagnosticSeverityError {
+			t.Fatalf("plan: %s: %s", d.Summary, d.Detail)
+		}
+	}
+	planned, err := resp.PlannedState.Unmarshal(objectType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return planned
+}
+
+// An Optional and Computed string with an equality line and UseStateForUnknown: the same document
+// in another format plans no change, an omitted value keeps the state, another document is a
+// change, and a new resource plans it unknown, for a hook to fill in.
+func TestExtraPolicyPlansLikeADocument(t *testing.T) {
+	_, objectType := protocolServer(t)
+	unknown := tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+	null := tftypes.NewValue(tftypes.String, nil)
+	value := func(settings string, policy tftypes.Value) tftypes.Value {
+		return withNulls(objectType, map[string]tftypes.Value{"id": str("thing-1"), "name": str("n"), "settings": str(settings), "version": str("v1"), "policy": policy})
+	}
+	prior := value(compactJSON, str(compactJSON))
+	otherSettings := `{"a":2}`
+	tests := map[string]struct{ prior, config, proposed tftypes.Value }{
+		// no change at all
+		"same document": {prior, value(compactJSON, str(spacedJSON)), value(compactJSON, str(spacedJSON))},
+		"omitted":       {prior, value(compactJSON, null), value(compactJSON, str(compactJSON))},
+	}
+	for name, test := range tests {
+		if planned := planOf(t, test.prior, test.config, test.proposed); !planned.Equal(prior) {
+			t.Errorf("%s: planned\n%v\nwant the prior state", name, planned)
+		}
+	}
+	// A change of another attribute marks the computed attributes unknown. The policy keeps its
+	// state value, in the format of the state, unless the configuration sets another document. A null
+	// state value stays null: UseStateForUnknown copies the state, and a hook sets the value.
+	changed := map[string]struct {
+		prior, config, proposed tftypes.Value
+		want                    tftypes.Value
+	}{
+		"omitted and kept":  {prior, value(otherSettings, null), value(otherSettings, str(compactJSON)), str(compactJSON)},
+		"same document":     {prior, value(otherSettings, str(spacedJSON)), value(otherSettings, str(spacedJSON)), str(compactJSON)},
+		"another document":  {prior, value(otherSettings, str(`{"a":3}`)), value(otherSettings, str(`{"a":3}`)), str(`{"a":3}`)},
+		"null in the state": {value(compactJSON, null), value(otherSettings, null), value(otherSettings, null), null},
+	}
+	for name, test := range changed {
+		planned := planOf(t, test.prior, test.config, test.proposed)
+		if got := at(t, planned, "policy"); !got.Equal(test.want) {
+			t.Errorf("%s: policy = %v, want %v; planned %v", name, got, test.want, planned)
+		}
+	}
+	created := planOf(t, tftypes.NewValue(objectType, nil), withNulls(objectType, map[string]tftypes.Value{"name": str("n")}), withNulls(objectType, map[string]tftypes.Value{"name": str("n")}))
+	if got := at(t, created, "policy"); !got.Equal(unknown) {
+		t.Errorf("create: policy = %v, want unknown", got)
+	}
+	if got := at(t, created, "limits"); got.IsKnown() {
+		t.Errorf("create: limits = %v, want an unknown object", got)
+	}
+}
+
+// The state keeps the policy of the plan when the API holds none, and a read without a plan or state
+// starts it as null. The Terraform-only objects start as typed nulls: flatten writes no value.
+func TestExtraAttributesStartNullAndKeepThePlanValue(t *testing.T) {
+	ctx := context.Background()
+	var schemaResp frameworkresource.SchemaResponse
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	r := NewResource(Hooks{}).(*Resource)
+	api := apiThing(compactJSON, inlineYAML)
+
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(objectType, nil)}
+	if diags := r.setState(ctx, api, nil, &state); diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, name := range []string{"policy", "schedule", "limits"} {
+		if got := at(t, state.Raw, name); !got.IsNull() {
+			t.Errorf("without a prior, %s = %v, want null", name, got)
+		}
+	}
+
+	prior := withNulls(objectType, map[string]tftypes.Value{"policy": str(spacedJSON)})
+	state = tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(objectType, nil)}
+	if diags := r.setState(ctx, api, &tfsdk.Plan{Schema: schemaResp.Schema, Raw: prior}, &state); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if got := at(t, state.Raw, "policy"); !got.Equal(str(spacedJSON)) {
+		t.Errorf("with a prior, policy = %v, want the planned text", got)
+	}
+}
+
+// The schedule is a Terraform-only object: its required attributes and validators check the
+// configuration, and a default fills the optional ones in the plan.
+func TestExtraScheduleChecksAndDefaults(t *testing.T) {
+	ctx := context.Background()
+	server, objectType := protocolServer(t)
+	schedule := func(daysOfWeek []string, start, offset tftypes.Value) tftypes.Value {
+		return withNulls(objectType, map[string]tftypes.Value{"name": str("n"), "schedule": scheduleOf(objectType, daysOfWeek, start, offset)})
+	}
+	null := tftypes.NewValue(tftypes.String, nil)
+	tests := map[string]struct {
+		config tftypes.Value
+		want   string // a part of the error, or "" for none
+	}{
+		"valid":                 {schedule([]string{"Monday"}, str("07:30"), null), ""},
+		"bad time":              {schedule([]string{"Monday"}, str("7:30"), null), "use 24h time like 15:04"},
+		"bad day":               {schedule([]string{"Funday"}, str("07:30"), null), "Funday"},
+		"missing days":          {schedule(nil, str("07:30"), null), "days_of_week"},
+		"missing start":         {schedule([]string{"Monday"}, null, null), "start_time"},
+		"bad offset":            {schedule([]string{"Monday"}, str("07:30"), str("0700")), "use an offset like -0700"},
+		"a good offset is kept": {schedule([]string{"Monday"}, str("07:30"), str("-0700")), ""},
+	}
+	for name, test := range tests {
+		resp, err := server.ValidateResourceConfig(ctx, &tfprotov6.ValidateResourceConfigRequest{
+			TypeName: "test_config_thing", Config: encodeValue(t, objectType, test.config),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got string
+		for _, d := range resp.Diagnostics {
+			if d.Severity == tfprotov6.DiagnosticSeverityError {
+				got += d.Summary + " " + d.Detail + " " + fmt.Sprint(d.Attribute)
+			}
+		}
+		if (test.want == "") != (got == "") || !strings.Contains(got, test.want) {
+			t.Errorf("%s: errors %q, want one with %q", name, got, test.want)
+		}
+	}
+
+	// The plan fills the defaults of the optional attributes of the window, and a schedule that the
+	// configuration leaves out stays null.
+	config := schedule([]string{"Monday"}, str("07:30"), null)
+	planned := planOf(t, tftypes.NewValue(objectType, nil), config, config)
+	window := func(name string) tftypes.Value { return at(t, planned, "schedule", "active_on", name) }
+	if !window("utc_offset").Equal(str("+0000")) || !window("enabled").Equal(tftypes.NewValue(tftypes.Bool, true)) || window("limit").IsNull() {
+		t.Errorf("planned window utc_offset %v, enabled %v, limit %v, want the defaults", window("utc_offset"), window("enabled"), window("limit"))
+	}
+	if !window("tags").IsNull() {
+		t.Errorf("planned tags = %v, want null: it has no default", window("tags"))
+	}
+	none := planOf(t, tftypes.NewValue(objectType, nil), withNulls(objectType, map[string]tftypes.Value{"name": str("n")}), withNulls(objectType, map[string]tftypes.Value{"name": str("n")}))
+	if got := at(t, none, "schedule"); !got.IsNull() {
+		t.Errorf("planned schedule = %v, want null", got)
+	}
+}
+
+// A change of only the schedule makes an Update, because the attribute says inUpdate: a hook sends it.
+// The object that the user may set and the server may fill in is Optional and Computed.
+func TestExtraScheduleIsAnUpdateField(t *testing.T) {
+	var schemaResp frameworkresource.SchemaResponse
+	NewResource(Hooks{}).Schema(context.Background(), frameworkresource.SchemaRequest{}, &schemaResp)
+	if _, ok := schemaResp.Schema.Attributes["schedule"]; !ok {
+		t.Fatal("the schedule is not an attribute")
+	}
+	found := false
+	for _, f := range updateFields {
+		found = found || f.attr == "schedule"
+	}
+	if !found {
+		t.Fatal("updateFields has no schedule: a change of only the schedule sends no Update")
+	}
+	if limits := schemaResp.Schema.Attributes["limits"]; !limits.IsOptional() || !limits.IsComputed() {
+		t.Fatal("limits is not Optional and Computed")
+	}
+}
+
+// scheduleOf is the value of the schedule attribute with one window. A nil list of days is null.
+func scheduleOf(objectType tftypes.Object, daysOfWeek []string, start, offset tftypes.Value) tftypes.Value {
+	scheduleType := objectType.AttributeTypes["schedule"].(tftypes.Object)
+	activeOn := scheduleType.AttributeTypes["active_on"].(tftypes.Object)
+	var dayValues any
+	if daysOfWeek != nil {
+		values := make([]tftypes.Value, 0, len(daysOfWeek))
+		for _, d := range daysOfWeek {
+			values = append(values, str(d))
+		}
+		dayValues = values
+	}
+	window := map[string]tftypes.Value{}
+	for name, typ := range activeOn.AttributeTypes {
+		window[name] = tftypes.NewValue(typ, nil)
+	}
+	window["days_of_week"], window["start_time"], window["utc_offset"] = tftypes.NewValue(activeOn.AttributeTypes["days_of_week"], dayValues), start, offset
+	return tftypes.NewValue(scheduleType, map[string]tftypes.Value{"active_on": tftypes.NewValue(activeOn, window)})
+}
+
+// The state keeps the object of the plan, so a hook finds it there. A value inside it that the plan
+// left unknown cannot enter state: AfterFlatten must set it, and without that the write is an
+// error. A new read starts the object as null.
+func TestExtraObjectKeepsTheObjectOfThePlan(t *testing.T) {
+	ctx := context.Background()
+	var schemaResp frameworkresource.SchemaResponse
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	scheduleType := objectType.AttributeTypes["schedule"]
+	known := scheduleOf(objectType, []string{"Monday"}, str("07:30"), str("+0000"))
+	unknownOffset := scheduleOf(objectType, []string{"Monday"}, str("07:30"), tftypes.NewValue(tftypes.String, tftypes.UnknownValue))
+	// fillOffset is a hook that sets the offset that the plan left unknown, and keeps the rest.
+	fillOffset := func(ctx context.Context, m *ConfigThingModel, _ *config_things_service.ConfigThing) diag.Diagnostics {
+		var diags diag.Diagnostics
+		attrs := m.Schedule.Attributes()
+		activeOn, _ := attrs["active_on"].(types.Object)
+		window := activeOn.Attributes()
+		window["utc_offset"] = types.StringValue("+0200")
+		newActive, d := types.ObjectValue(activeOn.AttributeTypes(ctx), window)
+		diags.Append(d...)
+		attrs["active_on"] = newActive
+		filled, d := types.ObjectValue(m.Schedule.AttributeTypes(ctx), attrs)
+		diags.Append(d...)
+		m.Schedule = filled
+		return diags
+	}
+	tests := map[string]struct {
+		plan    tftypes.Value
+		hooks   Hooks
+		want    tftypes.Value
+		wantErr bool
+	}{
+		"known":                      {plan: known, want: known},
+		"unknown inside, no hook":    {plan: unknownOffset, wantErr: true},
+		"unknown inside, hook fills": {plan: unknownOffset, hooks: Hooks{AfterFlatten: fillOffset}, want: scheduleOf(objectType, []string{"Monday"}, str("07:30"), str("+0200"))},
+		"null in the plan":           {plan: tftypes.NewValue(scheduleType, nil), want: tftypes.NewValue(scheduleType, nil)},
+		"unknown in general":         {plan: tftypes.NewValue(scheduleType, tftypes.UnknownValue), want: tftypes.NewValue(scheduleType, nil)},
+	}
+	for name, test := range tests {
+		r := NewResource(test.hooks).(*Resource)
+		prior := withNulls(objectType, map[string]tftypes.Value{"schedule": test.plan})
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(objectType, nil)}
+		diags := r.setState(ctx, apiThing(compactJSON, inlineYAML), &tfsdk.Plan{Schema: schemaResp.Schema, Raw: prior}, &state)
+		if test.wantErr {
+			if !diags.HasError() {
+				t.Errorf("%s: want an error for the unknown value inside the object", name)
+			}
+			continue
+		}
+		if diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		if got := at(t, state.Raw, "schedule"); !got.Equal(test.want) {
+			t.Errorf("%s: schedule = %v, want %v", name, got, test.want)
+		}
 	}
 }

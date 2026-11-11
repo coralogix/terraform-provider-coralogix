@@ -28,7 +28,7 @@ paths:
               required: [name, kind]
               properties:
                 name: {type: string, minLength: 1}
-                kind: {$ref: '#/components/schemas/Kind'}
+                kind: {allOf: [{$ref: '#/components/schemas/Kind'}], description: The kind of the thing}
                 limitValue: {type: integer, format: int32, x-coralogix-presence: true}
                 items:
                   type: array
@@ -59,7 +59,7 @@ paths:
               properties:
                 id: {type: string}
                 name: {type: string, minLength: 1}
-                kind: {$ref: '#/components/schemas/Kind'}
+                kind: {allOf: [{$ref: '#/components/schemas/Kind'}], description: The kind of the thing}
                 createTime: {type: string}
                 isInternal: {type: boolean}
                 quota: {$ref: '#/components/schemas/Quota'}
@@ -127,7 +127,7 @@ components:
       properties:
         id: {type: string}
         name: {type: string, minLength: 1}
-        kind: {$ref: '#/components/schemas/Kind'}
+        kind: {allOf: [{$ref: '#/components/schemas/Kind'}], description: The kind of the thing}
         createTime: {type: string}
         isInternal: {type: boolean}
         quota: {$ref: '#/components/schemas/Quota'}

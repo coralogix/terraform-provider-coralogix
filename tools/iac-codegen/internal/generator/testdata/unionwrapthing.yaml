@@ -1,0 +1,132 @@
+# A released resource whose API wraps all of its fields in one object, thing, that holds the arms of
+# a oneOf next to common fields. The requests and the response do not require the object, although
+# the API always has it. The Replace request sends the id next to it.
+openapi: 3.1.0
+info: {title: unionwrap, version: 1.0.0}
+paths:
+  /unionwrap/v1/things:
+    post:
+      tags: [Union Wrap Things Service]
+      operationId: UnionWrapThingsService_CreateUnionWrapThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Union Wrap Thing Request
+              type: object
+              properties:
+                thing:
+                  allOf: [{$ref: '#/components/schemas/Thing'}]
+                  description: The properties of the thing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateUnionWrapThingResponse'}
+    put:
+      tags: [Union Wrap Things Service]
+      operationId: UnionWrapThingsService_ReplaceUnionWrapThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Union Wrap Thing Request
+              type: object
+              properties:
+                thing:
+                  allOf: [{$ref: '#/components/schemas/Thing'}]
+                  description: The properties of the thing
+                id: {type: string, x-coralogix-presence: true}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceUnionWrapThingResponse'}
+  /unionwrap/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Union Wrap Things Service]
+      operationId: UnionWrapThingsService_GetUnionWrapThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetUnionWrapThingResponse'}
+    delete:
+      tags: [Union Wrap Things Service]
+      operationId: UnionWrapThingsService_DeleteUnionWrapThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteUnionWrapThingResponse'}
+components:
+  schemas:
+    DeleteUnionWrapThingResponse:
+      type: object
+      required: []
+    CreateUnionWrapThingResponse:
+      type: object
+      properties:
+        unionWrapThing: {$ref: '#/components/schemas/UnionWrapThing'}
+    GetUnionWrapThingResponse:
+      type: object
+      properties:
+        unionWrapThing: {$ref: '#/components/schemas/UnionWrapThing'}
+    ReplaceUnionWrapThingResponse:
+      type: object
+      properties:
+        unionWrapThing: {$ref: '#/components/schemas/UnionWrapThing'}
+    UnionWrapThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        thing:
+          allOf: [{$ref: '#/components/schemas/Thing'}]
+          description: The properties of the thing
+    Thing:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1}
+        description: {type: string, x-coralogix-presence: true}
+        variant:
+          allOf: [{$ref: '#/components/schemas/ThingVariant'}]
+          description: The variant, which follows the arm that is set
+        armA: {$ref: '#/components/schemas/ArmA'}
+        armB: {$ref: '#/components/schemas/ArmB'}
+        armC: {$ref: '#/components/schemas/ArmC'}
+      oneOf:
+        - required: [armA]
+        - required: [armB]
+        - required: [armC]
+        - not:
+            anyOf:
+              - required: [armA]
+              - required: [armB]
+              - required: [armC]
+    ThingVariant:
+      type: string
+      enum: [THING_VARIANT_A_OR_UNSPECIFIED, THING_VARIANT_B, THING_VARIANT_C]
+    ArmA:
+      type: object
+      required: [value]
+      properties:
+        value: {type: string, minLength: 1}
+    ArmB:
+      type: object
+      required: []
+      properties:
+        count: {type: integer, format: int32, x-coralogix-presence: true}
+    ArmC:
+      type: object
+      required: []
+      properties:
+        label: {type: string, x-coralogix-presence: true}

@@ -50,7 +50,7 @@ func Schema() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.OneOf("one_day", "seven_days"),
 						},
-						MarkdownDescription: "",
+						MarkdownDescription: "Valid values: [\"one_day\" \"seven_days\"].",
 					},
 				},
 				MarkdownDescription: "The time window.",

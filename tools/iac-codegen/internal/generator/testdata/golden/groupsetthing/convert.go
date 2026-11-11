@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
@@ -172,14 +173,16 @@ var computedAttrs = map[string]bool{
 	"groups":              true,
 	"groups.interval":     true,
 	"groups.limit":        true,
+	"groups.period":       true,
 	"groups.items.labels": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"groups.name":      true,
-	"groups.items":     true,
-	"groups.items.key": true,
+	"groups.name":                  true,
+	"groups.period.period_minutes": true,
+	"groups.items":                 true,
+	"groups.items.key":             true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -361,6 +364,11 @@ func expandInGroupThing(ctx context.Context, p path.Path, m *OutGroupThingModel,
 	out.Name = valueOf(expandString(m.Name))
 	out.Interval = expandInt64(m.Interval)
 	out.Limit = expandUint64(p.AtName("limit"), m.Limit, diags)
+	if v := m.Period; !v.IsNull() && !v.IsUnknown() {
+		var nested OutGroupThingPeriodModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expandInGroupThingPeriod(ctx, p.AtName("period"), &nested, out, diags)
+	}
 	if items := expandElements[OutItemThingModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
 		out.Items = make([]group_set_things_service.InItemThing, 0, len(items))
 		for i := range items {
@@ -368,6 +376,14 @@ func expandInGroupThing(ctx context.Context, p path.Path, m *OutGroupThingModel,
 		}
 	}
 	return out
+}
+
+// expandInGroupThingPeriod writes the fields of a group, which the API holds in the parent object, to out.
+func expandInGroupThingPeriod(ctx context.Context, p path.Path, m *OutGroupThingPeriodModel, out *group_set_things_service.InGroupThing, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.PeriodMinutes = expandInt64(m.PeriodMinutes)
 }
 
 func expandInItemThing(ctx context.Context, p path.Path, m *OutItemThingModel, diags *diag.Diagnostics) *group_set_things_service.InItemThing {
@@ -422,6 +438,12 @@ func flattenOutGroupThing(ctx context.Context, p path.Path, v *group_set_things_
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Interval = types.Int64PointerValue(v.Interval)
 	out.Limit = flattenUint64(p.AtName("limit"), v.Limit, diags)
+	out.Period = types.ObjectNull(outGroupThingPeriodAttrTypes())
+	if nested := flattenOutGroupThingPeriod(ctx, p.AtName("period"), v, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, outGroupThingPeriodAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Period = value
+	}
 	out.Items = types.ListNull(types.ObjectType{AttrTypes: outItemThingAttrTypes()})
 	if v.Items != nil {
 		items := make([]OutItemThingModel, 0, len(v.Items))
@@ -438,7 +460,26 @@ func outGroupThingAttrTypes() map[string]attr.Type {
 		"name":     types.StringType,
 		"interval": types.Int64Type,
 		"limit":    types.Int64Type,
+		"period":   types.ObjectType{AttrTypes: outGroupThingPeriodAttrTypes()},
 		"items":    types.ListType{ElemType: types.ObjectType{AttrTypes: outItemThingAttrTypes()}},
+	}
+}
+
+func flattenOutGroupThingPeriod(ctx context.Context, p path.Path, v *group_set_things_service.OutGroupThing, diags *diag.Diagnostics) *OutGroupThingPeriodModel {
+	if v == nil {
+		return nil
+	}
+	if v.PeriodMinutes == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &OutGroupThingPeriodModel{}
+	out.PeriodMinutes = types.Int64PointerValue(v.PeriodMinutes)
+	return out
+}
+
+func outGroupThingPeriodAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"period_minutes": types.Int64Type,
 	}
 }
 

@@ -5,7 +5,7 @@ mode: existing
 validators:
   inferred: false
 
-unwrap: [LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
+unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
 
 types:
   WrapThing:
@@ -14,3 +14,22 @@ types:
         unwrap: false
       mainLabel:
         unwrap: true
+      offset:
+        terraformType: Int64
+      window:
+        asString: true
+        validators:
+          - regexMatches: {pattern: '^[0-9]+(s|m|h)$', message: Use a duration such as 90m}
+  SimpleFilter:
+    fields:
+      span:
+        terraformType: Int64
+  Tags:
+    fields:
+      values:
+        collection: set
+enums:
+  WindowValue:
+    zero: 1_MINUTE
+    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}

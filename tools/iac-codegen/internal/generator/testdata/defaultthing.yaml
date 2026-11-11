@@ -1,0 +1,201 @@
+# A resource that users already have, whose optional objects and lists plan a static default instead
+# of an unknown value: routing is an object of nulls, limits an object with scalar values and a nested
+# object, overrides a null list, rules an empty list of objects, and each remote has an object of
+# nulls and a null list. The API returns an omitted object with empty lists, an omitted limits with
+# the stored values, and an omitted list as an empty one.
+openapi: 3.1.0
+info: {title: default, version: 1.0.0}
+paths:
+  /default/v1/things:
+    post:
+      tags: [Default Things Service]
+      operationId: DefaultThingsService_CreateDefaultThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Default Thing Request
+              type: object
+              required: []
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                routing: {$ref: '#/components/schemas/DefaultRouting'}
+                limits: {$ref: '#/components/schemas/DefaultLimits'}
+                overrides:
+                  type: array
+                  items: {$ref: '#/components/schemas/DefaultOverride'}
+                rules:
+                  type: array
+                  items: {$ref: '#/components/schemas/DefaultRule'}
+                remotes:
+                  type: array
+                  items: {$ref: '#/components/schemas/DefaultRemote'}
+                groups:
+                  type: array
+                  x-coralogix-collection: set
+                  items: {$ref: '#/components/schemas/DefaultGroup'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DefaultThing'}
+  /default/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Default Things Service]
+      operationId: DefaultThingsService_GetDefaultThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DefaultThing'}
+    put:
+      tags: [Default Things Service]
+      operationId: DefaultThingsService_ReplaceDefaultThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Default Thing Request
+              type: object
+              required: []
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                routing: {$ref: '#/components/schemas/DefaultRouting'}
+                limits: {$ref: '#/components/schemas/DefaultLimits'}
+                overrides:
+                  type: array
+                  items: {$ref: '#/components/schemas/DefaultOverride'}
+                rules:
+                  type: array
+                  items: {$ref: '#/components/schemas/DefaultRule'}
+                remotes:
+                  type: array
+                  items: {$ref: '#/components/schemas/DefaultRemote'}
+                groups:
+                  type: array
+                  x-coralogix-collection: set
+                  items: {$ref: '#/components/schemas/DefaultGroup'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DefaultThing'}
+    delete:
+      tags: [Default Things Service]
+      operationId: DefaultThingsService_DeleteDefaultThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteDefaultThingResponse'}
+components:
+  schemas:
+    DeleteDefaultThingResponse:
+      type: object
+      required: []
+    DefaultThing:
+      type: object
+      required: [id]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, x-coralogix-presence: true}
+        routing: {$ref: '#/components/schemas/DefaultRouting'}
+        limits: {$ref: '#/components/schemas/DefaultLimits'}
+        overrides:
+          type: array
+          items: {$ref: '#/components/schemas/DefaultOverride'}
+        rules:
+          type: array
+          items: {$ref: '#/components/schemas/DefaultRule'}
+        remotes:
+          type: array
+          items: {$ref: '#/components/schemas/DefaultRemote'}
+        groups:
+          type: array
+          x-coralogix-collection: set
+          items: {$ref: '#/components/schemas/DefaultGroup'}
+    DefaultRouting:
+      type: object
+      required: []
+      properties:
+        targets:
+          type: array
+          items: {type: string}
+        regions:
+          type: array
+          items: {$ref: '#/components/schemas/DefaultRegion'}
+        severities:
+          type: array
+          items: {$ref: '#/components/schemas/DefaultSeverity'}
+    DefaultRegion:
+      type: object
+      required: []
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+    DefaultSeverity:
+      type: string
+      enum: [SEVERITY_LOW_OR_UNSPECIFIED, SEVERITY_HIGH]
+    DefaultLimits:
+      type: object
+      required: []
+      properties:
+        unit:
+          allOf:
+            - $ref: '#/components/schemas/DefaultUnit'
+          x-coralogix-presence: true
+        enabled: {type: boolean, x-coralogix-presence: true}
+        count: {type: integer, format: int64, x-coralogix-presence: true}
+        window: {$ref: '#/components/schemas/DefaultWindow'}
+    DefaultUnit:
+      type: string
+      enum: [UNIT_NEVER_OR_UNSPECIFIED, UNIT_HOURS, UNIT_DAYS]
+    DefaultWindow:
+      type: object
+      required: []
+      properties:
+        days: {type: integer, format: int64, x-coralogix-presence: true}
+    DefaultOverride:
+      type: object
+      required: []
+      properties:
+        fieldName: {type: string, x-coralogix-presence: true}
+        template: {type: string, x-coralogix-presence: true}
+    DefaultRule:
+      type: object
+      required: []
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        expression: {type: string, x-coralogix-presence: true}
+    DefaultRemote:
+      type: object
+      required: []
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        filters: {$ref: '#/components/schemas/DefaultFilters'}
+        overrides:
+          type: array
+          items: {$ref: '#/components/schemas/DefaultOverride'}
+    DefaultGroup:
+      type: object
+      required: []
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        filters: {$ref: '#/components/schemas/DefaultFilters'}
+    DefaultFilters:
+      type: object
+      required: []
+      properties:
+        include:
+          type: array
+          items: {type: string}
+        exclude:
+          type: array
+          items: {type: string}

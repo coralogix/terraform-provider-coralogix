@@ -1,6 +1,8 @@
 # A released resource like the parsing rule groups.
 resource: ParseThing
 mode: existing
+# The released resource wrote the accepted values of an enum into its description.
+enumValuesInDescription: true
 typeName: parse_thing
 
 validators:

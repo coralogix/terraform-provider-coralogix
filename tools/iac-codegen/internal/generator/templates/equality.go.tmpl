@@ -20,7 +20,10 @@ import (
 {{- end}}
 )
 
+{{- if .EqualityPlan}}
+
 var _ resource.ResourceWithModifyPlan = (*Resource)(nil)
+{{- end}}
 {{- if .Conv.UsesEquality "yaml"}}
 
 // yamlEqual reports whether a and b are the same YAML document. A string that is not YAML only
@@ -296,6 +299,8 @@ func normalizeEnumAliases(plan tftypes.Value) (tftypes.Value, error) {
 	})
 }
 {{end}}
+{{- if .EqualityPlan}}
+
 // ModifyPlan plans no change when the configuration differs from the state only in the format of
 // a document{{if .EnumAliases}} or in the alias of an enum value{{end}}. Terraform marks every computed attribute that the
 // configuration does not set unknown when the configuration changes, before equivalentDocument
@@ -317,6 +322,12 @@ func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanReques
 	if !req.State.Raw.IsNull() && !plan.IsNull() && onlyUnsetUnknowns(plan, req.Config.Raw, req.State.Raw) {
 		resp.Plan.Raw = req.State.Raw
 	}
+{{- if .ModifyPlanHook}}
+	// The hook runs after these steps, so it sees the plan that they leave, and what it sets stays.
+	if !plan.IsNull() && !resp.Diagnostics.HasError() && r.hooks.ModifyPlan != nil {
+		r.hooks.ModifyPlan(ctx, req, resp)
+	}
+{{- end}}
 }
 
 // onlyUnsetUnknowns reports whether plan is state, except for unknown values where config has no
@@ -346,3 +357,4 @@ func valueAt(v tftypes.Value, p *tftypes.AttributePath) (tftypes.Value, bool) {
 	value, ok := found.(tftypes.Value)
 	return value, ok
 }
+{{- end}}
