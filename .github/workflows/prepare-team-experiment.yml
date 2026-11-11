@@ -23,7 +23,6 @@ jobs:
     name: Prepare EU2 team
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' }}
     runs-on: ubuntu-latest
-    environment: ci-prep-experiment
     timeout-minutes: 25
     steps:
       - name: Check SDK pin
@@ -84,7 +83,6 @@ jobs:
     needs: prepare-team
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' }}
     runs-on: ubuntu-latest
-    environment: ci-prep-experiment
     timeout-minutes: 30
     strategy:
       fail-fast: false
