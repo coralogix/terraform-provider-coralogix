@@ -29,6 +29,10 @@ api:
   serverSetID: true
   createResponseOnlyIDProperty: id
 
+# The Update by POST has no update mask. It sends every field, as the released resource did: the
+# name, the description, and the permissions are required, so no attribute can be removed.
+updateMask: omit
+
 # Update holds the permissions in a one-property object; Create and Get hold the list.
 unwrap: [v2.Permissions]
 

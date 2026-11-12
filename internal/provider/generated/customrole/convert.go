@@ -59,7 +59,7 @@ func expandCreate(ctx context.Context, m *CustomRoleModel) (*role_management_ser
 }
 
 // expandUpdate returns the Update request body with every Update field. A
-// null value is not sent, and the server clears it (a full replace).
+// null value is not sent. updateRequest returns the update mask separately.
 func expandUpdate(ctx context.Context, m *CustomRoleModel) (*role_management_service.RoleManagementServiceUpdateRoleRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandRoleManagementServiceUpdateRoleRequest(ctx, path.Empty(), m, &diags)
