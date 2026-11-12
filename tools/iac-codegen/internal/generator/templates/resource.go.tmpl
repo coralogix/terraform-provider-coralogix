@@ -463,7 +463,7 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 	// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 	body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
-	v, err := r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
+	v, err := r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if .UpdateMask}}, mask{{end}})
 	if err != nil {
 		diags.AddError("Unable to update "+TypeName+" after create", err.Error())
 		return diags
@@ -602,7 +602,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
-		v, err = r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
+		v, err = r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if .UpdateMask}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		// The framework does not allow Update to remove the resource from state.
@@ -807,7 +807,7 @@ func (r *Resource) getWithQueryID(ctx context.Context, id *string) (*{{$sdk}}.{{
 }
 {{end}}
 
-func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Update.Empty}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Update.Empty}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if .UpdateMask}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
 {{- if .Update.Copy}}
 	out, httpResp, err := r.client.{{.Update.Method}}(ctx).{{.Update.Body}}(*body).Execute()
 	if err != nil {
@@ -819,7 +819,7 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	// The write returns the list that it replaced.
 	return &{{$sdk}}.{{.Resource}}{ {{- range $i, $f := .Update.Copy}}{{if $i}}, {{end}}{{$f}}: out.{{$f}}{{end -}} }, nil
 {{- else if .Update.Empty}}
-	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if .UpdateMask}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
@@ -841,7 +841,7 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 {{- end}}
 	return v, nil
 {{- else}}
-	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if .UpdateMask}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}

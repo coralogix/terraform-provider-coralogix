@@ -84,3 +84,50 @@ func TestCaseInsensitiveEqualityNeedsAListOfStrings(t *testing.T) {
 		t.Fatalf("err = %v, want OVERRIDE_EQUALITY_NOT_STRING for a plain string", err)
 	}
 }
+
+// An Update by POST has no update mask, and the model leaves the choice of fields to the tool: the
+// overrides must state updateMask: omit, or the generator refuses the resource.
+func TestUpdateByPOSTNeedsTheOmitDecision(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "methodthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "methodthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(overrides), "\nupdateMask: omit\n", "\n", 1)
+	if changed == string(overrides) {
+		t.Fatal("the overrides do not have the updateMask line")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	if err := os.WriteFile(path, []byte(changed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	err = generateFromInput(Options{Resource: "MethodThing", OutputDir: filepath.Join(dir, "methodthing"), OverridesPath: path}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "an Update by POST has no update mask") {
+		t.Fatalf("err = %v, want an error that asks for updateMask: omit", err)
+	}
+}
+
+// The generated Update of a POST sends no mask and is no full replace: the package has the mask
+// helpers and no replace.go.
+func TestUpdateByPOSTIsNoReplace(t *testing.T) {
+	out := generateMethodThing(t)
+	if _, err := os.Stat(filepath.Join(out, "replace.go")); err == nil {
+		t.Error("replace.go exists: an Update by POST is no full replace")
+	}
+	if _, err := os.Stat(filepath.Join(out, "mask.go")); err != nil {
+		t.Errorf("mask.go: %v, want the change detection of Update", err)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(resource), "mask string") || strings.Contains(string(resource), ".UpdateMask(") {
+		t.Error("resource.go sends an update mask, but an Update by POST has none")
+	}
+}

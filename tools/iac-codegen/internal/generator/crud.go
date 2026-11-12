@@ -102,7 +102,8 @@ type crudData struct {
 	// present in the body.
 	OmitMask bool
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
-	// query parameter. It is empty for a full replace and for MaskInBody.
+	// query parameter. It is empty for a full replace, for MaskInBody, and for an Update by POST,
+	// which has no mask.
 	UpdateMask string
 	SDKName    string // package name of the resource SDK package
 	Client     string // SDK client type
@@ -362,7 +363,7 @@ func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
 }
 
 func updateExtras(ix *refIndex, r *model.Resource, out *crudData) error {
-	if r.Replace || r.MaskInBody {
+	if r.Replace || r.MaskInBody || r.UpdateMask == "" {
 		return nil
 	}
 	builder, err := ix.typeRef("update")
