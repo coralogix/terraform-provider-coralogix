@@ -346,7 +346,7 @@
 
 #### tools/iac-codegen
 - FEAT: `collection: set` supports a map-of-objects Get response with list-of-objects write requests, preserving each API operation's wire shape while exposing one Terraform set.
-- CHORE: Bump the generator to `v0.1.0-beta.70` and the generator's SDK `iac` module to merged revision `9d300053` containing the wire collection model.
+- CHORE: Bump the generator to `v0.1.0-beta.80`; it uses the shared SDK model from current `master`.
 
 # Release 3.23.0
 
