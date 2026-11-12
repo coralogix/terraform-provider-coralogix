@@ -352,6 +352,27 @@ func TestFailurePathsParsingRulesGenerated(t *testing.T) {
 	})
 }
 
+// TestConfigsValidateParsingRulesGenerated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidateParsingRulesGenerated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_parsing_rules",
+	}, map[string]string{
+		"full":     offline.Replace(fullConfig),
+		"updated":  offline.Replace(updatedConfig),
+		"minimal":  offline.Replace(minimalConfig),
+		"variant1": offline.Replace(variant1Config),
+	})
+}
+
 const (
 	// One variable switches on the upgrade tests of every generated resource.
 	upgradeEnv     = "CORALOGIX_GENERATED_UPGRADE_ACC"
@@ -463,7 +484,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description"
             active = true
             name = "@{run}-name"
-            source_field = "@{run}-source_field"
+            source_field = "text"
             time_format = "@{run}-time_format"
             field_format_standard = "javaSDF"
           }
@@ -473,7 +494,6 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-2"
             active = true
             name = "@{run}-name-2"
-            destination_field_text = "@{run}-destination_field_text-2"
             destination_field = "class"
             json_key = "@{run}-json_key-2"
           }
@@ -483,7 +503,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-3"
             active = true
             name = "@{run}-name-3"
-            source_field = "@{run}-source_field-3"
+            source_field = "text"
             regular_expression = "@{run}-regular_expression-3"
           }
         },
@@ -492,9 +512,9 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-4"
             active = true
             name = "@{run}-name-4"
-            source_field = "@{run}-source_field-4"
+            source_field = "text"
             keep_source_field = true
-            destination_field = "@{run}-destination_field-4"
+            destination_field = "text"
             keep_destination_field = true
           }
         },
@@ -503,9 +523,9 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-5"
             active = true
             name = "@{run}-name-5"
-            source_field = "@{run}-source_field-5"
+            source_field = "text"
             keep_source_field = true
-            destination_field = "@{run}-destination_field-5"
+            destination_field = "text"
           }
         },
         {
@@ -513,8 +533,8 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-6"
             active = true
             name = "@{run}-name-6"
-            source_field = "@{run}-source_field-6"
-            destination_field = "@{run}-destination_field-6"
+            source_field = "text"
+            destination_field = "text"
             regular_expression = "@{run}-regular_expression-6"
           }
         },
@@ -531,8 +551,8 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-8"
             active = true
             name = "@{run}-name-8"
-            source_field = "@{run}-source_field-8"
-            destination_field = "@{run}-destination_field-8"
+            source_field = "text"
+            destination_field = "text"
             replacement_string = "@{run}-replacement_string-8"
             regular_expression = "@{run}-regular_expression-8"
           }
@@ -542,7 +562,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-9"
             active = true
             name = "@{run}-name-9"
-            source_field = "@{run}-source_field-9"
+            source_field = "text"
             time_format = "@{run}-time_format-9"
             field_format_standard = "golang"
           }
@@ -552,7 +572,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-10"
             active = true
             name = "@{run}-name-10"
-            source_field = "@{run}-source_field-10"
+            source_field = "text"
             time_format = "@{run}-time_format-10"
             field_format_standard = "secondTS"
           }
@@ -562,7 +582,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-11"
             active = true
             name = "@{run}-name-11"
-            source_field = "@{run}-source_field-11"
+            source_field = "text"
             time_format = "@{run}-time_format-11"
             field_format_standard = "milliTS"
           }
@@ -572,7 +592,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-12"
             active = true
             name = "@{run}-name-12"
-            source_field = "@{run}-source_field-12"
+            source_field = "text"
             time_format = "@{run}-time_format-12"
             field_format_standard = "microTS"
           }
@@ -587,7 +607,7 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description"
             active = true
             name = "@{run}-name"
-            source_field = "@{run}-source_field"
+            source_field = "text"
             time_format = "@{run}-time_format"
             field_format_standard = "nanoTS"
           }
@@ -597,7 +617,6 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-2"
             active = true
             name = "@{run}-name-2"
-            destination_field_text = "@{run}-destination_field_text-2"
             destination_field = "method"
             json_key = "@{run}-json_key-2"
           }
@@ -607,7 +626,6 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-3"
             active = true
             name = "@{run}-name-3"
-            destination_field_text = "@{run}-destination_field_text-3"
             destination_field = "threadID"
             json_key = "@{run}-json_key-3"
           }
@@ -617,19 +635,8 @@ const variant1Config = `resource "coralogix_parsing_rules" "test" {
             description = "@{run}-description-4"
             active = true
             name = "@{run}-name-4"
-            destination_field_text = "@{run}-destination_field_text-4"
             destination_field = "severity"
             json_key = "@{run}-json_key-4"
-          }
-        },
-        {
-          json_extract = {
-            description = "@{run}-description-5"
-            active = true
-            name = "@{run}-name-5"
-            destination_field_text = "@{run}-destination_field_text-5"
-            destination_field = "text"
-            json_key = "@{run}-json_key-5"
           }
         },
       ]

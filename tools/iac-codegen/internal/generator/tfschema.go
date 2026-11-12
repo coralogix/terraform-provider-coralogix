@@ -175,6 +175,9 @@ type tfAttr struct {
 	// validators lines of an arm field run only when the type names the arm, so the attribute
 	// itself takes none of them.
 	TypedArm bool
+	// Typed: the attribute is the type of a typedArms object. It holds what each arm has, so that a
+	// generated config sets only the fields of the arm that the type names.
+	Typed *typedInfo
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool

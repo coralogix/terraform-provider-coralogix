@@ -88,6 +88,12 @@ type File struct {
 	// contract, as in the enums section of behavior-overrides.yaml. A value that the enum does not
 	// have is an error, so the list cannot go stale.
 	SkipValues map[string]SkipValues `yaml:"skipValues"`
+	// MaxElements maps the path of a list or set of objects, as in values, to the most elements that
+	// the values-and-choices subtest puts in it. Use it for a list that the API limits without
+	// saying so in the contract (exactly one rule), or whose elements must differ in a value that the
+	// subtest cannot vary (each rule has its own priority). The subtest then covers the values of the
+	// elements in more copies of the resource.
+	MaxElements map[string]int `yaml:"maxElements"`
 	// SkipChoices lists the arms of a oneOf that the values-and-choices subtest never sets. The key
 	// is the component of the object that holds the arms, and each choice is the API name of an arm.
 	SkipChoices map[string]SkipChoices `yaml:"skipChoices"`
@@ -325,6 +331,11 @@ func (f *File) checkSkipLists() error {
 		e := f.SkipValues[name]
 		if err := checkSkip("skipValues."+name, "values", e.Values, e.Reason); err != nil {
 			return err
+		}
+	}
+	for _, path := range sortedKeys(f.MaxElements) {
+		if f.MaxElements[path] < 1 {
+			return fmt.Errorf("maxElements.%s: the most elements is at least 1", path)
 		}
 	}
 	for _, name := range sortedKeys(f.SkipChoices) {

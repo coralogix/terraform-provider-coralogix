@@ -614,6 +614,9 @@ func (s *accSynth) checkFile() error {
 			}
 		}
 	}
+	if err := s.checkMaxElements(); err != nil {
+		return err
+	}
 	for _, path := range s.file.ValuePaths() {
 		if !s.used[path] {
 			return fmt.Errorf("values: %q is not set by the full config: it names no attribute, or the attribute is skipped, computed, or in a oneOf arm that the test leaves out", path)
@@ -627,6 +630,16 @@ func (s *accSynth) checkFile() error {
 	for _, path := range paths {
 		if !s.updated[path] {
 			return fmt.Errorf("updatedValues: %q is not set by the updated config: the attribute is immutable, skipped, or left out of it", path)
+		}
+	}
+	return nil
+}
+
+// checkMaxElements fails when a maxElements entry names no attribute.
+func (s *accSynth) checkMaxElements() error {
+	for _, path := range sortedStringKeys(s.file.MaxElements) {
+		if !s.known[path] {
+			return fmt.Errorf("maxElements: %q is not an attribute of the resource", path)
 		}
 	}
 	return nil
@@ -702,26 +715,20 @@ func (s *accSynth) minimalBelow(key string) bool {
 func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top bool) (string, []accCheck, error) {
 	var lines []string
 	var checks []accCheck
-	armTaken := map[string]bool{} // the oneOf groups that already have an arm
+	armTaken := s.requiredArms(attrs, key, mode, top) // the oneOf groups that already have an arm
 	picks := s.armPicks(attrs, key, mode, top)
-	for _, a := range attrs {
+	var arm *typedArmSet // the arm of a typedArms object that the type names
+	for _, a := range typedFirst(attrs) {
 		attrKey := joinPath(key, a.Name)
 		s.known[attrKey] = true
 		s.settable[attrKey] = a.Required || a.Optional
 		s.required[attrKey] = a.Required
-		if !s.include(a, attrKey, mode, top) {
+		a, ok := s.included(a, attrKey, arm, mode, top)
+		if !ok {
 			continue
 		}
-		if a.OneOfGroup != "" && !a.Required {
-			// A oneOf group takes one arm. The test sets the first arm of each group.
-			if armTaken[a.OneOfGroup] {
-				continue
-			}
-			if pick, ok := picks[a.OneOfGroup]; ok && pick != a {
-				continue // a step of the sweep takes another arm
-			}
-			armTaken[a.OneOfGroup] = true
-			s.noteArm(a)
+		if a.OneOfGroup != "" && !a.Required && !s.takeArm(a, armTaken, picks) {
+			continue
 		}
 		value, c, err := s.value(a, joinPath(tfPath, a.Name), attrKey, mode)
 		if err != nil {
@@ -729,8 +736,95 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		}
 		lines = append(lines, a.Name+" = "+value)
 		checks = append(checks, c...)
+		if a.Typed != nil {
+			arm = newTypedArmSet(a.Typed, value)
+		}
 	}
 	return strings.Join(lines, "\n"), checks, nil
+}
+
+// requiredArms returns the oneOf groups that have a required arm. A required arm is the arm of its
+// group: the others stay out, because the API takes one.
+func (s *accSynth) requiredArms(attrs []*tfAttr, key string, mode accMode, top bool) map[string]bool {
+	taken := map[string]bool{}
+	for _, a := range attrs {
+		if a.OneOfGroup != "" && a.Required && s.include(a, joinPath(key, a.Name), mode, top) {
+			taken[a.OneOfGroup] = true
+		}
+	}
+	return taken
+}
+
+// included returns the attribute that the config sets, and false when the config leaves it out. An
+// attribute of another arm of a typedArms object is left out, and one that the arm needs is kept
+// also in the minimal config, with the validators that run for the arm.
+func (s *accSynth) included(a *tfAttr, attrKey string, arm *typedArmSet, mode accMode, top bool) (*tfAttr, bool) {
+	force := false
+	if a.TypedArm && arm != nil {
+		if !arm.fields[a.Name] {
+			return nil, false
+		}
+		force = slices.Contains(arm.info.Required[arm.value], a.Name) && !slices.Contains(s.file.Skip, attrKey)
+		a = withChecks(a, arm.info.Checked[arm.value][a.Name])
+	}
+	return a, s.include(a, attrKey, mode, top) || force
+}
+
+// takeArm says whether the arm of a oneOf group is the one that the config sets. A group takes one
+// arm: the first, or the one that a step of the sweep picks. An arm that the resource refuses is
+// never taken.
+func (s *accSynth) takeArm(a *tfAttr, armTaken map[string]bool, picks map[string]*tfAttr) bool {
+	if refused(a) || armTaken[a.OneOfGroup] {
+		return false
+	}
+	if pick, ok := picks[a.OneOfGroup]; ok && pick != a {
+		return false
+	}
+	armTaken[a.OneOfGroup] = true
+	s.noteArm(a)
+	return true
+}
+
+// refused reports whether a validator of the attribute rejects every value of it. An override
+// states it (the unsupported key), because the API does not support the value.
+func refused(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Validators, func(v string) bool { return strings.HasPrefix(v, "unsupported") })
+}
+
+// typedArmSet is the arm that the type of a typedArms object names, in a config.
+type typedArmSet struct {
+	info   *typedInfo
+	value  string
+	fields map[string]bool
+}
+
+// newTypedArmSet reads the type value from its HCL. It returns nil when the HCL is no plain string.
+func newTypedArmSet(info *typedInfo, hcl string) *typedArmSet {
+	value, err := strconv.Unquote(hcl)
+	if err != nil {
+		return nil
+	}
+	return &typedArmSet{info: info, value: value, fields: info.fields(value)}
+}
+
+// typedFirst puts the type attribute of a typedArms object first: the fields of the arm depend on its
+// value. The other attributes keep their order.
+func typedFirst(attrs []*tfAttr) []*tfAttr {
+	i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Typed != nil })
+	if i <= 0 {
+		return attrs
+	}
+	out := []*tfAttr{attrs[i]}
+	out = append(out, attrs[:i]...)
+	return append(out, attrs[i+1:]...)
+}
+
+// withChecks returns the attribute of a typedArms arm with the validators that run for the arm. The
+// attribute itself takes none, because another arm can have other values for it.
+func withChecks(a *tfAttr, checks []string) *tfAttr {
+	c := *a
+	c.Validators = checks
+	return &c
 }
 
 // absent lists the top-level attributes that the minimal config leaves out and that the server
@@ -948,7 +1042,11 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 		v := strconv.FormatInt(int64(full), 10)
 		return v, v, nil
 	case "Float64", "Float32", "Number":
-		full, next := numberValues(a, 1.5)
+		base := 1.5
+		if a.Kind == "Number" {
+			base = 1 // a Number can be a whole number, and an API field that holds one rejects 1.5
+		}
+		full, next := numberValues(a, base)
 		if updated {
 			full = next
 		}
@@ -1156,15 +1254,21 @@ func lengthRange(a *tfAttr) (low, high int) {
 	return low, high
 }
 
+// oneOfCall is the OneOf call of a string validator. A OneOf can sit alone, or as one choice of
+// stringvalidator.Any, next to a pattern that accepts another kind of value.
+const oneOfCall = "stringvalidator.OneOf("
+
 // enumValues returns the values of the OneOf validator of a string attribute, without the zero
 // value "unspecified" when others exist.
 func enumValues(a *tfAttr) []string {
 	var values []string
 	for _, v := range a.Validators {
-		if !strings.HasPrefix(v, "stringvalidator.OneOf(") {
+		if !strings.HasPrefix(v, oneOfCall) && !strings.HasPrefix(v, "stringvalidator.Any("+oneOfCall) {
 			continue
 		}
-		for _, m := range quoted.FindAllStringSubmatch(v, -1) {
+		_, call, _ := strings.Cut(v, oneOfCall)
+		call, _, _ = strings.Cut(call, ")")
+		for _, m := range quoted.FindAllStringSubmatch(call, -1) {
 			values = append(values, m[1])
 		}
 	}

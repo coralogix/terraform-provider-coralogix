@@ -10,13 +10,25 @@
 # legacy tests cover order.
 resource: RuleGroup
 
-skip: [order]
+# The API keeps the destination text only when the destination field is text, and drops it for the others.
+skip: [order, "rule_subgroups[].rules[].json_extract.destination_field_text"]
 
 values:
   active: "false"
   # The API accepts text, text.<field>, or a metadata field, and requires keepBlockedLogs.
   rule_subgroups[].rules[].block.source_field: '"text"'
   rule_subgroups[].rules[].block.keep_blocked_logs: "false"
+  # The API accepts text, text.<field>, or a metadata field as a source or a destination field.
+  rule_subgroups[].rules[].extract.source_field: '"text"'
+  rule_subgroups[].rules[].extract_timestamp.source_field: '"text"'
+  rule_subgroups[].rules[].json_stringify.source_field: '"text"'
+  rule_subgroups[].rules[].json_stringify.destination_field: '"text"'
+  rule_subgroups[].rules[].parse.source_field: '"text"'
+  rule_subgroups[].rules[].parse.destination_field: '"text"'
+  rule_subgroups[].rules[].parse_json_field.source_field: '"text"'
+  rule_subgroups[].rules[].parse_json_field.destination_field: '"text"'
+  rule_subgroups[].rules[].replace.source_field: '"text"'
+  rule_subgroups[].rules[].replace.destination_field: '"text"'
 
 updatedValues:
   active: "false"
@@ -26,3 +38,10 @@ minimal: [rule_subgroups, active, applications, "rule_subgroups[].rules[].block.
 upgradeMinimal: [rule_subgroups, active, applications, "rule_subgroups[].rules[].block.keep_blocked_logs"]
 
 upgradeFrom: "3.23.0"
+
+# With the destination text, the API wants a destination text of text or text.<field>, and with another
+# destination it drops the destination text, so no one config fits both.
+skipValues:
+  DestinationField:
+    values: [DESTINATION_FIELD_TEXT]
+    reason: The destination text must be set for text and left out for the others.

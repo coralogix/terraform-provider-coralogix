@@ -61,3 +61,38 @@ func TestConfigFromHCLRefusesAReference(t *testing.T) {
 		t.Fatal("want an error for a reference")
 	}
 }
+
+// A validation reads every copy of the resource, and takes a reference to another resource as an
+// unknown value, as a plan does. Blocks of other types stay out.
+func TestConfigsFromHCLReadsCopiesAndReferences(t *testing.T) {
+	src := `resource "coralogix_other" "folder" {
+  name = "x"
+}
+
+resource "coralogix_thing" "test" {
+  name = "one"
+}
+
+resource "coralogix_thing" "test_2" {
+  name      = "two"
+  folder_id = coralogix_other.folder.id
+}`
+	configs, err := configsFromHCL(src, "coralogix_thing", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(configs) != 2 {
+		t.Fatalf("got %d copies, want 2", len(configs))
+	}
+	if configs[1].GetAttr("folder_id").IsKnown() {
+		t.Error("a reference must be an unknown value")
+	}
+	typ := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"name": tftypes.String, "folder_id": tftypes.String}}
+	got, err := fromCty(configs[1], typ)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs := attributesOf(got); attrs["folder_id"].IsKnown() {
+		t.Error("an unknown value must stay unknown in the schema value")
+	}
+}

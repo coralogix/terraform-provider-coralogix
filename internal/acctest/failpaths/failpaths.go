@@ -5,9 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -265,36 +267,62 @@ func newFailureHarness(t *testing.T, spec Spec) *failureHarness {
 	return h
 }
 
-// configFromHCL reads the resource block and returns its attributes as one object value. It fails on
-// an attribute that is not a literal, such as a reference to another resource. The functions that a
-// minimal config uses (jsonencode) work.
+// configFromHCL reads the first resource block of the type and returns its attributes as one object
+// value. It fails on an attribute that is not a literal, such as a reference to another resource.
+// The functions that a minimal config uses (jsonencode) work.
 func configFromHCL(src, typeName string) (cty.Value, error) {
+	configs, err := configsFromHCL(src, typeName, false)
+	if err != nil {
+		return cty.NilVal, err
+	}
+	return configs[0], nil
+}
+
+// configsFromHCL reads every resource block of the type, each as one object value. A reference to
+// another resource is an unknown value when references is true, as in a plan, and an error otherwise.
+func configsFromHCL(src, typeName string, references bool) ([]cty.Value, error) {
 	file, diags := hclsyntax.ParseConfig([]byte(src), "config.tf", hcl.InitialPos)
 	if diags.HasErrors() {
-		return cty.NilVal, diags
+		return nil, diags
 	}
 	body, ok := file.Body.(*hclsyntax.Body)
 	if !ok {
-		return cty.NilVal, fmt.Errorf("no body")
+		return nil, fmt.Errorf("no body")
 	}
-	var found *hclsyntax.Block
+	var out []cty.Value
 	for _, block := range body.Blocks {
-		if block.Type == "resource" && len(block.Labels) == 2 && block.Labels[0] == typeName {
-			found = block
-			break
+		if block.Type != "resource" || len(block.Labels) != 2 || block.Labels[0] != typeName {
+			continue
 		}
+		value, err := evalBlock(block, references)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", block.Labels[1], err)
+		}
+		out = append(out, value)
 	}
-	if found == nil {
-		return cty.NilVal, fmt.Errorf("no resource block of %s", typeName)
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no resource block of %s", typeName)
 	}
+	return out, nil
+}
+
+func evalBlock(block *hclsyntax.Block, references bool) (cty.Value, error) {
 	ctx := &hcl.EvalContext{Functions: map[string]function.Function{
 		"jsonencode": stdlib.JSONEncodeFunc,
 		"tolist":     stdlib.MakeToFunc(cty.List(cty.DynamicPseudoType)),
 		"toset":      stdlib.MakeToFunc(cty.Set(cty.DynamicPseudoType)),
 		"tomap":      stdlib.MakeToFunc(cty.Map(cty.DynamicPseudoType)),
 	}}
+	if references {
+		ctx.Variables = map[string]cty.Value{}
+		for _, attr := range block.Body.Attributes {
+			for _, ref := range attr.Expr.Variables() {
+				ctx.Variables[ref.RootName()] = cty.DynamicVal
+			}
+		}
+	}
 	values := map[string]cty.Value{}
-	for name, attr := range found.Body.Attributes {
+	for name, attr := range block.Body.Attributes {
 		v, diags := attr.Expr.Value(ctx)
 		if diags.HasErrors() {
 			return cty.NilVal, fmt.Errorf("attribute %s is not a literal: %w", name, diags)
@@ -304,10 +332,56 @@ func configFromHCL(src, typeName string) (cty.Value, error) {
 	return cty.ObjectVal(values), nil
 }
 
+// ValidateConfigs checks that the provider accepts each config when Terraform validates it, without
+// a tenant and without an API key. A config holds resource blocks of the type of the spec; blocks of
+// other types are left out, and a reference to another resource is an unknown value. The checks are
+// the schema validators of the resource: the values that an enum accepts, the fields that a oneOf
+// holds together, and the rules between fields. The API is not called, so a rule of the API itself
+// (a value that it refuses) is not checked.
+func ValidateConfigs(t *testing.T, spec Spec, configs map[string]string) {
+	t.Helper()
+	server, err := spec.ProviderServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemas, err := server.GetProviderSchema(context.Background(), &tfprotov6.GetProviderSchemaRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fatalOnError(t, schemas.Diagnostics)
+	schema := schemas.ResourceSchemas[spec.TypeName]
+	if schema == nil {
+		t.Fatalf("%s is not registered", spec.TypeName)
+	}
+	h := &failureHarness{t: t, ctx: context.Background(), server: server, typ: schema.ValueType().(tftypes.Object), spec: spec}
+	for _, name := range slices.Sorted(maps.Keys(configs)) {
+		t.Run(name, func(t *testing.T) {
+			blocks, err := configsFromHCL(configs[name], spec.TypeName, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, block := range blocks {
+				value, err := fromCty(block, h.typ)
+				if err != nil {
+					t.Fatalf("copy %d does not fit the schema: %v", i+1, err)
+				}
+				resp, err := server.ValidateResourceConfig(h.ctx, &tfprotov6.ValidateResourceConfigRequest{TypeName: spec.TypeName, Config: h.dynamic(h.typ, value)})
+				if err != nil {
+					t.Fatal(err)
+				}
+				requireNoError(t, fmt.Sprintf("the validation of copy %d", i+1), resp.Diagnostics)
+			}
+		})
+	}
+}
+
 // fromCty converts a value of the config to the value of the schema type. An attribute that the config
 // leaves out is null. A dynamic attribute takes the type of its value.
 func fromCty(v cty.Value, typ tftypes.Type) (tftypes.Value, error) {
-	if v.IsNull() || !v.IsKnown() {
+	if !v.IsKnown() {
+		return tftypes.NewValue(typ, tftypes.UnknownValue), nil
+	}
+	if v.IsNull() {
 		return tftypes.NewValue(typ, nil), nil
 	}
 	if typ.Is(tftypes.DynamicPseudoType) {

@@ -24,6 +24,34 @@ values:
   variables_v2[].source.query.dataprime_query.type.query_text.query: '"source logs | limit 1"'
   annotations[].source.dataprime.query: '"source logs | limit 1"'
   layout.sections[].rows[].widgets[].definition.bar_chart.query.data_prime.query: '"source logs | limit 1"'
+  # Text that the API reads: a unit, a scale, and durations in the forms of the API.
+  layout.sections[].rows[].widgets[].definition.pie_chart.unit: '"bytes"'
+  layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.scale_type: '"linear"'
+  time_frame.relative.duration: '"seconds:3600"'
+  layout.sections[].rows[].widgets[].definition.dynamic.time_frame.relative.duration: '"seconds:3600"'
+  annotations[].source.event_recurrence.strategy.duration.duration: '"60s"'
+  # The API wants a minimum below the maximum.
+  layout.sections[].rows[].widgets[].definition.gauge.min: "1"
+  layout.sections[].rows[].widgets[].definition.gauge.max: "2"
+  layout.sections[].rows[].widgets[].definition.hexagon.min: "1"
+  layout.sections[].rows[].widgets[].definition.hexagon.max: "2"
+  layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.gauge.min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.gauge.max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.hexagon_bins.min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.hexagon_bins.max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.stat.min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.stat.max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.horizontal_bars.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.horizontal_bars.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.horizontal_bars_multi.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.horizontal_bars_multi.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars_multi.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars_multi.y_axis_max: "2"
+  # A spans field value has an observation field or a value, not both.
   # A folder of the tenant.
   folder.id: coralogix_dashboards_folder.folder.id
 
@@ -39,6 +67,13 @@ minimal:
   - layout.sections[].rows[].widgets[].title
 
 skip:
+  # The API refuses a relation type in a global filter (other, root): it works in widget filters only.
+  # The widgets still set every value.
+  - filters[].source.spans.observation_field.relation_type
+  # The primary value of a stat card is the source of the mapping: the API refuses mapped values in it.
+  - layout.sections[].rows[].widgets[].definition.dynamic.visualization.stat_card.primary_value.template_variables[].mapped_values
+  # The legacy span field value is refused next to an observation field.
+  - variables_v2[].source.query.spans_query.type.field_value.value
   # The legacy variables are deprecated, and the API rejects constant_value: variables_v2 covers them.
   - variables
   # content_json replaces every typed attribute: the handwritten tests cover it.

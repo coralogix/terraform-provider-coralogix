@@ -138,7 +138,7 @@ func (s *accSynth) armPicks(attrs []*tfAttr, key string, mode accMode, top bool)
 	best := map[string]int{}
 	for _, a := range attrs {
 		attrKey := joinPath(key, a.Name)
-		if a.OneOfGroup == "" || a.Required || !s.include(a, attrKey, mode, top) || s.skippedArm(a) || !s.canMake(a, attrKey, mode) {
+		if a.OneOfGroup == "" || a.Required || !s.include(a, attrKey, mode, top) || s.skippedArm(a) || refused(a) || !s.canMake(a, attrKey, mode) {
 			continue
 		}
 		g := s.gain(a, attrKey)
@@ -257,7 +257,7 @@ func (s *accSynth) checkSkipLists(attrs []*tfAttr) error {
 	for _, name := range sortedStringKeys(s.file.SkipValues) {
 		values, ok := enums[name]
 		if !ok {
-			return fmt.Errorf("%s: skipValues.%s: the schema has no enum %q", acceptance.FileName, name, name)
+			return fmt.Errorf("%s: skipValues.%s: the schema has no enum %q. The enums: %s", acceptance.FileName, name, name, strings.Join(sortedStringKeys(enums), ", "))
 		}
 		for _, v := range s.file.SkipValues[name].Values {
 			if !values[v] {
@@ -268,7 +268,7 @@ func (s *accSynth) checkSkipLists(attrs []*tfAttr) error {
 	for _, name := range sortedStringKeys(s.file.SkipChoices) {
 		props, ok := arms[name]
 		if !ok {
-			return fmt.Errorf("%s: skipChoices.%s: the schema has no oneOf group in the component %q", acceptance.FileName, name, name)
+			return fmt.Errorf("%s: skipChoices.%s: the schema has no oneOf group in the component %q. The components with one: %s", acceptance.FileName, name, name, strings.Join(sortedStringKeys(arms), ", "))
 		}
 		for _, c := range s.file.SkipChoices[name].Choices {
 			if !props[c] {
@@ -330,6 +330,9 @@ func (s *accSynth) sweepElements(a *tfAttr, tfPath, key string, mode accMode) (s
 		return "", nil, err
 	}
 	limit := min(maxSweepElements, sizeCap(a))
+	if n, ok := s.file.MaxElements[key]; ok {
+		limit = min(limit, n)
+	}
 	outer := s.element
 	defer func() { s.element = outer }()
 	var elements []string

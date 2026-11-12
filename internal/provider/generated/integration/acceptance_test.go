@@ -184,6 +184,26 @@ func TestFailurePathsIntegrationGenerated(t *testing.T) {
 	})
 }
 
+// TestConfigsValidateIntegrationGenerated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidateIntegrationGenerated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_integration",
+	}, map[string]string{
+		"full":    offline.Replace(fullConfig),
+		"updated": offline.Replace(updatedConfig),
+		"minimal": offline.Replace(minimalConfig),
+	})
+}
+
 const (
 	// One variable switches on the upgrade tests of every generated resource.
 	upgradeEnv     = "CORALOGIX_GENERATED_UPGRADE_ACC"
