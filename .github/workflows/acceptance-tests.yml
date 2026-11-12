@@ -726,7 +726,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Post failure to Slack
-        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        if: ${{ contains(needs.*.result, 'failure') }}
         env:
           # Slack incoming webhook URL, from the SLACK_CI_WEBHOOK_URL repository secret.
           # This is a public repo with public Actions logs. Keep the URL out of both the
@@ -751,7 +751,7 @@ jobs:
           printf 'url = "%s"\n' "$SLACK_WEBHOOK_URL" > "$curl_config"
           failed_jobs=$(printf '%s' "$NEEDS_JSON" | jq -r '
             to_entries
-            | map(select(.value.result != "success"))
+            | map(select(.value.result == "failure"))
             | map("• \(.key): \(.value.result)")
             | join("\n")
           ')
