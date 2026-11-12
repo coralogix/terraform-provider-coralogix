@@ -22,6 +22,9 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+// DeprecationText is the warning of an attribute that the contract marks deprecated.
+const DeprecationText = "The Coralogix API deprecates this attribute. A future version may remove it."
+
 // FileName is the name of the file. It sits in the output directory of the resource.
 const FileName = "behavior-overrides.yaml"
 
@@ -878,7 +881,8 @@ type Field struct {
 	// Name is the Terraform attribute name of the field, when the released resource does not
 	// use the name derived from the JSON name (applications for applicationnameFilters).
 	Name string `yaml:"name"`
-	// Deprecation is the released deprecation message.
+	// Deprecation is the released deprecation message. A field that the contract marks deprecated
+	// gets DeprecationText without a line, so a line that says the same is stale.
 	Deprecation string `yaml:"deprecation"`
 	// Sensitive marks the Terraform attribute sensitive, as the released attribute was: Terraform
 	// hides its value in plans and output. It is a Terraform fact that the contract does not state.
@@ -2540,7 +2544,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Inline: f.Inline, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Deprecation: f.Deprecation, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Inline: f.Inline, Keys: f.keys()})
 		}
 		for _, group := range sortedKeys(t.Groups) {
 			out = append(out, Line{Kind: KindGroup, Component: name, Field: group, GroupFields: t.Groups[group].Fields})
@@ -2588,6 +2592,7 @@ type Line struct {
 	Optional     bool   // for a field line: the file says that the field is optional
 	Collection   string // for a field line: "set" when the file shows a list as a set
 	Name         string // for a field line: the Terraform attribute name
+	Deprecation  string // for a field line: the deprecation message of the line
 	// NoAttribute are, for a field line, the fields of the component without a Terraform
 	// attribute: skipped fields and requestValue fields. A name line can take their name.
 	NoAttribute []string

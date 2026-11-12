@@ -4078,7 +4078,8 @@ func Schema() schema.Schema {
 																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom' Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Optional:           true,
+																							DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
 																									Required:    true,
@@ -8678,6 +8679,7 @@ func Schema() schema.Schema {
 																			Optional:            true,
 																			Computed:            true,
 																			Default:             booldefault.StaticBool(false),
+																			DeprecationMessage:  "The Coralogix API deprecates this attribute. A future version may remove it.",
 																			MarkdownDescription: "Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value",
 																		},
 																		"show_min_max": schema.BoolAttribute{
@@ -8688,6 +8690,7 @@ func Schema() schema.Schema {
 																			Optional:            true,
 																			Computed:            true,
 																			Default:             booldefault.StaticBool(true),
+																			DeprecationMessage:  "The Coralogix API deprecates this attribute. A future version may remove it.",
 																			MarkdownDescription: "Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range",
 																		},
 																		"threshold_by": schema.StringAttribute{
@@ -11655,7 +11658,8 @@ func Schema() schema.Schema {
 																						MarkdownDescription: "Query object",
 																					},
 																					"resolution": schema.SingleNestedAttribute{
-																						Optional: true,
+																						Optional:           true,
+																						DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 																						Attributes: map[string]schema.Attribute{
 																							"buckets_presented": schema.Int64Attribute{
 																								Optional:            true,
@@ -12823,8 +12827,9 @@ func Schema() schema.Schema {
 															MarkdownDescription: "Short description of the widget",
 														},
 														"highlighted": schema.BoolAttribute{
-															Optional: true,
-															Computed: true,
+															Optional:           true,
+															Computed:           true,
+															DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 															PlanModifiers: []planmodifier.Bool{
 																boolplanmodifier.UseNonNullStateForUnknown(),
 															},
@@ -13669,7 +13674,8 @@ func Schema() schema.Schema {
 																	MarkdownDescription: "The span observation field to fetch values for. Preferred over value. Setting both observationField and value is rejected.",
 																},
 																"value": schema.SingleNestedAttribute{
-																	Optional: true,
+																	Optional:           true,
+																	DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 																	Attributes: map[string]schema.Attribute{
 																		"type": schema.StringAttribute{
 																			Required: true,

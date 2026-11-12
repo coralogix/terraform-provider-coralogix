@@ -109,7 +109,7 @@ components:
       type: object
       required: []
       properties:
-        name: {type: string}
+        name: {type: string, deprecated: true}
         managed: {type: boolean}
         kind:
           allOf:

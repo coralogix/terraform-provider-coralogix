@@ -552,6 +552,10 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, group []string, 
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
+	if line.Deprecation == overrides.DeprecationText {
+		// The generator writes this text for a deprecated field by itself.
+		stale = append(stale, "deprecation")
+	}
 	requiredByContract := slices.Contains(schema.Required, line.Field)
 	if createOptional[line.Field] {
 		// The Create body has its own field, optional and without a default: the required list of
