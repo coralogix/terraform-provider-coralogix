@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -19,6 +21,7 @@ import (
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -939,9 +942,9 @@ func TestGroupInAnOptionalTopLevelGroupHoldsOneArm(t *testing.T) {
 			},
 			{
 				Config:      scheduleConfig("  window = { absolute = { start = \"a\" }, relative = { duration = \"15m\" } }\n"),
-				ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`),
+				ExpectError: regexp.MustCompile("Only one of these attributes can be configured: `absolute`, `relative`"),
 			},
-			{Config: scheduleConfig("  window = {}\n"), ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`)},
+			{Config: scheduleConfig("  window = {}\n"), ExpectError: regexp.MustCompile(`No attribute was configured in this one-of group`)},
 			{Config: scheduleConfig("  window = { relative = {} }\n"), ExpectError: regexp.MustCompile(`duration`)},
 			{Config: scheduleConfig("  window = { relative = { duration = \"1h\" } }\n")},
 			{ResourceName: res, ImportState: true, ImportStateVerify: true},
@@ -1090,4 +1093,149 @@ func TestEmptyArmsAreAStringWithRealTerraform(t *testing.T) {
 			{ResourceName: res, ImportState: true, ImportStateVerify: true},
 		},
 	})
+}
+
+// armStates are the states that an arm can have in a configuration: null, unknown, a value, and an
+// empty list. The empty list is a value, as it is for the framework validators.
+func armStates() map[string]attr.Value {
+	list := types.ListType{ElemType: types.StringType}
+	return map[string]attr.Value{
+		"null":    types.ListNull(types.StringType),
+		"unknown": types.ListUnknown(types.StringType),
+		"value":   types.ListValueMust(types.StringType, []attr.Value{types.StringValue("x")}),
+		"empty":   types.ListValueMust(list.ElemType, nil),
+	}
+}
+
+// armCombinations returns every assignment of a state to each of n arms.
+func armCombinations(n int) [][]string {
+	states := []string{"null", "unknown", "value", "empty"}
+	out := [][]string{{}}
+	for i := 0; i < n; i++ {
+		var next [][]string
+		for _, prefix := range out {
+			for _, state := range states {
+				next = append(next, append(slices.Clone(prefix), state))
+			}
+		}
+		out = next
+	}
+	return out
+}
+
+// oldFormErrors runs the validator that the generator wrote before: one on each arm, which names its
+// siblings by a path expression. It reports whether any arm reports an error.
+func oldFormErrors(t *testing.T, names []string, required bool, config tfsdk.Config, object types.Object) bool {
+	t.Helper()
+	failed := false
+	for _, name := range names {
+		var others []path.Expression
+		for _, o := range names {
+			if o != name {
+				others = append(others, path.MatchRelative().AtParent().AtName(o))
+			}
+		}
+		at := path.Root("obj").AtName(name)
+		req := validator.ListRequest{Path: at, PathExpression: at.Expression(), Config: config, ConfigValue: object.Attributes()[name].(types.List)}
+		resp := &validator.ListResponse{}
+		check := listvalidator.ConflictsWith(others...)
+		if required {
+			check = listvalidator.ExactlyOneOf(others...)
+		}
+		check.ValidateList(context.Background(), req, resp)
+		failed = failed || resp.Diagnostics.HasError()
+	}
+	return failed
+}
+
+// The validator on the parent object accepts and rejects what the validators on each arm did, for 2 and
+// 3 arms, a group that needs an arm and one that does not, and every mix of null, unknown, a value, and an
+// empty list. With no unknown arm the two agree. With an unknown arm the object validator can be stricter:
+// it reports two arms that are set although a third is unknown, which cannot change the result. It is
+// never looser than the old form in that case, except that the old form reported a set arm beside an
+// unknown arm that was itself the one checked: that is no error for an unknown arm, which can resolve to null.
+func TestParentValidatorMatchesTheValidatorOnEachArm(t *testing.T) {
+	for _, n := range []int{2, 3} {
+		names := []string{"a", "b", "c"}[:n]
+		attrs := map[string]resourceschema.Attribute{}
+		types_ := map[string]attr.Type{}
+		for _, name := range names {
+			attrs[name] = resourceschema.ListAttribute{Optional: true, ElementType: types.StringType}
+			types_[name] = types.ListType{ElemType: types.StringType}
+		}
+		schema := resourceschema.Schema{Attributes: map[string]resourceschema.Attribute{"obj": resourceschema.SingleNestedAttribute{Optional: true, Attributes: attrs}}}
+		for _, required := range []bool{false, true} {
+			v := oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: names, Required: required}}}
+			for _, combination := range armCombinations(n) {
+				values := map[string]attr.Value{}
+				unknown, known := 0, 0
+				for i, name := range names {
+					values[name] = armStates()[combination[i]]
+					switch combination[i] {
+					case "unknown":
+						unknown++
+					case "value", "empty":
+						known++
+					}
+				}
+				object := types.ObjectValueMust(types_, values)
+				raw, err := object.ToTerraformValue(context.Background())
+				if err != nil {
+					t.Fatal(err)
+				}
+				config := tfsdk.Config{Schema: schema, Raw: tftypes.NewValue(schema.Type().TerraformType(context.Background()), map[string]tftypes.Value{"obj": raw})}
+				resp := &validator.ObjectResponse{}
+				v.ValidateObject(context.Background(), validator.ObjectRequest{Path: path.Root("obj"), PathExpression: path.Root("obj").Expression(), Config: config, ConfigValue: object}, resp)
+				got, old := resp.Diagnostics.HasError(), oldFormErrors(t, names, required, config, object)
+				switch {
+				case unknown == 0 && got != old:
+					t.Errorf("%d arms, required %t, %v: object validator error = %t, validators on the arms = %t", n, required, combination, got, old)
+				case unknown > 0 && got && known < 2:
+					t.Errorf("%d arms, required %t, %v: object validator reports an error with %d arms set and an unknown arm", n, required, combination, known)
+				}
+			}
+		}
+	}
+}
+
+// A null or unknown object is not checked, as the validators on the arms were not run for it.
+func TestParentValidatorSkipsANullOrUnknownObject(t *testing.T) {
+	v := oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"a", "b"}, Required: true}}}
+	for name, object := range map[string]types.Object{
+		"null":    types.ObjectNull(map[string]attr.Type{"a": types.StringType, "b": types.StringType}),
+		"unknown": types.ObjectUnknown(map[string]attr.Type{"a": types.StringType, "b": types.StringType}),
+	} {
+		resp := &validator.ObjectResponse{}
+		v.ValidateObject(context.Background(), validator.ObjectRequest{Path: path.Root("obj"), ConfigValue: object}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Errorf("a %s object has an error: %v", name, resp.Diagnostics)
+		}
+	}
+}
+
+// A conflict between two sets of attributes reports an attribute of each side that are both set. An
+// unknown attribute is no conflict.
+func TestParentValidatorReportsAConflictBetweenTwoSets(t *testing.T) {
+	v := oneOfArmsValidator{Conflicts: []oneOfArmConflict{{Left: []string{"a", "b"}, Right: []string{"c"}}}}
+	attrTypes := map[string]attr.Type{"a": types.StringType, "b": types.StringType, "c": types.StringType}
+	value, null, unknown := types.StringValue("x"), types.StringNull(), types.StringUnknown()
+	for name, test := range map[string]struct {
+		a, b, c attr.Value
+		want    bool
+	}{
+		"left only":        {value, value, null, false},
+		"right only":       {null, null, value, false},
+		"both sides":       {null, value, value, true},
+		"unknown right":    {value, null, unknown, false},
+		"unknown left":     {unknown, null, value, false},
+		"nothing":          {null, null, null, false},
+		"one of each side": {value, null, value, true},
+	} {
+		resp := &validator.ObjectResponse{}
+		object := types.ObjectValueMust(attrTypes, map[string]attr.Value{"a": test.a, "b": test.b, "c": test.c})
+		v.ValidateObject(context.Background(), validator.ObjectRequest{Path: path.Root("obj"), ConfigValue: object}, resp)
+		if resp.Diagnostics.HasError() != test.want {
+			t.Errorf("%s: error = %t, want %t", name, resp.Diagnostics.HasError(), test.want)
+		}
+	}
 }

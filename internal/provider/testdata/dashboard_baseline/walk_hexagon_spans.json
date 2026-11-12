@@ -97,7 +97,10 @@
                                 "value": "value-lucene_query"
                               },
                               "spansAggregation": {
-                                "metricAggregation": {}
+                                "metricAggregation": {
+                                  "aggregationType": "METRIC_AGGREGATION_TYPE_AVERAGE",
+                                  "metricField": "METRIC_FIELD_DURATION"
+                                }
                               },
                               "timeFrame": {
                                 "absoluteTimeFrame": {
@@ -166,6 +169,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -197,8 +201,8 @@
                           "metrics": null,
                           "spans": {
                             "aggregation": {
-                              "aggregation_type": "unspecified",
-                              "field": "unspecified",
+                              "aggregation_type": "avg",
+                              "field": "duration",
                               "type": "metric"
                             },
                             "filters": [
@@ -379,7 +383,10 @@
                                 "value": "value-lucene_query"
                               },
                               "spansAggregation": {
-                                "metricAggregation": {}
+                                "metricAggregation": {
+                                  "aggregationType": "METRIC_AGGREGATION_TYPE_AVERAGE",
+                                  "metricField": "METRIC_FIELD_DURATION"
+                                }
                               },
                               "timeFrame": {
                                 "absoluteTimeFrame": {
@@ -448,6 +455,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -479,8 +487,8 @@
                           "metrics": null,
                           "spans": {
                             "aggregation": {
-                              "aggregation_type": "unspecified",
-                              "field": "unspecified",
+                              "aggregation_type": "avg",
+                              "field": "duration",
                               "type": "metric"
                             },
                             "filters": [
@@ -564,12 +572,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (27)",
@@ -608,7 +611,7 @@
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.decimal",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.decimalPrecision",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.groupByQuery: true → false",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legendBy: \"LEGEND_BY_GROUPS\" → \"LEGEND_BY_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.max",
@@ -642,16 +645,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.unit: \"bytes\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections",
@@ -660,7 +654,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:5ae27c31] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:c47c567b] → null"
     ],
     "replanEmpty": true
   },
@@ -677,7 +671,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:ea5e0e5d] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:dc0e24ef] → null"
     ],
     "replanEmpty": true
   },
@@ -688,7 +682,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:aaad6a10] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:55fb92f2] → null"
     ],
     "replanEmpty": true
   },
@@ -715,17 +709,17 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBys",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.spansAggregation",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.timeFrame",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds[0]"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation: {\"aggregation_type\":\"unspecified\",\"field\":\"unspecified\",\"type\":\"metric\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation: {\"aggregation_type\":\"avg\",\"field\":\"duration\",\"type\":\"metric\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters: [{\"field\":{\"type\":\"metadata\",\"value\":\"service_name\"},\"observation_field\":{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"},\"operator\":{\"sele…[sha256:1cefcaac] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_bys: [{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
-      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds[0]"
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds: [{\"color\":\"value-color\",\"from\":1,\"label\":\"value-label\"}] → null"
     ],
     "replanEmpty": true
   },
@@ -746,34 +740,18 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].field: {\"type\":\"metadata\",\"value\":\"service_name\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:5ae27c31] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -867,23 +845,12 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBy"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBy[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_by[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field",
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_by"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.hexagon.query.spans.group_bys",
@@ -930,16 +897,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.threshold_type: \"absolute\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.unit: \"bytes\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (6)",
@@ -972,116 +930,34 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_bys[0].scope: \"label\" → \"user_data\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.unit: \"bytes\" → \"usd_cents\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
     "diagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.h",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ],
-    "requestDiff": [
-      "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
-      "- .dashboard.layout.sections[0].options.internal",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns[0]: \"LEGEND_COLUMN_AVG\" → \"LEGEND_COLUMN_LAST\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.placement: \"LEGEND_PLACEMENT_AUTO\" → \"LEGEND_PLACEMENT_BOTTOM\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legendBy: \"LEGEND_BY_GROUPS\" → \"LEGEND_BY_THRESHOLDS\"",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].field.metadataField",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].field.tagField: \"value-value\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].observationField.relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_PARENT\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].operator.equals",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBy[0].metadataField",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBy[0].tagField: \"value-value\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBys[0].relationType: \"SPAN_RELATION_TYPE_OTHER\" → \"SPAN_RELATION_TYPE_PARENT\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.groupBys[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.spansAggregation.dimensionAggregation: {\"aggregationType\":\"DIMENSION_AGGREGATION_TYPE_ERROR_COUNT\"}",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.spansAggregation.metricAggregation",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.timeFrame.absoluteTimeFrame",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.timeFrame.relativeTimeFrame: \"900s\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholdType: \"THRESHOLD_TYPE_ABSOLUTE\" → \"THRESHOLD_TYPE_RELATIVE\"",
-      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.unit: \"UNIT_BYTES\" → \"UNIT_BYTES_IEC\""
-    ],
-    "stateDiff": [
-      "~ .layout.sections[0].options.collapsed: null → true",
-      "~ .layout.sections[0].options.color: null → \"green\"",
-      "~ .layout.sections[0].options.description: null → \"value-description\"",
-      "~ .layout.sections[0].options.internal: {} → null",
-      "~ .layout.sections[0].options.name: null → \"value-name\"",
-      "~ .layout.sections[0].options.repetitive_var: null → {\"name\":\"value-name\"}",
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"logs\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns[0]: \"avg\" → \"last\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.placement: \"auto\" → \"bottom\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.legend_by: \"groups\" → \"thresholds\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.aggregation_type: \"unspecified\" → \"error_count\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.type: \"metric\" → \"dimension\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].field.type: \"metadata\" → \"tag\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].field.value: \"service_name\" → \"value-value\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].observation_field.relation_type: \"other\" → \"parent\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].observation_field.scope: \"label\" → \"metadata\"",
-      "+ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].operator.selected_values[0]: \"value-selected_values\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].operator.selection_type: \"all\" → \"list\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.filters[0].operator.type: \"equals\" → \"not_equals\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_by[0].type: \"metadata\" → \"tag\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_by[0].value: \"service_name\" → \"value-value\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_bys[0].relation_type: \"other\" → \"parent\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.group_bys[0].scope: \"label\" → \"metadata\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.time_frame.relative: null → {\"duration\":\"seconds:900\"}",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.threshold_type: \"absolute\" → \"relative\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.unit: \"bytes\" → \"bytes_iec\""
-    ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.hexagon.query.spans.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.h",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.hexagon.query.spans.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.h",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "set layout.sections[].options.color = orange",
     "diagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.h",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ],
-    "requestDiff": [
-      "~ .dashboard.layout.sections[0].options.custom.color.predefined: \"SECTION_PREDEFINED_COLOR_GREEN\" → \"SECTION_PREDEFINED_COLOR_ORANGE\""
-    ],
-    "stateDiff": [
-      "~ .layout.sections[0].options.color: \"green\" → \"orange\""
-    ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.spans.aggregation.field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregation\").AttributeName(\"field\")"
     ]
   }
 ]

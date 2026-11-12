@@ -51,8 +51,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"filter\").AttributeName(\"alerts_unique_ids\")] | Attribute \"filter.meta_labels\" cannot be specified when \"filter.alerts_unique_ids\" is specified",
-      "error: Invalid Attribute Combination [AttributeName(\"filter\").AttributeName(\"meta_labels\")] | Attribute \"filter.alerts_unique_ids\" cannot be specified when \"filter.meta_labels\" is specified"
+      "error: Invalid Attribute Combination [AttributeName(\"filter\")] | Only one of these attributes can be configured: `meta_labels`, `alerts_unique_ids`."
     ],
     "state": null
   },
@@ -81,8 +80,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\")] | 2 attributes specified when one (and only one) of [schedule.one_time.<.recurring] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\")] | 2 attributes specified when one (and only one) of [schedule.recurring.<.one_time] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\")] | Only one of these attributes can be configured: `one_time`, `recurring`."
     ],
     "state": null
   },
@@ -98,8 +96,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\")] | No attribute specified when one (and only one) of [schedule.one_time.<.recurring] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\")] | No attribute specified when one (and only one) of [schedule.recurring.<.one_time] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\")] | No attribute was configured in this one-of group. Configure exactly one value."
     ],
     "state": null
   },
@@ -132,8 +129,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"always_active\")] | 2 attributes specified when one (and only one) of [schedule.recurring.always_active.<.dynamic] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\")] | 2 attributes specified when one (and only one) of [schedule.recurring.dynamic.<.always_active] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\")] | Only one of these attributes can be configured: `always_active`, `dynamic`."
     ],
     "state": null
   },
@@ -221,8 +217,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"duration\")] | 2 attributes specified when one (and only one) of [schedule.one_time.time_frame.duration.<.end_time] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"end_time\")] | 2 attributes specified when one (and only one) of [schedule.one_time.time_frame.end_time.<.duration] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\")] | Only one of these attributes can be configured: `duration`, `end_time`."
     ],
     "state": null
   },

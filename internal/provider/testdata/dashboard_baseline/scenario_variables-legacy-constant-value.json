@@ -94,15 +94,137 @@
             "constant_value": "production",
             "multi_select": null
           },
+          "description": null,
           "display_name": "Environment",
           "name": "env"
         }
       ],
       "variables_v2": null
     },
-    "applyDiagnostics": [
-      "error: Deprecated dashboard variable definition: constant_value | `constant_value` is deprecated and is rejected by the Coralogix API. Define the variable as a `multi_select` with a `constant_list` source and a single selected value instead:\n\n  multi_select = {\n    source                 = { constant_list = [\"production\"] }\n    selected_values        = [\"production\"]\n    values_order_direction = \"asc\"\n  }"
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 10
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "appearance": {},
+                          "definition": {
+                            "markdown": {
+                              "markdownText": "hello"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "title": "note"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "baseline dashboard",
+            "variables": [
+              {
+                "definition": {
+                  "constant": {
+                    "value": "production"
+                  }
+                },
+                "displayName": "Environment",
+                "name": "env"
+              }
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
     ],
-    "state": null
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": false,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": [
+        {
+          "definition": {
+            "constant_value": "production",
+            "multi_select": null
+          },
+          "description": null,
+          "display_name": "Environment",
+          "name": "env"
+        }
+      ],
+      "variables_v2": null
+    },
+    "replanEmpty": true
   }
 ]

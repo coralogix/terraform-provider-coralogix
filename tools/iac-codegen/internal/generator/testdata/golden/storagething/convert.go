@@ -71,7 +71,7 @@ func flatten(ctx context.Context, v *storage_service.StorageConfig) (*StorageCon
 		diags.AddError("Missing resource", "The API response has no StorageConfig.")
 		return nil, diags
 	}
-	if v.Gcs != nil {
+	if v.Gcs != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Unsupported storage", "The configuration uses GCS, which this resource does not support.")
 		return nil, diags
 	}
@@ -517,4 +517,17 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
 }

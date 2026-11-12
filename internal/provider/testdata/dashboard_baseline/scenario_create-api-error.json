@@ -124,7 +124,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating Dashboard | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}\noperation - Create"
+      "error: Unable to create dashboard | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}"
     ],
     "state": null
   },

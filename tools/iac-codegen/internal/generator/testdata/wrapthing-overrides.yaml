@@ -2,10 +2,28 @@
 resource: WrapThing
 mode: existing
 
+# The API cannot tell an empty list from a missing one: every list reads empty as null.
+readEmptyAs: "null"
+
+# A state upgrade reads the resource and keeps the arm of the home that the prior state wrote.
+schema:
+  version: 2
+  upgrade:
+    1: {priorSchema: example.com/iac-test-sdk/legacyprior.V1, strategy: refresh}
+
 validators:
   inferred: false
 
-unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHolder, Selection, ListSelection]
+unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHolder, Selection, ListSelection, LinkRef]
+
+# The home is one object of two arms: an id or a path, as a released folder is. The API has a
+# UUID wrapper and a path object, and the resource already has an id of its own.
+groups:
+  home:
+    fields: [homeId, homePath]
+    keepPriorArm: true
+    optional: true
+    markdownDescription: Where the thing lives, by id or by path.
 
 types:
   WrapThing:
@@ -18,6 +36,12 @@ types:
           as: panel_notes
           by: {listField: panelId, itemField: id}
           keep: detail.url
+      marks: {collection: set}
+      # The API holds a duration as 900s. Terraform shows the span as seconds:900 and the step as 15m0s.
+      span: {durationFormat: protoText}
+      step: {durationFormat: goDuration}
+      homeId: {name: id}
+      homePath: {name: path}
       rawQuery:
         unwrap: false
       mainLabel:
@@ -37,19 +61,69 @@ types:
       values:
         collection: set
   # The segments of the folder path are one text, with the elements joined by a slash.
+  # The hint is skipped at the place of the mark, so the link has one property there and collapses to its
+  # target. The model checks a wrapper by the properties of the contract, so the place line drops the hint
+  # from the copy of the component.
+  LinkRef:
+    at:
+      WrapMark.link:
+        fields: {hint: {skip: true}}
+  # The ratio is a Number: a configured 0.1 stays 0.1. The marks are a set, so a prior mark is found by value.
+  WrapMark:
+    fields:
+      ratio: {terraformType: Number}
+      # An omitted title is the label, as a released label was the value.
+      title: {computed: true, defaultFromSibling: label}
+      # The server sets the time, and the requests share the component: a response-only time is not sent.
+      createdAt: {readOnly: true}
   FolderPath:
     fields:
       segments: {join: "/"}
   # The client makes the id of a panel when the configuration leaves it out.
+  # The retired field is no attribute. A response that has it cannot be shown, so a read reports it,
+  # unless the AllowUnsupported hook says that the resource is managed another way.
   WrapPanel:
+    unsupportedArms: [retired]
+    unsupportedSummary: Unsupported panel
+    unsupportedDetail: The panel uses the retired field.
+    # A text that only Terraform holds, inside an item of a list: the API does not have it, so a read
+    # keeps the text of the prior item.
+    extraAttributes:
+      remark: {type: string, optional: true, computed: true, default: none, markdownDescription: A remark that only Terraform keeps.}
     fields:
       id: {clientID: uuid}
+      # The API never accepts the flag on a panel, and a released validator rejected it with this text.
+      legacy: {validators: [{unsupported: A panel cannot use legacy.}]}
+      # The API fills the level in, and a released resource read a missing level as the first value.
+      level: {computed: true, useNonNullStateForUnknown: true, readNullAs: unspecified, enumAs: panel}
+      # The size reads a value that the resource does not accept as null, as a released switch did.
+      size: {computed: true, useNonNullStateForUnknown: true, enumAs: size}
   # The client makes the id of a note too.
+  # A note whose detail has no value cannot be shown, so a read reports it, unless the resource is managed
+  # another way (AllowUnsupported).
   WrapNote:
     fields:
       id: {clientID: uuid}
+      detail:
+        unsupportedIfEmpty: {summary: Unsupported note, detail: The note has a detail without a value.}
 enums:
   WindowValue:
     zero: 1_MINUTE
     values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    rejected: [WINDOW_VALUE_DAYS_7]
+    names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}
+  # The level of a panel spells the same API enum another way: the zero value is unspecified.
+  WindowValue@size:
+    zero: unspecified
+    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    rejected: [WINDOW_VALUE_DAYS_7]
+    readRejectedAs: "null"
+    names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}
+  WindowValue@panel:
+    zero: unspecified
+    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    # A value that the resource does not accept still reads, as unspecified, so a dashboard that someone
+    # edited elsewhere does not fail the refresh.
+    rejected: [WINDOW_VALUE_DAYS_7]
+    readRejectedAs: unspecified
     names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}

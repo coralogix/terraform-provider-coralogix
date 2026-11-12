@@ -103,7 +103,8 @@
                           "stackDefinition": {
                             "maxSlicesPerStack": 1,
                             "stackNameTemplate": "value-stack_name_template"
-                          }
+                          },
+                          "unit": "UNIT_PERCENT"
                         }
                       },
                       "description": "value-description",
@@ -154,6 +155,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -231,7 +233,7 @@
                           "max_slices_per_stack": 1,
                           "stack_name_template": "value-stack_name_template"
                         },
-                        "unit": "unspecified"
+                        "unit": "percent"
                       }
                     },
                     "description": "value-description",
@@ -358,7 +360,8 @@
                           "stackDefinition": {
                             "maxSlicesPerStack": 1,
                             "stackNameTemplate": "value-stack_name_template"
-                          }
+                          },
+                          "unit": "UNIT_PERCENT"
                         }
                       },
                       "description": "value-description",
@@ -409,6 +412,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -486,7 +490,7 @@
                           "max_slices_per_stack": 1,
                           "stack_name_template": "value-stack_name_template"
                         },
-                        "unit": "unspecified"
+                        "unit": "percent"
                       }
                     },
                     "description": "value-description",
@@ -510,11 +514,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (38)",
@@ -568,17 +568,17 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.groupNameTemplate",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.hashColors",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.labelDefinition.labelSource: \"LABEL_SOURCE_INNER\" → \"LABEL_SOURCE_UNSPECIFIED\"",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.maxSlicesPerChart",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.minSlicePercentage",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.filters[0].label",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.groupNames[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.groupNames",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.stackedGroupName",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.showTotal",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.stackDefinition.maxSlicesPerStack",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.stackDefinition.stackNameTemplate",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.unit: \"UNIT_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.unit: \"UNIT_PERCENT\" → \"UNIT_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].description"
     ],
     "stateDiff": [
@@ -601,6 +601,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.show_total: true → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.stack_definition.max_slices_per_stack: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.stack_definition.stack_name_template: \"value-stack_name_template\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit: \"percent\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
     "replanEmpty": true
@@ -612,7 +613,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:6cbf6ffe] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d2424aba] → null"
     ],
     "replanEmpty": true
   },
@@ -629,7 +630,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:8bb2a070] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:aa810bd8] → null"
     ],
     "replanEmpty": true
   },
@@ -640,7 +641,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:36bfb182] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:ef34c7b9] → null"
     ],
     "replanEmpty": true
   },
@@ -664,38 +665,24 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.stackDefinition"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.filters: [{\"label\":\"value-label\",\"metric\":\"value-metric\",\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.stack_definition: {\"max_slices_per_stack\":1,\"stack_name_template\":\"value-stack_name_template\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:6cbf6ffe] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -777,18 +764,9 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.groupNames[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.group_names: [\"value-group_names\"] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.group_names[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.group_names",
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"group_names\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (6)",
@@ -819,14 +797,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.editor_mode: \"builder\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.promql_query_type: \"instant\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (2)",
@@ -845,14 +816,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.color_scheme: \"classic\" → \"blue\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
@@ -896,28 +860,33 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.time_frame.relative: null → {\"duration\":\"seconds:900\"}"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.pie_chart.query.metrics.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.pie_chart.query.metrics.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.metrics.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.metrics.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].options.color = orange",
@@ -930,13 +899,6 @@
     "stateDiff": [
       "~ .layout.sections[0].options.color: \"green\" → \"orange\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   }
 ]

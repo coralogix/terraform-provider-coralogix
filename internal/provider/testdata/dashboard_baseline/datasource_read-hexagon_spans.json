@@ -43,6 +43,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -74,8 +75,8 @@
                           "metrics": null,
                           "spans": {
                             "aggregation": {
-                              "aggregation_type": "unspecified",
-                              "field": "unspecified",
+                              "aggregation_type": "avg",
+                              "field": "duration",
                               "type": "metric"
                             },
                             "filters": [

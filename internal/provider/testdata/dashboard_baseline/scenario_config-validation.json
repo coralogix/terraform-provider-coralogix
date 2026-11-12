@@ -5,7 +5,7 @@
       "name": "x"
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [] | No attribute was configured in this one-of group. Configure exactly one value."
+      "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | No attribute specified when one (and only one) of [content_json.<.layout] is required"
     ],
     "state": null
   },
@@ -36,8 +36,8 @@
       }
     },
     "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | 2 attributes specified when one (and only one) of [content_json.<.layout] is required",
       "error: Invalid Attribute Combination [AttributeName(\"content_json\")] | Attribute \"layout\" cannot be specified when \"content_json\" is specified",
-      "error: Invalid Attribute Combination [] | Only one of these attributes can be configured: `content_json`, `layout`.",
       "error: content_json validation failed | json content is not matching layout schema. got an err while unmarshalling - unmarshal normalized dashboard JSON: no value given for required property layout"
     ],
     "state": null
@@ -258,7 +258,7 @@
       "name": "baseline dashboard"
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"auto_refresh\").AttributeName(\"type\")] | Attribute auto_refresh.type value must be one of: [\"off\" \"one_minute\" \"two_minutes\" \"five_minutes\" \"fifteen_minutes\"], got: \"hourly\""
+      "error: Invalid Attribute Value Match [AttributeName(\"auto_refresh\").AttributeName(\"type\")] | Attribute auto_refresh.type value must be one of: [\"off\" \"two_minutes\" \"five_minutes\" \"one_minute\" \"fifteen_minutes\"], got: \"hourly\""
     ],
     "state": null
   },
@@ -404,7 +404,7 @@
       "name": "baseline dashboard"
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\")] | Only one of these attributes can be configured: `markdown`, `dynamic`."
+      "error: Invalid Attribute Combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\")] | Only one of these attributes can be configured: `dynamic`, `markdown`."
     ],
     "state": null
   },

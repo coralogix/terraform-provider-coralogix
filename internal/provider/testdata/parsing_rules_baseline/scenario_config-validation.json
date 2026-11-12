@@ -46,7 +46,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\")] | No attribute specified when one (and only one) of [rule_subgroups[0].rules[0].block.<.block,rule_subgroups[0].rules[0].block.<.extract,rule_subgroups[0].rules[0].block.<.extract_timestamp,rule_subgroups[0].rules[0].block.<.json_extract,rule_subgroups[0].rules[0].block.<.parse_json_field,rule_subgroups[0].rules[0].block.<.json_stringify,rule_subgroups[0].rules[0].block.<.parse,rule_subgroups[0].rules[0].block.<.remove_fields,rule_subgroups[0].rules[0].block.<.replace] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0)] | No attribute was configured in this one-of group. Configure exactly one value."
     ],
     "state": null
   },
@@ -75,7 +75,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\")] | 2 attributes specified when one (and only one) of [rule_subgroups[0].rules[0].block.<.block,rule_subgroups[0].rules[0].block.<.extract,rule_subgroups[0].rules[0].block.<.extract_timestamp,rule_subgroups[0].rules[0].block.<.json_extract,rule_subgroups[0].rules[0].block.<.parse_json_field,rule_subgroups[0].rules[0].block.<.json_stringify,rule_subgroups[0].rules[0].block.<.parse,rule_subgroups[0].rules[0].block.<.remove_fields,rule_subgroups[0].rules[0].block.<.replace] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0)] | Only one of these attributes can be configured: `extract`, `parse`."
     ],
     "state": null
   },

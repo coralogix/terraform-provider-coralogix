@@ -8,22 +8,26 @@ import (
 )
 
 type WrapThingModel struct {
-	Id         types.String       `tfsdk:"id"`
-	Name       types.String       `tfsdk:"name"`
-	Query      types.String       `tfsdk:"query"`
-	RawQuery   *LuceneQueryModel  `tfsdk:"raw_query"`
-	Priority   types.String       `tfsdk:"priority"`
-	Threshold  types.Float64      `tfsdk:"threshold"`
-	WidgetIds  types.List         `tfsdk:"widget_ids"`
-	Filter     *SimpleFilterModel `tfsdk:"filter"`
-	Selection  types.List         `tfsdk:"selection"`
-	Tags       types.Set          `tfsdk:"tags"`
-	Window     types.String       `tfsdk:"window"`
-	MainLabel  types.String       `tfsdk:"main_label"`
-	ExtraLabel *LabelModel        `tfsdk:"extra_label"`
-	Panels     types.List         `tfsdk:"panels"`
-	FolderPath types.String       `tfsdk:"folder_path"`
-	Offset     types.Int64        `tfsdk:"offset"`
+	Id         types.String        `tfsdk:"id"`
+	Name       types.String        `tfsdk:"name"`
+	Query      types.String        `tfsdk:"query"`
+	RawQuery   *LuceneQueryModel   `tfsdk:"raw_query"`
+	Priority   types.String        `tfsdk:"priority"`
+	Threshold  types.Float64       `tfsdk:"threshold"`
+	WidgetIds  types.List          `tfsdk:"widget_ids"`
+	Filter     *SimpleFilterModel  `tfsdk:"filter"`
+	Selection  types.List          `tfsdk:"selection"`
+	Tags       types.Set           `tfsdk:"tags"`
+	Window     types.String        `tfsdk:"window"`
+	MainLabel  types.String        `tfsdk:"main_label"`
+	Span       types.String        `tfsdk:"span"`
+	Step       types.String        `tfsdk:"step"`
+	ExtraLabel *LabelModel         `tfsdk:"extra_label"`
+	Panels     types.List          `tfsdk:"panels"`
+	FolderPath types.String        `tfsdk:"folder_path"`
+	Marks      types.Set           `tfsdk:"marks"`
+	Home       *WrapThingHomeModel `tfsdk:"home"`
+	Offset     types.Int64         `tfsdk:"offset"`
 }
 
 type LuceneQueryModel struct {
@@ -53,5 +57,22 @@ type WrapNoteModel struct {
 type WrapPanelModel struct {
 	Id         types.String `tfsdk:"id"`
 	Title      types.String `tfsdk:"title"`
+	Legacy     types.Bool   `tfsdk:"legacy"`
+	Level      types.String `tfsdk:"level"`
+	Size       types.String `tfsdk:"size"`
 	PanelNotes types.List   `tfsdk:"panel_notes"`
+	Remark     types.String `tfsdk:"remark"`
+}
+
+type WrapMarkModel struct {
+	Label     types.String `tfsdk:"label"`
+	Ratio     types.Number `tfsdk:"ratio"`
+	Link      types.String `tfsdk:"link"`
+	Title     types.String `tfsdk:"title"`
+	CreatedAt types.String `tfsdk:"created_at"`
+}
+
+type WrapThingHomeModel struct {
+	HomeId   types.String `tfsdk:"id"`
+	HomePath types.String `tfsdk:"path"`
 }

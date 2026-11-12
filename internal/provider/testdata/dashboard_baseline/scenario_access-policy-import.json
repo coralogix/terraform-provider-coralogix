@@ -21,9 +21,7 @@
       "filters": null,
       "folder": null,
       "id": "fakeboard000000000001",
-      "layout": {
-        "sections": null
-      },
+      "layout": null,
       "name": "seeded",
       "time_frame": null,
       "variables": null,
@@ -31,8 +29,6 @@
     },
     "drift": [
       "AttributeName(\"access_policy\")",
-      "AttributeName(\"layout\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")",
       "AttributeName(\"name\")"
     ]
   },

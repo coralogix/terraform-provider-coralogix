@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
@@ -32,6 +34,36 @@ var windowValueToAPI = map[string]wrap_things_service.WindowValue{
 // windowValueFromAPI maps the API values of the enum to its Terraform values.
 var windowValueFromAPI = map[wrap_things_service.WindowValue]string{
 	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"): "1_MINUTE",
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"):                "5_MINUTES",
+	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
+}
+
+// windowValuePanelToAPI maps the Terraform values of the enum to its API values.
+var windowValuePanelToAPI = map[string]wrap_things_service.WindowValue{
+	"unspecified": wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"),
+	"5_MINUTES":   wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"),
+	"2_HOURS":     wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"),
+}
+
+// windowValuePanelFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
+var windowValuePanelFromAPI = map[wrap_things_service.WindowValue]string{
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"): "unspecified",
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"):                "5_MINUTES",
+	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
+	wrap_things_service.WindowValue("WINDOW_VALUE_DAYS_7"):                   "unspecified",
+}
+
+// windowValueSizeToAPI maps the Terraform values of the enum to its API values.
+var windowValueSizeToAPI = map[string]wrap_things_service.WindowValue{
+	"unspecified": wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"),
+	"5_MINUTES":   wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"),
+	"2_HOURS":     wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"),
+}
+
+// windowValueSizeFromAPI maps the API values of the enum to its Terraform values.
+var windowValueSizeFromAPI = map[wrap_things_service.WindowValue]string{
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"): "unspecified",
 	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"):                "5_MINUTES",
 	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
 }
@@ -55,9 +87,13 @@ var createFields = []struct {
 	{attr: "tags", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
+	{attr: "span", serverDefault: false},
+	{attr: "step", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
 	{attr: "folder_path", serverDefault: false},
+	{attr: "marks", serverDefault: false},
+	{attr: "home", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }
 
@@ -72,9 +108,79 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
+		p = requestValue(ctx, field.attr, p, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
+}
+
+// serverAttrs are the paths of the computed attributes inside the values
+// that a request sends, with list and map steps left out. The server sets
+// them.
+var serverAttrs = map[string]bool{
+	"marks.created_at": true,
+}
+
+// requestValue returns v with a null value for each attribute that the server
+// sets. When the resource changes, Terraform plans these attributes as
+// unknown. A request does not send them, so a change check and an
+// unknown-value check must not see them.
+func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diagnostics) attr.Value {
+	if v == nil || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	switch v := v.(type) {
+	case types.Object:
+		attrTypes := v.AttributeTypes(ctx)
+		out := make(map[string]attr.Value, len(attrTypes))
+		for name, child := range v.Attributes() {
+			if serverAttrs[at+"."+name] {
+				out[name] = nullValue(ctx, attrTypes[name], diags)
+			} else {
+				out[name] = requestValue(ctx, at+"."+name, child, diags)
+			}
+		}
+		value, d := types.ObjectValue(attrTypes, out)
+		diags.Append(d...)
+		return value
+	case types.List:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.ListValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Set:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.SetValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Map:
+		elems := v.Elements()
+		out := make(map[string]attr.Value, len(elems))
+		for key, child := range elems {
+			out[key] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.MapValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	}
+	return v
+}
+
+// nullValue returns the null value of type t.
+func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.Value {
+	value, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
+	if err != nil {
+		diags.AddError("Invalid value", err.Error())
+	}
+	return value
 }
 
 // expandCreate returns the Create request body. A null value is not sent.
@@ -94,13 +200,13 @@ func expandUpdate(ctx context.Context, m *WrapThingModel) (*wrap_things_service.
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *wrap_things_service.WrapThing) (*WrapThingModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *wrap_things_service.WrapThing, prior *WrapThingModel) (*WrapThingModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no WrapThing.")
 		return nil, diags
 	}
-	out := flattenWrapThing(ctx, path.Empty(), v, &diags)
+	out := flattenWrapThing(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() || out.Id.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -117,7 +223,12 @@ var oneOfArms = map[string]bool{}
 var computedAttrs = map[string]bool{
 	"id":                    true,
 	"panels.id":             true,
+	"panels.level":          true,
+	"panels.size":           true,
 	"panels.panel_notes.id": true,
+	"panels.remark":         true,
+	"marks.title":           true,
+	"marks.created_at":      true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -364,6 +475,8 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		inner = expandString(m.MainLabel)
 		out.MainLabel = wrapLabel(inner)
 	}
+	out.Span = expandDuration(p.AtName("span"), m.Span, "protoText", diags)
+	out.Step = expandDuration(p.AtName("step"), m.Step, "goDuration", diags)
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
 	if items := expandElements[WrapPanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
 		out.Panels = make([]wrap_things_service.WrapPanel, 0, len(items))
@@ -376,6 +489,13 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		inner = splitText(m.FolderPath, "/")
 		out.FolderPath = wrapFolderPath(inner)
 	}
+	if items := expandElements[WrapMarkModel](ctx, p.AtName("marks"), m.Marks, diags); items != nil {
+		out.Marks = make([]wrap_things_service.WrapMark, 0, len(items))
+		for i := range items {
+			out.Marks = append(out.Marks, *expandWrapMark(ctx, p.AtName("marks"), &items[i], diags))
+		}
+	}
+	expandCreateWrapThingRequestHome(ctx, p.AtName("home"), m.Home, out, diags)
 	out.Offset = expandInt64Wire(m.Offset)
 	out.Notes = collectedNotes.items
 	return out
@@ -450,6 +570,9 @@ func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags 
 		out.Id = valueOf(wrapUUID(inner))
 	}
 	out.Title = expandString(m.Title)
+	out.Legacy = expandBool(m.Legacy)
+	out.Level = expandEnumMapped(p.AtName("level"), m.Level, windowValuePanelToAPI, diags)
+	out.Size = expandEnumMapped(p.AtName("size"), m.Size, windowValueSizeToAPI, diags)
 	if items := expandElements[WrapNoteModel](ctx, p.AtName("panel_notes"), m.PanelNotes, diags); len(items) != 0 {
 		if collected := distributedNotesOf(ctx); collected != nil {
 			// The items name this object by its id, as the request holds it.
@@ -472,9 +595,12 @@ func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags 
 	return out
 }
 
-func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.WrapPanel, diags *diag.Diagnostics) *WrapPanelModel {
+func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.WrapPanel, prior *WrapPanelModel, diags *diag.Diagnostics) *WrapPanelModel {
 	if v == nil {
 		return nil
+	}
+	if v.Retired != nil && !unsupportedAllowed(ctx) {
+		diags.AddError("Unsupported panel", "The panel uses the retired field.")
 	}
 	out := &WrapPanelModel{}
 	{
@@ -482,6 +608,18 @@ func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.Id = types.StringPointerValue(inner)
 	}
 	out.Title = types.StringPointerValue(v.Title)
+	out.Legacy = types.BoolPointerValue(v.Legacy)
+	if v.Level == nil {
+		out.Level = types.StringValue("unspecified")
+	} else {
+		out.Level = flattenEnumMapped(p.AtName("level"), v.Level, windowValuePanelFromAPI, diags)
+	}
+	if api := v.Size; api != nil && (*api == "WINDOW_VALUE_DAYS_7") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
+		out.Size = types.StringNull()
+	} else {
+		out.Size = flattenEnumMapped(p.AtName("size"), api, windowValueSizeFromAPI, diags)
+	}
 	out.PanelNotes = types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})
 	if collected := distributedNotesOf(ctx); collected != nil {
 		if id := unwrapUUID(&v.Id); id != nil {
@@ -494,6 +632,11 @@ func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.W
 			}
 		}
 	}
+	out.Remark = types.StringNull()
+	out.Remark = types.StringValue("none")
+	if prior != nil && !prior.Remark.IsNull() {
+		out.Remark = prior.Remark
+	}
 	return out
 }
 
@@ -501,7 +644,83 @@ func wrapPanelAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"id":          types.StringType,
 		"title":       types.StringType,
+		"legacy":      types.BoolType,
+		"level":       types.StringType,
+		"size":        types.StringType,
 		"panel_notes": types.ListType{ElemType: types.ObjectType{AttrTypes: wrapNoteAttrTypes()}},
+		"remark":      types.StringType,
+	}
+}
+
+func expandWrapMark(ctx context.Context, p path.Path, m *WrapMarkModel, diags *diag.Diagnostics) *wrap_things_service.WrapMark {
+	if m == nil {
+		return nil
+	}
+	out := &wrap_things_service.WrapMark{}
+	out.Label = expandString(m.Label)
+	out.Ratio = expandNumberAsFloat64(p.AtName("ratio"), m.Ratio, diags)
+	{
+		var inner *string
+		inner = expandString(m.Link)
+		out.Link = wrapLinkRefAtWrapMarkLink(inner)
+	}
+	out.Title = expandString(m.Title)
+	return out
+}
+
+func flattenWrapMark(ctx context.Context, p path.Path, v *wrap_things_service.WrapMark, prior *WrapMarkModel, diags *diag.Diagnostics) *WrapMarkModel {
+	if v == nil {
+		return nil
+	}
+	out := &WrapMarkModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Ratio = float64AsNumber(v.Ratio)
+	if prior != nil {
+		out.Ratio = keepPriorNumber(prior.Ratio, out.Ratio)
+	}
+	{
+		inner := unwrapLinkRefAtWrapMarkLink(v.Link)
+		out.Link = types.StringPointerValue(inner)
+	}
+	out.Title = types.StringPointerValue(v.Title)
+	out.CreatedAt = flattenTime(v.CreatedAt)
+	return out
+}
+
+// sameWrapMark reports whether two SDK values are equal. It compares the fields that the resource
+// manages. A missing value and an empty one are equal.
+func sameWrapMark(a, b *wrap_things_service.WrapMark) bool {
+	return pointerValue(a.Label) == pointerValue(b.Label) &&
+		pointerValue(a.Ratio) == pointerValue(b.Ratio) &&
+		pointerValue(unwrapLinkRefAtWrapMarkLink(a.Link)) == pointerValue(unwrapLinkRefAtWrapMarkLink(b.Link)) &&
+		pointerValue(a.Title) == pointerValue(b.Title) &&
+		pointerValue(a.CreatedAt) == pointerValue(b.CreatedAt)
+}
+
+func wrapMarkAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label":      types.StringType,
+		"ratio":      types.NumberType,
+		"link":       types.StringType,
+		"title":      types.StringType,
+		"created_at": types.StringType,
+	}
+}
+
+// expandCreateWrapThingRequestHome writes the fields of a group, which the API holds in the parent object, to out.
+func expandCreateWrapThingRequestHome(ctx context.Context, p path.Path, m *WrapThingHomeModel, out *wrap_things_service.CreateWrapThingRequest, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	{
+		var inner *string
+		inner = expandString(m.HomeId)
+		out.HomeId = wrapUUID(inner)
+	}
+	{
+		var inner []string
+		inner = splitText(m.HomePath, "/")
+		out.HomePath = wrapFolderPath(inner)
 	}
 }
 
@@ -519,6 +738,9 @@ func expandWrapNote(ctx context.Context, p path.Path, m *WrapNoteModel, diags *d
 func flattenWrapNote(ctx context.Context, p path.Path, v *wrap_things_service.WrapNote, diags *diag.Diagnostics) *WrapNoteModel {
 	if v == nil {
 		return nil
+	}
+	if !unsupportedAllowed(ctx) && (v.Detail == nil || (v.Detail.Url == nil)) {
+		diags.AddError("Unsupported note", "The note has a detail without a value.")
 	}
 	out := &WrapNoteModel{}
 	out.Id = types.StringPointerValue(&v.Id)
@@ -618,6 +840,8 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		inner = expandString(m.MainLabel)
 		out.MainLabel = wrapLabel(inner)
 	}
+	out.Span = expandDuration(p.AtName("span"), m.Span, "protoText", diags)
+	out.Step = expandDuration(p.AtName("step"), m.Step, "goDuration", diags)
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
 	if items := expandElements[WrapPanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
 		out.Panels = make([]wrap_things_service.WrapPanel, 0, len(items))
@@ -630,12 +854,36 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		inner = splitText(m.FolderPath, "/")
 		out.FolderPath = wrapFolderPath(inner)
 	}
+	if items := expandElements[WrapMarkModel](ctx, p.AtName("marks"), m.Marks, diags); items != nil {
+		out.Marks = make([]wrap_things_service.WrapMark, 0, len(items))
+		for i := range items {
+			out.Marks = append(out.Marks, *expandWrapMark(ctx, p.AtName("marks"), &items[i], diags))
+		}
+	}
+	expandReplaceWrapThingRequestHome(ctx, p.AtName("home"), m.Home, out, diags)
 	out.Offset = expandInt64Wire(m.Offset)
 	out.Notes = collectedNotes.items
 	return out
 }
 
-func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, diags *diag.Diagnostics) *WrapThingModel {
+// expandReplaceWrapThingRequestHome writes the fields of a group, which the API holds in the parent object, to out.
+func expandReplaceWrapThingRequestHome(ctx context.Context, p path.Path, m *WrapThingHomeModel, out *wrap_things_service.ReplaceWrapThingRequest, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	{
+		var inner *string
+		inner = expandString(m.HomeId)
+		out.HomeId = wrapUUID(inner)
+	}
+	{
+		var inner []string
+		inner = splitText(m.HomePath, "/")
+		out.HomePath = wrapFolderPath(inner)
+	}
+}
+
+func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, prior *WrapThingModel, diags *diag.Diagnostics) *WrapThingModel {
 	if v == nil {
 		return nil
 	}
@@ -659,6 +907,10 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapUUID_items(v.WidgetIds)
 		out.WidgetIds = flattenStringsList(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.WidgetIds = types.ListNull(types.StringType)
+		}
 	}
 	{
 		inner := unwrapFilterHolder(v.Filter)
@@ -667,10 +919,18 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapSelection_ListSelection(v.Selection)
 		out.Selection = flattenStringsList(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.Selection = types.ListNull(types.StringType)
+		}
 	}
 	{
 		inner := unwrapTags(v.Tags)
 		out.Tags = flattenStringsSet(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.Tags = types.SetNull(types.StringType)
+		}
 	}
 	out.Window = types.StringNull()
 	if fold := v.Window; fold != nil {
@@ -687,12 +947,23 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		inner := unwrapLabel(v.MainLabel)
 		out.MainLabel = types.StringPointerValue(inner)
 	}
+	out.Span = flattenDuration(v.Span, "protoText")
+	out.Step = flattenDuration(v.Step, "goDuration")
 	out.ExtraLabel = flattenLabel(ctx, p.AtName("extra_label"), v.ExtraLabel, diags)
 	out.Panels = types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()})
-	if v.Panels != nil {
+	if len(v.Panels) != 0 {
 		items := make([]WrapPanelModel, 0, len(v.Panels))
+		var priorPanels []WrapPanelModel
+		if prior != nil {
+			priorPanels = priorItems[WrapPanelModel](ctx, prior.Panels)
+		}
 		for i := range v.Panels {
-			items = append(items, *flattenWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &v.Panels[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *WrapPanelModel
+			if i < len(priorPanels) {
+				priorItem = &priorPanels[i]
+			}
+			items = append(items, *flattenWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &v.Panels[i], priorItem, diags))
 		}
 		out.Panels = flattenList(ctx, types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, items, diags)
 	}
@@ -700,7 +971,50 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		inner := unwrapFolderPath(v.FolderPath)
 		out.FolderPath = joinText(inner, "/")
 	}
+	out.Marks = types.SetNull(types.ObjectType{AttrTypes: wrapMarkAttrTypes()})
+	if len(v.Marks) != 0 {
+		items := make([]WrapMarkModel, 0, len(v.Marks))
+		var priorMarks []WrapMarkModel
+		if prior != nil {
+			priorMarks = priorItems[WrapMarkModel](ctx, prior.Marks)
+		}
+		// A set has no order: the prior item of an API item is the one with the same request value.
+		pairs := pairPrior(ctx, v.Marks, priorMarks, expandWrapMark, sameWrapMark)
+		for i := range v.Marks {
+			items = append(items, *flattenWrapMark(ctx, p.AtName("marks"), &v.Marks[i], pairs[i], diags))
+		}
+		out.Marks = flattenSet(ctx, types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, items, diags)
+	}
+	var priorHome *WrapThingHomeModel
+	if prior != nil {
+		priorHome = prior.Home
+	}
+	out.Home = flattenWrapThingHome(ctx, p.AtName("home"), v, priorHome, diags)
 	out.Offset = flattenInt64Wire(p.AtName("offset"), v.Offset, diags)
+	return out
+}
+
+func flattenWrapThingHome(ctx context.Context, p path.Path, v *wrap_things_service.WrapThing, prior *WrapThingHomeModel, diags *diag.Diagnostics) *WrapThingHomeModel {
+	if v == nil {
+		return nil
+	}
+	if v.HomeId == nil && v.HomePath == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &WrapThingHomeModel{}
+	{
+		inner := unwrapUUID(v.HomeId)
+		out.HomeId = types.StringPointerValue(inner)
+	}
+	{
+		inner := unwrapFolderPath(v.HomePath)
+		out.HomePath = joinText(inner, "/")
+	}
+	if prior != nil && otherArm([]bool{!prior.HomeId.IsNull() && !prior.HomeId.IsUnknown(), !prior.HomePath.IsNull() && !prior.HomePath.IsUnknown()}, []bool{!out.HomeId.IsNull() && !out.HomeId.IsUnknown(), !out.HomePath.IsNull() && !out.HomePath.IsUnknown()}) {
+		// The API answered another arm than the one that the user wrote, so the written arm stays.
+		kept := *prior
+		return &kept
+	}
 	return out
 }
 
@@ -887,6 +1201,22 @@ func unwrapFolderPath(w *wrap_things_service.FolderPath) []string {
 	return w.Segments
 }
 
+// wrapLinkRefAtWrapMarkLink puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapLinkRefAtWrapMarkLink(v *string) *wrap_things_service.LinkRef {
+	if v == nil {
+		return nil
+	}
+	return &wrap_things_service.LinkRef{Target: v}
+}
+
+// unwrapLinkRefAtWrapMarkLink takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapLinkRefAtWrapMarkLink(w *wrap_things_service.LinkRef) *string {
+	if w == nil {
+		return nil
+	}
+	return w.Target
+}
+
 // elements is a types.Set or a types.List.
 type elements interface {
 	IsNull() bool
@@ -1056,6 +1386,134 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 	return types.StringValue(string(*v))
 }
 
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
+}
+
+// keepOrder returns the items in the order of the prior list, when the API returned the same items in
+// another order. It expands the prior list to SDK values and compares them with same. The prior only
+// keeps an order, so a prior that cannot be read is not an error.
+func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []S {
+	var scratch diag.Diagnostics
+	models := priorItems[M](ctx, prior)
+	var priorSDK []S // nil for a prior list that is null: an empty API list then reads as null, as before
+	if models != nil {
+		priorSDK = make([]S, 0, len(models))
+	}
+	for i := range models {
+		priorSDK = append(priorSDK, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return items
+	}
+	return orderLike(items, priorSDK, same)
+}
+
+// orderLike returns prior when it holds the same items as items, in another order. Otherwise
+// the items really changed, and the API order stays, so the plan shows the change.
+func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
+	if items == nil || len(items) != len(prior) {
+		return items // a missing list stays missing
+	}
+	used := make([]bool, len(prior))
+	for i := range items {
+		found := false
+		for j := range prior {
+			if !used[j] && same(&items[i], &prior[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return items
+		}
+	}
+	return prior
+}
+
+// pairPrior returns, for each item, the prior model that has the same request value as the item, or
+// nil. A set has no order, so the prior item is found by value and not by index. Each prior item pairs
+// with one item. The prior only keeps the text of a value, so a prior that cannot be read is no error.
+func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []*M {
+	out := make([]*M, len(items))
+	var scratch diag.Diagnostics
+	values := make([]S, 0, len(models))
+	for i := range models {
+		values = append(values, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return out
+	}
+	used := make([]bool, len(values))
+	for i := range items {
+		for j := range values {
+			if !used[j] && same(&items[i], &values[j]) {
+				used[j], out[i] = true, &models[j]
+				break
+			}
+		}
+	}
+	return out
+}
+
+// pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
+func pointerValue[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
+}
+
+func sameObject[T any](a, b *T, same func(a, b *T) bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return same(a, b)
+}
+
+func sameList[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !same(&a[i], &b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// sameUnordered reports whether a and b hold the same items, ignoring order. A nested list that
+// keepPriorOrder restores can come back from the API shuffled; matching the parent object must
+// still succeed so flatten can attach the prior nested list.
+func sameUnordered[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	used := make([]bool, len(b))
+	for i := range a {
+		found := false
+		for j := range b {
+			if !used[j] && same(&a[i], &b[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 func flattenTime(v *time.Time) types.String {
 	if v == nil {
 		return types.StringNull()
@@ -1134,6 +1592,119 @@ func expandInt32(v types.Int32) *int32 {
 	return &n
 }
 
+// otherArm reports whether the prior value and the new value each have a field set, and no field is
+// set in both: the new value holds another arm than the prior one.
+func otherArm(prior, now []bool) bool {
+	anyPrior, anyNow := false, false
+	for i := range prior {
+		if prior[i] && now[i] {
+			return false
+		}
+		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
+	}
+	return anyPrior && anyNow
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
+}
+
+// expandDuration converts the released text of a duration to the protobuf JSON duration that the API
+// holds: seconds:900 (protoText, also minutes:15) or 15m0s (goDuration) become 900s. A null or unknown
+// text is no value.
+func expandDuration(p path.Path, v types.String, format string, diags *diag.Diagnostics) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	d, err := parseDurationText(v.ValueString(), format)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid duration", err.Error())
+		return nil
+	}
+	wire := wireDuration(d)
+	return &wire
+}
+
+// flattenDuration converts a protobuf JSON duration to the released text. A value that is no duration
+// stays as the API wrote it.
+func flattenDuration(v *string, format string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	d, ok := parseWireDuration(*v)
+	if !ok {
+		return types.StringValue(*v)
+	}
+	if format == "goDuration" {
+		return types.StringValue(d.String())
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos != 0:
+		return types.StringValue(fmt.Sprintf("seconds:%d nanos:%d", seconds, nanos))
+	default:
+		return types.StringValue(fmt.Sprintf("seconds:%d", seconds))
+	}
+}
+
+func parseDurationText(text, format string) (time.Duration, error) {
+	if format == "goDuration" {
+		return time.ParseDuration(text)
+	}
+	unit, number, found := strings.Cut(text, ":")
+	if !found {
+		return 0, fmt.Errorf("error parsing duration %q: want seconds:<n> or minutes:<n>", text)
+	}
+	n, err := strconv.Atoi(number)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing duration numbers in %q", text)
+	}
+	switch unit {
+	case "seconds":
+		return time.Second * time.Duration(n), nil
+	case "minutes":
+		return time.Minute * time.Duration(n), nil
+	}
+	return 0, fmt.Errorf("error parsing duration unit %q", unit)
+}
+
+// wireDuration writes a duration as the protobuf JSON text: whole seconds, then a fraction of 3, 6, or
+// 9 digits, then s.
+func wireDuration(d time.Duration) string {
+	sign := ""
+	if d < 0 {
+		sign, d = "-", -d
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos == 0:
+		return fmt.Sprintf("%s%ds", sign, seconds)
+	case nanos%1000000 == 0:
+		return fmt.Sprintf("%s%d.%03ds", sign, seconds, nanos/1000000)
+	case nanos%1000 == 0:
+		return fmt.Sprintf("%s%d.%06ds", sign, seconds, nanos/1000)
+	}
+	return fmt.Sprintf("%s%d.%09ds", sign, seconds, nanos)
+}
+
+func parseWireDuration(text string) (time.Duration, bool) {
+	number, ok := strings.CutSuffix(text, "s")
+	if !ok || number == "" {
+		return 0, false
+	}
+	d, err := time.ParseDuration(number + "s")
+	return d, err == nil
+}
+
 // splitText returns the elements of a text that Terraform shows for a list of strings: the text split
 // at every separator, with no trimming, so "a//b/" is a, an empty text, b, and an empty text. A null
 // or unknown text is no list.
@@ -1169,6 +1740,63 @@ func expandClientUUID(v types.String) *string {
 	b[6], b[8] = b[6]&0x0f|0x40, b[8]&0x3f|0x80
 	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 	return &id
+}
+
+// expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
+// not a whole number, or is outside the int32 range, is an error.
+func expandNumberAsInt32(p path.Path, v types.Number, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, accuracy := v.ValueBigFloat().Int64()
+	if accuracy != big.Exact || n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is not a whole number from %d to %d.", v.ValueBigFloat().Text('g', -1), math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// expandNumberAsFloat64 returns the double that the API holds for a Number attribute.
+func expandNumberAsFloat64(p path.Path, v types.Number, diags *diag.Diagnostics) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f, _ := v.ValueBigFloat().Float64()
+	if math.IsInf(f, 0) {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is outside the range of a double.", v.ValueBigFloat().Text('g', -1)))
+		return nil
+	}
+	return &f
+}
+
+func int32AsNumber(v *int32) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*v)))
+}
+
+func float64AsNumber(v *float64) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*v))
+}
+
+// keepPriorNumber returns the plan or state value prior when it is the same double as v, the value
+// that the API stores. A configured 0.1 then stays, though Terraform holds it with more bits than a
+// double and the API returns the double 0.1000000000000000055.
+func keepPriorNumber(prior, v types.Number) types.Number {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	p, _ := prior.ValueBigFloat().Float64()
+	f, _ := v.ValueBigFloat().Float64()
+	if p != f {
+		return v
+	}
+	return prior
 }
 
 // expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.

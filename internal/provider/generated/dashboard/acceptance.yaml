@@ -1,0 +1,66 @@
+# What the generated acceptance test needs for coralogix_dashboard, besides the schema.
+#
+# The test makes one dashboard with one widget kind: the generator sets the first arm of each oneOf
+# group, so it is a bar chart. The other widget kinds are covered by the baseline walk (it runs
+# every kind against a fake API) and by the handwritten acceptance tests.
+resource: Dashboard
+
+prerequisites: |
+  resource "coralogix_dashboards_folder" "folder" {
+    name = "@{run}-folder"
+  }
+
+values:
+  layout.sections[].rows[].widgets[].definition.bar_chart.decimal: "1"
+  layout.sections[].rows[].widgets[].definition.bar_chart.scale_type: '"linear"'
+  # The API wants min below max.
+  layout.sections[].rows[].widgets[].definition.bar_chart.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.bar_chart.y_axis_max: "2"
+  # A duration as the API writes it: the API rejects other text.
+  layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.auto.minimum_interval: '"60s"'
+  # The API allows true only for a textbox variable.
+  variables_v2[].display_full_row: "false"
+  # DataPrime queries that compile.
+  variables_v2[].source.query.dataprime_query.type.query_text.query: '"source logs | limit 1"'
+  annotations[].source.dataprime.query: '"source logs | limit 1"'
+  layout.sections[].rows[].widgets[].definition.bar_chart.query.data_prime.query: '"source logs | limit 1"'
+  # A folder of the tenant.
+  folder.id: coralogix_dashboards_folder.folder.id
+
+updatedValues:
+  variables_v2[].display_full_row: "false"
+  layout.sections[].rows[].widgets[].definition.bar_chart.y_axis_min: "2"
+  layout.sections[].rows[].widgets[].definition.bar_chart.y_axis_max: "3"
+  layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.auto.minimum_interval: '"120s"'
+
+minimal:
+  - name
+  - layout.sections[].rows[].widgets[].definition
+  - layout.sections[].rows[].widgets[].title
+
+skip:
+  # The legacy variables are deprecated, and the API rejects constant_value: variables_v2 covers them.
+  - variables
+  # content_json replaces every typed attribute: the handwritten tests cover it.
+  - content_json
+  # The folder is the id above or a path.
+  - folder.path
+  # The server makes the ids when the configuration leaves them out.
+  - annotations[].id
+  - filters[].id
+  - variables_v2[].id
+  # A widget has a definition or a reference to a widget of another dashboard, not both.
+  - layout.sections[].rows[].widgets[].reference
+  - layout.sections[].id
+  - layout.sections[].rows[].id
+  - layout.sections[].rows[].widgets[].id
+  # The time block of the x axis is deprecated: the UI rewrites it to time_buckets.
+  - layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time
+  # collapsed and internal exclude each other.
+  - layout.sections[].options.internal
+  # A widget scope is all_widgets or specific_widgets, not both: the API rejects both.
+  - annotations[].scope.specific_widgets
+  - filters[].scope.specific_widgets
+  # With selection_type all, the operator has no selected values.
+  - filters[].source.logs.operator.selected_values
+  - layout.sections[].rows[].widgets[].definition.bar_chart.query.data_prime.filters[].logs.operator.selected_values

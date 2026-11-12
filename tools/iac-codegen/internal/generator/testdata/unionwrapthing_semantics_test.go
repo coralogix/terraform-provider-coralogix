@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -346,7 +347,7 @@ func TestOneComponentHasAnotherNameInEachPlace(t *testing.T) {
 	got := sentItems(t, UnionItemModel{
 		Name: types.StringValue("i"), Note: null, Value: null, Label: null,
 		First:  &TagAtUnionItemFirstModel{Label: types.StringValue("one")},
-		Second: &TagModel{Label: types.StringValue("two")},
+		Second: &TagAtUnionItemSecondModel{Label: types.StringValue("two")},
 	}, UnionItemModel{Name: types.StringValue("none"), Note: null, Value: null, Label: null})
 	if got[0].First == nil || *got[0].First.Label != "one" || got[0].Second == nil || *got[0].Second.Label != "two" {
 		t.Fatalf("sent = %+v %+v, want one in the first place and two in the second", got[0].First, got[0].Second)
@@ -773,5 +774,19 @@ func TestRemindersReadBackAfterImportAndSendTheSameList(t *testing.T) {
 	}
 	if got := again.Thing.Reminders; len(got) != 2 || got[0].ItemName != "i1" || *got[0].Definition.Link.Url != "u1" || got[1].ItemName != "i2" || *got[1].Definition.Link.Url != "u2" {
 		t.Fatalf("sent again = %+v, want the two reminders", got)
+	}
+}
+
+// A place line can set any key of a field line for its place: the label is required in the second
+// place and optional in the first, as one component of the contract has one required list.
+func TestPlaceLineSetsRequiredForOnePlace(t *testing.T) {
+	items := Schema().Attributes["items"].(resourceschema.ListNestedAttribute).NestedObject.Attributes
+	first := items["first"].(resourceschema.SingleNestedAttribute).Attributes["title"]
+	second := items["second"].(resourceschema.SingleNestedAttribute).Attributes["label"]
+	if first.IsRequired() || !first.IsOptional() {
+		t.Errorf("the title of the first place is required %t, optional %t, want optional", first.IsRequired(), first.IsOptional())
+	}
+	if !second.IsRequired() {
+		t.Error("the label of the second place is not required")
 	}
 }

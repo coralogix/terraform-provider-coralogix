@@ -35,6 +35,20 @@ var typedModeFromAPI = map[typed_things_service.TypedMode]string{
 	typed_things_service.TypedMode("MODE_EXACT"):       "exact",
 }
 
+// typedRoundingToAPI maps the Terraform values of the enum to its API values.
+var typedRoundingToAPI = map[string]typed_things_service.TypedRounding{
+	"unspecified": typed_things_service.TypedRounding("ROUNDING_UNSPECIFIED"),
+	"up":          typed_things_service.TypedRounding("ROUNDING_UP"),
+	"down":        typed_things_service.TypedRounding("ROUNDING_DOWN"),
+}
+
+// typedRoundingFromAPI maps the API values of the enum to its Terraform values.
+var typedRoundingFromAPI = map[typed_things_service.TypedRounding]string{
+	typed_things_service.TypedRounding("ROUNDING_UNSPECIFIED"): "unspecified",
+	typed_things_service.TypedRounding("ROUNDING_UP"):          "up",
+	typed_things_service.TypedRounding("ROUNDING_DOWN"):        "down",
+}
+
 // typedMetadataFieldToAPI maps the Terraform values of the enum to its API values.
 var typedMetadataFieldToAPI = map[string]typed_things_service.TypedMetadataField{
 	"unspecified":      typed_things_service.TypedMetadataField("METADATA_FIELD_UNSPECIFIED"),
@@ -339,6 +353,7 @@ func expandTypedAggregation(ctx context.Context, p path.Path, m *TypedAggregatio
 			Mode:        m.Mode,
 			Weight:      m.Weight,
 			AverageUnit: m.AverageUnit,
+			Rounding:    m.Rounding,
 		}, diags)
 	case "percentile":
 		out.Percentile = expandTypedPercentile(ctx, p, &TypedPercentileModel{
@@ -347,6 +362,7 @@ func expandTypedAggregation(ctx context.Context, p path.Path, m *TypedAggregatio
 			Weight:         m.Weight,
 			Percent:        m.Percent,
 			PercentileUnit: m.AverageUnit,
+			Rounding:       m.Rounding,
 			Bucket:         m.Bucket,
 		}, diags)
 	default:
@@ -367,6 +383,7 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		out.Mode = empty.Mode
 		out.Weight = empty.Weight
 		out.AverageUnit = empty.AverageUnit
+		out.Rounding = empty.Rounding
 	}
 	// A field that the selected arm does not have reads as an absent value.
 	if empty := flattenTypedPercentile(ctx, p, &typed_things_service.TypedPercentile{}, nil, diags); empty != nil {
@@ -383,6 +400,7 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 			out.Mode = arm.Mode
 			out.Weight = arm.Weight
 			out.AverageUnit = arm.AverageUnit
+			out.Rounding = arm.Rounding
 		}
 	case v.Percentile != nil:
 		out.Type = types.StringValue("percentile")
@@ -395,6 +413,7 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 				Weight:         prior.Weight,
 				Percent:        prior.Percent,
 				PercentileUnit: prior.AverageUnit,
+				Rounding:       prior.Rounding,
 				Bucket:         prior.Bucket,
 			}
 		}
@@ -404,6 +423,7 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 			out.Weight = arm.Weight
 			out.Percent = arm.Percent
 			out.AverageUnit = arm.PercentileUnit
+			out.Rounding = arm.Rounding
 			out.Bucket = arm.Bucket
 		}
 	default:
@@ -421,6 +441,7 @@ func expandTypedAverage(ctx context.Context, p path.Path, m *TypedAverageModel, 
 	out.Mode = expandEnumMapped(p.AtName("mode"), m.Mode, typedModeToAPI, diags)
 	out.Weight = expandFloat64(m.Weight)
 	out.AverageUnit = expandString(m.AverageUnit)
+	out.Rounding = expandEnumMapped(p.AtName("rounding"), m.Rounding, typedRoundingToAPI, diags)
 	return out
 }
 
@@ -433,6 +454,7 @@ func flattenTypedAverage(ctx context.Context, p path.Path, v *typed_things_servi
 	out.Mode = flattenEnumMapped(p.AtName("mode"), v.Mode, typedModeFromAPI, diags)
 	out.Weight = types.Float64PointerValue(v.Weight)
 	out.AverageUnit = types.StringPointerValue(v.AverageUnit)
+	out.Rounding = flattenEnumMapped(p.AtName("rounding"), v.Rounding, typedRoundingFromAPI, diags)
 	return out
 }
 
@@ -446,6 +468,7 @@ func expandTypedPercentile(ctx context.Context, p path.Path, m *TypedPercentileM
 	out.Weight = expandFloat64(m.Weight)
 	out.Percent = expandFloat64(m.Percent)
 	out.PercentileUnit = expandString(m.PercentileUnit)
+	out.Rounding = expandString(m.Rounding)
 	out.Bucket = expandTypedBucket(ctx, p.AtName("bucket"), m.Bucket, diags)
 	return out
 }
@@ -468,6 +491,7 @@ func flattenTypedPercentile(ctx context.Context, p path.Path, v *typed_things_se
 	out.Weight = types.Float64PointerValue(v.Weight)
 	out.Percent = types.Float64PointerValue(v.Percent)
 	out.PercentileUnit = types.StringPointerValue(v.PercentileUnit)
+	out.Rounding = types.StringPointerValue(v.Rounding)
 	out.Bucket = flattenTypedBucket(ctx, p.AtName("bucket"), v.Bucket, diags)
 	return out
 }

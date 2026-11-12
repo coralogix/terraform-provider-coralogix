@@ -15,9 +15,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"owner\").AttributeName(\"organisation_id\")] | 2 attributes specified when one (and only one) of [owner.organisation_id.<.team_id,owner.organisation_id.<.user_id] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"owner\").AttributeName(\"team_id\")] | 2 attributes specified when one (and only one) of [owner.team_id.<.organisation_id,owner.team_id.<.user_id] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"owner\").AttributeName(\"user_id\")] | 2 attributes specified when one (and only one) of [owner.user_id.<.organisation_id,owner.user_id.<.team_id] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"owner\")] | Only one of these attributes can be configured: `team_id`, `user_id`."
     ],
     "state": null
   }

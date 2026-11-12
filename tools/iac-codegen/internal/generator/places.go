@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"maps"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -136,7 +137,7 @@ func withPlaceClones(file *overrides.File) (*overrides.File, error) {
 	var clones []*overrides.PlaceClone
 	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
 		for _, holder := range slices.Sorted(maps.Keys(file.Types[component].At)) {
-			if place := file.Types[component].At[holder]; place.IsInline() {
+			if place := file.Types[component].At[holder]; place.NeedsCopy() {
 				clones = append(clones, &overrides.PlaceClone{Component: component, Holder: holder, Name: component + placeVariant(holder), Fields: place.Fields})
 			}
 		}
@@ -170,8 +171,8 @@ func withPlaceClones(file *overrides.File) (*overrides.File, error) {
 }
 
 // placeCopy returns the lines of the copy of a component at a place: the lines of the component,
-// with the names of the place, and an inline line for each inlined field. An inlined field has no
-// attribute, so its line is the inline line only.
+// with the lines of the place laid over them, and an inline line for each inlined field. An inlined
+// field has no attribute, so its line is the inline line only.
 func placeCopy(original overrides.Type, c *overrides.PlaceClone) (overrides.Type, error) {
 	copied := original
 	copied.At = nil
@@ -184,15 +185,38 @@ func placeCopy(original overrides.Type, c *overrides.PlaceClone) (overrides.Type
 		switch {
 		case line.Inline && original.Fields[field].Inline:
 			return copied, fmt.Errorf("types.%s.at.%s.fields.%s: the line of %s inlines the field in every place already", c.Component, c.Holder, field, c.Component)
+		case line.Skip:
+			// The copy of the component does not have the field: the line of the original has nothing to reach.
+			delete(copied.Fields, field)
 		case line.Inline:
-			copied.Fields[field] = overrides.Field{Inline: true}
+			// The other keys of an inline line are the keys of the field of the object with the name of the field.
+			copied.Fields[field] = line
 		default:
-			l := copied.Fields[field]
-			l.Name = line.Name
-			copied.Fields[field] = l
+			copied.Fields[field] = layField(copied.Fields[field], line)
 		}
 	}
 	return copied, nil
+}
+
+// layField returns the line base with every key that over sets laid over it. A key that over sets
+// to its zero value is not a key: a place line cannot clear a key of the line of the component, but
+// optional: true or another key can say the opposite.
+func layField(base, over overrides.Field) overrides.Field {
+	out := reflect.ValueOf(&base).Elem()
+	from := reflect.ValueOf(over)
+	for i := 0; i < from.NumField(); i++ {
+		if !from.Field(i).IsZero() && out.Field(i).CanSet() {
+			out.Field(i).Set(from.Field(i))
+		}
+	}
+	// optional and required say the opposite: the key of the place wins.
+	switch {
+	case over.Optional && !over.Required:
+		base.Required = false
+	case over.Required && !over.Optional:
+		base.Optional = false
+	}
+	return base
 }
 
 // placeClones gives each place that inlines a field a copy of its component in the contract. The
@@ -239,9 +263,39 @@ func (h inliner) placeClone(c *overrides.PlaceClone) error {
 	if mapValue(h.schemas, c.Name) != nil {
 		return fmt.Errorf("the contract has a component %s already", c.Name)
 	}
-	setMap(h.schemas, c.Name, cloneNode(original))
+	copied := cloneNode(original)
+	dropSkipped(copied, c.Fields)
+	setMap(h.schemas, c.Name, copied)
 	mapValue(ref, "$ref").Value = "#/components/schemas/" + c.Name
 	return nil
+}
+
+// dropSkipped removes the properties that a place line skips from the copy of the component. The
+// place does not have them, so the copy can be a wrapper of one property (unwrap), which the model
+// checks by the properties of the contract, before it reads any skip line.
+func dropSkipped(schema *yaml.Node, lines map[string]overrides.Field) {
+	properties := mapValue(schema, "properties")
+	if properties == nil {
+		return
+	}
+	var skipped []string
+	for name, line := range lines {
+		if line.Skip {
+			skipped = append(skipped, name)
+		}
+	}
+	slices.Sort(skipped)
+	for _, name := range skipped {
+		for i := 0; i+1 < len(properties.Content); i += 2 {
+			if properties.Content[i].Value == name {
+				properties.Content = slices.Delete(properties.Content, i, i+2)
+				break
+			}
+		}
+	}
+	if required := mapValue(schema, "required"); required != nil {
+		required.Content = slices.DeleteFunc(required.Content, func(n *yaml.Node) bool { return slices.Contains(skipped, n.Value) })
+	}
 }
 
 // refOf returns the node that refers to the component in the schema of a field: the field itself,

@@ -46,7 +46,7 @@ type TagAtUnionItemFirstModel struct {
 	Label types.String `tfsdk:"title"`
 }
 
-type TagModel struct {
+type TagAtUnionItemSecondModel struct {
 	Label types.String `tfsdk:"label"`
 }
 
@@ -87,7 +87,7 @@ type UnionItemModel struct {
 	Label     types.String                `tfsdk:"label"`
 	Options   *ItemOptionsModel           `tfsdk:"options"`
 	First     *TagAtUnionItemFirstModel   `tfsdk:"first"`
-	Second    *TagModel                   `tfsdk:"second"`
+	Second    *TagAtUnionItemSecondModel  `tfsdk:"second"`
 	Choice    *PickAtUnionItemChoiceModel `tfsdk:"choice"`
 	Choices   types.List                  `tfsdk:"choices"`
 	Action    *ItemActionModel            `tfsdk:"action"`

@@ -117,6 +117,7 @@
             "dataprime": null,
             "event_recurrence": null,
             "logs": {
+              "data_mode_type": "unspecified",
               "label_fields": [
                 {
                   "keypath": [
@@ -128,15 +129,21 @@
               "lucene_query": "value-lucene_query",
               "message_template": "value-message_template",
               "strategy": {
-                "duration": null,
-                "instant": {
-                  "timestamp_field": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
                     "keypath": [
                       "value-keypath"
                     ],
                     "scope": "label"
                   }
                 },
+                "instant": null,
                 "range": null
               }
             },
@@ -195,6 +202,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": [
                 "value-labels"
               ],
@@ -229,6 +237,7 @@
             "manual": null,
             "metrics": null,
             "spans": {
+              "data_mode_type": "unspecified",
               "label_fields": [
                 {
                   "keypath": [
@@ -240,15 +249,21 @@
               "lucene_query": "value-lucene_query",
               "message_template": "value-message_template",
               "strategy": {
-                "duration": null,
-                "instant": {
-                  "timestamp_field": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
                     "keypath": [
                       "value-keypath"
                     ],
                     "scope": "label"
                   }
                 },
+                "instant": null,
                 "range": null
               }
             }
@@ -513,6 +528,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -534,6 +550,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -558,6 +575,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -595,6 +613,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -619,6 +638,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -642,6 +662,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         }
@@ -748,7 +769,9 @@
                 "default_lucene_value": null,
                 "default_numeric_value": null,
                 "default_regex_value": null,
-                "default_string_value": null
+                "default_string_value": null,
+                "single_numeric": null,
+                "single_string": null
               }
             }
           },
@@ -781,6 +804,7 @@
               "dataprime_query": null,
               "logs_query": {
                 "type": {
+                  "field_name": null,
                   "field_value": {
                     "observation_field": {
                       "keypath": [
@@ -871,7 +895,9 @@
                 },
                 "default_numeric_value": null,
                 "default_regex_value": null,
-                "default_string_value": null
+                "default_string_value": null,
+                "single_numeric": null,
+                "single_string": null
               }
             }
           },

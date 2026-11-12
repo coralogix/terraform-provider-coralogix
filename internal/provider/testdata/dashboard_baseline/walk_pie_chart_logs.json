@@ -122,7 +122,8 @@
                           "stackDefinition": {
                             "maxSlicesPerStack": 1,
                             "stackNameTemplate": "value-stack_name_template"
-                          }
+                          },
+                          "unit": "UNIT_PERCENT"
                         }
                       },
                       "description": "value-description",
@@ -173,6 +174,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -272,7 +274,7 @@
                           "max_slices_per_stack": 1,
                           "stack_name_template": "value-stack_name_template"
                         },
-                        "unit": "unspecified"
+                        "unit": "percent"
                       }
                     },
                     "description": "value-description",
@@ -418,7 +420,8 @@
                           "stackDefinition": {
                             "maxSlicesPerStack": 1,
                             "stackNameTemplate": "value-stack_name_template"
-                          }
+                          },
+                          "unit": "UNIT_PERCENT"
                         }
                       },
                       "description": "value-description",
@@ -469,6 +472,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -568,7 +572,7 @@
                           "max_slices_per_stack": 1,
                           "stack_name_template": "value-stack_name_template"
                         },
-                        "unit": "unspecified"
+                        "unit": "percent"
                       }
                     },
                     "description": "value-description",
@@ -592,11 +596,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (36)",
@@ -648,18 +648,18 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.groupNameTemplate",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.hashColors",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.labelDefinition.labelSource: \"LABEL_SOURCE_INNER\" → \"LABEL_SOURCE_UNSPECIFIED\"",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.maxSlicesPerChart",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.minSlicePercentage",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.filters[0].field",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.groupNames[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.groupNames",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.luceneQuery",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.stackedGroupName",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.showTotal",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.stackDefinition.maxSlicesPerStack",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.stackDefinition.stackNameTemplate",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.unit: \"UNIT_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.unit: \"UNIT_PERCENT\" → \"UNIT_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].description"
     ],
     "stateDiff": [
@@ -683,6 +683,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.show_total: true → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.stack_definition.max_slices_per_stack: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.stack_definition.stack_name_template: \"value-stack_name_template\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit: \"percent\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
     "replanEmpty": true
@@ -694,7 +695,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:ad894c47] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:920b3f3a] → null"
     ],
     "replanEmpty": true
   },
@@ -711,7 +712,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:f6a29bd2] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:5c1bb04b] → null"
     ],
     "replanEmpty": true
   },
@@ -722,7 +723,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:595caa54] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:9b669901] → null"
     ],
     "replanEmpty": true
   },
@@ -750,7 +751,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.stackDefinition"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals…[sha256:5c322404] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.group_names_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
@@ -758,14 +759,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.stack_definition: {\"max_slices_per_stack\":1,\"stack_name_template\":\"value-stack_name_template\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.filters[].observation_field",
@@ -778,32 +772,18 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:ad894c47] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -904,21 +884,12 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.groupNamesFields"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.groupNamesFields[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.group_names_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.group_names_fields[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.group_names_fields",
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_names_fields\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (6)",
@@ -949,14 +920,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.group_names_fields[0].scope: \"label\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.stacked_group_name_field.scope: \"label\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (6)",
@@ -969,8 +933,7 @@
       "set layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.stacked_group_name_field.scope = user_data"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -982,8 +945,7 @@
       "set layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.aggregation.type = percentile"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -998,14 +960,7 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (2)",
@@ -1014,8 +969,7 @@
       "set layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.aggregation.type = percentile"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -1030,20 +984,12 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.color_scheme: \"classic\" → \"blue\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.aggregation.type = percentile",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -1067,14 +1013,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.group_names_fields[0].scope: \"label\" → \"user_data\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.stacked_group_name_field.scope: \"label\" → \"user_data\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
@@ -1122,35 +1061,40 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.time_frame.relative: null → {\"duration\":\"seconds:900\"}"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.aggregation.observation_field",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"count_distinct\", exactly one of field, ob",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.pieChart.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.aggregation.observation_field.scope = unspecified",
@@ -1163,14 +1107,7 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.aggregation.observation_field.scope: \"metadata\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (2)",
@@ -1189,13 +1126,6 @@
       "~ .layout.sections[0].options.color: \"green\" → \"orange\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.pie_chart.query.logs.aggregation.observation_field.scope: \"metadata\" → \"user_data\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.pie_chart.unit"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"pie_chart\").AttributeName(\"unit\")"
-    ]
+    "replanEmpty": true
   }
 ]

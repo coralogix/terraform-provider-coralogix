@@ -166,11 +166,10 @@ func TestReadGivesTheTypeAndTheMergedFields(t *testing.T) {
 	}
 }
 
-// The check on the type attribute rejects a field that the chosen arm does not have, and a value
-// that the enum arm does not accept. It accepts a tag value that is no enum value.
-func TestTypeValidatorChecksTheArm(t *testing.T) {
-	_, schemaResp, root := thingSchema(t)
-	validate := func(attribute string, item map[string]tftypes.Value, aggregation map[string]tftypes.Value) bool {
+// armValidator returns a function that runs the type check of the aggregation, or of the first item of
+// the fields, on a config, and tells whether it accepts it.
+func armValidator(t *testing.T, schemaResp frameworkresource.SchemaResponse, root tftypes.Object) func(string, map[string]tftypes.Value, map[string]tftypes.Value) bool {
+	return func(attribute string, item map[string]tftypes.Value, aggregation map[string]tftypes.Value) bool {
 		t.Helper()
 		set := map[string]tftypes.Value{"name": str("a")}
 		var typeAttr schema.StringAttribute
@@ -192,6 +191,32 @@ func TestTypeValidatorChecksTheArm(t *testing.T) {
 		}
 		return !resp.Diagnostics.HasError()
 	}
+}
+
+// An arm can have two checked fields: mode and rounding are both shared with the percentile, which
+// takes any text, so each is checked only when the type names the average.
+func TestTypeValidatorChecksTwoFieldsOfOneArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	validate := armValidator(t, schemaResp, root)
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("fast"), "rounding": str("up")}) {
+		t.Fatal("fast and up are valid for avg")
+	}
+	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("fast"), "rounding": str("sideways")}) {
+		t.Fatal("sideways is no rounding of avg")
+	}
+	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("slow"), "rounding": str("up")}) {
+		t.Fatal("slow is no mode of avg, also when the rounding is valid")
+	}
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "field": str("f"), "rounding": str("sideways")}) {
+		t.Fatal("the rounding of percentile is free text")
+	}
+}
+
+// The check on the type attribute rejects a field that the chosen arm does not have, and a value
+// that the enum arm does not accept. It accepts a tag value that is no enum value.
+func TestTypeValidatorChecksTheArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	validate := armValidator(t, schemaResp, root)
 	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "field": str("f")}) {
 		t.Fatal("avg with a field is valid")
 	}

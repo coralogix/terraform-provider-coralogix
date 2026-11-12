@@ -124,7 +124,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating Dashboard | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: name is invalid\"}\noperation - Create"
+      "error: Unable to create dashboard | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: name is invalid\"}"
     ],
     "state": null
   }

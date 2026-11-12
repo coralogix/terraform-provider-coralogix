@@ -126,16 +126,25 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
         "status": 200
-      },
-      {
-        "method": "DELETE",
-        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
-        "status": 200
       }
     ],
     "applyDiagnostics": [
       "error: Unsupported Dashboard Widget Definition | The dynamic widget uses the deprecated top-level `query`, which this provider cannot represent as typed HCL. Manage this dashboard with `content_json`, or move the widget to `query_definitions`, which holds the same queries."
     ],
-    "state": null
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
   }
 ]

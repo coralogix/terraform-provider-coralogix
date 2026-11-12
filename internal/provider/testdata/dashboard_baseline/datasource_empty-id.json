@@ -5,7 +5,7 @@
       "id": ""
     },
     "applyDiagnostics": [
-      "error: Error reading Dashboard | error - dashboardId must have at least 21 elements\noperation - Get"
+      "error: Unable to read coralogix_dashboard | id : dashboardId must have at least 21 elements"
     ],
     "state": {
       "access_policy": null,

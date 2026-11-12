@@ -135,6 +135,31 @@ var dashboardMoreScenarios = map[string]func(*grHarness){
 		s = h.RefreshPlan("refresh and plan after removing them", s)
 		h.Destroy("destroy", s)
 	},
+	// data_mode_type of a logs annotation is new. A dashboard that was changed outside Terraform to read
+	// the archive keeps it when the configuration does not name the attribute, as it did before the
+	// attribute existed. Setting unspecified resets it.
+	"annotation-data-mode": func(h *grHarness) {
+		annotation := func(mode any) j {
+			logs := j{"strategy": j{"instant": j{"timestamp_field": j{"keypath": []any{"timestamp"}, "scope": "metadata"}}}}
+			if mode != nil {
+				logs["data_mode_type"] = mode
+			}
+			return j{"name": "logs annotation", "source": j{"logs": logs}}
+		}
+		cfg := dashboardWith(dashboardConfig(), j{"annotations": []any{annotation(nil)}})
+		s := h.Apply("create with a logs annotation", h.null(), cfg)
+		h.dashboards().edit(idOf(s), func(dashboard map[string]any) {
+			annotations := dashboard["annotations"].([]any)
+			annotations[0].(map[string]any)["source"].(map[string]any)["logs"].(map[string]any)["dataModeType"] = "DATA_MODE_TYPE_ARCHIVE"
+		})
+		s = h.RefreshPlan("refresh and plan after the API switched the annotation to archive", s)
+		cfg = dashboardWith(cfg, j{"name": "renamed"})
+		s = h.Apply("update an unrelated attribute", s, cfg)
+		cfg = dashboardWith(cfg, j{"annotations": []any{annotation("unspecified")}})
+		s = h.Apply("reset the data mode to unspecified", s, cfg)
+		s = h.RefreshPlan("refresh and plan after the reset", s)
+		h.Destroy("destroy", s)
+	},
 	"variables-v2": func(h *grHarness) {
 		variable := func(value string) j {
 			return j{"name": "environment", "display_name": "Environment",
@@ -228,6 +253,11 @@ var dashboardMoreScenarios = map[string]func(*grHarness){
 	},
 	"content-json-dynamic-unsupported-visualization": func(h *grHarness) {
 		contentJSONLifecycle(h, "content_json_dynamic_unsupported_visualization.json")
+	},
+	"content-json-no-time-frame": func(h *grHarness) {
+		// The typed read of this dashboard has no arm of the time frame to show, which the typed schema
+		// reports as an error. content_json manages the dashboard, so the read must still work.
+		contentJSONLifecycle(h, "content_json_no_time_frame.json")
 	},
 	"content-json-dynamic-legacy-query": func(h *grHarness) {
 		contentJSONLifecycle(h, "content_json_dynamic_legacy_query.json")
@@ -573,6 +603,18 @@ func init() {
 			upgraded := h.UpgradeFrom("upgrade a state written by schema version "+itoa(int(version)), version,
 				`{"id":"`+id+`","name":"old name","description":"old description"}`)
 			upgraded = h.RefreshPlan("refresh and plan the upgraded state", upgraded)
+			h.Destroy("destroy", upgraded)
+		}
+		// The old state wrote the folder as a path. The API answers with an id, so only the prior state
+		// knows the arm that the user wrote, and a plan of the same configuration must stay empty.
+		dashboardScenarios["upgrade-v"+itoa(int(version))+"-folder-path"] = func(h *grHarness) {
+			cfg := dashboardWith(dashboardConfig(), j{"folder": j{"path": "Team/Sub"}})
+			s := h.Apply("create the dashboard in a folder by path", h.null(), cfg)
+			id := idOf(s)
+			upgraded := h.UpgradeFrom("upgrade a state written by schema version "+itoa(int(version))+" with a folder path", version,
+				`{"id":"`+id+`","name":"old name","description":"old description","folder":{"id":null,"path":"Team/Sub"}}`)
+			upgraded = h.RefreshPlan("refresh and plan the upgraded state", upgraded)
+			h.Plan("plan the same configuration", upgraded, cfg)
 			h.Destroy("destroy", upgraded)
 		}
 		dashboardScenarios["upgrade-v"+itoa(int(version))+"-missing"] = func(h *grHarness) {

@@ -5,6 +5,7 @@ id  StringAttribute computed
     markdown: "The fixed id of this singleton: there is one per company."
 policies  ListNestedAttribute required
 policies[]  NestedObject
+    validator: tcopoliciesrum.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 policies[].applications  SingleNestedAttribute optional
     markdown: "The applications to apply the policy on. Applies the policy on all the applications by default."
 policies[].applications.names  SetAttribute required elem=basetypes.StringType
@@ -23,7 +24,6 @@ policies[].description  StringAttribute optional computed
     markdown: "The policy description"
 policies[].dpxl_expression  StringAttribute optional
     markdown: "DataPrime expression to match RUM events for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix and reference the canonical `$d.*` schema (not `$d.cx_rum.*`), e.g. `<v1> $d.severity == 'Error'`."
-    validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.severities,<.applications,<.subsystems]"
     validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
 policies[].enabled  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to true
