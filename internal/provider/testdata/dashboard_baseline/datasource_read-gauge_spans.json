@@ -43,6 +43,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -114,8 +115,8 @@
                             ],
                             "lucene_query": "value-lucene_query",
                             "spans_aggregation": {
-                              "aggregation_type": "unspecified",
-                              "field": "unspecified",
+                              "aggregation_type": "avg",
+                              "field": "duration",
                               "type": "metric"
                             },
                             "time_frame": {

@@ -94,6 +94,7 @@
                               }
                             }
                           },
+                          "scaleType": "SCALE_TYPE_LINEAR",
                           "sortBy": "SORT_BY_TYPE_NAME",
                           "stackDefinition": {
                             "maxSlicesPerBar": 1,
@@ -155,6 +156,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -217,7 +219,7 @@
                           },
                           "spans": null
                         },
-                        "scale_type": "unspecified",
+                        "scale_type": "linear",
                         "sort_by": "name",
                         "stack_definition": {
                           "max_slices_per_bar": 1,
@@ -347,6 +349,7 @@
                               }
                             }
                           },
+                          "scaleType": "SCALE_TYPE_LINEAR",
                           "sortBy": "SORT_BY_TYPE_NAME",
                           "stackDefinition": {
                             "maxSlicesPerBar": 1,
@@ -408,6 +411,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -470,7 +474,7 @@
                           },
                           "spans": null
                         },
-                        "scale_type": "unspecified",
+                        "scale_type": "linear",
                         "sort_by": "name",
                         "stack_definition": {
                           "max_slices_per_bar": 1,
@@ -506,11 +510,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (37)",
@@ -564,13 +564,13 @@
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.displayOnBar: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.groupNameTemplate",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.hashColors",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.maxBarsPerChart",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.filters[0].label",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.groupNames[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.groupNames",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.stackedGroupName",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.scaleType: \"SCALE_TYPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.scaleType: \"SCALE_TYPE_LINEAR\" → \"SCALE_TYPE_UNSPECIFIED\"",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.sortBy: \"SORT_BY_TYPE_NAME\" → \"SORT_BY_TYPE_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.stackDefinition.maxSlicesPerBar",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.stackDefinition.stackNameTemplate",
@@ -597,6 +597,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.filters[0].label: \"value-label\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.group_names: [\"value-group_names\"] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.stacked_group_name: \"value-stacked_group_name\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type: \"linear\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.sort_by: \"name\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.stack_definition.max_slices_per_bar: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.stack_definition.stack_name_template: \"value-stack_name_template\" → null",
@@ -615,7 +616,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:ba7de964] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:38caf2d5] → null"
     ],
     "replanEmpty": true
   },
@@ -632,7 +633,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:dcbd02e1] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:0abba9c8] → null"
     ],
     "replanEmpty": true
   },
@@ -643,7 +644,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:e61e29d8] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:2517ca86] → null"
     ],
     "replanEmpty": true
   },
@@ -665,19 +666,12 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.stackDefinition"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query: {\"data_prime\":null,\"logs\":null,\"metrics\":{\"aggregation\":\"avg\",\"editor_mode\":\"builder\",\"filters\":[{\"label\":\"value-label\",\"metric\":\"value-metric\",\"operator\":{\"sel…[sha256:033f14de] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.stack_definition: {\"max_slices_per_bar\":1,\"stack_name_template\":\"value-stack_name_template\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects, round 5 (2)",
@@ -696,32 +690,18 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.filters: [{\"label\":\"value-label\",\"metric\":\"value-metric\",\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:ba7de964] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -803,18 +783,9 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.groupNames[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.group_names: [\"value-group_names\"] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.group_names[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.group_names",
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"group_names\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (7)",
@@ -848,14 +819,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.sort_by: \"name\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (6)",
@@ -888,14 +852,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"usd_cents\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.y_axis_view_by: \"category\" → \"value\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
@@ -947,28 +904,33 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"bytes_iec\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.y_axis_view_by: \"category\" → \"value\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.metrics.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.metrics.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.metrics.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.metrics.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].options.color = orange",
@@ -981,13 +943,6 @@
     "stateDiff": [
       "~ .layout.sections[0].options.color: \"green\" → \"orange\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   }
 ]

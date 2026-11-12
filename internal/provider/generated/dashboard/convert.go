@@ -2879,6 +2879,7 @@ var requiredAttrs = map[string]bool{
 	"variables_v2.value.multi_string.list.values.value.value": true,
 	"variables_v2.value.regex.value":                          true,
 	"variables_v2.value.single_numeric.value":                 true,
+	"variables_v2.value.single_string.value":                  true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the

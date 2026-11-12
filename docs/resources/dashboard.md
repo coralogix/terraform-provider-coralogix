@@ -8714,7 +8714,10 @@ Optional:
 <a id="nestedatt--variables_v2--value--single_string"></a>
 ### Nested Schema for `variables_v2.value.single_string`
 
+Required:
+
+- `value` (String) The value.
+
 Optional:
 
 - `label` (String) The label.
-- `value` (String) The value.

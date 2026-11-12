@@ -709,6 +709,22 @@ func (b *convBuilder) applyJoin(cf *convField, sep string) error {
 	return nil
 }
 
+// UpgradePrior are the fields of the resource that a state upgrade copies from the prior state into
+// the prior model of flatten: the groups that keep the arm the user wrote. The prior schema holds
+// them with the same type as the current one, and the API cannot tell which arm the user wrote.
+func (d *convData) UpgradePrior() []*convField {
+	var out []*convField
+	if d.Resource == nil {
+		return nil
+	}
+	for _, f := range d.Resource.Fields {
+		if f.Conv == convGroup && !f.ObjectValue && f.Object != nil && f.Object.KeepPriorArm {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
 // UsesKeepPriorArm reports whether a group keeps the prior arm. The template then emits its helper.
 func (d *convData) UsesKeepPriorArm() bool {
 	return slices.ContainsFunc(d.Objects, func(o *convObject) bool { return o.KeepPriorArm })

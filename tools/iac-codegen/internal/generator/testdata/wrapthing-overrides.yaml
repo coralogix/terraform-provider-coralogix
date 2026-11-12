@@ -5,6 +5,12 @@ mode: existing
 # The API cannot tell an empty list from a missing one: every list reads empty as null.
 readEmptyAs: "null"
 
+# A state upgrade reads the resource and keeps the arm of the home that the prior state wrote.
+schema:
+  version: 2
+  upgrade:
+    1: {priorSchema: example.com/iac-test-sdk/legacyprior.V1, strategy: refresh}
+
 validators:
   inferred: false
 

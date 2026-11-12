@@ -580,6 +580,18 @@ func init() {
 			upgraded = h.RefreshPlan("refresh and plan the upgraded state", upgraded)
 			h.Destroy("destroy", upgraded)
 		}
+		// The old state wrote the folder as a path. The API answers with an id, so only the prior state
+		// knows the arm that the user wrote, and a plan of the same configuration must stay empty.
+		dashboardScenarios["upgrade-v"+itoa(int(version))+"-folder-path"] = func(h *grHarness) {
+			cfg := dashboardWith(dashboardConfig(), j{"folder": j{"path": "Team/Sub"}})
+			s := h.Apply("create the dashboard in a folder by path", h.null(), cfg)
+			id := idOf(s)
+			upgraded := h.UpgradeFrom("upgrade a state written by schema version "+itoa(int(version))+" with a folder path", version,
+				`{"id":"`+id+`","name":"old name","description":"old description","folder":{"id":null,"path":"Team/Sub"}}`)
+			upgraded = h.RefreshPlan("refresh and plan the upgraded state", upgraded)
+			h.Plan("plan the same configuration", upgraded, cfg)
+			h.Destroy("destroy", upgraded)
+		}
 		dashboardScenarios["upgrade-v"+itoa(int(version))+"-missing"] = func(h *grHarness) {
 			h.UpgradeFrom("upgrade a state whose dashboard does not exist", version,
 				`{"id":"missing-dashboard-001","name":"old name"}`)

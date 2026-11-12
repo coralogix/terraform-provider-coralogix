@@ -15,6 +15,7 @@ import (
 
 	"example.com/iac-test-sdk/go/openapi/cxsdk"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
+	priorSchema1 "example.com/iac-test-sdk/legacyprior"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 )
 
@@ -27,6 +28,7 @@ var (
 	_ resource.ResourceWithConfigValidators = (*Resource)(nil)
 	_ resource.ResourceWithImportState      = (*Resource)(nil)
 	_ resource.ResourceWithValidateConfig   = (*Resource)(nil)
+	_ resource.ResourceWithUpgradeState     = (*Resource)(nil)
 )
 
 // Resource is the Terraform resource. The provider data must be a
@@ -267,6 +269,12 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // the state takes the value of the API. flatten returns an error when the response has no
 // resource.
 func (r *Resource) setState(ctx context.Context, v *wrap_things_service.WrapThing, prior tfData, state *tfsdk.State) diag.Diagnostics {
+	return r.setStateKept(ctx, v, prior, prior, state)
+}
+
+// setStateKept is setState that takes the attributes that the API does not hold from keptFrom,
+// for a state upgrade, whose kept values are in the state of the prior schema.
+func (r *Resource) setStateKept(ctx context.Context, v *wrap_things_service.WrapThing, prior, keptFrom tfData, state *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeFlatten != nil && v != nil {
 		diags.Append(r.hooks.BeforeFlatten(ctx, v)...)
@@ -276,11 +284,18 @@ func (r *Resource) setState(ctx context.Context, v *wrap_things_service.WrapThin
 	}
 	if r.hooks.AllowUnsupported != nil {
 		source := prior
+		if source == nil {
+			source = keptFrom
+		}
 		if source != nil && r.hooks.AllowUnsupported(ctx, source) {
 			ctx = withUnsupportedAllowed(ctx)
 		}
 	}
-	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
+	priorBefore := priorModel(ctx, prior)
+	if prior == nil && keptFrom != nil {
+		priorBefore = upgradePriorModel(ctx, keptFrom)
+	}
+	m, flattenDiags := flatten(ctx, v, priorBefore)
 	if m != nil && unsupportedAllowed(ctx) {
 		// The hook that allowed the unsupported values manages the resource another way and drops its
 		// typed attributes, so a value that the schema cannot show is no error here.
@@ -320,6 +335,18 @@ func priorModel(ctx context.Context, data tfData) *WrapThingModel {
 	return &m
 }
 
+// upgradePriorModel returns a prior model for a state upgrade. The prior state has the type of an
+// older schema, so the model is not read from it as a whole. The attributes that keep the arm that the
+// user wrote are copied one by one, and an attribute that the old schema holds with another type
+// stays null.
+func upgradePriorModel(ctx context.Context, keptFrom tfData) *WrapThingModel {
+	var m WrapThingModel
+	if keptFrom.GetAttribute(ctx, path.Root("home"), &m.Home).HasError() {
+		m.Home = nil
+	}
+	return &m
+}
+
 // Flatten returns the Terraform model of a resource in an API response, for a data source that
 // uses the schema and the model of this resource. It has no prior model.
 func Flatten(ctx context.Context, v *wrap_things_service.WrapThing) (*WrapThingModel, diag.Diagnostics) {
@@ -335,6 +362,42 @@ func Expand(ctx context.Context, m *WrapThingModel) (*wrap_things_service.Create
 	var diags diag.Diagnostics
 	out := expandCreateWrapThingRequest(ctx, path.Empty(), m, &diags)
 	return out, diags
+}
+
+// UpgradeState upgrades the state of an older schema version. The prior schema only decodes the
+// old state. The upgrader reads the resource from the API, so it does not translate any value.
+func (r *Resource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
+	prior1 := priorSchema1.V1()
+	return map[int64]resource.StateUpgrader{
+		1: {PriorSchema: &prior1, StateUpgrader: r.upgradeByRefresh},
+	}
+}
+
+func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	if req.State == nil {
+		resp.Diagnostics.AddError("Missing prior state", "The state upgrade request has no prior state.")
+		return
+	}
+	id, diags := stateID(ctx, *req.State)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	v, err := r.get(ctx, id)
+	if cxsdk.IsNotFound(err) {
+		// The framework does not allow a state upgrade to remove the resource from state,
+		// and a refresh runs the upgrade first, so only the user can remove it.
+		resp.Diagnostics.AddError("Resource no longer exists",
+			fmt.Sprintf("The API did not find %s with id %v, so Terraform cannot upgrade its state. Run terraform state rm on its address to remove it from state, and the next plan creates it again.", TypeName, id))
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
+		return
+	}
+	// The API holds no value of the kept attributes. A prior schema that has one keeps its value,
+	// and AfterFlatten can still replace it.
+	resp.Diagnostics.Append(r.setStateKept(ctx, v, nil, req.State, &resp.State)...)
 }
 
 // stateID returns the id in the state.

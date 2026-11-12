@@ -5676,5 +5676,5 @@ variables_v2[].value.single_string  SingleNestedAttribute optional
     markdown: "Single string value."
 variables_v2[].value.single_string.label  StringAttribute optional
     markdown: "The label."
-variables_v2[].value.single_string.value  StringAttribute optional
+variables_v2[].value.single_string.value  StringAttribute required
     markdown: "The value."

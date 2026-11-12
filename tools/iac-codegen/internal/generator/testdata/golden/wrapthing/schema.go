@@ -20,6 +20,7 @@ import (
 // Schema is the Terraform schema of the resource.
 func Schema() schema.Schema {
 	return schema.Schema{
+		Version: 2,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

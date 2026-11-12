@@ -43,6 +43,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -120,7 +121,7 @@
                           "max_slices_per_stack": 1,
                           "stack_name_template": "value-stack_name_template"
                         },
-                        "unit": "unspecified"
+                        "unit": "percent"
                       }
                     },
                     "description": "value-description",

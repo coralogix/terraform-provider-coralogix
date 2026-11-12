@@ -383,7 +383,11 @@ func (r *Resource) setStateKept(ctx context.Context, v *dashboard_service.Dashbo
 			ctx = withUnsupportedAllowed(ctx)
 		}
 	}
-	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
+	priorBefore := priorModel(ctx, prior)
+	if prior == nil && keptFrom != nil {
+		priorBefore = upgradePriorModel(ctx, keptFrom)
+	}
+	m, flattenDiags := flatten(ctx, v, priorBefore)
 	if m != nil && unsupportedAllowed(ctx) {
 		// The hook that allowed the unsupported values manages the resource another way and drops its
 		// typed attributes, so a value that the schema cannot show is no error here.
@@ -443,6 +447,18 @@ func priorModel(ctx context.Context, data tfData) *DashboardModel {
 	var m DashboardModel
 	if data == nil || data.Get(ctx, &m).HasError() {
 		return nil
+	}
+	return &m
+}
+
+// upgradePriorModel returns a prior model for a state upgrade. The prior state has the type of an
+// older schema, so the model is not read from it as a whole. The attributes that keep the arm that the
+// user wrote are copied one by one, and an attribute that the old schema holds with another type
+// stays null.
+func upgradePriorModel(ctx context.Context, keptFrom tfData) *DashboardModel {
+	var m DashboardModel
+	if keptFrom.GetAttribute(ctx, path.Root("folder"), &m.Folder).HasError() {
+		m.Folder = nil
 	}
 	return &m
 }

@@ -96,6 +96,7 @@
             },
             "source": {
               "logs": {
+                "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
                 "labelFields": [
                   {
                     "keypath": [
@@ -109,8 +110,14 @@
                 },
                 "messageTemplate": "value-message_template",
                 "strategy": {
-                  "instant": {
-                    "timestampField": {
+                  "duration": {
+                    "durationField": {
+                      "keypath": [
+                        "value-keypath"
+                      ],
+                      "scope": "DATASET_SCOPE_LABEL"
+                    },
+                    "startTimestampField": {
                       "keypath": [
                         "value-keypath"
                       ],
@@ -188,6 +195,7 @@
             },
             "source": {
               "spans": {
+                "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
                 "labelFields": [
                   {
                     "keypath": [
@@ -201,8 +209,14 @@
                 },
                 "messageTemplate": "value-message_template",
                 "strategy": {
-                  "instant": {
-                    "timestampField": {
+                  "duration": {
+                    "durationField": {
+                      "keypath": [
+                        "value-keypath"
+                      ],
+                      "scope": "DATASET_SCOPE_LABEL"
+                    },
+                    "startTimestampField": {
                       "keypath": [
                         "value-keypath"
                       ],
@@ -925,6 +939,7 @@
             "dataprime": null,
             "event_recurrence": null,
             "logs": {
+              "data_mode_type": "unspecified",
               "label_fields": [
                 {
                   "keypath": [
@@ -936,15 +951,21 @@
               "lucene_query": "value-lucene_query",
               "message_template": "value-message_template",
               "strategy": {
-                "duration": null,
-                "instant": {
-                  "timestamp_field": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
                     "keypath": [
                       "value-keypath"
                     ],
                     "scope": "label"
                   }
                 },
+                "instant": null,
                 "range": null
               }
             },
@@ -1003,6 +1024,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": [
                 "value-labels"
               ],
@@ -1037,6 +1059,7 @@
             "manual": null,
             "metrics": null,
             "spans": {
+              "data_mode_type": "unspecified",
               "label_fields": [
                 {
                   "keypath": [
@@ -1048,15 +1071,21 @@
               "lucene_query": "value-lucene_query",
               "message_template": "value-message_template",
               "strategy": {
-                "duration": null,
-                "instant": {
-                  "timestamp_field": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
                     "keypath": [
                       "value-keypath"
                     ],
                     "scope": "label"
                   }
                 },
+                "instant": null,
                 "range": null
               }
             }
@@ -1321,6 +1350,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -1342,6 +1372,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -1366,6 +1397,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -1403,6 +1435,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -1427,6 +1460,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -1450,6 +1484,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         }
@@ -1556,7 +1591,9 @@
                 "default_lucene_value": null,
                 "default_numeric_value": null,
                 "default_regex_value": null,
-                "default_string_value": null
+                "default_string_value": null,
+                "single_numeric": null,
+                "single_string": null
               }
             }
           },
@@ -1589,6 +1626,7 @@
               "dataprime_query": null,
               "logs_query": {
                 "type": {
+                  "field_name": null,
                   "field_value": {
                     "observation_field": {
                       "keypath": [
@@ -1679,7 +1717,9 @@
                 },
                 "default_numeric_value": null,
                 "default_regex_value": null,
-                "default_string_value": null
+                "default_string_value": null,
+                "single_numeric": null,
+                "single_string": null
               }
             }
           },
@@ -1795,6 +1835,7 @@
             },
             "source": {
               "logs": {
+                "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
                 "labelFields": [
                   {
                     "keypath": [
@@ -1808,8 +1849,14 @@
                 },
                 "messageTemplate": "value-message_template",
                 "strategy": {
-                  "instant": {
-                    "timestampField": {
+                  "duration": {
+                    "durationField": {
+                      "keypath": [
+                        "value-keypath"
+                      ],
+                      "scope": "DATASET_SCOPE_LABEL"
+                    },
+                    "startTimestampField": {
                       "keypath": [
                         "value-keypath"
                       ],
@@ -1887,6 +1934,7 @@
             },
             "source": {
               "spans": {
+                "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
                 "labelFields": [
                   {
                     "keypath": [
@@ -1900,8 +1948,14 @@
                 },
                 "messageTemplate": "value-message_template",
                 "strategy": {
-                  "instant": {
-                    "timestampField": {
+                  "duration": {
+                    "durationField": {
+                      "keypath": [
+                        "value-keypath"
+                      ],
+                      "scope": "DATASET_SCOPE_LABEL"
+                    },
+                    "startTimestampField": {
                       "keypath": [
                         "value-keypath"
                       ],
@@ -2626,6 +2680,7 @@
             "dataprime": null,
             "event_recurrence": null,
             "logs": {
+              "data_mode_type": "unspecified",
               "label_fields": [
                 {
                   "keypath": [
@@ -2637,15 +2692,21 @@
               "lucene_query": "value-lucene_query",
               "message_template": "value-message_template",
               "strategy": {
-                "duration": null,
-                "instant": {
-                  "timestamp_field": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
                     "keypath": [
                       "value-keypath"
                     ],
                     "scope": "label"
                   }
                 },
+                "instant": null,
                 "range": null
               }
             },
@@ -2704,6 +2765,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": [
                 "value-labels"
               ],
@@ -2738,6 +2800,7 @@
             "manual": null,
             "metrics": null,
             "spans": {
+              "data_mode_type": "unspecified",
               "label_fields": [
                 {
                   "keypath": [
@@ -2749,15 +2812,21 @@
               "lucene_query": "value-lucene_query",
               "message_template": "value-message_template",
               "strategy": {
-                "duration": null,
-                "instant": {
-                  "timestamp_field": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
                     "keypath": [
                       "value-keypath"
                     ],
                     "scope": "label"
                   }
                 },
+                "instant": null,
                 "range": null
               }
             }
@@ -3022,6 +3091,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -3043,6 +3113,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -3067,6 +3138,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -3104,6 +3176,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -3128,6 +3201,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         },
@@ -3151,6 +3225,7 @@
               "values_order_direction": "asc"
             }
           },
+          "description": null,
           "display_name": "value-display_name",
           "name": "value-name"
         }
@@ -3257,7 +3332,9 @@
                 "default_lucene_value": null,
                 "default_numeric_value": null,
                 "default_regex_value": null,
-                "default_string_value": null
+                "default_string_value": null,
+                "single_numeric": null,
+                "single_string": null
               }
             }
           },
@@ -3290,6 +3367,7 @@
               "dataprime_query": null,
               "logs_query": {
                 "type": {
+                  "field_name": null,
                   "field_value": {
                     "observation_field": {
                       "keypath": [
@@ -3380,7 +3458,9 @@
                 },
                 "default_numeric_value": null,
                 "default_regex_value": null,
-                "default_string_value": null
+                "default_string_value": null,
+                "single_numeric": null,
+                "single_string": null
               }
             }
           },
@@ -3401,22 +3481,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (31)",
@@ -3454,30 +3519,6 @@
       "remove variables_v2[].value.interval.label"
     ],
     "diagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"variables_v2\").ElementKeyInt(0).AttributeName(\"source\").AttributeName(\"query\").AttributeName(\"value_display_options\")] | Configure at least one of: `value_regex`, `label_regex`.",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "remove optional values (15)",
-    "changes": [
-      "remove access_policy",
-      "remove annotations[].color",
-      "remove annotations[].description",
-      "remove annotations[].enabled",
-      "remove annotations[].id",
-      "remove annotations[].source.dataprime.data_mode_type",
-      "remove annotations[].source.dataprime.message_template",
-      "remove annotations[].source.dataprime.orientation",
-      "remove auto_refresh.type",
-      "remove description",
-      "remove filters[].collapsed",
-      "remove filters[].display_name",
-      "remove filters[].enabled",
-      "remove filters[].id",
-      "remove filters[].source.logs.field"
-    ],
-    "diagnostics": [
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
     "requestDiff": [
@@ -3489,7 +3530,20 @@
       "- .dashboard.description",
       "~ .dashboard.filters[0].collapsed: true → false",
       "- .dashboard.filters[0].displayName",
-      "- .dashboard.filters[0].source.logs.field"
+      "- .dashboard.filters[0].source.logs.field",
+      "~ .dashboard.name: \"value-name updated\" → \"\\u003cnil\\u003e updated\"",
+      "+ .dashboard.variables[0].definition.multiSelect.selection.all: {}",
+      "- .dashboard.variables[0].definition.multiSelect.selection.list",
+      "- .dashboard.variables[0].definition.multiSelect.selectionOptions",
+      "- .dashboard.variables[0].name",
+      "- .dashboard.variablesV2[0].description",
+      "- .dashboard.variablesV2[0].displayFullRow",
+      "- .dashboard.variablesV2[0].source.query.allOption.label",
+      "~ .dashboard.variablesV2[0].source.query.dataprimeQuery.type.queryText.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "- .dashboard.variablesV2[0].source.query.refreshStrategy",
+      "- .dashboard.variablesV2[0].source.query.valueDisplayOptions.labelRegex",
+      "- .dashboard.variablesV2[0].source.query.valueDisplayOptions.valueRegex",
+      "- .dashboard.variablesV2[0].value.interval.value.label"
     ],
     "stateDiff": [
       "~ .annotations[0].color: \"blue\" → null",
@@ -3499,301 +3553,21 @@
       "~ .description: \"value-description\" → null",
       "~ .filters[0].collapsed: true → false",
       "~ .filters[0].display_name: \"value-display_name\" → null",
-      "~ .filters[0].source.logs.field: \"value-field\" → null"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "remove optional values (16)",
-    "changes": [
-      "remove filters[].source.logs.operator.selection_type",
-      "remove name",
-      "remove variables[].definition.multi_select.selected_values",
-      "remove variables[].definition.multi_select.selection_type",
-      "remove variables[].name",
-      "remove variables_v2[].description",
-      "remove variables_v2[].display_full_row",
-      "remove variables_v2[].display_type",
-      "remove variables_v2[].id",
-      "remove variables_v2[].source.query.all_option.label",
-      "remove variables_v2[].source.query.dataprime_query.type.query_text.data_mode_type",
-      "remove variables_v2[].source.query.refresh_strategy",
-      "remove variables_v2[].source.query.value_display_options.label_regex",
-      "remove variables_v2[].source.query.value_display_options.value_regex",
-      "remove variables_v2[].source.query.values_order_direction",
-      "remove variables_v2[].value.interval.label"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"variables_v2\").ElementKeyInt(0).AttributeName(\"source\").AttributeName(\"query\").AttributeName(\"value_display_options\")] | Configure at least one of: `value_regex`, `label_regex`.",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "remove optional values (8)",
-    "changes": [
-      "remove filters[].source.logs.operator.selection_type",
-      "remove name",
-      "remove variables[].definition.multi_select.selected_values",
-      "remove variables[].definition.multi_select.selection_type",
-      "remove variables[].name",
-      "remove variables_v2[].description",
-      "remove variables_v2[].display_full_row",
-      "remove variables_v2[].display_type"
-    ],
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "~ .dashboard.name: \"value-name updated\" → \"\\u003cnil\\u003e updated\"",
-      "+ .dashboard.variables[0].definition.multiSelect.selection.all: {}",
-      "- .dashboard.variables[0].definition.multiSelect.selection.list",
-      "- .dashboard.variables[0].definition.multiSelect.selectionOptions",
-      "- .dashboard.variables[0].name",
-      "- .dashboard.variablesV2[0].description",
-      "- .dashboard.variablesV2[0].displayFullRow"
-    ],
-    "stateDiff": [
+      "~ .filters[0].source.logs.field: \"value-field\" → null",
       "~ .name: \"value-name updated\" → \"\\u003cnil\\u003e updated\"",
       "- .variables[0].definition.multi_select.selected_values[0]",
       "~ .variables[0].definition.multi_select.selection_type: \"multi\" → null",
       "~ .variables[0].name: \"value-name\" → null",
       "~ .variables_v2[0].description: \"value-description\" → null",
-      "~ .variables_v2[0].display_full_row: false → null"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "remove optional values (8)",
-    "changes": [
-      "remove variables_v2[].id",
-      "remove variables_v2[].source.query.all_option.label",
-      "remove variables_v2[].source.query.dataprime_query.type.query_text.data_mode_type",
-      "remove variables_v2[].source.query.refresh_strategy",
-      "remove variables_v2[].source.query.value_display_options.label_regex",
-      "remove variables_v2[].source.query.value_display_options.value_regex",
-      "remove variables_v2[].source.query.values_order_direction",
-      "remove variables_v2[].value.interval.label"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"variables_v2\").ElementKeyInt(0).AttributeName(\"source\").AttributeName(\"query\").AttributeName(\"value_display_options\")] | Configure at least one of: `value_regex`, `label_regex`.",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "remove optional values (4)",
-    "changes": [
-      "remove variables_v2[].id",
-      "remove variables_v2[].source.query.all_option.label",
-      "remove variables_v2[].source.query.dataprime_query.type.query_text.data_mode_type",
-      "remove variables_v2[].source.query.refresh_strategy"
-    ],
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "- .dashboard.variablesV2[0].source.query.allOption.label",
-      "~ .dashboard.variablesV2[0].source.query.dataprimeQuery.type.queryText.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
-      "- .dashboard.variablesV2[0].source.query.refreshStrategy"
-    ],
-    "stateDiff": [
+      "~ .variables_v2[0].display_full_row: false → null",
       "~ .variables_v2[0].source.query.all_option.label: \"value-label\" → null",
       "~ .variables_v2[0].source.query.dataprime_query.type.query_text.data_mode_type: \"archive\" → \"high\"",
-      "~ .variables_v2[0].source.query.refresh_strategy: \"on_dashboard_load\" → null"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "remove optional values (4)",
-    "changes": [
-      "remove variables_v2[].source.query.value_display_options.label_regex",
-      "remove variables_v2[].source.query.value_display_options.value_regex",
-      "remove variables_v2[].source.query.values_order_direction",
-      "remove variables_v2[].value.interval.label"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"variables_v2\").ElementKeyInt(0).AttributeName(\"source\").AttributeName(\"query\").AttributeName(\"value_display_options\")] | Configure at least one of: `value_regex`, `label_regex`.",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "remove optional values (2)",
-    "changes": [
-      "remove variables_v2[].source.query.value_display_options.label_regex",
-      "remove variables_v2[].source.query.value_display_options.value_regex"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"variables_v2\").ElementKeyInt(0).AttributeName(\"source\").AttributeName(\"query\").AttributeName(\"value_display_options\")] | Configure at least one of: `value_regex`, `label_regex`.",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "remove variables_v2[].source.query.value_display_options.label_regex",
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "- .dashboard.variablesV2[0].source.query.valueDisplayOptions.labelRegex"
-    ],
-    "stateDiff": [
-      "~ .variables_v2[0].source.query.value_display_options.label_regex: \"value-label_regex\" → null"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "remove variables_v2[].source.query.value_display_options.value_regex",
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "- .dashboard.variablesV2[0].source.query.valueDisplayOptions.valueRegex"
-    ],
-    "stateDiff": [
-      "~ .variables_v2[0].source.query.value_display_options.value_regex: \"value-value_regex\" → null"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "remove optional values (2)",
-    "changes": [
-      "remove variables_v2[].source.query.values_order_direction",
-      "remove variables_v2[].value.interval.label"
-    ],
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "- .dashboard.variablesV2[0].value.interval.value.label"
-    ],
-    "stateDiff": [
+      "~ .variables_v2[0].source.query.refresh_strategy: \"on_dashboard_load\" → null",
+      "~ .variables_v2[0].source.query.value_display_options.label_regex: \"value-label_regex\" → null",
+      "~ .variables_v2[0].source.query.value_display_options.value_regex: \"value-value_regex\" → null",
       "~ .variables_v2[0].value.interval.label: \"value-label\" → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects (7)",
@@ -3816,13 +3590,13 @@
       "- .dashboard.variablesV2"
     ],
     "stateDiff": [
-      "~ .annotations: [{\"color\":\"blue\",\"description\":\"value-description\",\"enabled\":true,\"id\":\"<id-1>\",\"name\":\"value-name\",\"scope\":{\"all_widgets\":{},\"spe…[sha256:47d7c856] → null",
+      "~ .annotations: [{\"color\":\"blue\",\"description\":\"value-description\",\"enabled\":true,\"id\":\"<id-1>\",\"name\":\"value-name\",\"scope\":{\"all_widgets\":{},\"spe…[sha256:a449a4df] → null",
       "~ .auto_refresh: {\"type\":\"off\"} → null",
       "~ .filters: [{\"collapsed\":true,\"display_name\":\"value-display_name\",\"enabled\":true,\"id\":\"<id-1>\",\"scope\":{\"all_widgets\":{},\"specific_widgets\":n…[sha256:dda802d9] → null",
       "~ .folder: {\"id\":\"<id-3>\",\"path\":null} → null",
       "~ .time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
-      "~ .variables: [{\"definition\":{\"constant_value\":null,\"multi_select\":{\"selected_values\":[\"value-selected_values\"],\"selection_type\":\"multi\",\"source\":{\"constant_list\":[\"value-con…[sha256:d94188c0] → null",
-      "~ .variables_v2: [{\"description\":\"value-description\",\"display_full_row\":false,\"display_name\":\"value-display_name\",\"display_type\":\"label_value\",\"id\":\"22222222-2222-4222-8222-2222…[sha256:7230977d] → null"
+      "~ .variables: [{\"definition\":{\"constant_value\":null,\"multi_select\":{\"selected_values\":[\"value-selected_values\"],\"selection_type\":\"multi\",\"source\":{\"constant_list\":[\"value-con…[sha256:3659de8e] → null",
+      "~ .variables_v2: [{\"description\":\"value-description\",\"display_full_row\":false,\"display_name\":\"value-display_name\",\"display_type\":\"label_value\",\"id\":\"22222222-2222-4222-8222-2222…[sha256:a51d6906] → null"
     ],
     "replanEmpty": true
   },
@@ -3855,28 +3629,7 @@
       "~ .variables[0].definition.multi_select.source: {\"constant_list\":[\"value-constant_list\"],\"logs_path\":null,\"metric_label\":null,\"query\":null,\"span_field\":null} → null",
       "~ .variables_v2[0].source.query.value_display_options: {\"label_regex\":\"value-label_regex\",\"value_regex\":\"value-value_regex\"} → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty optional lists (4)",
@@ -3957,42 +3710,17 @@
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
     "requestDiff": [
-      "- .dashboard.annotations[0].source.dataprime.labelFields",
+      "- .dashboard.annotations[0].source.dataprime.labelFields[0]",
       "+ .dashboard.variables[0].definition.multiSelect.selection.all: {}",
       "- .dashboard.variables[0].definition.multiSelect.selection.list",
       "- .dashboard.variables[0].definition.multiSelect.source.constantList.values[0]"
     ],
     "stateDiff": [
-      "~ .annotations[0].source.dataprime.label_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
+      "- .annotations[0].source.dataprime.label_fields[0]",
       "- .variables[0].definition.multi_select.selected_values[0]",
-      "~ .variables[0].definition.multi_select.source.constant_list: [\"value-constant_list\"] → null"
+      "- .variables[0].definition.multi_select.source.constant_list[0]"
     ],
-    "inconsistentResult": [
-      "annotations[0].source.dataprime.label_fields",
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range",
-      "variables[0].definition.multi_select.source.constant_list"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(0).AttributeName(\"source\").AttributeName(\"dataprime\").AttributeName(\"label_fields\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")",
-      "AttributeName(\"variables\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"multi_select\").AttributeName(\"source\").AttributeName(\"constant_list\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (6)",
@@ -4023,28 +3751,7 @@
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"unspecified\"",
       "~ .variables[0].definition.multi_select.values_order_direction: \"asc\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (11)",
@@ -4091,28 +3798,7 @@
       "~ .variables_v2[0].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
       "~ .variables_v2[0].source.query.values_order_direction: \"asc\" → \"none\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
@@ -4132,7 +3818,8 @@
       "+ .dashboard.annotations[1].source.eventRecurrence.strategy.instant: {\"startTimeHour\":1}",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[3].source.manual.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "- .dashboard.annotations[3].source.manual.strategy.instant",
@@ -4141,7 +3828,8 @@
       "~ .dashboard.annotations[4].source.metrics.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
       "- .dashboard.filters[0].source.logs.operator.equals",
       "+ .dashboard.filters[0].source.logs.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
@@ -4228,7 +3916,8 @@
       "~ .annotations[1].source.event_recurrence.strategy.instant: null → {\"start_time_hour\":1}",
       "~ .annotations[2].color: \"blue\" → \"cyan\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .annotations[3].color: \"blue\" → \"cyan\"",
       "~ .annotations[3].source.manual.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[3].source.manual.strategy.instant: {\"custom_unit\":\"value-custom_unit\",\"unit\":\"bytes\",\"value\":1} → null",
@@ -4237,7 +3926,8 @@
       "~ .annotations[4].source.metrics.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[5].color: \"blue\" → \"cyan\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .auto_refresh.type: \"off\" → \"one_minute\"",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"metadata\"",
       "+ .filters[0].source.logs.operator.selected_values[0]: \"value-selected_values\"",
@@ -4308,9 +3998,9 @@
       "~ .variables_v2[2].value.multi_string.all: {} → null",
       "~ .variables_v2[2].value.multi_string.list: null → {\"values\":[{\"value\":{\"label\":\"value-label\",\"value\":\"value-value\"}}]}",
       "~ .variables_v2[3].display_type: \"label_value\" → \"nothing\"",
-      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
+      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
       "~ .variables_v2[3].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
-      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"value\":null}}}",
+      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"value\":null}}}",
       "~ .variables_v2[3].source.query.values_order_direction: \"asc\" → \"desc\"",
       "~ .variables_v2[4].display_type: \"label_value\" → \"nothing\"",
       "~ .variables_v2[4].source.static.values_order_direction: \"asc\" → \"desc\"",
@@ -4318,42 +4008,33 @@
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_regex_value: null → {\"value\":\"value-value\"}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove filters[].source.logs.operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.filters[0].source.logs.operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .filters[0].source.logs.operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "empty filters[].source.logs.operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.filters[0].source.logs.operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .filters[0].source.logs.operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set annotations[].source.dataprime.strategy.instant.timestamp_field.scope = unspecified",
@@ -4366,28 +4047,7 @@
     "stateDiff": [
       "~ .annotations[0].source.dataprime.strategy.instant.timestamp_field.scope: \"metadata\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set annotations[].source.dataprime.strategy.instant.timestamp_field.scope = user_data",
@@ -4400,28 +4060,7 @@
     "stateDiff": [
       "~ .annotations[0].source.dataprime.strategy.instant.timestamp_field.scope: \"metadata\" → \"user_data\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 2",
@@ -4437,13 +4076,15 @@
       "~ .dashboard.annotations[1].source.eventRecurrence.recurrence.weekly.daysOfWeek[0]: \"WEEKDAY_FRIDAY\" → \"WEEKDAY_SATURDAY\"",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[3].source.manual.strategy.instant.unit: \"UNIT_BYTES\" → \"UNIT_CUSTOM\"",
       "~ .dashboard.annotations[4].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
       "- .dashboard.filters[2].source.spans.field.metadataField",
       "+ .dashboard.filters[2].source.spans.field.processTagField: \"value-value\"",
@@ -4495,13 +4136,15 @@
       "~ .annotations[1].source.event_recurrence.recurrence.weekly.days_of_week[0]: \"friday\" → \"saturday\"",
       "~ .annotations[2].color: \"blue\" → \"default\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .annotations[3].color: \"blue\" → \"default\"",
       "~ .annotations[3].source.manual.strategy.instant.unit: \"bytes\" → \"custom\"",
       "~ .annotations[4].color: \"blue\" → \"default\"",
       "~ .annotations[5].color: \"blue\" → \"default\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .auto_refresh.type: \"off\" → \"two_minutes\"",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"user_data\"",
       "~ .filters[2].source.spans.field.type: \"metadata\" → \"process_tag\"",
@@ -4543,28 +4186,7 @@
       "~ .variables_v2[5].source.textbox.default_value.default_interval_value: null → {\"value\":\"value-value\"}",
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove variables[].definition.multi_select.source.metric_label.metric_name",
@@ -4577,28 +4199,7 @@
     "stateDiff": [
       "~ .variables[0].definition.multi_select.source.metric_label.metric_name: \"value-metric_name\" → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (2)",
@@ -4617,28 +4218,7 @@
       "~ .annotations[0].source.dataprime.strategy.range.end_timestamp_field.scope: \"user_data\" → \"unspecified\"",
       "~ .annotations[0].source.dataprime.strategy.range.start_timestamp_field.scope: \"user_data\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 3",
@@ -4780,34 +4360,13 @@
       "~ .variables_v2[0].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
       "~ .variables_v2[2].source.textbox.default_value.default_interval_value: {\"value\":\"value-value\"} → null",
       "~ .variables_v2[2].source.textbox.default_value.default_lucene_value: null → {\"data_mode_type\":\"high\",\"value\":\"value-value\"}",
-      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
+      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
       "~ .variables_v2[3].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
-      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_value\":{\"observation_field\":null,\"value\":{\"type\":\"metadata\",\"value\":\"service_name\"}}}}",
+      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":null,\"value\":{\"type\":\"metadata\",\"value\":\"service_name\"}}}}",
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_numeric_value: null → {\"is_integer\":true,\"max\":1,\"min\":1,\"value\":1}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (3)",
@@ -4829,28 +4388,7 @@
       "~ .variables[0].definition.multi_select.source.query.value_display_options.label_regex: \"value-label_regex\" → null",
       "~ .variables[0].definition.multi_select.source.query.value_display_options.value_regex: \"value-value_regex\" → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects (3)",
@@ -4872,28 +4410,7 @@
       "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters: [{\"label\":{\"string_value\":\"value-string_value\",\"variable_name\":null},\"metric\":{\"string_value\":\"value-string_value\",\"variable_name\":null},\"operator\":{\"selected_v…[sha256:d7c23adf] → null",
       "~ .variables_v2[0].source.query.metrics_query.type.label_value.metric_name: {\"string_value\":\"value-string_value\",\"variable_name\":null} → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects, round 2 (3)",
@@ -4915,28 +4432,7 @@
       "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].metric: {\"string_value\":\"value-string_value\",\"variable_name\":null} → null",
       "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator: {\"selected_values\":[{\"string_value\":\"value-string_value\",\"variable_name\":null}],\"type\":\"not_equals\"} → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator.selected_values",
@@ -4944,33 +4440,12 @@
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
     "requestDiff": [
-      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator.notEquals.selection.list.values"
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator.notEquals.selection"
     ],
     "stateDiff": [
       "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator.selected_values: [{\"string_value\":\"value-string_value\",\"variable_name\":null}] → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty variables_v2[].source.query.metrics_query.type.label_value.label_filters",
@@ -4978,33 +4453,12 @@
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
     "requestDiff": [
-      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters"
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0]"
     ],
     "stateDiff": [
-      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters: [{\"label\":{\"string_value\":\"value-string_value\",\"variable_name\":null},\"metric\":{\"string_value\":\"value-string_value\",\"variable_name\":null},\"operator\":{\"selected_v…[sha256:d7c23adf] → null"
+      "- .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0]"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator.selected_values",
@@ -5012,33 +4466,12 @@
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
     "requestDiff": [
-      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator.notEquals.selection.list.values"
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator.notEquals.selection.list.values[0]"
     ],
     "stateDiff": [
-      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator.selected_values: [{\"string_value\":\"value-string_value\",\"variable_name\":null}] → null"
+      "- .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator.selected_values[0]"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (2)",
@@ -5057,28 +4490,7 @@
       "~ .variables[0].definition.multi_select.source.query.query.logs.field_value.observation_field.scope: \"label\" → \"unspecified\"",
       "~ .variables[0].definition.multi_select.source.query.refresh_strategy: \"on_time_frame_change\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set variables[].definition.multi_select.source.query.query.logs.field_value.observation_field.scope = user_data",
@@ -5091,28 +4503,7 @@
     "stateDiff": [
       "~ .variables[0].definition.multi_select.source.query.query.logs.field_value.observation_field.scope: \"label\" → \"user_data\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 4",
@@ -5128,13 +4519,15 @@
       "~ .dashboard.annotations[1].source.eventRecurrence.recurrence.weekly.daysOfWeek[0]: \"WEEKDAY_FRIDAY\" → \"WEEKDAY_THURSDAY\"",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_MAGENTA\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_MAGENTA\"",
       "~ .dashboard.annotations[3].source.manual.strategy.instant.unit: \"UNIT_BYTES\" → \"UNIT_EUR\"",
       "~ .dashboard.annotations[4].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_MAGENTA\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_MAGENTA\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "+ .dashboard.fifteenMinutes: {}",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
       "- .dashboard.filters[2].source.spans.field.metadataField",
@@ -5186,13 +4579,15 @@
       "~ .annotations[1].source.event_recurrence.recurrence.weekly.days_of_week[0]: \"friday\" → \"thursday\"",
       "~ .annotations[2].color: \"blue\" → \"magenta\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .annotations[3].color: \"blue\" → \"magenta\"",
       "~ .annotations[3].source.manual.strategy.instant.unit: \"bytes\" → \"euro\"",
       "~ .annotations[4].color: \"blue\" → \"magenta\"",
       "~ .annotations[5].color: \"blue\" → \"magenta\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .auto_refresh.type: \"off\" → \"fifteen_minutes\"",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"metadata\"",
       "~ .filters[2].source.spans.field.type: \"metadata\" → \"tag\"",
@@ -5234,28 +4629,7 @@
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_string_value: null → {\"value\":\"value-value\"}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set variables[].definition.multi_select.source.span_field.type = process_tag",
@@ -5269,28 +4643,7 @@
     "stateDiff": [
       "~ .variables[0].definition.multi_select.source.span_field.type: \"tag\" → \"process_tag\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 5",
@@ -5310,7 +4663,8 @@
       "+ .dashboard.annotations[1].source.eventRecurrence.strategy.instant: {\"startTimeHour\":1}",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_ORANGE\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_ORANGE\"",
       "~ .dashboard.annotations[3].source.manual.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "- .dashboard.annotations[3].source.manual.strategy.instant",
@@ -5319,7 +4673,8 @@
       "~ .dashboard.annotations[4].source.metrics.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_ORANGE\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
       "- .dashboard.filters[0].source.logs.operator.equals",
       "+ .dashboard.filters[0].source.logs.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
@@ -5392,7 +4747,8 @@
       "~ .annotations[1].source.event_recurrence.strategy.instant: null → {\"start_time_hour\":1}",
       "~ .annotations[2].color: \"blue\" → \"orange\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .annotations[3].color: \"blue\" → \"orange\"",
       "~ .annotations[3].source.manual.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[3].source.manual.strategy.instant: {\"custom_unit\":\"value-custom_unit\",\"unit\":\"bytes\",\"value\":1} → null",
@@ -5401,7 +4757,8 @@
       "~ .annotations[4].source.metrics.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[5].color: \"blue\" → \"orange\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"user_data\"",
       "+ .filters[0].source.logs.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[0].source.logs.operator.selection_type: \"all\" → \"list\"",
@@ -5460,37 +4817,16 @@
       "~ .variables_v2[2].value.multi_string.all: {} → null",
       "~ .variables_v2[2].value.multi_string.selected_all: null → {}",
       "~ .variables_v2[3].display_type: \"label_value\" → \"value\"",
-      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
+      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
       "~ .variables_v2[3].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
-      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"value\":null}}}",
+      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"value\":null}}}",
       "~ .variables_v2[3].source.query.values_order_direction: \"asc\" → \"none\"",
       "~ .variables_v2[4].display_type: \"label_value\" → \"value\"",
       "~ .variables_v2[4].source.static.values_order_direction: \"asc\" → \"none\"",
       "~ .variables_v2[5].display_type: \"label_value\" → \"value\"",
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value.data_mode_type: \"archive\" → \"high\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 6",
@@ -5552,28 +4888,7 @@
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_regex_value: null → {\"value\":\"value-value\"}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 7",
@@ -5592,7 +4907,8 @@
       "+ .dashboard.annotations[1].source.eventRecurrence.strategy.instant: {\"startTimeHour\":1}",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_RED\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_RED\"",
       "~ .dashboard.annotations[3].source.manual.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "- .dashboard.annotations[3].source.manual.strategy.instant",
@@ -5601,7 +4917,8 @@
       "~ .dashboard.annotations[4].source.metrics.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_RED\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
       "- .dashboard.filters[0].source.logs.operator.equals",
       "+ .dashboard.filters[0].source.logs.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
@@ -5687,7 +5004,8 @@
       "~ .annotations[1].source.event_recurrence.strategy.instant: null → {\"start_time_hour\":1}",
       "~ .annotations[2].color: \"blue\" → \"red\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .annotations[3].color: \"blue\" → \"red\"",
       "~ .annotations[3].source.manual.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[3].source.manual.strategy.instant: {\"custom_unit\":\"value-custom_unit\",\"unit\":\"bytes\",\"value\":1} → null",
@@ -5696,7 +5014,8 @@
       "~ .annotations[4].source.metrics.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[5].color: \"blue\" → \"red\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .auto_refresh.type: \"off\" → \"two_minutes\"",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"metadata\"",
       "+ .filters[0].source.logs.operator.selected_values[0]: \"value-selected_values\"",
@@ -5767,9 +5086,9 @@
       "~ .variables_v2[2].value.multi_string.all: {} → null",
       "~ .variables_v2[2].value.multi_string.list: null → {\"values\":[{\"value\":{\"label\":\"value-label\",\"value\":\"value-value\"}}]}",
       "~ .variables_v2[3].display_type: \"label_value\" → \"nothing\"",
-      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
+      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
       "~ .variables_v2[3].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
-      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_value\":{\"observation_field\":null,\"value\":{\"type\":\"tag\",\"value\":\"value-value\"}}}}",
+      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":null,\"value\":{\"type\":\"tag\",\"value\":\"value-value\"}}}}",
       "~ .variables_v2[3].source.query.values_order_direction: \"asc\" → \"desc\"",
       "~ .variables_v2[4].display_type: \"label_value\" → \"nothing\"",
       "~ .variables_v2[4].source.static.values_order_direction: \"asc\" → \"desc\"",
@@ -5777,28 +5096,7 @@
       "~ .variables_v2[5].source.textbox.default_value.default_interval_value: null → {\"value\":\"value-value\"}",
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove variables_v2[].source.query.metrics_query.type.promql_query.promql_query_type",
@@ -5811,28 +5109,7 @@
     "stateDiff": [
       "~ .variables_v2[0].source.query.metrics_query.type.promql_query.promql_query_type: \"range\" → \"instant\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 8",
@@ -5848,13 +5125,15 @@
       "~ .dashboard.annotations[1].source.eventRecurrence.recurrence.weekly.daysOfWeek[0]: \"WEEKDAY_FRIDAY\" → \"WEEKDAY_MONDAY\"",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_YELLOW\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_YELLOW\"",
       "~ .dashboard.annotations[3].source.manual.strategy.instant.unit: \"UNIT_BYTES\" → \"UNIT_KBYTES\"",
       "~ .dashboard.annotations[4].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_YELLOW\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_YELLOW\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
       "- .dashboard.filters[2].source.spans.field.metadataField",
       "+ .dashboard.filters[2].source.spans.field.processTagField: \"value-value\"",
@@ -5906,13 +5185,15 @@
       "~ .annotations[1].source.event_recurrence.recurrence.weekly.days_of_week[0]: \"friday\" → \"monday\"",
       "~ .annotations[2].color: \"blue\" → \"yellow\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .annotations[3].color: \"blue\" → \"yellow\"",
       "~ .annotations[3].source.manual.strategy.instant.unit: \"bytes\" → \"kbytes\"",
       "~ .annotations[4].color: \"blue\" → \"yellow\"",
       "~ .annotations[5].color: \"blue\" → \"yellow\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .auto_refresh.type: \"off\" → \"five_minutes\"",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"user_data\"",
       "~ .filters[2].source.spans.field.type: \"metadata\" → \"process_tag\"",
@@ -5954,28 +5235,7 @@
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_numeric_value: null → {\"is_integer\":true,\"max\":1,\"min\":1,\"value\":1}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 9",
@@ -6105,34 +5365,13 @@
       "~ .variables_v2[0].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
       "~ .variables_v2[2].source.textbox.default_value.default_interval_value: {\"value\":\"value-value\"} → null",
       "~ .variables_v2[2].source.textbox.default_value.default_regex_value: null → {\"value\":\"value-value\"}",
-      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
+      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
       "~ .variables_v2[3].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
-      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"value\":null}}}",
+      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"value\":null}}}",
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_string_value: null → {\"value\":\"value-value\"}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 10",
@@ -6148,13 +5387,15 @@
       "~ .dashboard.annotations[1].source.eventRecurrence.recurrence.weekly.daysOfWeek[0]: \"WEEKDAY_FRIDAY\" → \"WEEKDAY_SUNDAY\"",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[3].source.manual.strategy.instant.unit: \"UNIT_BYTES\" → \"UNIT_MBYTES\"",
       "~ .dashboard.annotations[4].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_CYAN\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.instant: {\"timestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
       "- .dashboard.filters[2].source.spans.field.metadataField",
       "+ .dashboard.filters[2].source.spans.field.tagField: \"value-value\"",
@@ -6190,13 +5431,15 @@
       "~ .annotations[1].source.event_recurrence.recurrence.weekly.days_of_week[0]: \"friday\" → \"sunday\"",
       "~ .annotations[2].color: \"blue\" → \"cyan\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .annotations[3].color: \"blue\" → \"cyan\"",
       "~ .annotations[3].source.manual.strategy.instant.unit: \"bytes\" → \"mbytes\"",
       "~ .annotations[4].color: \"blue\" → \"cyan\"",
       "~ .annotations[5].color: \"blue\" → \"cyan\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"metadata\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"metadata\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.instant: null → {\"timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}}",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"metadata\"",
       "~ .filters[2].source.spans.field.type: \"metadata\" → \"tag\"",
       "~ .filters[2].source.spans.field.value: \"service_name\" → \"value-value\"",
@@ -6223,28 +5466,7 @@
       "~ .variables_v2[4].source.static.values_order_direction: \"asc\" → \"desc\"",
       "~ .variables_v2[5].display_type: \"label_value\" → \"nothing\""
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 11",
@@ -6264,7 +5486,8 @@
       "+ .dashboard.annotations[1].source.eventRecurrence.strategy.instant: {\"startTimeHour\":1}",
       "~ .dashboard.annotations[2].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[2].source.logs.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[2].source.logs.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[2].source.logs.strategy.duration",
+      "+ .dashboard.annotations[2].source.logs.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.annotations[3].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[3].source.manual.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "- .dashboard.annotations[3].source.manual.strategy.instant",
@@ -6273,7 +5496,8 @@
       "~ .dashboard.annotations[4].source.metrics.orientation: \"ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED\" → \"ANNOTATION_ORIENTATION_HORIZONTAL\"",
       "~ .dashboard.annotations[5].color: \"ANNOTATION_COLOR_BLUE\" → \"ANNOTATION_COLOR_DEFAULT\"",
       "~ .dashboard.annotations[5].source.spans.labelFields[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
-      "~ .dashboard.annotations[5].source.spans.strategy.instant.timestampField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "- .dashboard.annotations[5].source.spans.strategy.duration",
+      "+ .dashboard.annotations[5].source.spans.strategy.range: {\"endTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"},\"startTimestampField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_U…[sha256:54fb5f86]",
       "~ .dashboard.filters[0].source.logs.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
       "- .dashboard.filters[0].source.logs.operator.equals",
       "+ .dashboard.filters[0].source.logs.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
@@ -6360,7 +5584,8 @@
       "~ .annotations[1].source.event_recurrence.strategy.instant: null → {\"start_time_hour\":1}",
       "~ .annotations[2].color: \"blue\" → \"default\"",
       "~ .annotations[2].source.logs.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[2].source.logs.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[2].source.logs.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[2].source.logs.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .annotations[3].color: \"blue\" → \"default\"",
       "~ .annotations[3].source.manual.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[3].source.manual.strategy.instant: {\"custom_unit\":\"value-custom_unit\",\"unit\":\"bytes\",\"value\":1} → null",
@@ -6369,7 +5594,8 @@
       "~ .annotations[4].source.metrics.orientation: \"vertical\" → \"horizontal\"",
       "~ .annotations[5].color: \"blue\" → \"default\"",
       "~ .annotations[5].source.spans.label_fields[0].scope: \"label\" → \"user_data\"",
-      "~ .annotations[5].source.spans.strategy.instant.timestamp_field.scope: \"label\" → \"user_data\"",
+      "~ .annotations[5].source.spans.strategy.duration: {\"duration_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
+      "~ .annotations[5].source.spans.strategy.range: null → {\"end_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"},\"start_timestamp_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"user_data\"}}",
       "~ .auto_refresh.type: \"off\" → \"one_minute\"",
       "~ .filters[0].source.logs.observation_field.scope: \"label\" → \"user_data\"",
       "+ .filters[0].source.logs.operator.selected_values[0]: \"value-selected_values\"",
@@ -6440,9 +5666,9 @@
       "~ .variables_v2[2].value.multi_string.all: {} → null",
       "~ .variables_v2[2].value.multi_string.selected_all: null → {}",
       "~ .variables_v2[3].display_type: \"label_value\" → \"value\"",
-      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
+      "~ .variables_v2[3].source.query.logs_query: {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}}}} → null",
       "~ .variables_v2[3].source.query.refresh_strategy: \"on_dashboard_load\" → \"on_time_frame_change\"",
-      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_value\":{\"observation_field\":null,\"value\":{\"type\":\"process_tag\",\"value\":\"value-value\"}}}}",
+      "~ .variables_v2[3].source.query.spans_query: null → {\"type\":{\"field_name\":null,\"field_value\":{\"observation_field\":null,\"value\":{\"type\":\"process_tag\",\"value\":\"value-value\"}}}}",
       "~ .variables_v2[3].source.query.values_order_direction: \"asc\" → \"none\"",
       "~ .variables_v2[4].display_type: \"label_value\" → \"value\"",
       "~ .variables_v2[4].source.static.values_order_direction: \"asc\" → \"none\"",
@@ -6450,27 +5676,6 @@
       "~ .variables_v2[5].source.textbox.default_value.default_lucene_value: {\"data_mode_type\":\"archive\",\"value\":\"value-value\"} → null",
       "~ .variables_v2[5].source.textbox.default_value.default_regex_value: null → {\"value\":\"value-value\"}"
     ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
+    "replanEmpty": true
   }
 ]

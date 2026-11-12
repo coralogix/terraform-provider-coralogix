@@ -98,6 +98,7 @@
                               }
                             }
                           },
+                          "scaleType": "SCALE_TYPE_LINEAR",
                           "sortBy": "SORT_BY_TYPE_NAME",
                           "stackDefinition": {
                             "maxSlicesPerBar": 1,
@@ -159,6 +160,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -227,7 +229,7 @@
                           "metrics": null,
                           "spans": null
                         },
-                        "scale_type": "unspecified",
+                        "scale_type": "linear",
                         "sort_by": "name",
                         "stack_definition": {
                           "max_slices_per_bar": 1,
@@ -361,6 +363,7 @@
                               }
                             }
                           },
+                          "scaleType": "SCALE_TYPE_LINEAR",
                           "sortBy": "SORT_BY_TYPE_NAME",
                           "stackDefinition": {
                             "maxSlicesPerBar": 1,
@@ -422,6 +425,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -490,7 +494,7 @@
                           "metrics": null,
                           "spans": null
                         },
-                        "scale_type": "unspecified",
+                        "scale_type": "linear",
                         "sort_by": "name",
                         "stack_definition": {
                           "max_slices_per_bar": 1,
@@ -526,11 +530,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (34)",
@@ -581,13 +581,13 @@
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.displayOnBar: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.groupNameTemplate",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.hashColors",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.maxBarsPerChart",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.filters[0].logs.field",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.groupNames[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.groupNames",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.stackedGroupName",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.scaleType: \"SCALE_TYPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.scaleType: \"SCALE_TYPE_LINEAR\" → \"SCALE_TYPE_UNSPECIFIED\"",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.sortBy: \"SORT_BY_TYPE_NAME\" → \"SORT_BY_TYPE_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.stackDefinition.maxSlicesPerBar",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.stackDefinition.stackNameTemplate",
@@ -614,6 +614,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].logs.field: \"value-field\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.group_names: [\"value-group_names\"] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.stacked_group_name: \"value-stacked_group_name\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type: \"linear\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.sort_by: \"name\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.stack_definition.max_slices_per_bar: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.stack_definition.stack_name_template: \"value-stack_name_template\" → null",
@@ -632,7 +633,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:342fe587] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:1640977a] → null"
     ],
     "replanEmpty": true
   },
@@ -649,7 +650,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:a3ccba63] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:d508f300] → null"
     ],
     "replanEmpty": true
   },
@@ -660,7 +661,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:bc716cd2] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:400ed3f2] → null"
     ],
     "replanEmpty": true
   },
@@ -682,19 +683,12 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.stackDefinition"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query: {\"data_prime\":{\"filters\":[{\"logs\":{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"sel…[sha256:9c0713d1] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.stack_definition: {\"max_slices_per_bar\":1,\"stack_name_template\":\"value-stack_name_template\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects, round 5 (2)",
@@ -713,14 +707,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters: [{\"logs\":{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\"…[sha256:7a244a3c] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].logs.observation_field",
@@ -733,32 +720,18 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].logs.observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:342fe587] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -822,25 +795,14 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.filters",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.filters[0]",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.groupNames[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters: [{\"logs\":{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\"…[sha256:7a244a3c] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.group_names: [\"value-group_names\"] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0]",
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.group_names[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters",
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.group_names",
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"filters\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"group_names\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (5)",
@@ -868,14 +830,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.sort_by: \"name\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (7)",
@@ -911,14 +866,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"usd_cents\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.y_axis_view_by: \"category\" → \"value\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
@@ -963,14 +911,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"bytes_iec\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.y_axis_view_by: \"category\" → \"value\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (4)",
@@ -981,7 +922,7 @@
       "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].metrics.operator.selection_type"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Unknown selection_type [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"metrics\").AttributeName(\"operator\").AttributeNa",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -1002,14 +943,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].metrics.label: \"value-label\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].metrics.metric_name: \"value-metric_name\" → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (2)",
@@ -1018,37 +952,41 @@
       "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].metrics.operator.selection_type"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Unknown selection_type [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"metrics\").AttributeName(\"operator\").AttributeNa",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].metrics.operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.filters[0].metrics.operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].metrics.operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].metrics.operator.selection_type",
     "diagnostics": [
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].metrics.operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.horizontalBarChart.query.dataprime.filters[0].metrics.operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].metrics.operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].options.color = orange",
@@ -1061,14 +999,7 @@
     "stateDiff": [
       "~ .layout.sections[0].options.color: \"green\" → \"orange\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 2",
@@ -1093,30 +1024,15 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.legend.columns[0]: \"avg\" → \"max\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.legend.placement: \"auto\" → \"hidden\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"…[sha256:bb460cb9] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].spans: null → {\"field\":{\"type\":\"process_tag\",\"value\":\"value-value\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.query.data_prime.filters[0].spans: null → {\"field\":{\"type\":\"process_tag\",\"value\":\"value-value\"},\"observation_field\":null,\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.unit: \"bytes\" → \"custom\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.query.data_prime.filters[].spans.operator.selection_type",
     "diagnostics": [
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.horizontal_bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"horizontal_bar_chart\").AttributeName(\"scale_type\")"
     ]
   }
 ]

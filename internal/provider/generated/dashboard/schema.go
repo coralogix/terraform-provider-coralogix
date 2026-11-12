@@ -13989,7 +13989,7 @@ func Schema() schema.Schema {
 											MarkdownDescription: "The label.",
 										},
 										"value": schema.StringAttribute{
-											Optional:            true,
+											Required:            true,
 											MarkdownDescription: "The value.",
 										},
 									},

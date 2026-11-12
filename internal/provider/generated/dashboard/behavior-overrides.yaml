@@ -608,7 +608,7 @@ types:
   IntervalValue: {fields: {value: {inline: true, required: true}}}
   LuceneQueryValue: {fields: {value: {inline: true, required: true}}}
   RegexValue: {fields: {value: {inline: true, required: true}}}
-  SingleStringValue: {at: {VariableValueV2.singleString: {fields: {value: {inline: true}}}}}
+  SingleStringValue: {at: {VariableValueV2.singleString: {fields: {value: {inline: true, required: true}}}}}
   VariableValueV2.SingleNumericValue: {fields: {value: {inline: true, terraformType: Float64, required: true}}}
   # R31: the selection options are an optional object.
   MultiSelect:
