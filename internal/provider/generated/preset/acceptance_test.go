@@ -282,6 +282,23 @@ func TestAccCoralogixResourcePresetGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
 }
 
 const (
@@ -373,3 +390,58 @@ func TestAccCoralogixResourcePresetGeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_preset" "test" {
+  attachment_config = "ENABLED"
+  config_overrides = [
+    {
+      condition_type = {
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "body"
+            template = "{}"
+          },
+        ]
+      }
+    },
+  ]
+  connector_type = "generic_https"
+  description = "@{run}-description"
+  entity_type = "alerts"
+  name = "@{run}-name"
+  parent_id = "preset_system_generic_https_alerts_empty"
+}
+
+resource "coralogix_preset" "test_2" {
+  attachment_config = "DISABLED"
+  config_overrides = [
+    {
+      condition_type = {
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "body"
+            template = "{}"
+          },
+        ]
+      }
+    },
+  ]
+  connector_type = "generic_https"
+  description = "@{run}-description-2"
+  entity_type = "alerts"
+  name = "@{run}-name-2"
+  parent_id = "preset_system_generic_https_alerts_empty"
+}`

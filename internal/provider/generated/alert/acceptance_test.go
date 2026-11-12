@@ -402,6 +402,24 @@ func TestAccCoralogixResourceAlertGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+				{Config: config(run, variant2Config)},
+			},
+		})
+	})
 }
 
 const (
@@ -525,3 +543,1607 @@ func TestAccCoralogixResourceAlertGeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_alert" "test" {
+  type_definition = {
+    logs_ratio_threshold = {
+      denominator = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "INCLUDES"
+                value = "@{run}-value"
+              },
+              {
+                operation = "STARTS_WITH"
+                value = "@{run}-value-2"
+              },
+            ]
+            severities = ["Debug"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
+      }
+      denominator_alias = "@{run}-denominator_alias"
+      custom_evaluation_delay = 1
+      group_by_for = "Numerator Only"
+      ignore_infinity = true
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      numerator = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Info"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
+      }
+      numerator_alias = "@{run}-numerator_alias"
+      rules = [
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "10_MINUTES"
+          }
+          override = {
+            priority = "P4"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "15_MINUTES"
+          }
+          override = {
+            priority = "P3"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "30_MINUTES"
+          }
+          override = {
+            priority = "P2"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "1_HOUR"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "2_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "4_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "6_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "12_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "24_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "36_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "5_MINUTES"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "enabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered and Resolved"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_2" {
+  type_definition = {
+    tracing_threshold = {
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "10_MINUTES"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "15_MINUTES"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "20_MINUTES"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "30_MINUTES"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "1_HOUR"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "2_HOURS"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "4_HOURS"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "6_HOURS"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "12_HOURS"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "24_HOURS"
+          }
+        },
+        {
+          condition = {
+            span_amount = 1.5
+            time_window = "36_HOURS"
+          }
+        },
+      ]
+      tracing_filter = {
+        latency_threshold_ms = 1
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "INCLUDES"
+              values = ["@{run}-values"]
+            },
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+            {
+              operation = "STARTS_WITH"
+              values = ["@{run}-values"]
+            },
+            {
+              operation = "IS_NOT"
+              values = ["@{run}-values"]
+            },
+          ]
+          operation_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+          service_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+          span_fields = [
+            {
+              filter_type = {
+                operation = "ENDS_WITH"
+                values = ["@{run}-values"]
+              }
+              key = "@{run}-key"
+            },
+          ]
+          subsystem_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+        }
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-2"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_3" {
+  type_definition = {
+    logs_threshold = {
+      custom_evaluation_delay = 1
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Warning"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-3"
+        }
+      }
+      no_data_policy = {
+        auto_retire_seconds = 1
+        state = "OK"
+      }
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "10_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "20_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "NOT_EQUALS"
+            threshold = 1.5
+            time_window = "15_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "30_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "1_HOUR"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "2_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "4_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "6_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "12_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "24_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "36_HOURS"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "10_MINUTES"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-3"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_4" {
+  type_definition = {
+    logs_time_relative_threshold = {
+      custom_evaluation_delay = 1
+      ignore_infinity = true
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Error"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-4"
+        }
+      }
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            compared_to = "Same Hour Yesterday"
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            compared_to = "Same Hour Last Week"
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            compared_to = "Yesterday"
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            compared_to = "Same Day Last Week"
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            compared_to = "Same Day Last Month"
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            compared_to = "Previous Hour"
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "1_HOUR"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-4"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_5" {
+  type_definition = {
+    metric_threshold = {
+      custom_evaluation_delay = 1
+      metric_filter = {
+        promql = "@{run}-promql-5"
+      }
+      missing_values = {
+        min_non_null_values_pct = 1
+      }
+      no_data_policy = {
+        auto_retire_seconds = 1
+        state = "ALERTING"
+      }
+      rules = [
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            of_the_last = "@{run}-of_the_last"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "MORE_THAN_OR_EQUALS"
+            for_over_pct = 1
+            of_the_last = "@{run}-of_the_last-2"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN_OR_EQUALS"
+            for_over_pct = 1
+            of_the_last = "@{run}-of_the_last-3"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "EQUALS"
+            for_over_pct = 1
+            of_the_last = "@{run}-of_the_last-4"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+        {
+          condition = {
+            condition_type = "NOT_EQUALS"
+            for_over_pct = 1
+            of_the_last = "@{run}-of_the_last-5"
+            threshold = 1.5
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "2_HOURS"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-5"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_6" {
+  type_definition = {
+    metric_anomaly = {
+      percentage_of_deviation = 1.5
+      custom_evaluation_delay = 1
+      metric_filter = {
+        promql = "@{run}-promql-6"
+      }
+      rules = [
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "10_MINUTES"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "12_HOURS"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "15_MINUTES"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "1_HOUR"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "1_MINUTE"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "20_MINUTES"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "24_HOURS"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "2_HOURS"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "30_MINUTES"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "36_HOURS"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "4_HOURS"
+            threshold = 1.5
+          }
+        },
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "5_MINUTES"
+            threshold = 1.5
+          }
+        },
+      ]
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-6"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_7" {
+  type_definition = {
+    slo_threshold = {
+      burn_rate = {
+        dual = {
+          time_duration = {
+            duration = 1
+            unit = "HOURS"
+          }
+        }
+        rules = [
+          {
+            condition = {
+              threshold = 1.5
+            }
+            override = {
+              priority = "P1"
+            }
+          },
+        ]
+      }
+      slo_definition = {
+        slo_id = "@{run}-slo_id-7"
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-7"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_8" {
+  type_definition = {
+    logs_new_value = {
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-8"
+        }
+      }
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track"
+            time_window = "24_HOURS"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-2"
+            time_window = "48_HOURS"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-3"
+            time_window = "72_HOURS"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-4"
+            time_window = "1_WEEK"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-5"
+            time_window = "1_MONTH"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-6"
+            time_window = "2_MONTHS"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-7"
+            time_window = "3_MONTHS"
+          }
+        },
+        {
+          condition = {
+            keypath_to_track = "@{run}-keypath_to_track-8"
+            time_window = "12_HOURS"
+          }
+        },
+      ]
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-8"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_9" {
+  type_definition = {
+    logs_unique_count = {
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-9"
+        }
+      }
+      max_unique_count_per_group_by_key = 1
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "5_MINUTES"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "10_MINUTES"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "15_MINUTES"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "20_MINUTES"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "30_MINUTES"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "1_HOUR"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "2_HOURS"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "4_HOURS"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "6_HOURS"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "12_HOURS"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "24_HOURS"
+          }
+        },
+        {
+          condition = {
+            max_unique_count = 1
+            time_window = "36_HOURS"
+          }
+        },
+      ]
+      unique_count_keypath = "@{run}-unique_count_keypath-9"
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-9"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_10" {
+  type_definition = {
+    tracing_immediate = {
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      tracing_filter = {
+        latency_threshold_ms = 1
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+          operation_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+          service_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+          span_fields = [
+            {
+              filter_type = {
+                operation = "ENDS_WITH"
+                values = ["@{run}-values"]
+              }
+              key = "@{run}-key"
+            },
+          ]
+          subsystem_name = [
+            {
+              operation = "ENDS_WITH"
+              values = ["@{run}-values"]
+            },
+          ]
+        }
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-10"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}`
+
+const variant2Config = `resource "coralogix_alert" "test" {
+  type_definition = {
+    logs_ratio_threshold = {
+      denominator = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
+      }
+      denominator_alias = "@{run}-denominator_alias"
+      custom_evaluation_delay = 1
+      group_by_for = "Denominator Only"
+      ignore_infinity = true
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      numerator = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
+      }
+      numerator_alias = "@{run}-numerator_alias"
+      rules = [
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            threshold = 1.5
+            time_window = "10_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "6_HOURS"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_2" {
+  type_definition = {
+    logs_threshold = {
+      custom_evaluation_delay = 1
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-2"
+        }
+      }
+      no_data_policy = {
+        auto_retire_seconds = 1
+        state = "KEEP_LAST"
+      }
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "10_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "12_HOURS"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-2"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_3" {
+  type_definition = {
+    logs_threshold = {
+      custom_evaluation_delay = 1
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-3"
+        }
+      }
+      no_data_policy = {
+        auto_retire_seconds = 1
+        state = "NO_DATA"
+      }
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+      rules = [
+        {
+          condition = {
+            condition_type = "EQUALS"
+            threshold = 1.5
+            time_window = "10_MINUTES"
+          }
+          override = {
+            priority = "P1"
+          }
+        },
+      ]
+      undetected_values_management = {
+        auto_retire_timeframe = "24_HOURS"
+        trigger_undetected_values = true
+      }
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-3"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}
+
+resource "coralogix_alert" "test_4" {
+  type_definition = {
+    metric_anomaly = {
+      percentage_of_deviation = 1.5
+      custom_evaluation_delay = 1
+      metric_filter = {
+        promql = "@{run}-promql-4"
+      }
+      rules = [
+        {
+          condition = {
+            condition_type = "LESS_THAN"
+            for_over_pct = 1
+            min_non_null_values_pct = 1
+            of_the_last = "6_HOURS"
+            threshold = 1.5
+          }
+        },
+      ]
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description-4"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
+}`

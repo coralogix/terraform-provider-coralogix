@@ -316,6 +316,23 @@ func TestAccCoralogixResourceParsingRulesGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
 }
 
 const (
@@ -407,3 +424,285 @@ func TestAccCoralogixResourceParsingRulesGeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_parsing_rules" "test" {
+  creator = "@{run}-creator"
+  description = "@{run}-description"
+  active = false
+  hidden = true
+  name = "@{run}-name"
+  applications = ["@{run}-applications"]
+  severities = ["verbose"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          extract_timestamp = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "@{run}-source_field"
+            time_format = "@{run}-time_format"
+            field_format_standard = "javaSDF"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-2"
+            active = true
+            name = "@{run}-name-2"
+            destination_field_text = "@{run}-destination_field_text-2"
+            destination_field = "class"
+            json_key = "@{run}-json_key-2"
+          }
+        },
+        {
+          extract = {
+            description = "@{run}-description-3"
+            active = true
+            name = "@{run}-name-3"
+            source_field = "@{run}-source_field-3"
+            regular_expression = "@{run}-regular_expression-3"
+          }
+        },
+        {
+          parse_json_field = {
+            description = "@{run}-description-4"
+            active = true
+            name = "@{run}-name-4"
+            source_field = "@{run}-source_field-4"
+            keep_source_field = true
+            destination_field = "@{run}-destination_field-4"
+            keep_destination_field = true
+          }
+        },
+        {
+          json_stringify = {
+            description = "@{run}-description-5"
+            active = true
+            name = "@{run}-name-5"
+            source_field = "@{run}-source_field-5"
+            keep_source_field = true
+            destination_field = "@{run}-destination_field-5"
+          }
+        },
+        {
+          parse = {
+            description = "@{run}-description-6"
+            active = true
+            name = "@{run}-name-6"
+            source_field = "@{run}-source_field-6"
+            destination_field = "@{run}-destination_field-6"
+            regular_expression = "@{run}-regular_expression-6"
+          }
+        },
+        {
+          remove_fields = {
+            description = "@{run}-description-7"
+            active = true
+            name = "@{run}-name-7"
+            excluded_fields = ["@{run}-excluded_fields"]
+          }
+        },
+        {
+          replace = {
+            description = "@{run}-description-8"
+            active = true
+            name = "@{run}-name-8"
+            source_field = "@{run}-source_field-8"
+            destination_field = "@{run}-destination_field-8"
+            replacement_string = "@{run}-replacement_string-8"
+            regular_expression = "@{run}-regular_expression-8"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-9"
+            active = true
+            name = "@{run}-name-9"
+            source_field = "@{run}-source_field-9"
+            time_format = "@{run}-time_format-9"
+            field_format_standard = "golang"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-10"
+            active = true
+            name = "@{run}-name-10"
+            source_field = "@{run}-source_field-10"
+            time_format = "@{run}-time_format-10"
+            field_format_standard = "secondTS"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-11"
+            active = true
+            name = "@{run}-name-11"
+            source_field = "@{run}-source_field-11"
+            time_format = "@{run}-time_format-11"
+            field_format_standard = "milliTS"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-12"
+            active = true
+            name = "@{run}-name-12"
+            source_field = "@{run}-source_field-12"
+            time_format = "@{run}-time_format-12"
+            field_format_standard = "microTS"
+          }
+        },
+      ]
+    },
+    {
+      active = true
+      rules = [
+        {
+          extract_timestamp = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "@{run}-source_field"
+            time_format = "@{run}-time_format"
+            field_format_standard = "nanoTS"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-2"
+            active = true
+            name = "@{run}-name-2"
+            destination_field_text = "@{run}-destination_field_text-2"
+            destination_field = "method"
+            json_key = "@{run}-json_key-2"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-3"
+            active = true
+            name = "@{run}-name-3"
+            destination_field_text = "@{run}-destination_field_text-3"
+            destination_field = "threadID"
+            json_key = "@{run}-json_key-3"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-4"
+            active = true
+            name = "@{run}-name-4"
+            destination_field_text = "@{run}-destination_field_text-4"
+            destination_field = "severity"
+            json_key = "@{run}-json_key-4"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-5"
+            active = true
+            name = "@{run}-name-5"
+            destination_field_text = "@{run}-destination_field_text-5"
+            destination_field = "text"
+            json_key = "@{run}-json_key-5"
+          }
+        },
+      ]
+    },
+  ]
+}
+
+resource "coralogix_parsing_rules" "test_2" {
+  creator = "@{run}-creator-2"
+  description = "@{run}-description-2"
+  active = false
+  hidden = true
+  name = "@{run}-name-2"
+  applications = ["@{run}-applications"]
+  severities = ["info"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          block = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            keep_blocked_logs = false
+            regular_expression = "@{run}-regular_expression"
+            block_all_matching_blocks = true
+          }
+        },
+      ]
+    },
+  ]
+}
+
+resource "coralogix_parsing_rules" "test_3" {
+  creator = "@{run}-creator-3"
+  description = "@{run}-description-3"
+  active = false
+  hidden = true
+  name = "@{run}-name-3"
+  applications = ["@{run}-applications"]
+  severities = ["warning"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          block = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            keep_blocked_logs = false
+            regular_expression = "@{run}-regular_expression"
+            block_all_matching_blocks = true
+          }
+        },
+      ]
+    },
+  ]
+}
+
+resource "coralogix_parsing_rules" "test_4" {
+  creator = "@{run}-creator-4"
+  description = "@{run}-description-4"
+  active = false
+  hidden = true
+  name = "@{run}-name-4"
+  applications = ["@{run}-applications"]
+  severities = ["error"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          block = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            keep_blocked_logs = false
+            regular_expression = "@{run}-regular_expression"
+            block_all_matching_blocks = true
+          }
+        },
+      ]
+    },
+  ]
+}`

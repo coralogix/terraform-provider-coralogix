@@ -361,4 +361,112 @@ func TestAccCoralogixResourceThingGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_thing" "test" {
+  name = "@{run}-name"
+  description = "@{run}-description"
+  enabled = true
+  kind = "THING_KIND_ADVANCED"
+  config = {
+    queue = {
+      topic = "@{run}-topic"
+    }
+  }
+  spec = {
+    mode = "@{run}-mode"
+    region = "@{run}-region"
+    weight = 1
+    items = [
+      {
+        key = "@{run}-key"
+        name = "@{run}-name"
+        start_time = "2030-01-01T00:00:00Z"
+      },
+    ]
+    targets = [
+      {
+        name = "@{run}-name"
+      },
+    ]
+  }
+  destinations = ["https://a"]
+  tags = ["@{run}-tags"]
+  details = [
+    {
+      name = "@{run}-name"
+    },
+  ]
+  labels = { key = "@{run}-labels" }
+  expire_time = "2030-01-01T00:00:00Z"
+  windows = ["2030-01-01T00:00:00Z"]
+  paused = true
+  retries = 1
+  priority = "THING_PRIORITY_HIGH"
+  limit = 1
+  label = "@{run}-label"
+}
+
+resource "coralogix_thing" "test_2" {
+  name = "@{run}-name-2"
+  description = "@{run}-description-2"
+  enabled = true
+  kind = "THING_KIND_P5_OR_UNSPECIFIED"
+  config = {
+    http = {
+      endpoint = "@{run}-endpoint-2"
+    }
+  }
+  spec = {
+    mode = "@{run}-mode-2"
+    region = "@{run}-region-2"
+    weight = 1
+    items = [
+      {
+        key = "@{run}-key"
+        name = "@{run}-name"
+        start_time = "2030-01-01T00:00:00Z"
+      },
+    ]
+    targets = [
+      {
+        name = "@{run}-name"
+      },
+    ]
+  }
+  destinations = ["https://a"]
+  tags = ["@{run}-tags"]
+  details = [
+    {
+      name = "@{run}-name"
+    },
+  ]
+  labels = { key = "@{run}-labels" }
+  expire_time = "2030-01-01T00:00:00Z"
+  windows = ["2030-01-01T00:00:00Z"]
+  paused = true
+  retries = 1
+  priority = "THING_PRIORITY_LOW"
+  limit = 1
+  label = "@{run}-label-2"
+}`

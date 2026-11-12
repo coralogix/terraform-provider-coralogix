@@ -400,6 +400,23 @@ func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverGlobalRouters(t, config(run, fullConfig)) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
 }
 
 const (
@@ -497,3 +514,48 @@ func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_global_router" "test" {
+  description = "@{run}-description"
+  disabled = true
+  entity_labels = { key = "tf-acc-generated-global-router" }
+  fallback_targets = [
+    {
+      entity_type = "test_notifications"
+      target = {
+        connector_id = coralogix_connector.http.id
+        custom_details = { key = "@{run}-custom_details" }
+      }
+    },
+    {
+      entity_type = "cases"
+      target = {
+        connector_id = coralogix_connector.http.id
+        custom_details = { key = "@{run}-custom_details" }
+      }
+    },
+  ]
+  name = "@{run}-name"
+  routing_labels = {
+    environment = "tf-acc-generated-global-router"
+    service = "tf-acc-generated-global-router"
+    team = "tf-acc-generated-global-router"
+  }
+  rules = [
+    {
+      condition = "alertDef.priority == \"P1\""
+      custom_details = { key = "@{run}-custom_details" }
+      entity_type = "alerts"
+      name = "@{run}-name"
+      targets = [
+        {
+          connector_id = coralogix_connector.http.id
+          custom_details = { key = "@{run}-custom_details" }
+        },
+      ]
+    },
+  ]
+}`

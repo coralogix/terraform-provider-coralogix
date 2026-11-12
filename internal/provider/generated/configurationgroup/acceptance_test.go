@@ -275,4 +275,48 @@ func TestAccCoralogixResourceConfigurationGroupGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_configuration_group" "test" {
+  description = "@{run}-description"
+  family = {
+    active = false
+    description = "@{run}-description"
+    raw = {
+      collector_version = "@{run}-collector_version"
+      metadata = { key = "@{run}-metadata" }
+      remote_configurations = [
+        {
+          agent_selector = {
+            attributes = { key = "@{run}-attributes" }
+          }
+          name = "@{run}-name"
+          raw_configuration = "@{run}-raw_configuration"
+        },
+      ]
+    }
+  }
+  name = "@{run}-name"
+  priority_order = 1
+  tags = ["@{run}-tags"]
+}`

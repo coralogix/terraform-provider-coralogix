@@ -33,6 +33,7 @@ func (c accCheck) Expr() string {
 
 // accStep is one config of the acceptance test and what the test checks after the apply.
 type accStep struct {
+	N      int        // the number of a step of the values-and-choices subtest, from 1
 	Config string     // the resource block, HCL with @{run} and @{env.NAME}
 	Checks []accCheck // attributes that must have the value
 	Absent []string   // top-level attributes that must not be in the state
@@ -52,6 +53,9 @@ type acceptanceData struct {
 	Env                    []string
 	Prerequisites          string
 	Full, Updated, Minimal *accStep
+	// Variants are the configs after the full config in the values-and-choices subtest: each sets
+	// the enum values and the oneOf arms that no earlier config set. Empty: no subtest.
+	Variants []*accStep
 	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
 	UpgradeMinimal *accStep
 	// UpgradeFull is the full config without the attributes that the released provider does not
@@ -150,6 +154,20 @@ type accSynth struct {
 	// immutables records the HCL of each immutable value that a walk sets, by its state path. nil
 	// records nothing.
 	immutables map[string]string
+	// cov records the enum values and the oneOf arms that the configs of the values-and-choices
+	// subtest have set. nil: the walk records nothing.
+	cov map[string]bool
+	// sweeping: the walk sets what cov does not have yet (acceptance_sweep.go).
+	sweeping bool
+	// element is the number of the element of a list or set that a sweep step makes, from 0. A
+	// made-up string of an element after the first has the number at its end, so that the elements
+	// differ where the API wants them to.
+	element int
+	// extra is the number of elements after the first that the step has added to its lists.
+	extra int
+	// armBuilds records, for each oneOf arm that the sweep considered, the error of the trial that
+	// made a value for it, or nil.
+	armBuilds map[string]error
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -176,16 +194,31 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		out.LeftoversImport = providerModule + "/" + dir
 		out.LeftoversCall = filepath.Base(dir) + "." + file.LeftoversFunc()
 	}
+	var full map[string]bool // what the full config sets: the sweep of values-and-choices starts there
 	for _, step := range []struct {
 		mode accMode
 		into **accStep
 	}{{accFull, &out.Full}, {accUpdated, &out.Updated}, {accMinimal, &out.Minimal}} {
+		if step.mode == accFull {
+			s.cov = map[string]bool{} // the full config sets the first value and the first arm
+		}
 		body, checks, err := s.attrs(res.Attributes, "", "", step.mode, true)
 		if err != nil {
 			return nil, fmt.Errorf("acceptance test: %w", err)
 		}
 		*step.into = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
+		if step.mode == accFull {
+			full = s.cov
+			s.cov = nil // the other configs record nothing
+		}
 	}
+	s.cov = full
+	variants, err := s.sweepSteps(res)
+	s.cov = nil
+	if err != nil {
+		return nil, err
+	}
+	out.Variants = variants
 	out.Minimal.Absent = s.absent(res.Attributes)
 	defaults, kept := s.removed(res.Attributes, out.Full.Checks)
 	out.Minimal.Checks = append(out.Minimal.Checks, defaults...)
@@ -591,10 +624,16 @@ func (s *accSynth) checkFile() error {
 }
 
 func resourceBlock(resourceType, body string) string {
+	return namedResourceBlock(resourceType, "test", body)
+}
+
+// namedResourceBlock is resourceBlock with the name of the block, for a config that holds copies of
+// the resource.
+func namedResourceBlock(resourceType, name, body string) string {
 	if body == "" {
-		return fmt.Sprintf("resource %q \"test\" {\n}", resourceType)
+		return fmt.Sprintf("resource %q %q {\n}", resourceType, name)
 	}
-	return fmt.Sprintf("resource %q \"test\" {\n%s\n}", resourceType, indentLines(body))
+	return fmt.Sprintf("resource %q %q {\n%s\n}", resourceType, name, indentLines(body))
 }
 
 func indentLines(text string) string {
@@ -655,6 +694,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	var lines []string
 	var checks []accCheck
 	armTaken := map[string]bool{} // the oneOf groups that already have an arm
+	picks := s.armPicks(attrs, key, mode, top)
 	for _, a := range attrs {
 		attrKey := joinPath(key, a.Name)
 		s.known[attrKey] = true
@@ -668,7 +708,11 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 			if armTaken[a.OneOfGroup] {
 				continue
 			}
+			if pick, ok := picks[a.OneOfGroup]; ok && pick != a {
+				continue // a step of the sweep takes another arm
+			}
 			armTaken[a.OneOfGroup] = true
+			s.noteArm(a)
 		}
 		value, c, err := s.value(a, joinPath(tfPath, a.Name), attrKey, mode)
 		if err != nil {
@@ -818,14 +862,10 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 		return strings.TrimSpace(v), checks, nil
 	}
 	switch a.Kind {
-	case "String", "Bool", "Int64", "Int32", "Float64", "Float32":
-		v, check, err := scalarValue(a, mode)
-		if err != nil {
-			return "", nil, err
-		}
-		return v, []accCheck{{Path: tfPath, Value: check}}, nil
+	case "String", "Bool", "Int64", "Int32", "Float64", "Float32", "Number":
+		return s.scalarAttr(a, tfPath, key, mode)
 	case "Map", "List", "Set":
-		return s.collectionValue(a, tfPath, mode)
+		return s.collectionValue(a, tfPath, key, mode)
 	case "SingleNested":
 		body, checks, err := s.attrs(a.Attributes, tfPath, key, mode, false)
 		if err != nil {
@@ -838,6 +878,23 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 	return "", nil, fmt.Errorf("the %s attribute kind is not supported: set the value in %s", a.Kind, acceptance.FileName)
 }
 
+// scalarAttr makes the value of a scalar attribute. An enum takes the value that the sweep has not
+// set yet, or the value of the full config.
+func (s *accSynth) scalarAttr(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	if tf, ok := s.sweepValue(a, key); ok && a.Kind == "String" {
+		return strconv.Quote(tf), []accCheck{{Path: tfPath, Value: tf}}, nil
+	}
+	v, check, err := scalarValue(a, mode)
+	if err != nil {
+		return "", nil, err
+	}
+	if a.Kind == "String" {
+		s.noteValue(a, key, check)
+		v, check = s.numbered(a, v, check)
+	}
+	return v, []accCheck{{Path: tfPath, Value: check}}, nil
+}
+
 func objectHCL(body string) string {
 	if body == "" {
 		return "{}"
@@ -848,6 +905,9 @@ func objectHCL(body string) string {
 func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
+	}
+	if s.sweeping {
+		return s.sweepElements(a, tfPath, key, mode)
 	}
 	element := tfPath + ".0"
 	if a.Kind == "SetNested" {
@@ -878,7 +938,7 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 		}
 		v := strconv.FormatInt(int64(full), 10)
 		return v, v, nil
-	case "Float64", "Float32":
+	case "Float64", "Float32", "Number":
 		full, next := numberValues(a, 1.5)
 		if updated {
 			full = next
@@ -1107,7 +1167,7 @@ func enumValues(a *tfAttr) []string {
 
 // collectionValue makes a map, list, or set of plain values. Only string, number, and bool
 // elements are made up.
-func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (string, []accCheck, error) {
+func (s *accSynth) collectionValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	elem, ok := map[string]string{
 		"types.StringType": "String", rfc3339Type: "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
 		"types.Int32Type": "Int32", "types.Float64Type": "Float64", "types.Float32Type": "Float32",
@@ -1121,6 +1181,13 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 	item, state, err := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators, CustomType: timeType(a.ElementType)}, mode)
 	if err != nil {
 		return "", nil, err
+	}
+	if a.Kind != "Map" {
+		if tf, ok := s.sweepValue(a, key); ok {
+			item, state = strconv.Quote(tf), tf
+		} else {
+			s.noteValue(a, key, state)
+		}
 	}
 	switch a.Kind {
 	case "Map":
