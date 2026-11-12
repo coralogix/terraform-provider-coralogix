@@ -1,0 +1,218 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": "(unknown)",
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+            "userTemplate": {
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh stores the temporary access and its expiry",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "rename: the PUT sends the temporary access back",
+    "config": {
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "accessType": {
+                "accessType": "temporary",
+                "temporaryAccess": {
+                  "expireAt": "2030-01-01T00:00:00Z"
+                }
+              },
+              "allowedLoginMode": [
+                "ALLOWED_LOGIN_MODE_SSO",
+                "ALLOWED_LOGIN_MODE_LOCAL"
+              ],
+              "firstName": "Renamed",
+              "lastName": "Person",
+              "status": "USER_STATUS_ACTIVE"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan after the rename",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the PUT sends the temporary access back",
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "accessType": {
+                "accessType": "temporary",
+                "temporaryAccess": {
+                  "expireAt": "2030-01-01T00:00:00Z"
+                }
+              },
+              "allowedLoginMode": [
+                "ALLOWED_LOGIN_MODE_SSO",
+                "ALLOWED_LOGIN_MODE_LOCAL"
+              ],
+              "firstName": "Renamed",
+              "lastName": "Person",
+              "status": "USER_STATUS_INACTIVE"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

@@ -192,6 +192,8 @@ var (
 	userLoginModes  = l{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL"}
 	userAccessType  = j{"accessType": "permanent", "permanentAccess": j{}}
 	userOutside     = j{"allowedLoginMode": userLoginModes, "accessType": userAccessType}
+	// userTemporaryAccess is the other access type variant, with the expiry the backend keeps.
+	userTemporaryAccess = j{"accessType": "temporary", "temporaryAccess": j{"expireAt": "2030-01-01T00:00:00Z"}}
 )
 
 // userConfig is the config of a user resource: the user name and the optional fields that a scenario sets.
@@ -244,6 +246,20 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create with only given_name", h.null(), userConfig(userA, j{"name": j{"given_name": "Test"}}))
 		h.RefreshPlan("refresh and replan", s)
 	},
+	"create-family-name-only": func(h *grHarness) {
+		s := h.Apply("create with only family_name", h.null(), userConfig(userA, j{"name": j{"family_name": "User"}}))
+		h.RefreshPlan("refresh and replan", s)
+	},
+	"given-name-removed-on-update": func(h *grHarness) {
+		s := h.Apply("create with given_name and family_name", h.null(), userConfig(userA, j{"name": userTestName}))
+		s = h.Apply("remove given_name and keep family_name", s, userConfig(userA, j{"name": j{"family_name": "User"}}))
+		h.RefreshPlan("refresh and replan", s)
+	},
+	"family-name-removed-on-update": func(h *grHarness) {
+		s := h.Apply("create with given_name and family_name", h.null(), userConfig(userA, j{"name": userTestName}))
+		s = h.Apply("remove family_name and keep given_name", s, userConfig(userA, j{"name": j{"given_name": "Test"}}))
+		h.RefreshPlan("refresh and replan", s)
+	},
 	"create-empty-given-name": func(h *grHarness) {
 		s := h.Apply("create with given_name = \"\"", h.null(), userConfig(userA, j{"name": j{"given_name": ""}}))
 		h.RefreshPlan("refresh and replan", s)
@@ -283,6 +299,14 @@ var userScenarios = map[string]func(h *grHarness){
 		s = h.Apply("rename: the PUT sends the login modes back", s, userConfig(userA, j{"name": userRenamedName}))
 		s = h.Apply("deactivate: the PUT sends the login modes back", s, userConfig(userA, j{"name": userRenamedName, "active": false}))
 		h.Destroy("destroy: the PUT sends the login modes back", s)
+	},
+	"temporary-access-survives": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes, "accessType": userTemporaryAccess})
+		s = h.RefreshPlan("refresh stores the temporary access and its expiry", s)
+		s = h.Apply("rename: the PUT sends the temporary access back", s, userConfig(userA, j{"name": userRenamedName}))
+		s = h.RefreshPlan("refresh and replan after the rename", s)
+		h.Destroy("destroy: the PUT sends the temporary access back", s)
 	},
 	"echo-fallback-on-update": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
@@ -446,6 +470,11 @@ var userScenarios = map[string]func(h *grHarness){
 	"name-unknown": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.Plan("plan with name unknown", s, userConfig(userA, j{"name": unknownJSON{}}))
+	},
+	"active-unknown": func(h *grHarness) {
+		h.Plan("plan create with active unknown", h.null(), userConfig(userA, j{"name": userTestName, "active": unknownJSON{}}))
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.Plan("plan update with active unknown", s, userConfig(userA, j{"name": userTestName, "active": unknownJSON{}}))
 	},
 	"name-null-kept-by-use-state-for-unknown": func(h *grHarness) {
 		// The user has no name, so the prior value in state is null. UseStateForUnknown keeps that
