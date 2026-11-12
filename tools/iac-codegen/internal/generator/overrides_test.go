@@ -964,6 +964,7 @@ func TestBetweenOnIntegersNeedsExactBounds(t *testing.T) {
 func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 	a := &tfAttr{Name: "static_values"}
 	siblings := []*tfAttr{a, {Name: "label_keys"}}
+	above := [][]*tfAttr{{{Name: "title"}, {Name: "outer"}}, {{Name: "root_only"}}}
 	tests := []struct {
 		v    overrides.Validator
 		fail bool
@@ -973,9 +974,15 @@ func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 		{overrides.Validator{ExactlyOneOf: []string{"labelKeys"}}, true},
 		{overrides.Validator{AtLeastOneOf: []string{"missing"}}, true},
 		{overrides.Validator{ExactlyOneOf: []string{"static_values"}}, true},
+		// "../" goes up one level for each step, to an attribute of an object above.
+		{overrides.Validator{AlsoRequires: []string{"../root_only"}}, false},
+		{overrides.Validator{AlsoRequires: []string{"../../title"}}, false},
+		{overrides.Validator{AlsoRequires: []string{"../title"}}, true},
+		{overrides.Validator{AlsoRequires: []string{"../../../title"}}, true},
+		{overrides.Validator{AlsoRequires: []string{"../static_values"}}, true},
 	}
 	for _, test := range tests {
-		err := checkSiblingTargets(a, siblings, []overrides.Validator{test.v})
+		err := checkSiblingTargets(a, siblings, above, []overrides.Validator{test.v})
 		if (err != nil) != test.fail {
 			t.Errorf("checkSiblingTargets(%+v) = %v, want error %v", test.v, err, test.fail)
 		}
@@ -1171,14 +1178,16 @@ func TestDefaultArmNeedsAFullReplace(t *testing.T) {
 	}
 }
 
-// A group of a nested component holds fields of that component, every arm of a oneOf or none, and
-// needs a full replace, as a top-level group does.
+// A group of a nested component holds fields of that component, every arm of a oneOf or none (or one
+// arm, as the object of that arm), and needs a full replace, as a top-level group does.
 func TestNestedGroupErrors(t *testing.T) {
 	const from = "        fields: [daily, weekly]\n"
 	tests := map[string]struct{ to, want string }{
-		"no such field":      {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
-		"split oneOf":        {"        fields: [daily]\n", "must all be in one group, or in none"},
-		"requireOne non-arm": {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
+		"no such field": {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
+		// One arm in a group stands for the arm, so the group must be optional.
+		"split oneOf":                           {"        fields: [daily]\n", "so the other arms can be set instead: add optional: true"},
+		"split oneOf, an arm and another field": {"        fields: [daily, every]\n        optional: true\n", "so a group holds one arm and no other field"},
+		"requireOne non-arm":                    {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

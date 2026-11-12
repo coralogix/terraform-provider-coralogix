@@ -247,6 +247,7 @@ Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--dataprime_query))
+- `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
 - `timeframe_minutes` (Number) The evaluation window duration in minutes
 - `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. Defaults to false for immediate alerts to avoid high-cardinality alerts by mistake.
@@ -276,6 +277,7 @@ Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--dataprime_query))
+- `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
 - `operator` (String) The comparison operator applied to all threshold rules Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
 - `rules` (Attributes List) The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules))

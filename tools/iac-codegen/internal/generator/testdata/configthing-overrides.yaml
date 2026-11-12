@@ -18,6 +18,15 @@ types:
         equality: json
       remotes:
         keepPriorOrder: true
+      # Released types that differ from the contract: a float32 is a Float64, an int32 and a double
+      # are a Number.
+      ratio: {terraformType: Float64}
+      retries: {terraformType: Number}
+      scale: {terraformType: Number}
+      # A marker bool: only true is valid, and a configured false is an error at plan.
+      marker:
+        validators:
+          - equals: true
       # A released map validator: each key of the map matches the pattern.
       metadata:
         validators:
@@ -94,3 +103,10 @@ types:
     fields:
       rawConfiguration:
         equality: yaml
+  # The selector attributes need the name of the remote, which is an attribute of the object above
+  # the selector.
+  ConfigSelectorResponse:
+    fields:
+      attributes:
+        validators:
+          - alsoRequires: ["../name"]

@@ -20,6 +20,16 @@ types:
   TypedThing:
     fields:
       id: {readOnly: true}
+      # The legacy selection is the list of values: [] selects all.
+      pick: {name: picked_values, computed: true, default: []}
+  # The value of the span value is a span field, which has a typedArms line (below). The inline line
+  # moves its arms into the span value, which shows them as the span field does: span_value =
+  # {type, value}, with no value object between.
+  # A field beside the object that the line skips is no arm: the contract has note, Terraform does not.
+  TypedSpanValue:
+    fields:
+      value: {inline: true}
+      note: {skip: true}
   TypedAggregation:
     typedArms:
       # The released spelling of an arm that is not its name: average is avg.
@@ -46,13 +56,29 @@ types:
   # is a copy of the first arm's, so it has no trace of that need.
   TypedPercentile:
     fields:
-      field: {readEmptyAs: "null"}
+      # Per-arm rule: exactly one of field and unit is set when the type is percentile. The rule
+      # does not apply to the average, which shares the field attribute.
+      field: {readEmptyAs: "null", validators: [{exactlyOneOf: [unit]}]}
+      percentileUnit: {name: unit}
+  # Two arms call their field by different API names, and the released resource shows both as
+  # unit: one attribute.
+  TypedAverage:
+    fields:
+      averageUnit: {name: unit}
   # The last scalar arm needs the prior value for the value that all scalar arms share.
   TypedSpanField:
     fields:
       processTagField: {readEmptyAs: "null"}
     typedArms:
       names: {metadataField: metadata, tagField: tag, processTagField: process_tag}
+
+  # A oneOf of all and a list is shown as that list, with no type attribute: [] is all, and values
+  # are the list. The labels of the list arm are not shown.
+  TypedPick:
+    typedArms: {asList: true}
+  TypedPickList:
+    fields:
+      labels: {skip: true}
 
 enums:
   # The enum of the first arm and the free text of the second arm share one attribute, mode. The

@@ -26,9 +26,57 @@ types:
   UnionWrapThing:
     fields:
       thing: {inline: true, required: true}
+      # The reminders are one list of the thing in the API. Terraform shows each reminder in the item
+      # that it names. Only a reminder whose definition has a link is shown: the path goes through the
+      # definition, which the line of the reminder inlines, and the link, which the line of the definition inlines.
+      reminders:
+        distributeTo:
+          item: UnionItem
+          as: reminders
+          by: {listField: itemName, itemField: name}
+          keep: definition.link
       # The API variant follows the arm that is set. The arms are in the group kind.
       variant: {requestValueBy: {armA: THING_VARIANT_A_OR_UNSPECIFIED, armB: THING_VARIANT_B, armC: THING_VARIANT_C}}
       id: {readOnly: true}
+
+  # The items hold three objects that their lines inline: an optional one, one with a field of the
+  # name of its own field, and an arm of a oneOf that stays beside the other arm.
+  UnionItem:
+    fields:
+      extra: {inline: true}
+      value: {inline: true}
+  ItemOptions:
+    fields:
+      custom: {inline: true}
+  # A definition is a oneOf of a link and a target. The target is skipped, and the line of the link
+  # says that the API always has it, so a request always sends the link. An action holds its
+  # definition in an object that it inlines too, so the url is a flat attribute of the action. The
+  # skip line of the target is carried to the action.
+  ItemAction:
+    fields:
+      definition: {inline: true}
+  ActionDefinition:
+    fields:
+      link: {inline: true, required: true}
+      target: {skip: true}
+  # A reminder inlines its definition, like an action.
+  UnionReminder:
+    fields:
+      definition: {inline: true}
+  # The same component has another name for its label in the first place than in the second.
+  Tag:
+    at:
+      UnionItem.first:
+        fields: {label: {name: title}}
+
+  # The same component holds its value in an object in two places. The first place inlines the
+  # value, and names the note remark. The items of the list keep the object and the note.
+  Pick:
+    at:
+      UnionItem.choice:
+        fields:
+          value: {inline: true}
+          note: {name: remark}
 
 enums:
   ThingVariant:

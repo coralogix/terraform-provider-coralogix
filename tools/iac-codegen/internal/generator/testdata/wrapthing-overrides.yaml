@@ -5,11 +5,19 @@ mode: existing
 validators:
   inferred: false
 
-unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
+unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FolderPath, FilterHolder, Selection, ListSelection]
 
 types:
   WrapThing:
     fields:
+      # The notes are one list of the thing in the API. Terraform shows each note in the panel that it names.
+      notes:
+        markdownDescription: The notes of this panel.
+        distributeTo:
+          item: WrapPanel
+          as: panel_notes
+          by: {listField: panelId, itemField: id}
+          keep: detail.url
       rawQuery:
         unwrap: false
       mainLabel:
@@ -28,6 +36,18 @@ types:
     fields:
       values:
         collection: set
+  # The segments of the folder path are one text, with the elements joined by a slash.
+  FolderPath:
+    fields:
+      segments: {join: "/"}
+  # The client makes the id of a panel when the configuration leaves it out.
+  WrapPanel:
+    fields:
+      id: {clientID: uuid}
+  # The client makes the id of a note too.
+  WrapNote:
+    fields:
+      id: {clientID: uuid}
 enums:
   WindowValue:
     zero: 1_MINUTE

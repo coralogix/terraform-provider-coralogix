@@ -12,6 +12,7 @@ type UnionWrapThingModel struct {
 	Name        types.String             `tfsdk:"name"`
 	Description types.String             `tfsdk:"description"`
 	Kind        *UnionWrapThingKindModel `tfsdk:"kind"`
+	Items       types.List               `tfsdk:"items"`
 }
 
 type ArmAModel struct {
@@ -30,4 +31,66 @@ type ArmBModel struct {
 
 type ArmCModel struct {
 	Label types.String `tfsdk:"label"`
+}
+
+type InternalOptionsModel struct {
+}
+
+type ItemOptionsModel struct {
+	Title     types.String          `tfsdk:"title"`
+	Collapsed types.Bool            `tfsdk:"collapsed"`
+	Internal  *InternalOptionsModel `tfsdk:"internal"`
+}
+
+type TagAtUnionItemFirstModel struct {
+	Label types.String `tfsdk:"title"`
+}
+
+type TagModel struct {
+	Label types.String `tfsdk:"label"`
+}
+
+type PickAtUnionItemChoiceModel struct {
+	Value types.String `tfsdk:"value"`
+	Label types.String `tfsdk:"label"`
+	Note  types.String `tfsdk:"remark"`
+}
+
+type LabelledModel struct {
+	Value types.String `tfsdk:"value"`
+	Label types.String `tfsdk:"label"`
+}
+
+type PickModel struct {
+	Value *LabelledModel `tfsdk:"value"`
+	Note  types.String   `tfsdk:"note"`
+}
+
+type ItemActionModel struct {
+	Label types.String `tfsdk:"label"`
+	Url   types.String `tfsdk:"url"`
+}
+
+type ActionDefinitionModel struct {
+	Url types.String `tfsdk:"url"`
+}
+
+type UnionReminderModel struct {
+	Label types.String `tfsdk:"label"`
+	Url   types.String `tfsdk:"url"`
+}
+
+type UnionItemModel struct {
+	Name      types.String                `tfsdk:"name"`
+	Note      types.String                `tfsdk:"note"`
+	Value     types.String                `tfsdk:"value"`
+	Label     types.String                `tfsdk:"label"`
+	Options   *ItemOptionsModel           `tfsdk:"options"`
+	First     *TagAtUnionItemFirstModel   `tfsdk:"first"`
+	Second    *TagModel                   `tfsdk:"second"`
+	Choice    *PickAtUnionItemChoiceModel `tfsdk:"choice"`
+	Choices   types.List                  `tfsdk:"choices"`
+	Action    *ItemActionModel            `tfsdk:"action"`
+	Behavior  *ActionDefinitionModel      `tfsdk:"behavior"`
+	Reminders types.List                  `tfsdk:"reminders"`
 }

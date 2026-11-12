@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.25.0
+
 #### provider
 - FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
 
@@ -73,9 +75,11 @@
 - FIX: The webhook `retriggering_period` that the configuration leaves out comes from the state webhook with the same `integration_id` or `recipients`. Before, it came from the webhook at the same position in the set, which gave a webhook the period of its neighbour.
 - FIX: Removing `description` from the configuration clears it on the alert. The API keeps a stored description that an update omits, so an update now sends `description: ""` when the configuration has none, and an empty description reads back as null (a configured `description = ""` stays). Before, the apply failed with `Provider produced inconsistent result after apply` and the alert kept the old text.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0 (also for a schedule with a UTC offset).
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview). It sets how often the alert is evaluated. When it is omitted, the API uses the smaller of 10 and `timeframe_minutes`, and the state keeps it null. The API checks the range and that the value does not exceed `timeframe_minutes`.
 
 #### data-source/coralogix_alert
 - CHORE: The data source is generated with the resource. It reads an alert by `id` with the schema of the resource, shows `access_policy` for a key that may read it, and fails with `coralogix_alert not found` for an id that does not exist.
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview), the same attribute as on the resource.
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.

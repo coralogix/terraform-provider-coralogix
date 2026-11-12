@@ -1233,6 +1233,7 @@ func expandAnalyticsImmediateType(ctx context.Context, p path.Path, m *Analytics
 	out := &alert_definitions_service.AnalyticsImmediateType{}
 	out.DataprimeQuery = expandDataprimeAlertQuery(ctx, p.AtName("dataprime_query"), m.DataprimeQuery, diags)
 	out.EvaluationDelayMs = expandInt32(m.EvaluationDelayMs)
+	out.EvaluationPeriodMinutes = expandInt32(m.EvaluationPeriodMinutes)
 	if v := m.NoDataPolicy; !v.IsNull() && !v.IsUnknown() {
 		var nested NoDataPolicyModel
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
@@ -1250,6 +1251,7 @@ func flattenAnalyticsImmediateType(ctx context.Context, p path.Path, v *alert_de
 	out := &AnalyticsImmediateTypeModel{}
 	out.DataprimeQuery = flattenDataprimeAlertQuery(ctx, p.AtName("dataprime_query"), v.DataprimeQuery, diags)
 	out.EvaluationDelayMs = types.Int32PointerValue(v.EvaluationDelayMs)
+	out.EvaluationPeriodMinutes = types.Int32PointerValue(v.EvaluationPeriodMinutes)
 	out.NoDataPolicy = types.ObjectNull(noDataPolicyAttrTypes())
 	if nested := flattenNoDataPolicy(ctx, p.AtName("no_data_policy"), v.NoDataPolicy, diags); nested != nil {
 		value, valueDiags := types.ObjectValueFrom(ctx, noDataPolicyAttrTypes(), *nested)
@@ -1335,6 +1337,7 @@ func expandAnalyticsThresholdType(ctx context.Context, p path.Path, m *Analytics
 	out := &alert_definitions_service.AnalyticsThresholdType{}
 	out.DataprimeQuery = expandDataprimeAlertQuery(ctx, p.AtName("dataprime_query"), m.DataprimeQuery, diags)
 	out.EvaluationDelayMs = expandInt32(m.EvaluationDelayMs)
+	out.EvaluationPeriodMinutes = expandInt32(m.EvaluationPeriodMinutes)
 	if v := m.NoDataPolicy; !v.IsNull() && !v.IsUnknown() {
 		var nested NoDataPolicyModel
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
@@ -1360,6 +1363,7 @@ func flattenAnalyticsThresholdType(ctx context.Context, p path.Path, v *alert_de
 	out := &AnalyticsThresholdTypeModel{}
 	out.DataprimeQuery = flattenDataprimeAlertQuery(ctx, p.AtName("dataprime_query"), v.DataprimeQuery, diags)
 	out.EvaluationDelayMs = types.Int32PointerValue(v.EvaluationDelayMs)
+	out.EvaluationPeriodMinutes = types.Int32PointerValue(v.EvaluationPeriodMinutes)
 	out.NoDataPolicy = types.ObjectNull(noDataPolicyAttrTypes())
 	if nested := flattenNoDataPolicy(ctx, p.AtName("no_data_policy"), v.NoDataPolicy, diags); nested != nil {
 		value, valueDiags := types.ObjectValueFrom(ctx, noDataPolicyAttrTypes(), *nested)

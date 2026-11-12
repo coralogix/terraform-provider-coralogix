@@ -21,6 +21,8 @@ type WrapThingModel struct {
 	Window     types.String       `tfsdk:"window"`
 	MainLabel  types.String       `tfsdk:"main_label"`
 	ExtraLabel *LabelModel        `tfsdk:"extra_label"`
+	Panels     types.List         `tfsdk:"panels"`
+	FolderPath types.String       `tfsdk:"folder_path"`
 	Offset     types.Int64        `tfsdk:"offset"`
 }
 
@@ -36,4 +38,20 @@ type SimpleFilterModel struct {
 
 type LabelModel struct {
 	Value types.String `tfsdk:"value"`
+}
+
+type NoteDetailModel struct {
+	Url types.String `tfsdk:"url"`
+}
+
+type WrapNoteModel struct {
+	Id     types.String     `tfsdk:"id"`
+	Text   types.String     `tfsdk:"text"`
+	Detail *NoteDetailModel `tfsdk:"detail"`
+}
+
+type WrapPanelModel struct {
+	Id         types.String `tfsdk:"id"`
+	Title      types.String `tfsdk:"title"`
+	PanelNotes types.List   `tfsdk:"panel_notes"`
 }

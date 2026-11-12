@@ -4,7 +4,9 @@
 package unionwrapthing
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -73,6 +75,159 @@ func Schema() schema.Schema {
 							},
 						},
 						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"items": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Required:            true,
+							MarkdownDescription: "",
+						},
+						"note": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"value": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"label": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"options": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"title": schema.StringAttribute{
+									Optional: true,
+									Validators: []validator.String{
+										stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("internal")),
+									},
+									MarkdownDescription: "",
+								},
+								"collapsed": schema.BoolAttribute{
+									Optional: true,
+									Validators: []validator.Bool{
+										boolvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("internal")),
+									},
+									MarkdownDescription: "",
+								},
+								"internal": schema.SingleNestedAttribute{
+									Optional:            true,
+									Attributes:          map[string]schema.Attribute{},
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"first": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"title": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"second": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"label": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"choice": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"value": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"label": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"remark": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"choices": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"value": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"value": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"label": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+										},
+										MarkdownDescription: "The value, held in an object.",
+									},
+									"note": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"action": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"label": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"url": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"behavior": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"url": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+						"reminders": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"label": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+									"url": schema.StringAttribute{
+										Optional:            true,
+										MarkdownDescription: "",
+									},
+								},
+							},
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",

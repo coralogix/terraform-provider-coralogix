@@ -8,10 +8,13 @@ import (
 )
 
 type GroupSetThingModel struct {
-	Id       types.String `tfsdk:"id"`
-	Name     types.String `tfsdk:"name"`
-	Groups   types.Set    `tfsdk:"groups"`
-	Document types.String `tfsdk:"document"`
+	Id       types.String              `tfsdk:"id"`
+	Name     types.String              `tfsdk:"name"`
+	Groups   types.Set                 `tfsdk:"groups"`
+	Schedule *ScheduleModel            `tfsdk:"schedule"`
+	Window   *GroupSetThingWindowModel `tfsdk:"window"`
+	Refresh  types.Object              `tfsdk:"refresh"`
+	Document types.String              `tfsdk:"document"`
 }
 
 type OutGroupThingPeriodModel struct {
@@ -29,4 +32,32 @@ type OutGroupThingModel struct {
 	Limit    types.Int64  `tfsdk:"limit"`
 	Period   types.Object `tfsdk:"period"`
 	Items    types.List   `tfsdk:"items"`
+}
+
+type AbsoluteWindowModel struct {
+	Start types.String `tfsdk:"start"`
+	End   types.String `tfsdk:"end"`
+}
+
+type ScheduleRelativeModel struct {
+	RelativeWindow types.String `tfsdk:"duration"`
+}
+
+type ScheduleModel struct {
+	AbsoluteWindow *AbsoluteWindowModel   `tfsdk:"absolute"`
+	Relative       *ScheduleRelativeModel `tfsdk:"relative"`
+	Mode           types.String           `tfsdk:"mode"`
+}
+
+type GroupSetThingWindowModel struct {
+	AbsoluteWindow *AbsoluteWindowModel              `tfsdk:"absolute"`
+	Relative       *GroupSetThingWindowRelativeModel `tfsdk:"relative"`
+}
+
+type GroupSetThingWindowRelativeModel struct {
+	RelativeWindow types.String `tfsdk:"duration"`
+}
+
+type GroupSetThingRefreshModel struct {
+	Type types.String `tfsdk:"type"`
 }

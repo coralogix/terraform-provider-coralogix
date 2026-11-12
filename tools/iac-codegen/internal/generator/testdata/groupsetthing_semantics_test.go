@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -65,6 +66,9 @@ func plannedSet(root tftypes.Object) tftypes.Value {
 		"name":     tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
 		"groups":   tftypes.NewValue(groups, []tftypes.Value{groupValue}),
 		"document": tftypes.NewValue(tftypes.String, "doc"),
+		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
+		"refresh":  tftypes.NewValue(root.AttributeTypes["refresh"], nil),
 	})
 }
 
@@ -183,6 +187,9 @@ func thingWithGroups(root tftypes.Object, groups ...tftypes.Value) tftypes.Value
 		"name":     tftypes.NewValue(tftypes.String, nil),
 		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
 		"document": tftypes.NewValue(tftypes.String, nil),
+		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
+		"refresh":  tftypes.NewValue(root.AttributeTypes["refresh"], nil),
 	})
 }
 
@@ -658,7 +665,10 @@ func TestSetItemStateModifierTakesTheMatchingItem(t *testing.T) {
 	}
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, map[string]tftypes.Value{
 		"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
-		"groups": tftypes.NewValue(root.AttributeTypes["groups"], []tftypes.Value{stateGroup("b", 7, 0), stateGroup("a", 3, 0)}),
+		"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+		"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
+		"refresh":  tftypes.NewValue(root.AttributeTypes["refresh"], nil),
+		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], []tftypes.Value{stateGroup("b", 7, 0), stateGroup("a", 3, 0)}),
 	})}
 	for _, test := range []struct {
 		name  string
@@ -717,7 +727,10 @@ func TestSetItemStateModifierKeepsAnUnknownConfigurationUnknown(t *testing.T) {
 	top := func(groups ...tftypes.Value) tftypes.Value {
 		return tftypes.NewValue(root, map[string]tftypes.Value{
 			"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
-			"groups": tftypes.NewValue(root.AttributeTypes["groups"], groups),
+			"schedule": tftypes.NewValue(root.AttributeTypes["schedule"], nil),
+			"window":   tftypes.NewValue(root.AttributeTypes["window"], nil),
+			"refresh":  tftypes.NewValue(root.AttributeTypes["refresh"], nil),
+			"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
 		})
 	}
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: top(
@@ -797,4 +810,284 @@ func TestEquivalentDocumentPlansNoChangeWithRealTerraform(t *testing.T) {
 		{Config: config("{\"a\":1}")},
 		{Config: config("{ \"a\": 1 }"), ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
 	}})
+}
+
+func scheduleConfig(body string) string {
+	return "resource \"test_group_set_thing\" \"s\" {\n  groups = [{ name = \"g\", items = [{ key = \"k\" }] }]\n" + body + "}\n"
+}
+
+// The relative arm, a plain duration, is an object of its own beside the absolute arm: schedule =
+// { relative = { duration } }. Each arm reads back as it was sent, the plan after each apply is
+// empty (the test framework checks it), a change of arm replaces the other, removing the schedule
+// sends none, and both arms are an error at plan.
+func TestSingleArmGroupIsTheObjectOfItsArm(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			{
+				Config: scheduleConfig("  schedule = { relative = { duration = \"15m\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.relative.duration", "15m"),
+					resource.TestCheckNoResourceAttr(res, "schedule.absolute.start"),
+					func(*terraform.State) error {
+						body := group_set_things_service.Created[len(group_set_things_service.Created)-1]
+						if body.Schedule == nil || body.Schedule.RelativeWindow == nil || *body.Schedule.RelativeWindow != "15m" || body.Schedule.AbsoluteWindow != nil {
+							return fmt.Errorf("sent schedule = %+v, want only the relative window 15m", body.Schedule)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = { absolute = { start = \"a\", end = \"b\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.absolute.start", "a"),
+					resource.TestCheckResourceAttr(res, "schedule.absolute.end", "b"),
+					resource.TestCheckNoResourceAttr(res, "schedule.relative.duration"),
+					func(*terraform.State) error {
+						body := group_set_things_service.Updated[len(group_set_things_service.Updated)-1]
+						if body.Schedule == nil || body.Schedule.AbsoluteWindow == nil || body.Schedule.RelativeWindow != nil {
+							return fmt.Errorf("sent schedule = %+v, want only the absolute window", body.Schedule)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = {}\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(res, "schedule.relative.duration"),
+					resource.TestCheckNoResourceAttr(res, "schedule.absolute.start"),
+				),
+			},
+			{Config: scheduleConfig(""), Check: resource.TestCheckNoResourceAttr(res, "schedule.relative.duration")},
+			{
+				Config:      scheduleConfig("  schedule = { absolute = { start = \"a\" }, relative = { duration = \"15m\" } }\n"),
+				ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`),
+			},
+			{
+				Config:      scheduleConfig("  schedule = { relative = {} }\n"),
+				ExpectError: regexp.MustCompile(`duration`),
+			},
+			// An import reads the arm that the API has, so the state matches the configuration.
+			{Config: scheduleConfig("  schedule = { relative = { duration = \"15m\" } }\n")},
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
+}
+
+// The window is an optional group of the resource. It holds the absolute arm of a oneOf, and the
+// group relative stands for the other arm, a plain duration: window = { relative = { duration } }.
+// Each arm reads back as it was sent, the plan after each apply is empty (the test framework checks
+// it), a change of arm replaces the other, removing the window sends no arm, and two arms, or none
+// in a window, are an error at plan. An import reads the arm that the API has.
+func TestGroupInAnOptionalTopLevelGroupHoldsOneArm(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	group_set_things_service.Created, group_set_things_service.Updated = nil, nil
+	sent := func(check func(absolute *group_set_things_service.AbsoluteWindow, relative *string) bool, what string) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			var absolute *group_set_things_service.AbsoluteWindow
+			var relative *string
+			if n := len(group_set_things_service.Updated); n > 0 {
+				absolute, relative = group_set_things_service.Updated[n-1].AbsoluteWindow, group_set_things_service.Updated[n-1].RelativeWindow
+			} else {
+				created := group_set_things_service.Created[len(group_set_things_service.Created)-1]
+				absolute, relative = created.AbsoluteWindow, created.RelativeWindow
+			}
+			if !check(absolute, relative) {
+				return fmt.Errorf("sent absolute = %+v, relative = %v, want %s", absolute, relative, what)
+			}
+			return nil
+		}
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			{
+				Config: scheduleConfig("  window = { relative = { duration = \"15m\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "window.relative.duration", "15m"),
+					resource.TestCheckNoResourceAttr(res, "window.absolute.start"),
+					sent(func(a *group_set_things_service.AbsoluteWindow, r *string) bool {
+						return a == nil && r != nil && *r == "15m"
+					}, "only the relative 15m"),
+				),
+			},
+			{
+				Config: scheduleConfig("  window = { absolute = { start = \"a\", end = \"b\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "window.absolute.start", "a"),
+					resource.TestCheckResourceAttr(res, "window.absolute.end", "b"),
+					resource.TestCheckNoResourceAttr(res, "window.relative.duration"),
+					sent(func(a *group_set_things_service.AbsoluteWindow, r *string) bool {
+						return a != nil && a.Start == "a" && r == nil
+					}, "only the absolute window"),
+				),
+			},
+			// An import reads the arm that the API has, so the state matches the configuration.
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+			{
+				Config: scheduleConfig(""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(res, "window.absolute.start"),
+					resource.TestCheckNoResourceAttr(res, "window.relative.duration"),
+					sent(func(a *group_set_things_service.AbsoluteWindow, r *string) bool { return a == nil && r == nil }, "no arm"),
+				),
+			},
+			{
+				Config:      scheduleConfig("  window = { absolute = { start = \"a\" }, relative = { duration = \"15m\" } }\n"),
+				ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`),
+			},
+			{Config: scheduleConfig("  window = {}\n"), ExpectError: regexp.MustCompile(`(?s)absolute.*relative|relative.*absolute`)},
+			{Config: scheduleConfig("  window = { relative = {} }\n"), ExpectError: regexp.MustCompile(`duration`)},
+			{Config: scheduleConfig("  window = { relative = { duration = \"1h\" } }\n")},
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
+}
+
+// The refresh is an Optional and Computed group of the resource that holds the arms of a oneOf of
+// objects without fields, so it is one object with a type: refresh = { type = "five_minutes" }. The
+// type is off when the configuration leaves it out, and the arm that the type names is the only one
+// that a request sends. An object that the configuration leaves out is what the API says (off), and
+// the plan after the apply is empty (the test framework checks it). Removing the object keeps the
+// value, as for every Optional and Computed attribute. An import reads the arm that the API has.
+func TestTypedGroupIsOneObjectWithATypeWithRealTerraform(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	group_set_things_service.Created, group_set_things_service.Updated = nil, nil
+	sent := func(off, five, hour bool) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			var o, f, h map[string]interface{}
+			if n := len(group_set_things_service.Updated); n > 0 {
+				body := group_set_things_service.Updated[n-1]
+				o, f, h = body.Off, body.FiveMinutes, body.OneHour
+			} else {
+				body := group_set_things_service.Created[len(group_set_things_service.Created)-1]
+				o, f, h = body.Off, body.FiveMinutes, body.OneHour
+			}
+			if (o != nil) != off || (f != nil) != five || (h != nil) != hour {
+				return fmt.Errorf("sent off = %v, five_minutes = %v, hourly = %v, want %v, %v, %v", o != nil, f != nil, h != nil, off, five, hour)
+			}
+			return nil
+		}
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			// No object: nothing is sent, and the state has what the API says.
+			{Config: scheduleConfig(""), Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(res, "refresh.type", "off"), sent(false, false, false))},
+			{
+				Config: scheduleConfig("  refresh = { type = \"five_minutes\" }\n"),
+				Check:  resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(res, "refresh.type", "five_minutes"), sent(false, true, false)),
+			},
+			// A released spelling of an arm: the names line.
+			{
+				Config: scheduleConfig("  refresh = { type = \"hourly\" }\n"),
+				Check:  resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(res, "refresh.type", "hourly"), sent(false, false, true)),
+			},
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+			// An object that leaves the type out has the default.
+			{
+				Config: scheduleConfig("  refresh = {}\n"),
+				Check:  resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr(res, "refresh.type", "off"), sent(true, false, false)),
+			},
+			{Config: scheduleConfig("  refresh = { type = \"hourly\" }\n")},
+			// Removing the object keeps the value.
+			{Config: scheduleConfig(""), Check: resource.TestCheckResourceAttr(res, "refresh.type", "hourly")},
+			{Config: scheduleConfig("  refresh = { type = \"bold\" }\n"), ExpectError: regexp.MustCompile(`type`)},
+			{Config: scheduleConfig("  refresh = { type = \"five_minutes\" }\n")},
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
+}
+
+// A response with none of the arms is a null refresh, and one with an arm reads its type.
+func TestRefreshOfAResponseIsNullWithoutAnArm(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	if got := flattenGroupSetThingRefresh(ctx, path.Root("refresh"), &group_set_things_service.GroupSetThing{}, &diags); got != nil || diags.HasError() {
+		t.Fatalf("flatten without an arm = %+v, %v, want a null refresh", got, diags)
+	}
+	got := flattenGroupSetThingRefresh(ctx, path.Root("refresh"), &group_set_things_service.GroupSetThing{OneHour: map[string]interface{}{}}, &diags)
+	if got == nil || got.Type.ValueString() != "hourly" || diags.HasError() {
+		t.Fatalf("flatten with the arm oneHour = %+v, %v, want the type hourly", got, diags)
+	}
+}
+
+// A response that has both arms is an error, and one that has none is a null window.
+func TestWindowOfAResponseHasOneArmOrNone(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	if got := flattenGroupSetThingWindow(ctx, path.Root("window"), &group_set_things_service.GroupSetThing{}, &diags); got != nil || diags.HasError() {
+		t.Fatalf("flatten without an arm = %+v, %v, want a null window", got, diags)
+	}
+	relative := "15m"
+	got := flattenGroupSetThingWindow(ctx, path.Root("window"), &group_set_things_service.GroupSetThing{RelativeWindow: &relative}, &diags)
+	if got == nil || got.AbsoluteWindow != nil || got.Relative == nil || got.Relative.RelativeWindow.ValueString() != "15m" || diags.HasError() {
+		t.Fatalf("flatten with the relative arm = %+v, %v", got, diags)
+	}
+	flattenGroupSetThingWindow(ctx, path.Root("window"), &group_set_things_service.GroupSetThing{RelativeWindow: &relative,
+		AbsoluteWindow: &group_set_things_service.AbsoluteWindow{Start: "a"}}, &diags)
+	if !diags.HasError() {
+		t.Fatal("flatten with both arms gave no error")
+	}
+}
+
+// A oneOf of arms without fields is a string that names the arm that is set. A name line gives the
+// released spelling (balanced for balancedMode). The arm reads back as its name, a text that names
+// no arm is an error at plan, and an omitted mode sends no arm.
+func TestEmptyArmsAreAStringWithRealTerraform(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	const res = "test_group_set_thing.s"
+	group_set_things_service.Created, group_set_things_service.Updated = nil, nil
+	sentMode := func(check func(*group_set_things_service.Mode) bool, what string) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			var schedule *group_set_things_service.Schedule
+			if n := len(group_set_things_service.Updated); n > 0 {
+				schedule = group_set_things_service.Updated[n-1].Schedule
+			} else {
+				schedule = group_set_things_service.Created[len(group_set_things_service.Created)-1].Schedule
+			}
+			if schedule == nil || !check(schedule.Mode) {
+				return fmt.Errorf("sent schedule = %+v, want %s", schedule, what)
+			}
+			return nil
+		}
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: factories,
+		Steps: []resource.TestStep{
+			{
+				Config: scheduleConfig("  schedule = { mode = \"fast\" }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.mode", "fast"),
+					sentMode(func(m *group_set_things_service.Mode) bool {
+						return m != nil && m.Fast != nil && m.Slow == nil && m.BalancedMode == nil
+					}, "only the arm fast"),
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = { mode = \"balanced\" }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(res, "schedule.mode", "balanced"),
+					sentMode(func(m *group_set_things_service.Mode) bool { return m != nil && m.BalancedMode != nil && m.Fast == nil }, "only the arm balanced"),
+				),
+			},
+			{
+				Config: scheduleConfig("  schedule = { relative = { duration = \"1m\" } }\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(res, "schedule.mode"),
+					sentMode(func(m *group_set_things_service.Mode) bool { return m == nil }, "no mode"),
+				),
+			},
+			{Config: scheduleConfig("  schedule = { mode = \"bold\" }\n"), ExpectError: regexp.MustCompile(`mode`)},
+			{Config: scheduleConfig("  schedule = { mode = \"slow\" }\n")},
+			// An import reads the arm that the API has, so the state matches the configuration.
+			{ResourceName: res, ImportState: true, ImportStateVerify: true},
+		},
+	})
 }

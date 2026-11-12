@@ -40,6 +40,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": "(unknown)",
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
@@ -115,6 +116,7 @@
           "dataprime_query": {
             "query": "source logs | count"
           },
+          "evaluation_period_minutes": null,
           "no_data_policy": null,
           "timeframe_minutes": 10,
           "use_rows_as_permutations": null
