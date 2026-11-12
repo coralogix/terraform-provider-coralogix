@@ -1,0 +1,62 @@
+[
+  {
+    "step": "create with a permission in two cases",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig",
+            "SPANS.EVENTS2METRICS:UPDATECONFIG"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "permissions"
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"permissions\")",
+      "AttributeName(\"permissions\").ElementKeyValue(tftypes.String<\"spans.events2metrics:UpdateConfig\">)"
+    ]
+  }
+]

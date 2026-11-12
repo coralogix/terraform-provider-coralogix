@@ -1,0 +1,83 @@
+[
+  {
+    "step": "import a role with upper case permissions",
+    "state": null
+  },
+  {
+    "step": "import a role with upper case permissions (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "seeded",
+      "id": "5001",
+      "name": "imported",
+      "parent_role": "Standard User",
+      "permissions": [
+        "SPANS.EVENTS2METRICS:UPDATECONFIG"
+      ]
+    },
+    "drift": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"parent_role\")",
+      "AttributeName(\"permissions\")",
+      "AttributeName(\"permissions\").ElementKeyValue(tftypes.String<\"SPANS.EVENTS2METRICS:UPDATECONFIG\">)"
+    ]
+  },
+  {
+    "step": "plan a config with lower case permissions",
+    "config": {
+      "description": "seeded",
+      "name": "imported",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "seeded",
+      "id": "5001",
+      "name": "imported",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "seeded",
+          "newName": "imported",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "seeded",
+      "id": "5001",
+      "name": "imported",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  }
+]
