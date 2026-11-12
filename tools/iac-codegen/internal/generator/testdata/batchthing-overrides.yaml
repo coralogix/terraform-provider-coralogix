@@ -77,9 +77,6 @@ types:
 enums:
   legacy.Kind:
     zero: unspecified
-    values:
-    - ALPHA
-    - BETA
     rejected:
     - GAMMA
 dataSource:

@@ -51,15 +51,15 @@ type V2AggregationSumModel struct {
 	TargetMetricName types.String `tfsdk:"target_metric_name"`
 }
 
-type V2AggregationSamplesModel struct {
-	Enabled          types.Bool   `tfsdk:"enable"`
-	Samples          types.String `tfsdk:"type"`
-	TargetMetricName types.String `tfsdk:"target_metric_name"`
-}
-
 type V2AggregationHistogramModel struct {
 	Enabled          types.Bool   `tfsdk:"enable"`
 	Histogram        types.List   `tfsdk:"buckets"`
+	TargetMetricName types.String `tfsdk:"target_metric_name"`
+}
+
+type V2AggregationSamplesModel struct {
+	Enabled          types.Bool   `tfsdk:"enable"`
+	Samples          types.String `tfsdk:"type"`
 	TargetMetricName types.String `tfsdk:"target_metric_name"`
 }
 
@@ -69,8 +69,8 @@ type V2AggregationKeyedModel struct {
 	Count     types.Object `tfsdk:"count"`
 	Avg       types.Object `tfsdk:"avg"`
 	Sum       types.Object `tfsdk:"sum"`
-	Samples   types.Object `tfsdk:"samples"`
 	Histogram types.Object `tfsdk:"histogram"`
+	Samples   types.Object `tfsdk:"samples"`
 }
 
 type V2MetricFieldModel struct {

@@ -88,7 +88,7 @@ func Schema() schema.Schema {
 							Optional:    true,
 							ElementType: types.StringType,
 							Validators: []validator.Set{
-								setvalidator.ValueStringsAre(stringvalidator.OneOf("High", "Low", "Unspecified")),
+								setvalidator.ValueStringsAre(stringvalidator.OneOf("High", "Low", "Medium", "Unspecified")),
 							},
 							MarkdownDescription: "",
 						},

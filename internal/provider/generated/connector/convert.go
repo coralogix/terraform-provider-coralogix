@@ -24,16 +24,16 @@ import (
 var notificationCenterEntityTypeToAPI = map[string]connectors_service.NotificationCenterEntityType{
 	"unspecified":        connectors_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"),
 	"alerts":             connectors_service.NotificationCenterEntityType("ALERTS"),
-	"cases":              connectors_service.NotificationCenterEntityType("CASES"),
 	"test_notifications": connectors_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"),
+	"cases":              connectors_service.NotificationCenterEntityType("CASES"),
 }
 
 // notificationCenterEntityTypeFromAPI maps the API values of the enum to its Terraform values.
 var notificationCenterEntityTypeFromAPI = map[connectors_service.NotificationCenterEntityType]string{
 	connectors_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"): "unspecified",
 	connectors_service.NotificationCenterEntityType("ALERTS"):                  "alerts",
-	connectors_service.NotificationCenterEntityType("CASES"):                   "cases",
 	connectors_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"):      "test_notifications",
+	connectors_service.NotificationCenterEntityType("CASES"):                   "cases",
 }
 
 // notificationCenterConnectorTypeToAPI maps the Terraform values of the enum to its API values.

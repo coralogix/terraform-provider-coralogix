@@ -88,4 +88,3 @@ types:
 enums:
   ThingVariant:
     zero: a
-    values: [THING_VARIANT_B, THING_VARIANT_C]

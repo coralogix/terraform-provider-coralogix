@@ -62,7 +62,6 @@ enums:
     zero: unspecified
     aliases: {unspecified: percentage}
     trimPrefix: QUOTA_ALLOCATION_TYPE_
-    values: [QUOTA_ALLOCATION_TYPE_PERCENTAGE, QUOTA_ALLOCATION_TYPE_LOCKED_UNITS]
 
 # The data source reads the singleton. It has no configuration. It shows cx_managed on each rule, which the
 # resource keeps out of its state, and it shows the rules that Coralogix manages. It only reads, so it

@@ -40,9 +40,9 @@ var notificationCenterConnectorTypeToAPI = map[string]presets_service.Notificati
 	"slack":               presets_service.NotificationCenterConnectorType("SLACK"),
 	"generic_https":       presets_service.NotificationCenterConnectorType("GENERIC_HTTPS"),
 	"pagerduty":           presets_service.NotificationCenterConnectorType("PAGERDUTY"),
-	"pagerduty_incidents": presets_service.NotificationCenterConnectorType("PAGERDUTY_INCIDENTS"),
 	"service_now":         presets_service.NotificationCenterConnectorType("SERVICE_NOW"),
 	"email":               presets_service.NotificationCenterConnectorType("EMAIL"),
+	"pagerduty_incidents": presets_service.NotificationCenterConnectorType("PAGERDUTY_INCIDENTS"),
 	"microsoft_teams":     presets_service.NotificationCenterConnectorType("MICROSOFT_TEAMS"),
 	"eventbridge":         presets_service.NotificationCenterConnectorType("EVENTBRIDGE"),
 	"incident_io":         presets_service.NotificationCenterConnectorType("INCIDENT_IO"),
@@ -55,9 +55,9 @@ var notificationCenterConnectorTypeFromAPI = map[presets_service.NotificationCen
 	presets_service.NotificationCenterConnectorType("SLACK"):                      "slack",
 	presets_service.NotificationCenterConnectorType("GENERIC_HTTPS"):              "generic_https",
 	presets_service.NotificationCenterConnectorType("PAGERDUTY"):                  "pagerduty",
-	presets_service.NotificationCenterConnectorType("PAGERDUTY_INCIDENTS"):        "pagerduty_incidents",
 	presets_service.NotificationCenterConnectorType("SERVICE_NOW"):                "service_now",
 	presets_service.NotificationCenterConnectorType("EMAIL"):                      "email",
+	presets_service.NotificationCenterConnectorType("PAGERDUTY_INCIDENTS"):        "pagerduty_incidents",
 	presets_service.NotificationCenterConnectorType("MICROSOFT_TEAMS"):            "microsoft_teams",
 	presets_service.NotificationCenterConnectorType("EVENTBRIDGE"):                "eventbridge",
 	presets_service.NotificationCenterConnectorType("INCIDENT_IO"):                "incident_io",
@@ -68,8 +68,8 @@ var notificationCenterConnectorTypeFromAPI = map[presets_service.NotificationCen
 var notificationCenterEntityTypeToAPI = map[string]presets_service.NotificationCenterEntityType{
 	"unspecified":        presets_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"),
 	"alerts":             presets_service.NotificationCenterEntityType("ALERTS"),
-	"cases":              presets_service.NotificationCenterEntityType("CASES"),
 	"test_notifications": presets_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"),
+	"cases":              presets_service.NotificationCenterEntityType("CASES"),
 }
 
 // notificationCenterEntityTypeFromAPI maps the API values of the enum to its Terraform values.
@@ -77,8 +77,8 @@ var notificationCenterEntityTypeToAPI = map[string]presets_service.NotificationC
 var notificationCenterEntityTypeFromAPI = map[presets_service.NotificationCenterEntityType]string{
 	presets_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"): "unspecified",
 	presets_service.NotificationCenterEntityType("ALERTS"):                  "alerts",
-	presets_service.NotificationCenterEntityType("CASES"):                   "cases",
 	presets_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"):      "test_notifications",
+	presets_service.NotificationCenterEntityType("CASES"):                   "cases",
 	presets_service.NotificationCenterEntityType("OLLY_SCHEDULED_TASKS"):    "OLLY_SCHEDULED_TASKS",
 }
 

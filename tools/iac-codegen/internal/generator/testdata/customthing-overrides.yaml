@@ -37,9 +37,7 @@ types:
 enums:
   ThingKind:
     zero: unspecified
-    values: [SYSTEM, CUSTOM]
     rejected: [LEGACY]
     readRejected: true
   AttachmentPolicy:
     verbatim: true
-    values: [AUTO, ENABLED, DISABLED]

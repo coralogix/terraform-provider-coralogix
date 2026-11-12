@@ -17,6 +17,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
+	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -236,13 +237,21 @@ func validateOpenAPI(data []byte, resourceName string, operationIDs model.Operat
 	return validateOpenAPIWith(data, resourceName, operationIDs, sdkModule, providerModule, nil)
 }
 
+// filledPolicy fills the accepted values of each enum of the file from the contract, before
+// anything reads them, and returns the policy of the file. A new resource has no file and no policy.
+func filledPolicy(doc *v3.Document, file *overrides.File) (model.Policy, issue.Report) {
+	if file == nil {
+		return model.Policy{}, nil
+	}
+	if report := fillEnums(doc, file); len(report) != 0 {
+		return model.Policy{}, report
+	}
+	return file.Policy(), nil
+}
+
 // validateOpenAPIWith is validateOpenAPI for a resource with a behavior-overrides
 // file. file is nil for a new resource.
 func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) (*validatedResource, error) {
-	var policy model.Policy
-	if file != nil {
-		policy = file.Policy()
-	}
 	doc, err := model.Load(data)
 	if err != nil {
 		code := "OPENAPI_INVALID"
@@ -250,6 +259,10 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 			code = "REFERENCE_UNRESOLVED"
 		}
 		return nil, &EligibilityError{Report: issue.Report{{Code: code, Location: "openapi", Message: err.Error(), Remediation: "Correct the source OpenAPI document."}}}
+	}
+	policy, report := filledPolicy(doc, file)
+	if len(report) != 0 {
+		return nil, &EligibilityError{Report: report}
 	}
 	component, report := resolveResource(doc, resourceName)
 	if len(report) != 0 {

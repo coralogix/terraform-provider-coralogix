@@ -109,19 +109,16 @@ types:
 enums:
   WindowValue:
     zero: 1_MINUTE
-    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
     rejected: [WINDOW_VALUE_DAYS_7]
     names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}
   # The level of a panel spells the same API enum another way: the zero value is unspecified.
   WindowValue@size:
     zero: unspecified
-    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
     rejected: [WINDOW_VALUE_DAYS_7]
     readRejectedAs: "null"
     names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}
   WindowValue@panel:
     zero: unspecified
-    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
     # A value that the resource does not accept still reads, as unspecified, so a dashboard that someone
     # edited elsewhere does not fail the refresh.
     rejected: [WINDOW_VALUE_DAYS_7]
