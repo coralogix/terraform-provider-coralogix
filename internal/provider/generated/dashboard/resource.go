@@ -52,6 +52,10 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *dashboard_service.Dashboard) diag.Diagnostics
+	// AllowUnsupported says that the resource is managed in a way that does not read the
+	// unsupported fields and arms (unsupportedArms), so flatten does not report them. It gets the
+	// plan after Create or Update, or the state before Read; a state upgrade gets the prior state.
+	AllowUnsupported func(context.Context, any) bool
 	// Get replaces the Execute step of the Get call that Read, the data source, and every read
 	// after a write make (nil: the generated call). It receives a factory of the generated
 	// request, which already holds the context, the id, and the fixed query values of the
@@ -370,7 +374,27 @@ func (r *Resource) setStateKept(ctx context.Context, v *dashboard_service.Dashbo
 			return diags
 		}
 	}
+	if r.hooks.AllowUnsupported != nil {
+		source := prior
+		if source == nil {
+			source = keptFrom
+		}
+		if source != nil && r.hooks.AllowUnsupported(ctx, source) {
+			ctx = withUnsupportedAllowed(ctx)
+		}
+	}
 	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
+	if m != nil && unsupportedAllowed(ctx) {
+		// The hook that allowed the unsupported values manages the resource another way and drops its
+		// typed attributes, so a value that the schema cannot show is no error here.
+		kept := flattenDiags[:0:0]
+		for _, d := range flattenDiags {
+			if d.Severity() != diag.SeverityError {
+				kept = append(kept, d)
+			}
+		}
+		flattenDiags = kept
+	}
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
 		return diags

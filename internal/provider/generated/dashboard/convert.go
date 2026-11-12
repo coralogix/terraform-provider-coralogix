@@ -53,14 +53,14 @@ var annotationColorFromAPI = map[dashboard_service.AnnotationColor]string{
 	dashboard_service.AnnotationColor("ANNOTATION_COLOR_YELLOW"):  "yellow",
 }
 
-// v1CommonDataModeTypeToAPI maps the Terraform values of the enum to its API values.
-var v1CommonDataModeTypeToAPI = map[string]dashboard_service.V1CommonDataModeType{
+// v1CommonDataModeTypeAnnotationToAPI maps the Terraform values of the enum to its API values.
+var v1CommonDataModeTypeAnnotationToAPI = map[string]dashboard_service.V1CommonDataModeType{
 	"unspecified": dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_HIGH_UNSPECIFIED"),
 	"archive":     dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_ARCHIVE"),
 }
 
-// v1CommonDataModeTypeFromAPI maps the API values of the enum to its Terraform values.
-var v1CommonDataModeTypeFromAPI = map[dashboard_service.V1CommonDataModeType]string{
+// v1CommonDataModeTypeAnnotationFromAPI maps the API values of the enum to its Terraform values.
+var v1CommonDataModeTypeAnnotationFromAPI = map[dashboard_service.V1CommonDataModeType]string{
 	dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_HIGH_UNSPECIFIED"): "unspecified",
 	dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_ARCHIVE"):          "archive",
 }
@@ -203,6 +203,28 @@ var spanRelationTypeFromAPI = map[dashboard_service.SpanRelationType]string{
 	dashboard_service.SpanRelationType("SPAN_RELATION_TYPE_ROOT"):             "root",
 }
 
+// sectionPredefinedColorToAPI maps the Terraform values of the enum to its API values.
+var sectionPredefinedColorToAPI = map[string]dashboard_service.SectionPredefinedColor{
+	"cyan":    dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_CYAN"),
+	"green":   dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_GREEN"),
+	"blue":    dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_BLUE"),
+	"purple":  dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_PURPLE"),
+	"magenta": dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_MAGENTA"),
+	"pink":    dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_PINK"),
+	"orange":  dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_ORANGE"),
+}
+
+// sectionPredefinedColorFromAPI maps the API values of the enum to its Terraform values.
+var sectionPredefinedColorFromAPI = map[dashboard_service.SectionPredefinedColor]string{
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_CYAN"):    "cyan",
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_GREEN"):   "green",
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_BLUE"):    "blue",
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_PURPLE"):  "purple",
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_MAGENTA"): "magenta",
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_PINK"):    "pink",
+	dashboard_service.SectionPredefinedColor("SECTION_PREDEFINED_COLOR_ORANGE"):  "orange",
+}
+
 // widgetsBarValueDisplayToAPI maps the Terraform values of the enum to its API values.
 var widgetsBarValueDisplayToAPI = map[string]dashboard_service.WidgetsBarValueDisplay{
 	"unspecified": dashboard_service.WidgetsBarValueDisplay("BAR_VALUE_DISPLAY_UNSPECIFIED"),
@@ -243,14 +265,16 @@ var legendColumnToAPI = map[string]dashboard_service.LegendColumn{
 }
 
 // legendColumnFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var legendColumnFromAPI = map[dashboard_service.LegendColumn]string{
-	dashboard_service.LegendColumn("LEGEND_COLUMN_UNSPECIFIED"): "unspecified",
-	dashboard_service.LegendColumn("LEGEND_COLUMN_MIN"):         "min",
-	dashboard_service.LegendColumn("LEGEND_COLUMN_MAX"):         "max",
-	dashboard_service.LegendColumn("LEGEND_COLUMN_SUM"):         "sum",
-	dashboard_service.LegendColumn("LEGEND_COLUMN_AVG"):         "avg",
-	dashboard_service.LegendColumn("LEGEND_COLUMN_LAST"):        "last",
-	dashboard_service.LegendColumn("LEGEND_COLUMN_NAME"):        "name",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_UNSPECIFIED"):  "unspecified",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_MIN"):          "min",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_MAX"):          "max",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_SUM"):          "sum",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_AVG"):          "avg",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_LAST"):         "last",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_NAME"):         "name",
+	dashboard_service.LegendColumn("LEGEND_COLUMN_SIMPLE_VALUE"): "unspecified",
 }
 
 // legendPlacementToAPI maps the Terraform values of the enum to its API values.
@@ -333,6 +357,18 @@ var dimensionAggregationTypeFromAPI = map[dashboard_service.DimensionAggregation
 	dashboard_service.DimensionAggregationType("DIMENSION_AGGREGATION_TYPE_ERROR_COUNT"):  "error_count",
 }
 
+// dimensionFieldToAPI maps the Terraform values of the enum to its API values.
+var dimensionFieldToAPI = map[string]dashboard_service.DimensionField{
+	"unspecified": dashboard_service.DimensionField("DIMENSION_FIELD_UNSPECIFIED"),
+	"trace_id":    dashboard_service.DimensionField("DIMENSION_FIELD_TRACE_ID"),
+}
+
+// dimensionFieldFromAPI maps the API values of the enum to its Terraform values.
+var dimensionFieldFromAPI = map[dashboard_service.DimensionField]string{
+	dashboard_service.DimensionField("DIMENSION_FIELD_UNSPECIFIED"): "unspecified",
+	dashboard_service.DimensionField("DIMENSION_FIELD_TRACE_ID"):    "trace_id",
+}
+
 // metricAggregationTypeToAPI maps the Terraform values of the enum to its API values.
 var metricAggregationTypeToAPI = map[string]dashboard_service.MetricAggregationType{
 	"unspecified":   dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_UNSPECIFIED"),
@@ -355,6 +391,18 @@ var metricAggregationTypeFromAPI = map[dashboard_service.MetricAggregationType]s
 	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_99"): "percentile_99",
 	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_95"): "percentile_95",
 	dashboard_service.MetricAggregationType("METRIC_AGGREGATION_TYPE_PERCENTILE_50"): "percentile_50",
+}
+
+// metricAggregationMetricFieldToAPI maps the Terraform values of the enum to its API values.
+var metricAggregationMetricFieldToAPI = map[string]dashboard_service.MetricAggregationMetricField{
+	"unspecified": dashboard_service.MetricAggregationMetricField("METRIC_FIELD_UNSPECIFIED"),
+	"duration":    dashboard_service.MetricAggregationMetricField("METRIC_FIELD_DURATION"),
+}
+
+// metricAggregationMetricFieldFromAPI maps the API values of the enum to its Terraform values.
+var metricAggregationMetricFieldFromAPI = map[dashboard_service.MetricAggregationMetricField]string{
+	dashboard_service.MetricAggregationMetricField("METRIC_FIELD_UNSPECIFIED"): "unspecified",
+	dashboard_service.MetricAggregationMetricField("METRIC_FIELD_DURATION"):    "duration",
 }
 
 // scaleTypeToAPI maps the Terraform values of the enum to its API values.
@@ -929,6 +977,18 @@ var widgetsPieChartLabelSourceFromAPI = map[dashboard_service.WidgetsPieChartLab
 	dashboard_service.WidgetsPieChartLabelSource("LABEL_SOURCE_STACK"):       "stack",
 }
 
+// selectionTypeToAPI maps the Terraform values of the enum to its API values.
+var selectionTypeToAPI = map[string]dashboard_service.SelectionType{
+	"multi":  dashboard_service.SelectionType("SELECTION_TYPE_MULTI"),
+	"single": dashboard_service.SelectionType("SELECTION_TYPE_SINGLE"),
+}
+
+// selectionTypeFromAPI maps the API values of the enum to its Terraform values.
+var selectionTypeFromAPI = map[dashboard_service.SelectionType]string{
+	dashboard_service.SelectionType("SELECTION_TYPE_MULTI"):  "multi",
+	dashboard_service.SelectionType("SELECTION_TYPE_SINGLE"): "single",
+}
+
 // multiSelectRefreshStrategyToAPI maps the Terraform values of the enum to its API values.
 var multiSelectRefreshStrategyToAPI = map[string]dashboard_service.MultiSelectRefreshStrategy{
 	"unspecified":          dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_UNSPECIFIED"),
@@ -941,20 +1001,6 @@ var multiSelectRefreshStrategyFromAPI = map[dashboard_service.MultiSelectRefresh
 	dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_UNSPECIFIED"):          "unspecified",
 	dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_ON_DASHBOARD_LOAD"):    "on_dashboard_load",
 	dashboard_service.MultiSelectRefreshStrategy("REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE"): "on_time_frame_change",
-}
-
-// variableDisplayTypeToAPI maps the Terraform values of the enum to its API values.
-var variableDisplayTypeToAPI = map[string]dashboard_service.VariableDisplayType{
-	"label_value": dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_LABEL_VALUE"),
-	"value":       dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_VALUE"),
-	"nothing":     dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_NOTHING"),
-}
-
-// variableDisplayTypeFromAPI maps the API values of the enum to its Terraform values.
-var variableDisplayTypeFromAPI = map[dashboard_service.VariableDisplayType]string{
-	dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_LABEL_VALUE"): "label_value",
-	dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_VALUE"):       "value",
-	dashboard_service.VariableDisplayType("VARIABLE_DISPLAY_TYPE_NOTHING"):     "nothing",
 }
 
 // variableDisplayTypeV2ToAPI maps the Terraform values of the enum to its API values.
@@ -971,6 +1017,18 @@ var variableDisplayTypeV2FromAPI = map[dashboard_service.VariableDisplayTypeV2]s
 	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_LABEL_VALUE"): "label_value",
 	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_VALUE"):       "value",
 	dashboard_service.VariableDisplayTypeV2("VARIABLE_DISPLAY_TYPE_V2_NOTHING"):     "nothing",
+}
+
+// v1CommonDataModeTypeToAPI maps the Terraform values of the enum to its API values.
+var v1CommonDataModeTypeToAPI = map[string]dashboard_service.V1CommonDataModeType{
+	"high":    dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_HIGH_UNSPECIFIED"),
+	"archive": dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_ARCHIVE"),
+}
+
+// v1CommonDataModeTypeFromAPI maps the API values of the enum to its Terraform values.
+var v1CommonDataModeTypeFromAPI = map[dashboard_service.V1CommonDataModeType]string{
+	dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_HIGH_UNSPECIFIED"): "high",
+	dashboard_service.V1CommonDataModeType("DATA_MODE_TYPE_ARCHIVE"):          "archive",
 }
 
 // variableSourceV2RefreshStrategyToAPI maps the Terraform values of the enum to its API values.
@@ -1017,7 +1075,6 @@ var createFields = []struct {
 	{attr: "folder", serverDefault: false},
 	{attr: "layout", serverDefault: false},
 	{attr: "name", serverDefault: false},
-	{attr: "slug_name", serverDefault: false},
 	{attr: "variables", serverDefault: false},
 	{attr: "variables_v2", serverDefault: false},
 }
@@ -1043,15 +1100,7 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // that a request sends, with list and map steps left out. The server sets
 // them.
 var serverAttrs = map[string]bool{
-	"layout.sections.rows.widgets.created_at":                                                 true,
 	"layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.id": true,
-	"layout.sections.rows.widgets.updated_at":                                                 true,
-}
-
-// defaultAttrs are the nested attributes with a server default, by path. A
-// request does not send an unknown value of one, so the server stores the default.
-var defaultAttrs = map[string]attr.Value{
-	"layout.sections.rows.widgets.highlighted": types.BoolValue(false),
 }
 
 // requestValue returns v with a null value for each attribute that the server
@@ -1067,7 +1116,7 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		attrTypes := v.AttributeTypes(ctx)
 		out := make(map[string]attr.Value, len(attrTypes))
 		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] || defaultAttrs[at+"."+name] != nil && child.IsUnknown() {
+			if serverAttrs[at+"."+name] {
 				out[name] = nullValue(ctx, attrTypes[name], diags)
 			} else {
 				out[name] = requestValue(ctx, at+"."+name, child, diags)
@@ -1828,7 +1877,6 @@ var computedAttrs = map[string]bool{
 	"layout.sections.id":                 true,
 	"layout.sections.rows.id":            true,
 	"layout.sections.rows.widgets.width": true,
-	"layout.sections.rows.widgets.created_at":                                                                                             true,
 	"layout.sections.rows.widgets.definition.bar_chart.bar_value_display":                                                                 true,
 	"layout.sections.rows.widgets.definition.bar_chart.data_mode_type":                                                                    true,
 	"layout.sections.rows.widgets.definition.bar_chart.legend.group_by_query":                                                             true,
@@ -2136,7 +2184,6 @@ var computedAttrs = map[string]bool{
 	"layout.sections.rows.widgets.definition.pie_chart.unit":                                                                              true,
 	"layout.sections.rows.widgets.highlighted":                                                                                            true,
 	"layout.sections.rows.widgets.id":                                               true,
-	"layout.sections.rows.widgets.updated_at":                                       true,
 	"layout.sections.rows.widgets.custom_actions.id":                                true,
 	"variables.definition.multi_select.selected_values":                             true,
 	"variables.definition.multi_select.source.query.refresh_strategy":               true,
@@ -2865,10 +2912,6 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
-	// A read can leave out a nested value that equals its declared server default.
-	if d := defaultAttrs[at]; d != nil && v.IsNull() && p != nil && p.Equal(d) {
-		return p
-	}
 	if keepAPIValue(at, v, p) {
 		return v
 	}
@@ -3046,7 +3089,6 @@ func expandDashboardCreate(ctx context.Context, p path.Path, m *DashboardModel, 
 	expandDashboardCreateFolder(ctx, p.AtName("folder"), m.Folder, out, diags)
 	out.Layout = valueOf(expandLayout(ctx, p.AtName("layout"), m.Layout, diags))
 	out.Name = valueOf(expandString(m.Name))
-	out.SlugName = expandString(m.SlugName)
 	if items := expandElements[VariableModel](ctx, p.AtName("variables"), m.Variables, diags); items != nil {
 		out.Variables = make([]dashboard_service.Variable, 0, len(items))
 		for i := range items {
@@ -3107,7 +3149,7 @@ func expandAnnotation(ctx context.Context, p path.Path, m *AnnotationModel, diag
 	out.Color = expandEnumMapped(p.AtName("color"), m.Color, annotationColorToAPI, diags)
 	out.Description = expandString(m.Description)
 	out.Enabled = expandBool(m.Enabled)
-	out.Id = expandString(m.Id)
+	out.Id = expandClientUUID(m.Id)
 	out.Name = expandString(m.Name)
 	out.Scope = expandAnnotationWidgetScope(ctx, p.AtName("scope"), m.Scope, diags)
 	out.Source = expandAnnotationSource(ctx, p.AtName("source"), m.Source, diags)
@@ -3119,8 +3161,8 @@ func flattenAnnotation(ctx context.Context, p path.Path, v *dashboard_service.An
 		return nil
 	}
 	out := &AnnotationModel{}
-	if api := v.Color; api != nil && *api == "ANNOTATION_COLOR_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := v.Color; api != nil && (*api == "ANNOTATION_COLOR_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.Color = types.StringNull()
 	} else {
 		out.Color = flattenEnumMapped(p.AtName("color"), api, annotationColorFromAPI, diags)
@@ -3192,6 +3234,10 @@ func flattenAnnotationWidgetScopeSpecificWidgets(ctx context.Context, p path.Pat
 	}
 	out := &AnnotationWidgetScopeSpecificWidgetsModel{}
 	out.WidgetIds = flattenStringsList(ctx, v.WidgetIds, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.WidgetIds) == 0 {
+		out.WidgetIds = types.ListNull(types.StringType)
+	}
 	return out
 }
 
@@ -3245,7 +3291,7 @@ func expandDataprimeSource(ctx context.Context, p path.Path, m *DataprimeSourceM
 		return nil
 	}
 	out := &dashboard_service.DataprimeSource{}
-	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, v1CommonDataModeTypeToAPI, diags)
+	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, v1CommonDataModeTypeAnnotationToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("label_fields"), m.LabelFields, diags); items != nil {
 		out.LabelFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -3268,9 +3314,9 @@ func flattenDataprimeSource(ctx context.Context, p path.Path, v *dashboard_servi
 		return nil
 	}
 	out := &DataprimeSourceModel{}
-	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, v1CommonDataModeTypeFromAPI, diags)
+	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, v1CommonDataModeTypeAnnotationFromAPI, diags)
 	out.LabelFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.LabelFields != nil {
+	if len(v.LabelFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.LabelFields))
 		for i := range v.LabelFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("label_fields").AtListIndex(i), &v.LabelFields[i], diags))
@@ -3314,6 +3360,10 @@ func flattenObservationField(ctx context.Context, p path.Path, v *dashboard_serv
 	}
 	out := &ObservationFieldModel{}
 	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Keypath) == 0 {
+		out.Keypath = types.ListNull(types.StringType)
+	}
 	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
 	return out
 }
@@ -3502,6 +3552,10 @@ func flattenWeeklyRecurrence(ctx context.Context, p path.Path, v *dashboard_serv
 	}
 	out := &WeeklyRecurrenceModel{}
 	out.DaysOfWeek = flattenEnumsMappedList(ctx, p.AtName("days_of_week"), v.DaysOfWeek, weekdayFromAPI, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.DaysOfWeek) == 0 {
+		out.DaysOfWeek = types.ListNull(types.StringType)
+	}
 	return out
 }
 
@@ -3594,7 +3648,7 @@ func expandLogsSource(ctx context.Context, p path.Path, m *LogsSourceModel, diag
 		return nil
 	}
 	out := &dashboard_service.LogsSource{}
-	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, v1CommonDataModeTypeToAPI, diags)
+	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, v1CommonDataModeTypeAnnotationToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("label_fields"), m.LabelFields, diags); items != nil {
 		out.LabelFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -3616,9 +3670,9 @@ func flattenLogsSource(ctx context.Context, p path.Path, v *dashboard_service.Lo
 		return nil
 	}
 	out := &LogsSourceModel{}
-	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, v1CommonDataModeTypeFromAPI, diags)
+	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, v1CommonDataModeTypeAnnotationFromAPI, diags)
 	out.LabelFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.LabelFields != nil {
+	if len(v.LabelFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.LabelFields))
 		for i := range v.LabelFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("label_fields").AtListIndex(i), &v.LabelFields[i], diags))
@@ -3897,6 +3951,10 @@ func flattenMetricsSource(ctx context.Context, p path.Path, v *dashboard_service
 	out := &MetricsSourceModel{}
 	out.IntervalResolution = flattenIntervalResolution(ctx, p.AtName("interval_resolution"), v.IntervalResolution, diags)
 	out.Labels = flattenStringsList(ctx, v.Labels, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Labels) == 0 {
+		out.Labels = types.ListNull(types.StringType)
+	}
 	out.MessageTemplate = types.StringPointerValue(v.MessageTemplate)
 	out.Orientation = flattenEnumMapped(p.AtName("orientation"), v.Orientation, annotationOrientationFromAPI, diags)
 	{
@@ -4038,7 +4096,7 @@ func expandSpansSource(ctx context.Context, p path.Path, m *SpansSourceModel, di
 		return nil
 	}
 	out := &dashboard_service.SpansSource{}
-	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, v1CommonDataModeTypeToAPI, diags)
+	out.DataModeType = expandEnumMapped(p.AtName("data_mode_type"), m.DataModeType, v1CommonDataModeTypeAnnotationToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("label_fields"), m.LabelFields, diags); items != nil {
 		out.LabelFields = make([]dashboard_service.ObservationField, 0, len(items))
 		for i := range items {
@@ -4060,9 +4118,9 @@ func flattenSpansSource(ctx context.Context, p path.Path, v *dashboard_service.S
 		return nil
 	}
 	out := &SpansSourceModel{}
-	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, v1CommonDataModeTypeFromAPI, diags)
+	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, v1CommonDataModeTypeAnnotationFromAPI, diags)
 	out.LabelFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.LabelFields != nil {
+	if len(v.LabelFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.LabelFields))
 		for i := range v.LabelFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("label_fields").AtListIndex(i), &v.LabelFields[i], diags))
@@ -4229,7 +4287,7 @@ func expandFiltersFilter(ctx context.Context, p path.Path, m *FiltersFilterModel
 	out.Enabled = expandBool(m.Enabled)
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	out.Scope = expandFilterWidgetScope(ctx, p.AtName("scope"), m.Scope, diags)
@@ -4317,6 +4375,10 @@ func flattenFilterWidgetScopeSpecificWidgets(ctx context.Context, p path.Path, v
 	{
 		inner := unwrapUUID_items(v.WidgetIds)
 		out.WidgetIds = flattenStringsList(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.WidgetIds = types.ListNull(types.StringType)
+		}
 	}
 	return out
 }
@@ -4552,6 +4614,10 @@ func flattenEqualsSelectionListSelection(ctx context.Context, p path.Path, v *da
 	}
 	out := &EqualsSelectionListSelectionModel{}
 	out.Values = flattenStringsList(ctx, v.Values, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Values) == 0 {
+		out.Values = types.ListNull(types.StringType)
+	}
 	return out
 }
 
@@ -4645,6 +4711,10 @@ func flattenNotEqualsSelectionListSelection(ctx context.Context, p path.Path, v 
 	}
 	out := &NotEqualsSelectionListSelectionModel{}
 	out.Values = flattenStringsList(ctx, v.Values, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Values) == 0 {
+		out.Values = types.ListNull(types.StringType)
+	}
 	return out
 }
 
@@ -4833,7 +4903,7 @@ func flattenLayout(ctx context.Context, p path.Path, v *dashboard_service.Layout
 	}
 	out := &LayoutModel{}
 	out.Sections = types.ListNull(types.ObjectType{AttrTypes: sectionAttrTypes()})
-	if v.Sections != nil {
+	if len(v.Sections) != 0 {
 		items := make([]SectionModel, 0, len(v.Sections))
 		var priorSections []SectionModel
 		if prior != nil {
@@ -4859,7 +4929,7 @@ func expandSection(ctx context.Context, p path.Path, m *SectionModel, diags *dia
 	out := &dashboard_service.Section{}
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	out.Options = expandSectionOptions(ctx, p.AtName("options"), m.Options, diags)
@@ -4883,7 +4953,7 @@ func flattenSection(ctx context.Context, p path.Path, v *dashboard_service.Secti
 	}
 	out.Options = flattenSectionOptions(ctx, p.AtName("options"), v.Options, diags)
 	out.Rows = types.ListNull(types.ObjectType{AttrTypes: rowAttrTypes()})
-	if v.Rows != nil {
+	if len(v.Rows) != 0 {
 		items := make([]RowModel, 0, len(v.Rows))
 		var priorRows []RowModel
 		if prior != nil {
@@ -4919,7 +4989,7 @@ func expandSectionOptions(ctx context.Context, p path.Path, m *SectionOptionsMod
 	out.Custom.Collapsed = expandBool(m.Collapsed)
 	{
 		var inner *dashboard_service.SectionPredefinedColor
-		inner = expandEnum[dashboard_service.SectionPredefinedColor](m.Color)
+		inner = expandEnumMapped(p.AtName("color"), m.Color, sectionPredefinedColorToAPI, diags)
 		out.Custom.Color = wrapSectionColor(inner)
 	}
 	out.Custom.Description = expandString(m.Description)
@@ -4948,7 +5018,12 @@ func flattenSectionOptions(ctx context.Context, p path.Path, v *dashboard_servic
 	out.Collapsed = types.BoolPointerValue(v.Custom.Collapsed)
 	{
 		inner := unwrapSectionColor(v.Custom.Color)
-		out.Color = flattenEnum(inner, "SECTION_PREDEFINED_COLOR_UNSPECIFIED")
+		if api := inner; api != nil && (*api == "SECTION_PREDEFINED_COLOR_UNSPECIFIED") {
+			// The zero value, or a value that the resource does not accept, means that the API has no value.
+			out.Color = types.StringNull()
+		} else {
+			out.Color = flattenEnumMapped(p.AtName("color"), api, sectionPredefinedColorFromAPI, diags)
+		}
 	}
 	out.Description = types.StringPointerValue(v.Custom.Description)
 	out.Name = types.StringPointerValue(v.Custom.Name)
@@ -5003,7 +5078,7 @@ func expandRow(ctx context.Context, p path.Path, m *RowModel, diags *diag.Diagno
 	out.Appearance.Height = expandInt64AsInt32(p.AtName("height"), m.Height, diags)
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	if items := expandElements[WidgetModel](ctx, p.AtName("widgets"), m.Widgets, diags); items != nil {
@@ -5035,7 +5110,7 @@ func flattenRow(ctx context.Context, p path.Path, v *dashboard_service.Row, prio
 		out.Id = types.StringPointerValue(inner)
 	}
 	out.Widgets = types.ListNull(types.ObjectType{AttrTypes: widgetAttrTypes()})
-	if v.Widgets != nil {
+	if len(v.Widgets) != 0 {
 		items := make([]WidgetModel, 0, len(v.Widgets))
 		var priorWidgets []WidgetModel
 		if prior != nil {
@@ -5074,10 +5149,9 @@ func expandWidget(ctx context.Context, p path.Path, m *WidgetModel, diags *diag.
 	out.Highlighted = expandBool(m.Highlighted)
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
-	out.LayoutColumns = expandInt32(m.LayoutColumns)
 	out.Reference = expandWidgetReference(ctx, p.AtName("reference"), m.Reference, diags)
 	out.Title = expandString(m.Title)
 	if items := expandElements[DashboardActionModel](ctx, p.AtName("custom_actions"), m.CustomActions, diags); len(items) != 0 {
@@ -5128,11 +5202,8 @@ func flattenWidget(ctx context.Context, p path.Path, v *dashboard_service.Widget
 		inner := unwrapUUID(v.Id)
 		out.Id = types.StringPointerValue(inner)
 	}
-	out.LayoutColumns = types.Int32PointerValue(v.LayoutColumns)
 	out.Reference = flattenWidgetReference(ctx, p.AtName("reference"), v.Reference, diags)
 	out.Title = types.StringPointerValue(v.Title)
-	out.CreatedAt = flattenTime(v.CreatedAt)
-	out.UpdatedAt = flattenTime(v.UpdatedAt)
 	out.CustomActions = types.ListNull(types.ObjectType{AttrTypes: dashboardActionAttrTypes()})
 	if collected := distributedActionsOf(ctx); collected != nil {
 		if id := unwrapUUID(v.Id); id != nil {
@@ -5155,11 +5226,8 @@ func widgetAttrTypes() map[string]attr.Type {
 		"description":    types.StringType,
 		"highlighted":    types.BoolType,
 		"id":             types.StringType,
-		"layout_columns": types.Int32Type,
 		"reference":      types.ObjectType{AttrTypes: widgetReferenceAttrTypes()},
 		"title":          types.StringType,
-		"created_at":     types.StringType,
-		"updated_at":     types.StringType,
 		"custom_actions": types.ListType{ElemType: types.ObjectType{AttrTypes: dashboardActionAttrTypes()}},
 	}
 }
@@ -5283,7 +5351,11 @@ func flattenBarChart(ctx context.Context, p path.Path, v *dashboard_service.BarC
 		return nil
 	}
 	out := &BarChartModel{}
-	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, widgetsBarValueDisplayFromAPI, diags)
+	if v.BarValueDisplay == nil {
+		out.BarValueDisplay = types.StringValue("unspecified")
+	} else {
+		out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, widgetsBarValueDisplayFromAPI, diags)
+	}
 	out.ColorScheme = types.StringPointerValue(v.ColorScheme)
 	out.ColorsBy = types.StringNull()
 	if fold := v.ColorsBy; fold != nil {
@@ -5314,7 +5386,11 @@ func flattenBarChart(ctx context.Context, p path.Path, v *dashboard_service.BarC
 	out.StackDefinition = flattenBarChartStackDefinition(ctx, p.AtName("stack_definition"), v.StackDefinition, diags)
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.XAxis = flattenXAxis(ctx, p.AtName("xaxis"), v.XAxis, diags)
-	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	if v.XAxisTimeFormat == nil {
+		out.XAxisTimeFormat = types.StringValue("unspecified")
+	} else {
+		out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	}
 	out.YAxisMax = flattenFloat32AsFloat64(v.YAxisMax)
 	if prior != nil {
 		out.YAxisMax = keepPriorFloat32(prior.YAxisMax, out.YAxisMax)
@@ -5369,9 +5445,17 @@ func flattenLegend(ctx context.Context, p path.Path, v *dashboard_service.Legend
 	}
 	out := &LegendModel{}
 	out.Columns = flattenEnumsMappedList(ctx, p.AtName("columns"), v.Columns, legendColumnFromAPI, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Columns) == 0 {
+		out.Columns = types.ListNull(types.StringType)
+	}
 	out.GroupByQuery = types.BoolPointerValue(v.GroupByQuery)
 	out.IsVisible = types.BoolPointerValue(v.IsVisible)
-	out.Placement = flattenEnumMapped(p.AtName("placement"), v.Placement, legendPlacementFromAPI, diags)
+	if v.Placement == nil {
+		out.Placement = types.StringValue("unspecified")
+	} else {
+		out.Placement = flattenEnumMapped(p.AtName("placement"), v.Placement, legendPlacementFromAPI, diags)
+	}
 	return out
 }
 
@@ -5449,7 +5533,7 @@ func flattenBarChartDataprimeQuery(ctx context.Context, p path.Path, v *dashboar
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -5457,6 +5541,10 @@ func flattenBarChartDataprimeQuery(ctx context.Context, p path.Path, v *dashboar
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterSourceAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -5504,7 +5592,7 @@ func expandTimeFrameSelectRelative(ctx context.Context, p path.Path, m *TimeFram
 	if m == nil {
 		return
 	}
-	out.RelativeTimeFrame = expandString(m.RelativeTimeFrame)
+	out.RelativeTimeFrame = expandDuration(p.AtName("duration"), m.RelativeTimeFrame, "protoText", diags)
 }
 
 func flattenTimeFrameSelectRelative(ctx context.Context, p path.Path, v *dashboard_service.TimeFrameSelect, diags *diag.Diagnostics) *TimeFrameSelectRelativeModel {
@@ -5515,7 +5603,7 @@ func flattenTimeFrameSelectRelative(ctx context.Context, p path.Path, v *dashboa
 		return nil // the response has none of the fields: the group is null
 	}
 	out := &TimeFrameSelectRelativeModel{}
-	out.RelativeTimeFrame = types.StringPointerValue(v.RelativeTimeFrame)
+	out.RelativeTimeFrame = flattenDuration(v.RelativeTimeFrame, "protoText")
 	return out
 }
 
@@ -5562,7 +5650,7 @@ func flattenBarChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 	out := &BarChartLogsQueryModel{}
 	out.Aggregation = flattenLogsAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -5570,8 +5658,12 @@ func flattenBarChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	out.GroupNamesFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupNamesFields != nil {
+	if len(v.GroupNamesFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupNamesFields))
 		for i := range v.GroupNamesFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_names_fields").AtListIndex(i), &v.GroupNamesFields[i], diags))
@@ -5871,10 +5963,18 @@ func flattenBarChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_
 		return nil
 	}
 	out := &BarChartMetricsQueryModel{}
-	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.Aggregation == nil {
+		out.Aggregation = types.StringValue("unspecified")
+	} else {
+		out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	}
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtBarChartMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtBarChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtBarChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -5882,11 +5982,19 @@ func flattenBarChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtBarChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	if v.PromqlQueryType == nil {
+		out.PromqlQueryType = types.StringValue("unspecified")
+	} else {
+		out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	}
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -5977,7 +6085,7 @@ func flattenBarChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_se
 	out := &BarChartSpansQueryModel{}
 	out.Aggregation = flattenSpansAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -5985,7 +6093,7 @@ func flattenBarChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_se
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupNames = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupNames != nil {
+	if len(v.GroupNames) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupNames))
 		for i := range v.GroupNames {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_names").AtListIndex(i), &v.GroupNames[i], diags))
@@ -5993,7 +6101,7 @@ func flattenBarChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_se
 		out.GroupNames = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupNamesFields = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupNamesFields != nil {
+	if len(v.GroupNamesFields) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupNamesFields))
 		for i := range v.GroupNamesFields {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_names_fields").AtListIndex(i), &v.GroupNamesFields[i], diags))
@@ -6092,7 +6200,7 @@ func expandDimensionAggregation(ctx context.Context, p path.Path, m *DimensionAg
 	}
 	out := &dashboard_service.DimensionAggregation{}
 	out.AggregationType = expandEnumMapped(p.AtName("aggregation_type"), m.AggregationType, dimensionAggregationTypeToAPI, diags)
-	out.DimensionField = expandEnum[dashboard_service.DimensionField](m.DimensionField)
+	out.DimensionField = expandEnumMapped(p.AtName("field"), m.DimensionField, dimensionFieldToAPI, diags)
 	return out
 }
 
@@ -6102,7 +6210,7 @@ func flattenDimensionAggregation(ctx context.Context, p path.Path, v *dashboard_
 	}
 	out := &DimensionAggregationModel{}
 	out.AggregationType = flattenEnumMapped(p.AtName("aggregation_type"), v.AggregationType, dimensionAggregationTypeFromAPI, diags)
-	out.DimensionField = flattenEnum(v.DimensionField, "DIMENSION_FIELD_UNSPECIFIED")
+	out.DimensionField = flattenEnumMapped(p.AtName("field"), v.DimensionField, dimensionFieldFromAPI, diags)
 	return out
 }
 
@@ -6112,7 +6220,7 @@ func expandMetricAggregation(ctx context.Context, p path.Path, m *MetricAggregat
 	}
 	out := &dashboard_service.MetricAggregation{}
 	out.AggregationType = expandEnumMapped(p.AtName("aggregation_type"), m.AggregationType, metricAggregationTypeToAPI, diags)
-	out.MetricField = expandEnum[dashboard_service.MetricAggregationMetricField](m.MetricField)
+	out.MetricField = expandEnumMapped(p.AtName("field"), m.MetricField, metricAggregationMetricFieldToAPI, diags)
 	return out
 }
 
@@ -6122,7 +6230,7 @@ func flattenMetricAggregation(ctx context.Context, p path.Path, v *dashboard_ser
 	}
 	out := &MetricAggregationModel{}
 	out.AggregationType = flattenEnumMapped(p.AtName("aggregation_type"), v.AggregationType, metricAggregationTypeFromAPI, diags)
-	out.MetricField = flattenEnum(v.MetricField, "METRIC_FIELD_UNSPECIFIED")
+	out.MetricField = flattenEnumMapped(p.AtName("field"), v.MetricField, metricAggregationMetricFieldFromAPI, diags)
 	return out
 }
 
@@ -6193,7 +6301,7 @@ func expandXAxisByTime(ctx context.Context, p path.Path, m *XAxisByTimeModel, di
 	}
 	out := &dashboard_service.XAxisByTime{}
 	out.BucketsPresented = expandInt64AsInt32(p.AtName("buckets_presented"), m.BucketsPresented, diags)
-	out.Interval = expandString(m.Interval)
+	out.Interval = expandDuration(p.AtName("interval"), m.Interval, "goDuration", diags)
 	return out
 }
 
@@ -6203,7 +6311,7 @@ func flattenXAxisByTime(ctx context.Context, p path.Path, v *dashboard_service.X
 	}
 	out := &XAxisByTimeModel{}
 	out.BucketsPresented = types.Int64PointerValue(int32AsInt64(v.BucketsPresented))
-	out.Interval = types.StringPointerValue(v.Interval)
+	out.Interval = flattenDuration(v.Interval, "goDuration")
 	return out
 }
 
@@ -6239,7 +6347,7 @@ func flattenDataTable(ctx context.Context, p path.Path, v *dashboard_service.Dat
 	}
 	out := &DataTableModel{}
 	out.Columns = types.ListNull(types.ObjectType{AttrTypes: dataTableColumnAttrTypes()})
-	if v.Columns != nil {
+	if len(v.Columns) != 0 {
 		items := make([]DataTableColumnModel, 0, len(v.Columns))
 		for i := range v.Columns {
 			items = append(items, *flattenDataTableColumn(ctx, p.AtName("columns").AtListIndex(i), &v.Columns[i], diags))
@@ -6382,7 +6490,7 @@ func flattenDataTableDataprimeQuery(ctx context.Context, p path.Path, v *dashboa
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -6428,7 +6536,7 @@ func flattenDataTableLogsQuery(ctx context.Context, p path.Path, v *dashboard_se
 	}
 	out := &DataTableLogsQueryModel{}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -6480,7 +6588,7 @@ func flattenLogsQueryGrouping(ctx context.Context, p path.Path, v *dashboard_ser
 	}
 	out := &LogsQueryGroupingModel{}
 	out.Aggregations = types.ListNull(types.ObjectType{AttrTypes: logsQueryAggregationAttrTypes()})
-	if v.Aggregations != nil {
+	if len(v.Aggregations) != 0 {
 		items := make([]LogsQueryAggregationModel, 0, len(v.Aggregations))
 		for i := range v.Aggregations {
 			items = append(items, *flattenLogsQueryAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregations[i], diags))
@@ -6493,7 +6601,7 @@ func flattenLogsQueryGrouping(ctx context.Context, p path.Path, v *dashboard_ser
 		out.GroupBy = types.ListNull(types.StringType)
 	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupBys != nil {
+	if len(v.GroupBys) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupBys))
 		for i := range v.GroupBys {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_bys").AtListIndex(i), &v.GroupBys[i], diags))
@@ -6571,9 +6679,13 @@ func flattenDataTableMetricsQuery(ctx context.Context, p path.Path, v *dashboard
 		return nil
 	}
 	out := &DataTableMetricsQueryModel{}
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtDataTableMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtDataTableMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtDataTableMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -6656,7 +6768,7 @@ func flattenDataTableSpansQuery(ctx context.Context, p path.Path, v *dashboard_s
 	}
 	out := &DataTableSpansQueryModel{}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -6713,7 +6825,7 @@ func flattenSpansQueryGrouping(ctx context.Context, p path.Path, v *dashboard_se
 	}
 	out := &SpansQueryGroupingModel{}
 	out.Aggregations = types.ListNull(types.ObjectType{AttrTypes: spansQueryAggregationAttrTypes()})
-	if v.Aggregations != nil {
+	if len(v.Aggregations) != 0 {
 		items := make([]SpansQueryAggregationModel, 0, len(v.Aggregations))
 		for i := range v.Aggregations {
 			items = append(items, *flattenSpansQueryAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregations[i], diags))
@@ -6721,7 +6833,7 @@ func flattenSpansQueryGrouping(ctx context.Context, p path.Path, v *dashboard_se
 		out.Aggregations = flattenList(ctx, types.ObjectType{AttrTypes: spansQueryAggregationAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -6800,10 +6912,16 @@ func flattenWidgetsDynamic(ctx context.Context, p path.Path, v *dashboard_servic
 	if v == nil {
 		return nil
 	}
+	if v.Query != nil && !unsupportedAllowed(ctx) {
+		diags.AddError("Unsupported Dashboard Widget Definition", "The dynamic widget uses the deprecated top-level `query`, which this provider cannot represent as typed HCL. Manage this dashboard with `content_json`, or move the widget to `query_definitions`, which holds the same queries.")
+	}
+	if !unsupportedAllowed(ctx) && (v.Visualization == nil || (v.Visualization.Gauge == nil && v.Visualization.Geomap == nil && v.Visualization.Heatmap == nil && v.Visualization.HexagonBins == nil && v.Visualization.HorizontalBars == nil && v.Visualization.HorizontalBarsMulti == nil && v.Visualization.PieChart == nil && v.Visualization.Stat == nil && v.Visualization.StatCard == nil && v.Visualization.Table == nil && v.Visualization.TimeSeriesBars == nil && v.Visualization.TimeSeriesLines == nil && v.Visualization.TimeSeriesLinesMulti == nil && v.Visualization.VerticalBars == nil && v.Visualization.VerticalBarsMulti == nil)) {
+		diags.AddError("Unsupported Dashboard Widget Definition", "The dynamic widget uses a visualization variant this provider version cannot represent as typed HCL. Manage this dashboard with `content_json` until that visualization is supported.")
+	}
 	out := &WidgetsDynamicModel{}
 	out.Interpretation = flattenEnumMapped(p.AtName("interpretation"), v.Interpretation, interpretationFromAPI, diags)
 	out.QueryDefinitions = types.ListNull(types.ObjectType{AttrTypes: dynamicQueryDefinitionAttrTypes()})
-	if v.QueryDefinitions != nil {
+	if len(v.QueryDefinitions) != 0 {
 		items := make([]DynamicQueryDefinitionModel, 0, len(v.QueryDefinitions))
 		for i := range v.QueryDefinitions {
 			items = append(items, *flattenDynamicQueryDefinition(ctx, p.AtName("query_definitions").AtListIndex(i), &v.QueryDefinitions[i], diags))
@@ -6963,7 +7081,7 @@ func flattenLogs(ctx context.Context, p path.Path, v *dashboard_service.Logs, di
 	}
 	out := &LogsModel{}
 	out.Aggregation = types.ListNull(types.ObjectType{AttrTypes: logsAggregationAttrTypes()})
-	if v.Aggregation != nil {
+	if len(v.Aggregation) != 0 {
 		items := make([]LogsAggregationModel, 0, len(v.Aggregation))
 		for i := range v.Aggregation {
 			items = append(items, *flattenLogsAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregation[i], diags))
@@ -6972,7 +7090,7 @@ func flattenLogs(ctx context.Context, p path.Path, v *dashboard_service.Logs, di
 	}
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -6980,7 +7098,7 @@ func flattenLogs(ctx context.Context, p path.Path, v *dashboard_service.Logs, di
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -7082,7 +7200,7 @@ func flattenSpans(ctx context.Context, p path.Path, v *dashboard_service.Spans, 
 	}
 	out := &SpansModel{}
 	out.Aggregation = types.ListNull(types.ObjectType{AttrTypes: logsAggregationAttrTypes()})
-	if v.Aggregation != nil {
+	if len(v.Aggregation) != 0 {
 		items := make([]LogsAggregationModel, 0, len(v.Aggregation))
 		for i := range v.Aggregation {
 			items = append(items, *flattenLogsAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregation[i], diags))
@@ -7091,7 +7209,7 @@ func flattenSpans(ctx context.Context, p path.Path, v *dashboard_service.Spans, 
 	}
 	out.DataModeType = flattenEnumMapped(p.AtName("data_mode_type"), v.DataModeType, widgetsCommonDataModeTypeFromAPI, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -7099,7 +7217,7 @@ func flattenSpans(ctx context.Context, p path.Path, v *dashboard_service.Spans, 
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -7270,7 +7388,7 @@ func flattenVisualizationGauge(ctx context.Context, p path.Path, v *dashboard_se
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.ArcDisplay = flattenArcDisplay(ctx, p.AtName("arc_display"), v.ArcDisplay, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -7289,7 +7407,7 @@ func flattenVisualizationGauge(ctx context.Context, p path.Path, v *dashboard_se
 	out.ShowOuterArc = types.BoolPointerValue(v.ShowOuterArc)
 	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
-	if v.Thresholds != nil {
+	if len(v.Thresholds) != 0 {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
 		for i := range v.Thresholds {
 			items = append(items, *flattenCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
@@ -7299,7 +7417,7 @@ func flattenVisualizationGauge(ctx context.Context, p path.Path, v *dashboard_se
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.ValueFields != nil {
+	if len(v.ValueFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
 		for i := range v.ValueFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &v.ValueFields[i], diags))
@@ -7749,7 +7867,7 @@ func flattenGeomapTooltip(ctx context.Context, p path.Path, v *dashboard_service
 	}
 	out := &GeomapTooltipModel{}
 	out.Labels = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.Labels != nil {
+	if len(v.Labels) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.Labels))
 		for i := range v.Labels {
 			items = append(items, *flattenObservationField(ctx, p.AtName("labels").AtListIndex(i), &v.Labels[i], diags))
@@ -7826,7 +7944,7 @@ func flattenHeatmap(ctx context.Context, p path.Path, v *dashboard_service.Heatm
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	out.XAxisFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.XAxisFields != nil {
+	if len(v.XAxisFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.XAxisFields))
 		for i := range v.XAxisFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("x_axis_fields").AtListIndex(i), &v.XAxisFields[i], diags))
@@ -7835,7 +7953,7 @@ func flattenHeatmap(ctx context.Context, p path.Path, v *dashboard_service.Heatm
 	}
 	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
 	out.YAxisFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.YAxisFields != nil {
+	if len(v.YAxisFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.YAxisFields))
 		for i := range v.YAxisFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("y_axis_fields").AtListIndex(i), &v.YAxisFields[i], diags))
@@ -7887,7 +8005,7 @@ func flattenHeatmapTooltip(ctx context.Context, p path.Path, v *dashboard_servic
 	}
 	out := &HeatmapTooltipModel{}
 	out.Labels = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.Labels != nil {
+	if len(v.Labels) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.Labels))
 		for i := range v.Labels {
 			items = append(items, *flattenObservationField(ctx, p.AtName("labels").AtListIndex(i), &v.Labels[i], diags))
@@ -7942,7 +8060,7 @@ func flattenHexagonBins(ctx context.Context, p path.Path, v *dashboard_service.H
 	out := &HexagonBinsModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -7957,7 +8075,7 @@ func flattenHexagonBins(ctx context.Context, p path.Path, v *dashboard_service.H
 	out.Min = types.Float64PointerValue(v.Min)
 	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
-	if v.Thresholds != nil {
+	if len(v.Thresholds) != 0 {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
 		for i := range v.Thresholds {
 			items = append(items, *flattenCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
@@ -8050,7 +8168,7 @@ func flattenHorizontalBars(ctx context.Context, p path.Path, v *dashboard_servic
 	out := &HorizontalBarsModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -8085,7 +8203,7 @@ func flattenHorizontalBars(ctx context.Context, p path.Path, v *dashboard_servic
 	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	out.SubCategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.SubCategoryFields != nil {
+	if len(v.SubCategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.SubCategoryFields))
 		for i := range v.SubCategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("sub_category_fields").AtListIndex(i), &v.SubCategoryFields[i], diags))
@@ -8193,7 +8311,7 @@ func flattenHorizontalBarsMulti(ctx context.Context, p path.Path, v *dashboard_s
 	out := &HorizontalBarsMultiModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -8224,7 +8342,7 @@ func flattenHorizontalBarsMulti(ctx context.Context, p path.Path, v *dashboard_s
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
 	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
 	out.QueryFieldSettings = types.ListNull(types.ObjectType{AttrTypes: horizontalBarsMultiQueryFieldSettingsAttrTypes()})
-	if v.QueryFieldSettings != nil {
+	if len(v.QueryFieldSettings) != 0 {
 		items := make([]HorizontalBarsMultiQueryFieldSettingsModel, 0, len(v.QueryFieldSettings))
 		for i := range v.QueryFieldSettings {
 			items = append(items, *flattenHorizontalBarsMultiQueryFieldSettings(ctx, p.AtName("query_field_settings").AtListIndex(i), &v.QueryFieldSettings[i], diags))
@@ -8428,7 +8546,7 @@ func flattenVisualizationPieChart(ctx context.Context, p path.Path, v *dashboard
 	out := &VisualizationPieChartModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -8448,7 +8566,7 @@ func flattenVisualizationPieChart(ctx context.Context, p path.Path, v *dashboard
 	out.ShowTotal = types.BoolPointerValue(v.ShowTotal)
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	out.SubCategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.SubCategoryFields != nil {
+	if len(v.SubCategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.SubCategoryFields))
 		for i := range v.SubCategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("sub_category_fields").AtListIndex(i), &v.SubCategoryFields[i], diags))
@@ -8563,7 +8681,7 @@ func flattenStat(ctx context.Context, p path.Path, v *dashboard_service.Stat, di
 	out := &StatModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -8580,7 +8698,7 @@ func flattenStat(ctx context.Context, p path.Path, v *dashboard_service.Stat, di
 	out.ThresholdBy = flattenEnumMapped(p.AtName("threshold_by"), v.ThresholdBy, commonThresholdByFromAPI, diags)
 	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
-	if v.Thresholds != nil {
+	if len(v.Thresholds) != 0 {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
 		for i := range v.Thresholds {
 			items = append(items, *flattenCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
@@ -8590,7 +8708,7 @@ func flattenStat(ctx context.Context, p path.Path, v *dashboard_service.Stat, di
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueField = flattenObservationField(ctx, p.AtName("value_field"), v.ValueField, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.ValueFields != nil {
+	if len(v.ValueFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
 		for i := range v.ValueFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &v.ValueFields[i], diags))
@@ -8638,7 +8756,7 @@ func expandStatCard(ctx context.Context, p path.Path, m *StatCardModel, diags *d
 	out.Label = expandStatVisualElement(ctx, p.AtName("label"), m.Label, diags)
 	out.Legend = expandLegend(ctx, p.AtName("legend"), m.Legend, diags)
 	out.LegendBy = expandEnumMapped(p.AtName("legend_by"), m.LegendBy, legendByToAPI, diags)
-	out.PrimaryValue = expandStatVisualElement(ctx, p.AtName("primary_value"), m.PrimaryValue, diags)
+	out.PrimaryValue = expandStatVisualElementAtStatCardPrimaryValue(ctx, p.AtName("primary_value"), m.PrimaryValue, diags)
 	out.Title = expandStatVisualElement(ctx, p.AtName("title"), m.Title, diags)
 	out.Unit = expandEnumMapped(p.AtName("unit"), m.Unit, commonUnitToAPI, diags)
 	if items := expandElements[ObservationFieldModel](ctx, p.AtName("value_fields"), m.ValueFields, diags); items != nil {
@@ -8657,7 +8775,7 @@ func flattenStatCard(ctx context.Context, p path.Path, v *dashboard_service.Stat
 	out := &StatCardModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -8670,11 +8788,11 @@ func flattenStatCard(ctx context.Context, p path.Path, v *dashboard_service.Stat
 	out.Label = flattenStatVisualElement(ctx, p.AtName("label"), v.Label, diags)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
 	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
-	out.PrimaryValue = flattenStatVisualElement(ctx, p.AtName("primary_value"), v.PrimaryValue, diags)
+	out.PrimaryValue = flattenStatVisualElementAtStatCardPrimaryValue(ctx, p.AtName("primary_value"), v.PrimaryValue, diags)
 	out.Title = flattenStatVisualElement(ctx, p.AtName("title"), v.Title, diags)
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.ValueFields != nil {
+	if len(v.ValueFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
 		for i := range v.ValueFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &v.ValueFields[i], diags))
@@ -8694,7 +8812,7 @@ func statCardAttrTypes() map[string]attr.Type {
 		"label":               types.ObjectType{AttrTypes: statVisualElementAttrTypes()},
 		"legend":              types.ObjectType{AttrTypes: legendAttrTypes()},
 		"legend_by":           types.StringType,
-		"primary_value":       types.ObjectType{AttrTypes: statVisualElementAttrTypes()},
+		"primary_value":       types.ObjectType{AttrTypes: statVisualElementAtStatCardPrimaryValueAttrTypes()},
 		"title":               types.ObjectType{AttrTypes: statVisualElementAttrTypes()},
 		"unit":                types.StringType,
 		"value_fields":        types.ListType{ElemType: types.ObjectType{AttrTypes: observationFieldAttrTypes()}},
@@ -8758,7 +8876,7 @@ func flattenRangeMapping(ctx context.Context, p path.Path, v *dashboard_service.
 	out.MinMax = flattenMinMax(ctx, p.AtName("min_max"), v.MinMax, diags)
 	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
-	if v.Thresholds != nil {
+	if len(v.Thresholds) != 0 {
 		items := make([]CommonThresholdModel, 0, len(v.Thresholds))
 		for i := range v.Thresholds {
 			items = append(items, *flattenCommonThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
@@ -8796,7 +8914,7 @@ func flattenRegexMapping(ctx context.Context, p path.Path, v *dashboard_service.
 	}
 	out := &RegexMappingModel{}
 	out.Sections = types.ListNull(types.ObjectType{AttrTypes: mappingSectionAttrTypes()})
-	if v.Sections != nil {
+	if len(v.Sections) != 0 {
 		items := make([]MappingSectionModel, 0, len(v.Sections))
 		for i := range v.Sections {
 			items = append(items, *flattenMappingSection(ctx, p.AtName("sections").AtListIndex(i), &v.Sections[i], diags))
@@ -8862,7 +8980,7 @@ func flattenColorLabelMappingValueMapping(ctx context.Context, p path.Path, v *d
 	}
 	out := &ColorLabelMappingValueMappingModel{}
 	out.Sections = types.ListNull(types.ObjectType{AttrTypes: mappingSectionAttrTypes()})
-	if v.Sections != nil {
+	if len(v.Sections) != 0 {
 		items := make([]MappingSectionModel, 0, len(v.Sections))
 		for i := range v.Sections {
 			items = append(items, *flattenMappingSection(ctx, p.AtName("sections").AtListIndex(i), &v.Sections[i], diags))
@@ -8913,7 +9031,7 @@ func flattenStatVisualElement(ctx context.Context, p path.Path, v *dashboard_ser
 	out.ObservationField = flattenObservationField(ctx, p.AtName("observation_field"), v.ObservationField, diags)
 	out.TemplateText = types.StringPointerValue(v.TemplateText)
 	out.TemplateVariables = types.ListNull(types.ObjectType{AttrTypes: displayNameTemplateVariableAttrTypes()})
-	if v.TemplateVariables != nil {
+	if len(v.TemplateVariables) != 0 {
 		items := make([]DisplayNameTemplateVariableModel, 0, len(v.TemplateVariables))
 		for i := range v.TemplateVariables {
 			items = append(items, *flattenDisplayNameTemplateVariable(ctx, p.AtName("template_variables").AtListIndex(i), &v.TemplateVariables[i], diags))
@@ -8968,6 +9086,60 @@ func displayNameTemplateVariableAttrTypes() map[string]attr.Type {
 	}
 }
 
+func expandStatVisualElementAtStatCardPrimaryValue(ctx context.Context, p path.Path, m *StatVisualElementAtStatCardPrimaryValueModel, diags *diag.Diagnostics) *dashboard_service.StatVisualElement {
+	if m == nil {
+		return nil
+	}
+	out := &dashboard_service.StatVisualElement{}
+	if !m.MappedValues.IsNull() && !m.MappedValues.IsUnknown() {
+		if m.MappedValues.ValueBool() {
+			out.MappedValues = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("mapped_values"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
+	}
+	out.ObservationField = expandObservationField(ctx, p.AtName("observation_field"), m.ObservationField, diags)
+	out.TemplateText = expandString(m.TemplateText)
+	if items := expandElements[DisplayNameTemplateVariableModel](ctx, p.AtName("template_variables"), m.TemplateVariables, diags); items != nil {
+		out.TemplateVariables = make([]dashboard_service.DisplayNameTemplateVariable, 0, len(items))
+		for i := range items {
+			out.TemplateVariables = append(out.TemplateVariables, *expandDisplayNameTemplateVariable(ctx, p.AtName("template_variables").AtListIndex(i), &items[i], diags))
+		}
+	}
+	return out
+}
+
+func flattenStatVisualElementAtStatCardPrimaryValue(ctx context.Context, p path.Path, v *dashboard_service.StatVisualElement, diags *diag.Diagnostics) *StatVisualElementAtStatCardPrimaryValueModel {
+	if v == nil {
+		return nil
+	}
+	out := &StatVisualElementAtStatCardPrimaryValueModel{}
+	out.MappedValues = types.BoolNull()
+	if v.MappedValues != nil {
+		out.MappedValues = types.BoolValue(true)
+	}
+	out.ObservationField = flattenObservationField(ctx, p.AtName("observation_field"), v.ObservationField, diags)
+	out.TemplateText = types.StringPointerValue(v.TemplateText)
+	out.TemplateVariables = types.ListNull(types.ObjectType{AttrTypes: displayNameTemplateVariableAttrTypes()})
+	if len(v.TemplateVariables) != 0 {
+		items := make([]DisplayNameTemplateVariableModel, 0, len(v.TemplateVariables))
+		for i := range v.TemplateVariables {
+			items = append(items, *flattenDisplayNameTemplateVariable(ctx, p.AtName("template_variables").AtListIndex(i), &v.TemplateVariables[i], diags))
+		}
+		out.TemplateVariables = flattenList(ctx, types.ObjectType{AttrTypes: displayNameTemplateVariableAttrTypes()}, items, diags)
+	}
+	return out
+}
+
+func statVisualElementAtStatCardPrimaryValueAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"mapped_values":      types.BoolType,
+		"observation_field":  types.ObjectType{AttrTypes: observationFieldAttrTypes()},
+		"template_text":      types.StringType,
+		"template_variables": types.ListType{ElemType: types.ObjectType{AttrTypes: displayNameTemplateVariableAttrTypes()}},
+	}
+}
+
 func expandTable(ctx context.Context, p path.Path, m *TableModel, diags *diag.Diagnostics) *dashboard_service.Table {
 	if m == nil {
 		return nil
@@ -8995,7 +9167,7 @@ func flattenTable(ctx context.Context, p path.Path, v *dashboard_service.Table, 
 	}
 	out := &TableModel{}
 	out.Columns = types.ListNull(types.ObjectType{AttrTypes: tableColumnAttrTypes()})
-	if v.Columns != nil {
+	if len(v.Columns) != 0 {
 		items := make([]TableColumnModel, 0, len(v.Columns))
 		for i := range v.Columns {
 			items = append(items, *flattenTableColumn(ctx, p.AtName("columns").AtListIndex(i), &v.Columns[i], diags))
@@ -9003,7 +9175,7 @@ func flattenTable(ctx context.Context, p path.Path, v *dashboard_service.Table, 
 		out.Columns = flattenList(ctx, types.ObjectType{AttrTypes: tableColumnAttrTypes()}, items, diags)
 	}
 	out.Rules = types.ListNull(types.ObjectType{AttrTypes: tableRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]TableRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenTableRule(ctx, p.AtName("rules").AtListIndex(i), &v.Rules[i], diags))
@@ -9085,7 +9257,7 @@ func expandTableRule(ctx context.Context, p path.Path, m *TableRuleModel, diags 
 	out.Description = expandString(m.Description)
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	out.Name = expandString(m.Name)
@@ -9111,7 +9283,7 @@ func flattenTableRule(ctx context.Context, p path.Path, v *dashboard_service.Tab
 	}
 	out.Name = types.StringPointerValue(v.Name)
 	out.Properties = types.ListNull(types.ObjectType{AttrTypes: propertyAttrTypes()})
-	if v.Properties != nil {
+	if len(v.Properties) != 0 {
 		items := make([]PropertyModel, 0, len(v.Properties))
 		for i := range v.Properties {
 			items = append(items, *flattenProperty(ctx, p.AtName("properties").AtListIndex(i), &v.Properties[i], diags))
@@ -9140,7 +9312,7 @@ func expandProperty(ctx context.Context, p path.Path, m *PropertyModel, diags *d
 	out.Definition = expandPropertyDefinition(ctx, p.AtName("definition"), m.Definition, diags)
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	return out
@@ -9231,7 +9403,7 @@ func flattenPropertyLinks(ctx context.Context, p path.Path, v *dashboard_service
 	}
 	out := &PropertyLinksModel{}
 	out.Actions = types.ListNull(types.ObjectType{AttrTypes: linkActionAttrTypes()})
-	if v.Actions != nil {
+	if len(v.Actions) != 0 {
 		items := make([]LinkActionModel, 0, len(v.Actions))
 		for i := range v.Actions {
 			items = append(items, *flattenLinkAction(ctx, p.AtName("actions").AtListIndex(i), &v.Actions[i], diags))
@@ -9254,7 +9426,7 @@ func expandLinkAction(ctx context.Context, p path.Path, m *LinkActionModel, diag
 	out := &dashboard_service.LinkAction{}
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	out.Name = expandString(m.Name)
@@ -9313,7 +9485,7 @@ func flattenPropertyThresholds(ctx context.Context, p path.Path, v *dashboard_se
 	out.Min = types.Float64PointerValue(v.Min)
 	out.Type = flattenEnumMapped(p.AtName("type"), v.Type, thresholdTypeFromAPI, diags)
 	out.Values = types.ListNull(types.ObjectType{AttrTypes: commonThresholdAttrTypes()})
-	if v.Values != nil {
+	if len(v.Values) != 0 {
 		items := make([]CommonThresholdModel, 0, len(v.Values))
 		for i := range v.Values {
 			items = append(items, *flattenCommonThreshold(ctx, p.AtName("values").AtListIndex(i), &v.Values[i], diags))
@@ -9391,7 +9563,7 @@ func flattenPropertyValuesMapping(ctx context.Context, p path.Path, v *dashboard
 	}
 	out := &PropertyValuesMappingModel{}
 	out.Mappings = types.ListNull(types.ObjectType{AttrTypes: propertyValuesMappingValueMappingAttrTypes()})
-	if v.Mappings != nil {
+	if len(v.Mappings) != 0 {
 		items := make([]PropertyValuesMappingValueMappingModel, 0, len(v.Mappings))
 		for i := range v.Mappings {
 			items = append(items, *flattenPropertyValuesMappingValueMapping(ctx, p.AtName("mappings").AtListIndex(i), &v.Mappings[i], diags))
@@ -9519,7 +9691,7 @@ func flattenTableSettings(ctx context.Context, p path.Path, v *dashboard_service
 	}
 	out := &TableSettingsModel{}
 	out.ColumnWidths = types.ListNull(types.ObjectType{AttrTypes: columnWidthEntryAttrTypes()})
-	if v.ColumnWidths != nil {
+	if len(v.ColumnWidths) != 0 {
 		items := make([]ColumnWidthEntryModel, 0, len(v.ColumnWidths))
 		for i := range v.ColumnWidths {
 			items = append(items, *flattenColumnWidthEntry(ctx, p.AtName("column_widths").AtListIndex(i), &v.ColumnWidths[i], diags))
@@ -9609,7 +9781,7 @@ func flattenTimeSeriesBars(ctx context.Context, p path.Path, v *dashboard_servic
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, visualizationBarValueDisplayFromAPI, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -9629,7 +9801,7 @@ func flattenTimeSeriesBars(ctx context.Context, p path.Path, v *dashboard_servic
 	out.Tooltip = flattenTimeSeriesTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.ValueFields != nil {
+	if len(v.ValueFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
 		for i := range v.ValueFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &v.ValueFields[i], diags))
@@ -9744,7 +9916,7 @@ func flattenTimeSeriesLines(ctx context.Context, p path.Path, v *dashboard_servi
 	out := &TimeSeriesLinesModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -9766,7 +9938,7 @@ func flattenTimeSeriesLines(ctx context.Context, p path.Path, v *dashboard_servi
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.UseDataTimeRange = types.BoolPointerValue(v.UseDataTimeRange)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.ValueFields != nil {
+	if len(v.ValueFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
 		for i := range v.ValueFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &v.ValueFields[i], diags))
@@ -9838,7 +10010,7 @@ func flattenTimeSeriesLinesMulti(ctx context.Context, p path.Path, v *dashboard_
 	out.ConnectNulls = types.BoolPointerValue(v.ConnectNulls)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
 	out.QueryDisplaySettings = types.ListNull(types.ObjectType{AttrTypes: queryDisplaySettingsAttrTypes()})
-	if v.QueryDisplaySettings != nil {
+	if len(v.QueryDisplaySettings) != 0 {
 		items := make([]QueryDisplaySettingsModel, 0, len(v.QueryDisplaySettings))
 		var priorQueryDisplaySettings []QueryDisplaySettingsModel
 		if prior != nil {
@@ -9913,7 +10085,7 @@ func flattenQueryDisplaySettings(ctx context.Context, p path.Path, v *dashboard_
 	out := &QueryDisplaySettingsModel{}
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -9931,7 +10103,7 @@ func flattenQueryDisplaySettings(ctx context.Context, p path.Path, v *dashboard_
 	out.TemporalField = flattenObservationField(ctx, p.AtName("temporal_field"), v.TemporalField, diags)
 	out.Unit = flattenEnumMapped(p.AtName("unit"), v.Unit, commonUnitFromAPI, diags)
 	out.ValueFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.ValueFields != nil {
+	if len(v.ValueFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.ValueFields))
 		for i := range v.ValueFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("value_fields").AtListIndex(i), &v.ValueFields[i], diags))
@@ -10033,7 +10205,7 @@ func flattenVerticalBars(ctx context.Context, p path.Path, v *dashboard_service.
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, visualizationBarValueDisplayFromAPI, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -10067,7 +10239,7 @@ func flattenVerticalBars(ctx context.Context, p path.Path, v *dashboard_service.
 	out.SortBy = flattenEnumMapped(p.AtName("sort_by"), v.SortBy, sortByTypeFromAPI, diags)
 	out.StackNameTemplate = types.StringPointerValue(v.StackNameTemplate)
 	out.SubCategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.SubCategoryFields != nil {
+	if len(v.SubCategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.SubCategoryFields))
 		for i := range v.SubCategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("sub_category_fields").AtListIndex(i), &v.SubCategoryFields[i], diags))
@@ -10173,7 +10345,7 @@ func flattenVerticalBarsMulti(ctx context.Context, p path.Path, v *dashboard_ser
 	out.AllowAbbreviation = types.BoolPointerValue(v.AllowAbbreviation)
 	out.BarValueDisplay = flattenEnumMapped(p.AtName("bar_value_display"), v.BarValueDisplay, visualizationBarValueDisplayFromAPI, diags)
 	out.CategoryFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.CategoryFields != nil {
+	if len(v.CategoryFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.CategoryFields))
 		for i := range v.CategoryFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("category_fields").AtListIndex(i), &v.CategoryFields[i], diags))
@@ -10203,7 +10375,7 @@ func flattenVerticalBarsMulti(ctx context.Context, p path.Path, v *dashboard_ser
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
 	out.MaxBarsPerChart = types.Int64PointerValue(int32AsInt64(v.MaxBarsPerChart))
 	out.QueryFieldSettings = types.ListNull(types.ObjectType{AttrTypes: verticalBarsMultiQueryFieldSettingsAttrTypes()})
-	if v.QueryFieldSettings != nil {
+	if len(v.QueryFieldSettings) != 0 {
 		items := make([]VerticalBarsMultiQueryFieldSettingsModel, 0, len(v.QueryFieldSettings))
 		for i := range v.QueryFieldSettings {
 			items = append(items, *flattenVerticalBarsMultiQueryFieldSettings(ctx, p.AtName("query_field_settings").AtListIndex(i), &v.QueryFieldSettings[i], diags))
@@ -10316,7 +10488,11 @@ func flattenWidgetsGauge(ctx context.Context, p path.Path, v *dashboard_service.
 	out.DecimalPrecision = types.BoolPointerValue(v.DecimalPrecision)
 	out.DisplaySeriesName = types.BoolPointerValue(v.DisplaySeriesName)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
-	out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
+	if v.LegendBy == nil {
+		out.LegendBy = types.StringValue("unspecified")
+	} else {
+		out.LegendBy = flattenEnumMapped(p.AtName("legend_by"), v.LegendBy, legendByFromAPI, diags)
+	}
 	out.Max = types.Float64PointerValue(v.Max)
 	out.Min = types.Float64PointerValue(v.Min)
 	out.Query = flattenGaugeQuery(ctx, p.AtName("query"), v.Query, diags)
@@ -10326,7 +10502,7 @@ func flattenWidgetsGauge(ctx context.Context, p path.Path, v *dashboard_service.
 	out.ThresholdBy = flattenEnumMapped(p.AtName("threshold_by"), v.ThresholdBy, gaugeThresholdByFromAPI, diags)
 	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: gaugeThresholdAttrTypes()})
-	if v.Thresholds != nil {
+	if len(v.Thresholds) != 0 {
 		items := make([]GaugeThresholdModel, 0, len(v.Thresholds))
 		for i := range v.Thresholds {
 			items = append(items, *flattenGaugeThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
@@ -10423,7 +10599,7 @@ func flattenGaugeDataprimeQuery(ctx context.Context, p path.Path, v *dashboard_s
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -10475,7 +10651,7 @@ func flattenGaugeLogsQuery(ctx context.Context, p path.Path, v *dashboard_servic
 	}
 	out := &GaugeLogsQueryModel{}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -10483,7 +10659,7 @@ func flattenGaugeLogsQuery(ctx context.Context, p path.Path, v *dashboard_servic
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -10538,9 +10714,13 @@ func flattenGaugeMetricsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 	}
 	out := &GaugeMetricsQueryModel{}
 	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, gaugeAggregationFromAPI, diags)
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtGaugeMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtGaugeMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtGaugeMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -10551,7 +10731,11 @@ func flattenGaugeMetricsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	if v.PromqlQueryType == nil {
+		out.PromqlQueryType = types.StringValue("unspecified")
+	} else {
+		out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	}
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
 }
@@ -10636,7 +10820,7 @@ func flattenGaugeSpansQuery(ctx context.Context, p path.Path, v *dashboard_servi
 	}
 	out := &GaugeSpansQueryModel{}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -10644,7 +10828,7 @@ func flattenGaugeSpansQuery(ctx context.Context, p path.Path, v *dashboard_servi
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -10652,7 +10836,7 @@ func flattenGaugeSpansQuery(ctx context.Context, p path.Path, v *dashboard_servi
 		out.GroupBy = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupBys != nil {
+	if len(v.GroupBys) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupBys))
 		for i := range v.GroupBys {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_bys").AtListIndex(i), &v.GroupBys[i], diags))
@@ -10756,7 +10940,7 @@ func flattenHexagon(ctx context.Context, p path.Path, v *dashboard_service.Hexag
 	out.Query = flattenHexagonQuery(ctx, p.AtName("query"), v.Query, diags)
 	out.ThresholdType = flattenEnumMapped(p.AtName("threshold_type"), v.ThresholdType, thresholdTypeFromAPI, diags)
 	out.Thresholds = types.SetNull(types.ObjectType{AttrTypes: commonThresholdAtHexagonThresholdsAttrTypes()})
-	if v.Thresholds != nil {
+	if len(v.Thresholds) != 0 {
 		items := make([]CommonThresholdAtHexagonThresholdsModel, 0, len(v.Thresholds))
 		var priorThresholds []CommonThresholdAtHexagonThresholdsModel
 		if prior != nil {
@@ -10853,7 +11037,7 @@ func flattenHexagonDataprimeQuery(ctx context.Context, p path.Path, v *dashboard
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -10905,7 +11089,7 @@ func flattenHexagonLogsQuery(ctx context.Context, p path.Path, v *dashboard_serv
 	}
 	out := &HexagonLogsQueryModel{}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -10913,7 +11097,7 @@ func flattenHexagonLogsQuery(ctx context.Context, p path.Path, v *dashboard_serv
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -10968,9 +11152,13 @@ func flattenHexagonMetricsQuery(ctx context.Context, p path.Path, v *dashboard_s
 	}
 	out := &HexagonMetricsQueryModel{}
 	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtHexagonMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtHexagonMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtHexagonMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11066,7 +11254,7 @@ func flattenHexagonSpansQuery(ctx context.Context, p path.Path, v *dashboard_ser
 	}
 	out := &HexagonSpansQueryModel{}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11074,7 +11262,7 @@ func flattenHexagonSpansQuery(ctx context.Context, p path.Path, v *dashboard_ser
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -11082,7 +11270,7 @@ func flattenHexagonSpansQuery(ctx context.Context, p path.Path, v *dashboard_ser
 		out.GroupBy = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupBys != nil {
+	if len(v.GroupBys) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupBys))
 		for i := range v.GroupBys {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_bys").AtListIndex(i), &v.GroupBys[i], diags))
@@ -11351,7 +11539,7 @@ func flattenHorizontalBarChartDataprimeQuery(ctx context.Context, p path.Path, v
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11359,6 +11547,10 @@ func flattenHorizontalBarChartDataprimeQuery(ctx context.Context, p path.Path, v
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterSourceAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -11411,7 +11603,7 @@ func flattenHorizontalBarChartLogsQuery(ctx context.Context, p path.Path, v *das
 	out := &HorizontalBarChartLogsQueryModel{}
 	out.Aggregation = flattenLogsAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11419,8 +11611,12 @@ func flattenHorizontalBarChartLogsQuery(ctx context.Context, p path.Path, v *das
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	out.GroupNamesFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupNamesFields != nil {
+	if len(v.GroupNamesFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupNamesFields))
 		for i := range v.GroupNamesFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_names_fields").AtListIndex(i), &v.GroupNamesFields[i], diags))
@@ -11480,10 +11676,18 @@ func flattenHorizontalBarChartMetricsQuery(ctx context.Context, p path.Path, v *
 		return nil
 	}
 	out := &HorizontalBarChartMetricsQueryModel{}
-	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.Aggregation == nil {
+		out.Aggregation = types.StringValue("unspecified")
+	} else {
+		out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	}
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtHorizontalBarChartMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtHorizontalBarChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtHorizontalBarChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11491,11 +11695,19 @@ func flattenHorizontalBarChartMetricsQuery(ctx context.Context, p path.Path, v *
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtHorizontalBarChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	if v.PromqlQueryType == nil {
+		out.PromqlQueryType = types.StringValue("unspecified")
+	} else {
+		out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	}
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -11586,7 +11798,7 @@ func flattenHorizontalBarChartSpansQuery(ctx context.Context, p path.Path, v *da
 	out := &HorizontalBarChartSpansQueryModel{}
 	out.Aggregation = flattenSpansAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11594,7 +11806,7 @@ func flattenHorizontalBarChartSpansQuery(ctx context.Context, p path.Path, v *da
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupNames = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupNames != nil {
+	if len(v.GroupNames) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupNames))
 		for i := range v.GroupNames {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_names").AtListIndex(i), &v.GroupNames[i], diags))
@@ -11602,7 +11814,7 @@ func flattenHorizontalBarChartSpansQuery(ctx context.Context, p path.Path, v *da
 		out.GroupNames = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupNamesFields = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupNamesFields != nil {
+	if len(v.GroupNamesFields) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupNamesFields))
 		for i := range v.GroupNamesFields {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_names_fields").AtListIndex(i), &v.GroupNamesFields[i], diags))
@@ -11687,7 +11899,7 @@ func flattenLineChart(ctx context.Context, p path.Path, v *dashboard_service.Lin
 	out.ConnectNulls = types.BoolPointerValue(v.ConnectNulls)
 	out.Legend = flattenLegend(ctx, p.AtName("legend"), v.Legend, diags)
 	out.QueryDefinitions = types.ListNull(types.ObjectType{AttrTypes: lineChartQueryDefinitionAttrTypes()})
-	if v.QueryDefinitions != nil {
+	if len(v.QueryDefinitions) != 0 {
 		items := make([]LineChartQueryDefinitionModel, 0, len(v.QueryDefinitions))
 		var priorQueryDefinitions []LineChartQueryDefinitionModel
 		if prior != nil {
@@ -11706,7 +11918,11 @@ func flattenLineChart(ctx context.Context, p path.Path, v *dashboard_service.Lin
 	out.StackedLine = flattenEnumMapped(p.AtName("stacked_line"), v.StackedLine, lineChartStackedLineFromAPI, diags)
 	out.Tooltip = flattenTooltip(ctx, p.AtName("tooltip"), v.Tooltip, diags)
 	out.UseDataTimeRange = types.BoolPointerValue(v.UseDataTimeRange)
-	out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	if v.XAxisTimeFormat == nil {
+		out.XAxisTimeFormat = types.StringValue("unspecified")
+	} else {
+		out.XAxisTimeFormat = flattenEnumMapped(p.AtName("x_axis_time_format"), v.XAxisTimeFormat, xAxisTimeFormatFromAPI, diags)
+	}
 	return out
 }
 
@@ -11763,7 +11979,11 @@ func flattenLineChartQueryDefinition(ctx context.Context, p path.Path, v *dashbo
 	out.IntervalResolution = flattenIntervalResolution(ctx, p.AtName("interval_resolution"), v.IntervalResolution, diags)
 	out.IsVisible = types.BoolPointerValue(v.IsVisible)
 	out.Name = types.StringPointerValue(v.Name)
-	out.Query = flattenLineChartQuery(ctx, p.AtName("query"), &v.Query, diags)
+	var priorQuery *LineChartQueryModel
+	if prior != nil {
+		priorQuery = prior.Query
+	}
+	out.Query = flattenLineChartQuery(ctx, p.AtName("query"), &v.Query, priorQuery, diags)
 	out.Resolution = flattenLineChartResolution(ctx, p.AtName("resolution"), v.Resolution, diags)
 	out.ScaleType = flattenEnumMapped(p.AtName("scale_type"), v.ScaleType, scaleTypeFromAPI, diags)
 	out.SeriesCountLimit = flattenInt64Wire(p.AtName("series_count_limit"), v.SeriesCountLimit, diags)
@@ -11815,14 +12035,18 @@ func expandLineChartQuery(ctx context.Context, p path.Path, m *LineChartQueryMod
 	return out
 }
 
-func flattenLineChartQuery(ctx context.Context, p path.Path, v *dashboard_service.LineChartQuery, diags *diag.Diagnostics) *LineChartQueryModel {
+func flattenLineChartQuery(ctx context.Context, p path.Path, v *dashboard_service.LineChartQuery, prior *LineChartQueryModel, diags *diag.Diagnostics) *LineChartQueryModel {
 	if v == nil {
 		return nil
 	}
 	out := &LineChartQueryModel{}
 	out.Dataprime = flattenLineChartDataprimeQuery(ctx, p.AtName("data_prime"), v.Dataprime, diags)
 	out.Logs = flattenLineChartLogsQuery(ctx, p.AtName("logs"), v.Logs, diags)
-	out.Metrics = flattenLineChartMetricsQuery(ctx, p.AtName("metrics"), v.Metrics, diags)
+	var priorMetrics *LineChartMetricsQueryModel
+	if prior != nil {
+		priorMetrics = prior.Metrics
+	}
+	out.Metrics = flattenLineChartMetricsQuery(ctx, p.AtName("metrics"), v.Metrics, priorMetrics, diags)
 	out.Spans = flattenLineChartSpansQuery(ctx, p.AtName("spans"), v.Spans, diags)
 	return out
 }
@@ -11866,7 +12090,7 @@ func flattenLineChartDataprimeQuery(ctx context.Context, p path.Path, v *dashboa
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11924,7 +12148,7 @@ func flattenLineChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_se
 	}
 	out := &LineChartLogsQueryModel{}
 	out.Aggregations = types.ListNull(types.ObjectType{AttrTypes: logsAggregationAttrTypes()})
-	if v.Aggregations != nil {
+	if len(v.Aggregations) != 0 {
 		items := make([]LogsAggregationModel, 0, len(v.Aggregations))
 		for i := range v.Aggregations {
 			items = append(items, *flattenLogsAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregations[i], diags))
@@ -11932,7 +12156,7 @@ func flattenLineChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_se
 		out.Aggregations = flattenList(ctx, types.ObjectType{AttrTypes: logsAggregationAttrTypes()}, items, diags)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -11940,8 +12164,12 @@ func flattenLineChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_se
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = flattenStringsList(ctx, v.GroupBy, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupBy) == 0 {
+		out.GroupBy = types.ListNull(types.StringType)
+	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupBys != nil {
+	if len(v.GroupBys) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupBys))
 		for i := range v.GroupBys {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_bys").AtListIndex(i), &v.GroupBys[i], diags))
@@ -11989,14 +12217,18 @@ func expandLineChartMetricsQuery(ctx context.Context, p path.Path, m *LineChartM
 	return out
 }
 
-func flattenLineChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_service.LineChartMetricsQuery, diags *diag.Diagnostics) *LineChartMetricsQueryModel {
+func flattenLineChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_service.LineChartMetricsQuery, prior *LineChartMetricsQueryModel, diags *diag.Diagnostics) *LineChartMetricsQueryModel {
 	if v == nil {
 		return nil
 	}
 	out := &LineChartMetricsQueryModel{}
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtLineChartMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtLineChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtLineChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -12007,9 +12239,17 @@ func flattenLineChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.SeriesLimitType = flattenEnumMapped(p.AtName("series_limit_type"), v.SeriesLimitType, metricsSeriesLimitTypeFromAPI, diags)
+	if v.SeriesLimitType == nil {
+		out.SeriesLimitType = types.StringValue("unspecified")
+	} else {
+		out.SeriesLimitType = flattenEnumMapped(p.AtName("series_limit_type"), v.SeriesLimitType, metricsSeriesLimitTypeFromAPI, diags)
+	}
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	out.PromqlQueryType = types.StringNull()
+	out.PromqlQueryType = types.StringValue("unspecified")
+	if prior != nil && !prior.PromqlQueryType.IsNull() {
+		out.PromqlQueryType = prior.PromqlQueryType
+	}
 	return out
 }
 
@@ -12098,7 +12338,7 @@ func flattenLineChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_s
 	}
 	out := &LineChartSpansQueryModel{}
 	out.Aggregations = types.ListNull(types.ObjectType{AttrTypes: spansAggregationAttrTypes()})
-	if v.Aggregations != nil {
+	if len(v.Aggregations) != 0 {
 		items := make([]SpansAggregationModel, 0, len(v.Aggregations))
 		for i := range v.Aggregations {
 			items = append(items, *flattenSpansAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregations[i], diags))
@@ -12106,7 +12346,7 @@ func flattenLineChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_s
 		out.Aggregations = flattenList(ctx, types.ObjectType{AttrTypes: spansAggregationAttrTypes()}, items, diags)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -12114,7 +12354,7 @@ func flattenLineChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_s
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupBy = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupBy != nil {
+	if len(v.GroupBy) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupBy))
 		for i := range v.GroupBy {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_by").AtListIndex(i), &v.GroupBy[i], diags))
@@ -12122,7 +12362,7 @@ func flattenLineChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_s
 		out.GroupBy = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupBys = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupBys != nil {
+	if len(v.GroupBys) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupBys))
 		for i := range v.GroupBys {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_bys").AtListIndex(i), &v.GroupBys[i], diags))
@@ -12154,7 +12394,7 @@ func expandLineChartResolution(ctx context.Context, p path.Path, m *LineChartRes
 	}
 	out := &dashboard_service.LineChartResolution{}
 	out.BucketsPresented = expandInt64AsInt32(p.AtName("buckets_presented"), m.BucketsPresented, diags)
-	out.Interval = expandString(m.Interval)
+	out.Interval = expandDuration(p.AtName("interval"), m.Interval, "protoText", diags)
 	return out
 }
 
@@ -12164,7 +12404,7 @@ func flattenLineChartResolution(ctx context.Context, p path.Path, v *dashboard_s
 	}
 	out := &LineChartResolutionModel{}
 	out.BucketsPresented = types.Int64PointerValue(int32AsInt64(v.BucketsPresented))
-	out.Interval = types.StringPointerValue(v.Interval)
+	out.Interval = flattenDuration(v.Interval, "protoText")
 	return out
 }
 
@@ -12399,7 +12639,7 @@ func flattenPieChartDataprimeQuery(ctx context.Context, p path.Path, v *dashboar
 		out.DataprimeQuery = types.StringPointerValue(inner)
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterSourceAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterSourceModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterSource(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -12407,6 +12647,10 @@ func flattenPieChartDataprimeQuery(ctx context.Context, p path.Path, v *dashboar
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterSourceAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -12459,7 +12703,7 @@ func flattenPieChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 	out := &PieChartLogsQueryModel{}
 	out.Aggregation = flattenLogsAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FilterLogsFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFilterLogsFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -12467,8 +12711,12 @@ func flattenPieChartLogsQuery(ctx context.Context, p path.Path, v *dashboard_ser
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: filterLogsFilterAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	out.GroupNamesFields = types.ListNull(types.ObjectType{AttrTypes: observationFieldAttrTypes()})
-	if v.GroupNamesFields != nil {
+	if len(v.GroupNamesFields) != 0 {
 		items := make([]ObservationFieldModel, 0, len(v.GroupNamesFields))
 		for i := range v.GroupNamesFields {
 			items = append(items, *flattenObservationField(ctx, p.AtName("group_names_fields").AtListIndex(i), &v.GroupNamesFields[i], diags))
@@ -12528,10 +12776,18 @@ func flattenPieChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_
 		return nil
 	}
 	out := &PieChartMetricsQueryModel{}
-	out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
-	out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	if v.Aggregation == nil {
+		out.Aggregation = types.StringValue("unspecified")
+	} else {
+		out.Aggregation = flattenEnumMapped(p.AtName("aggregation"), v.Aggregation, commonAggregationFromAPI, diags)
+	}
+	if v.EditorMode == nil {
+		out.EditorMode = types.StringValue("unspecified")
+	} else {
+		out.EditorMode = flattenEnumMapped(p.AtName("editor_mode"), v.EditorMode, metricsQueryEditorModeFromAPI, diags)
+	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: metricsFilterAtPieChartMetricsQueryFiltersAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]MetricsFilterAtPieChartMetricsQueryFiltersModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenMetricsFilterAtPieChartMetricsQueryFilters(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -12539,11 +12795,19 @@ func flattenPieChartMetricsQuery(ctx context.Context, p path.Path, v *dashboard_
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: metricsFilterAtPieChartMetricsQueryFiltersAttrTypes()}, items, diags)
 	}
 	out.GroupNames = flattenStringsList(ctx, v.GroupNames, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.GroupNames) == 0 {
+		out.GroupNames = types.ListNull(types.StringType)
+	}
 	{
 		inner := unwrapPromQlQuery(v.PromqlQuery)
 		out.PromqlQuery = types.StringPointerValue(inner)
 	}
-	out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	if v.PromqlQueryType == nil {
+		out.PromqlQueryType = types.StringValue("unspecified")
+	} else {
+		out.PromqlQueryType = flattenEnumMapped(p.AtName("promql_query_type"), v.PromqlQueryType, promQLQueryTypeFromAPI, diags)
+	}
 	out.StackedGroupName = types.StringPointerValue(v.StackedGroupName)
 	out.TimeFrame = flattenTimeFrameSelect(ctx, p.AtName("time_frame"), v.TimeFrame, diags)
 	return out
@@ -12634,7 +12898,7 @@ func flattenPieChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_se
 	out := &PieChartSpansQueryModel{}
 	out.Aggregation = flattenSpansAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: spansFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]SpansFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenSpansFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -12642,7 +12906,7 @@ func flattenPieChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_se
 		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: spansFilterAttrTypes()}, items, diags)
 	}
 	out.GroupNames = types.ListNull(types.ObjectType{AttrTypes: spanFieldAttrTypes()})
-	if v.GroupNames != nil {
+	if len(v.GroupNames) != 0 {
 		items := make([]SpanFieldModel, 0, len(v.GroupNames))
 		for i := range v.GroupNames {
 			items = append(items, *flattenSpanField(ctx, p.AtName("group_names").AtListIndex(i), &v.GroupNames[i], diags))
@@ -12650,7 +12914,7 @@ func flattenPieChartSpansQuery(ctx context.Context, p path.Path, v *dashboard_se
 		out.GroupNames = flattenList(ctx, types.ObjectType{AttrTypes: spanFieldAttrTypes()}, items, diags)
 	}
 	out.GroupNamesFields = types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttrTypes()})
-	if v.GroupNamesFields != nil {
+	if len(v.GroupNamesFields) != 0 {
 		items := make([]SpanObservationFieldModel, 0, len(v.GroupNamesFields))
 		for i := range v.GroupNamesFields {
 			items = append(items, *flattenSpanObservationField(ctx, p.AtName("group_names_fields").AtListIndex(i), &v.GroupNamesFields[i], diags))
@@ -12746,7 +13010,7 @@ func expandDashboardCreateTimeFrameRelative(ctx context.Context, p path.Path, m 
 	if m == nil {
 		return
 	}
-	out.RelativeTimeFrame = expandString(m.RelativeTimeFrame)
+	out.RelativeTimeFrame = expandDuration(p.AtName("duration"), m.RelativeTimeFrame, "protoText", diags)
 }
 
 func expandVariable(ctx context.Context, p path.Path, m *VariableModel, diags *diag.Diagnostics) *dashboard_service.Variable {
@@ -12757,7 +13021,6 @@ func expandVariable(ctx context.Context, p path.Path, m *VariableModel, diags *d
 	out.Definition = expandVariableDefinition(ctx, p.AtName("definition"), m.Definition, diags)
 	out.Description = expandString(m.Description)
 	out.DisplayName = expandString(m.DisplayName)
-	out.DisplayType = expandEnumMapped(p.AtName("display_type"), m.DisplayType, variableDisplayTypeToAPI, diags)
 	out.Name = expandString(m.Name)
 	return out
 }
@@ -12770,12 +13033,6 @@ func flattenVariable(ctx context.Context, p path.Path, v *dashboard_service.Vari
 	out.Definition = flattenVariableDefinition(ctx, p.AtName("definition"), v.Definition, diags)
 	out.Description = types.StringPointerValue(v.Description)
 	out.DisplayName = types.StringPointerValue(v.DisplayName)
-	if api := v.DisplayType; api != nil && *api == "VARIABLE_DISPLAY_TYPE_UNSPECIFIED" {
-		// The zero value means that the API has no value.
-		out.DisplayType = types.StringNull()
-	} else {
-		out.DisplayType = flattenEnumMapped(p.AtName("display_type"), api, variableDisplayTypeFromAPI, diags)
-	}
 	out.Name = types.StringPointerValue(v.Name)
 	return out
 }
@@ -12785,7 +13042,6 @@ func variableAttrTypes() map[string]attr.Type {
 		"definition":   types.ObjectType{AttrTypes: variableDefinitionAttrTypes()},
 		"description":  types.StringType,
 		"display_name": types.StringType,
-		"display_type": types.StringType,
 		"name":         types.StringType,
 	}
 }
@@ -12840,7 +13096,7 @@ func expandMultiSelect(ctx context.Context, p path.Path, m *MultiSelectModel, di
 		}
 		out.Selection = fold
 	}
-	out.SelectionOptions.SelectionType = expandEnum[dashboard_service.SelectionType](m.SelectionType)
+	out.SelectionOptions.SelectionType = expandEnumMapped(p.AtName("selection_type"), m.SelectionType, selectionTypeToAPI, diags)
 	out.Source = expandMultiSelectSource(ctx, p.AtName("source"), m.Source, diags)
 	out.ValuesOrderDirection = expandEnumMapped(p.AtName("values_order_direction"), m.ValuesOrderDirection, orderDirectionToAPI, diags)
 	if out.SelectionOptions != nil && modelNull(m.SelectionType) {
@@ -12869,7 +13125,12 @@ func flattenMultiSelect(ctx context.Context, p path.Path, v *dashboard_service.M
 			out.Selection = flattenStringsList(ctx, []string{}, diags)
 		}
 	}
-	out.SelectionType = flattenEnum(v.SelectionOptions.SelectionType, "SELECTION_TYPE_UNSPECIFIED")
+	if api := v.SelectionOptions.SelectionType; api != nil && (*api == "SELECTION_TYPE_UNSPECIFIED" || *api == "SELECTION_TYPE_MULTI_ALL") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
+		out.SelectionType = types.StringNull()
+	} else {
+		out.SelectionType = flattenEnumMapped(p.AtName("selection_type"), api, selectionTypeFromAPI, diags)
+	}
 	out.Source = flattenMultiSelectSource(ctx, p.AtName("source"), v.Source, diags)
 	out.ValuesOrderDirection = flattenEnumMapped(p.AtName("values_order_direction"), v.ValuesOrderDirection, orderDirectionFromAPI, diags)
 	return out
@@ -12917,6 +13178,10 @@ func flattenMultiSelectSource(ctx context.Context, p path.Path, v *dashboard_ser
 	{
 		inner := unwrapConstantListSource(v.ConstantList)
 		out.ConstantList = flattenStringsList(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.ConstantList = types.ListNull(types.StringType)
+		}
 	}
 	{
 		inner := unwrapLogsPathSourceAtMultiSelectSourceLogsPath(v.LogsPath)
@@ -13592,7 +13857,7 @@ func expandVariableV2(ctx context.Context, p path.Path, m *VariableV2Model, diag
 	out.DisplayType = valueOf(expandEnumMapped(p.AtName("display_type"), m.DisplayType, variableDisplayTypeV2ToAPI, diags))
 	{
 		var inner *string
-		inner = expandString(m.Id)
+		inner = expandClientUUID(m.Id)
 		out.Id = wrapUUID(inner)
 	}
 	out.Name = valueOf(expandString(m.Name))
@@ -13700,8 +13965,8 @@ func flattenVariableSourceV2QuerySource(ctx context.Context, p path.Path, v *das
 	out.DataprimeQuery = flattenQuerySourceDataprimeQuery(ctx, p.AtName("dataprime_query"), v.DataprimeQuery, diags)
 	out.LogsQuery = flattenQuerySourceLogsQuery(ctx, p.AtName("logs_query"), v.LogsQuery, diags)
 	out.MetricsQuery = flattenQuerySourceMetricsQuery(ctx, p.AtName("metrics_query"), v.MetricsQuery, diags)
-	if api := v.RefreshStrategy; api != nil && *api == "REFRESH_STRATEGY_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := v.RefreshStrategy; api != nil && (*api == "REFRESH_STRATEGY_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.RefreshStrategy = types.StringNull()
 	} else {
 		out.RefreshStrategy = flattenEnumMapped(p.AtName("refresh_strategy"), api, variableSourceV2RefreshStrategyFromAPI, diags)
@@ -14454,7 +14719,7 @@ func flattenStaticSource(ctx context.Context, p path.Path, v *dashboard_service.
 	out := &StaticSourceModel{}
 	out.AllOption = flattenAllOption(ctx, p.AtName("all_option"), &v.AllOption, diags)
 	out.Values = types.ListNull(types.ObjectType{AttrTypes: valueLabelAttrTypes()})
-	if v.Values != nil {
+	if len(v.Values) != 0 {
 		items := make([]ValueLabelModel, 0, len(v.Values))
 		for i := range v.Values {
 			items = append(items, *flattenValueLabel(ctx, p.AtName("values").AtListIndex(i), &v.Values[i], diags))
@@ -14893,7 +15158,7 @@ func flattenListValue(ctx context.Context, p path.Path, v *dashboard_service.Lis
 	}
 	out := &ListValueModel{}
 	out.Values = types.ListNull(types.ObjectType{AttrTypes: singleStringValueAttrTypes()})
-	if v.Values != nil {
+	if len(v.Values) != 0 {
 		items := make([]SingleStringValueModel, 0, len(v.Values))
 		for i := range v.Values {
 			items = append(items, *flattenSingleStringValue(ctx, p.AtName("values").AtListIndex(i), &v.Values[i], diags))
@@ -15083,7 +15348,7 @@ func expandDashboardAction(ctx context.Context, p path.Path, m *DashboardActionM
 	out.Definition.CustomAction = &dashboard_service.CustomAction{} // an inlined object: its fields are top-level attributes
 	out.DataSource = expandEnumMapped(p.AtName("data_source"), m.DataSource, actionDataSourceTypeToAPI, diags)
 	out.Definition.CustomAction.Url = expandString(m.Url)
-	out.Id = expandString(m.Id)
+	out.Id = expandClientUUID(m.Id)
 	out.Name = expandString(m.Name)
 	out.QueryId = expandString(m.QueryId)
 	out.ShouldOpenInNewWindow = expandBool(m.ShouldOpenInNewWindow)
@@ -15107,8 +15372,8 @@ func flattenDashboardAction(ctx context.Context, p path.Path, v *dashboard_servi
 		v.Definition.CustomAction = &dashboard_service.CustomAction{}
 	}
 	out := &DashboardActionModel{}
-	if api := v.DataSource; api != nil && *api == "ACTION_DATA_SOURCE_TYPE_NONE_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := v.DataSource; api != nil && (*api == "ACTION_DATA_SOURCE_TYPE_NONE_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.DataSource = types.StringNull()
 	} else {
 		out.DataSource = flattenEnumMapped(p.AtName("data_source"), api, actionDataSourceTypeFromAPI, diags)
@@ -15160,7 +15425,6 @@ func expandDashboardUpdate(ctx context.Context, p path.Path, m *DashboardModel, 
 	expandDashboardUpdateFolder(ctx, p.AtName("folder"), m.Folder, out, diags)
 	out.Layout = valueOf(expandLayout(ctx, p.AtName("layout"), m.Layout, diags))
 	out.Name = valueOf(expandString(m.Name))
-	out.SlugName = expandString(m.SlugName)
 	if items := expandElements[VariableModel](ctx, p.AtName("variables"), m.Variables, diags); items != nil {
 		out.Variables = make([]dashboard_service.Variable, 0, len(items))
 		for i := range items {
@@ -15231,7 +15495,7 @@ func expandDashboardUpdateTimeFrameRelative(ctx context.Context, p path.Path, m 
 	if m == nil {
 		return
 	}
-	out.RelativeTimeFrame = expandString(m.RelativeTimeFrame)
+	out.RelativeTimeFrame = expandDuration(p.AtName("duration"), m.RelativeTimeFrame, "protoText", diags)
 }
 
 func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Dashboard, prior *DashboardModel, diags *diag.Diagnostics) *DashboardModel {
@@ -15242,7 +15506,7 @@ func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Das
 	out := &DashboardModel{}
 	out.TimeFrame = flattenDashboardTimeFrame(ctx, p.AtName("time_frame"), v, diags)
 	out.Annotations = types.ListNull(types.ObjectType{AttrTypes: annotationAttrTypes()})
-	if v.Annotations != nil {
+	if len(v.Annotations) != 0 {
 		items := make([]AnnotationModel, 0, len(v.Annotations))
 		for i := range v.Annotations {
 			items = append(items, *flattenAnnotation(ctx, p.AtName("annotations").AtListIndex(i), &v.Annotations[i], diags))
@@ -15257,7 +15521,7 @@ func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Das
 		out.AutoRefresh = value
 	}
 	out.Filters = types.ListNull(types.ObjectType{AttrTypes: filtersFilterAttrTypes()})
-	if v.Filters != nil {
+	if len(v.Filters) != 0 {
 		items := make([]FiltersFilterModel, 0, len(v.Filters))
 		for i := range v.Filters {
 			items = append(items, *flattenFiltersFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
@@ -15276,9 +15540,8 @@ func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Das
 	}
 	out.Layout = flattenLayout(ctx, p.AtName("layout"), &v.Layout, priorLayout, diags)
 	out.Name = types.StringPointerValue(&v.Name)
-	out.SlugName = types.StringPointerValue(v.SlugName)
 	out.Variables = types.ListNull(types.ObjectType{AttrTypes: variableAttrTypes()})
-	if v.Variables != nil {
+	if len(v.Variables) != 0 {
 		items := make([]VariableModel, 0, len(v.Variables))
 		for i := range v.Variables {
 			items = append(items, *flattenVariable(ctx, p.AtName("variables").AtListIndex(i), &v.Variables[i], diags))
@@ -15286,7 +15549,7 @@ func flattenDashboard(ctx context.Context, p path.Path, v *dashboard_service.Das
 		out.Variables = flattenList(ctx, types.ObjectType{AttrTypes: variableAttrTypes()}, items, diags)
 	}
 	out.VariablesV2 = types.ListNull(types.ObjectType{AttrTypes: variableV2AttrTypes()})
-	if v.VariablesV2 != nil {
+	if len(v.VariablesV2) != 0 {
 		items := make([]VariableV2Model, 0, len(v.VariablesV2))
 		var priorVariablesV2 []VariableV2Model
 		if prior != nil {
@@ -15394,7 +15657,7 @@ func flattenDashboardTimeFrameRelative(ctx context.Context, p path.Path, v *dash
 		return nil // the response has none of the fields: the group is null
 	}
 	out := &DashboardTimeFrameRelativeModel{}
-	out.RelativeTimeFrame = types.StringPointerValue(v.RelativeTimeFrame)
+	out.RelativeTimeFrame = flattenDuration(v.RelativeTimeFrame, "protoText")
 	return out
 }
 
@@ -16085,14 +16348,6 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	return l
 }
 
-func expandInt32(v types.Int32) *int32 {
-	if v.IsNull() || v.IsUnknown() {
-		return nil
-	}
-	n := v.ValueInt32()
-	return &n
-}
-
 func expandFloat32(v types.Float32) *float32 {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
@@ -16158,6 +16413,106 @@ func otherArm(prior, now []bool) bool {
 		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
 	}
 	return anyPrior && anyNow
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
+}
+
+// expandDuration converts the released text of a duration to the protobuf JSON duration that the API
+// holds: seconds:900 (protoText, also minutes:15) or 15m0s (goDuration) become 900s. A null or unknown
+// text is no value.
+func expandDuration(p path.Path, v types.String, format string, diags *diag.Diagnostics) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	d, err := parseDurationText(v.ValueString(), format)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid duration", err.Error())
+		return nil
+	}
+	wire := wireDuration(d)
+	return &wire
+}
+
+// flattenDuration converts a protobuf JSON duration to the released text. A value that is no duration
+// stays as the API wrote it.
+func flattenDuration(v *string, format string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	d, ok := parseWireDuration(*v)
+	if !ok {
+		return types.StringValue(*v)
+	}
+	if format == "goDuration" {
+		return types.StringValue(d.String())
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos != 0:
+		return types.StringValue(fmt.Sprintf("seconds:%d nanos:%d", seconds, nanos))
+	default:
+		return types.StringValue(fmt.Sprintf("seconds:%d", seconds))
+	}
+}
+
+func parseDurationText(text, format string) (time.Duration, error) {
+	if format == "goDuration" {
+		return time.ParseDuration(text)
+	}
+	unit, number, found := strings.Cut(text, ":")
+	if !found {
+		return 0, fmt.Errorf("error parsing duration %q: want seconds:<n> or minutes:<n>", text)
+	}
+	n, err := strconv.Atoi(number)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing duration numbers in %q", text)
+	}
+	switch unit {
+	case "seconds":
+		return time.Second * time.Duration(n), nil
+	case "minutes":
+		return time.Minute * time.Duration(n), nil
+	}
+	return 0, fmt.Errorf("error parsing duration unit %q", unit)
+}
+
+// wireDuration writes a duration as the protobuf JSON text: whole seconds, then a fraction of 3, 6, or
+// 9 digits, then s.
+func wireDuration(d time.Duration) string {
+	sign := ""
+	if d < 0 {
+		sign, d = "-", -d
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos == 0:
+		return fmt.Sprintf("%s%ds", sign, seconds)
+	case nanos%1000000 == 0:
+		return fmt.Sprintf("%s%d.%03ds", sign, seconds, nanos/1000000)
+	case nanos%1000 == 0:
+		return fmt.Sprintf("%s%d.%06ds", sign, seconds, nanos/1000)
+	}
+	return fmt.Sprintf("%s%d.%09ds", sign, seconds, nanos)
+}
+
+func parseWireDuration(text string) (time.Duration, bool) {
+	number, ok := strings.CutSuffix(text, "s")
+	if !ok || number == "" {
+		return 0, false
+	}
+	d, err := time.ParseDuration(number + "s")
+	return d, err == nil
 }
 
 // splitText returns the elements of a text that Terraform shows for a list of strings: the text split

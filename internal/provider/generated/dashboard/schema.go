@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
@@ -84,7 +85,7 @@ func Schema() schema.Schema {
 							Validators: []validator.String{
 								stringvalidator.OneOf("blue", "cyan", "default", "green", "magenta", "orange", "purple", "red", "yellow"),
 							},
-							MarkdownDescription: "Annotation color.",
+							MarkdownDescription: "Annotation color. Valid values: [\"blue\" \"cyan\" \"default\" \"green\" \"magenta\" \"orange\" \"purple\" \"red\" \"yellow\"].",
 						},
 						"description": schema.StringAttribute{
 							Optional:            true,
@@ -149,7 +150,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("archive", "unspecified"),
 											},
-											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
+											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"].",
 										},
 										"label_fields": schema.ListNestedAttribute{
 											Optional: true,
@@ -168,7 +169,7 @@ func Schema() schema.Schema {
 														Validators: []validator.String{
 															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 														},
-														MarkdownDescription: "Dataset scope.",
+														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 													},
 												},
 											},
@@ -185,7 +186,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("horizontal", "vertical"),
 											},
-											MarkdownDescription: "Annotation orientation.",
+											MarkdownDescription: "Annotation orientation. Valid values: [\"horizontal\" \"vertical\"].",
 										},
 										"query": schema.StringAttribute{
 											Required:            true,
@@ -216,7 +217,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -237,7 +238,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -264,7 +265,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -291,7 +292,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -312,7 +313,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -345,7 +346,7 @@ func Schema() schema.Schema {
 															Validators: []validator.List{
 																listvalidator.ValueStringsAre(stringvalidator.OneOf("friday", "monday", "saturday", "sunday", "thursday", "tuesday", "unspecified", "wednesday")),
 															},
-															MarkdownDescription: "The days of week.",
+															MarkdownDescription: "The days of week. Valid values: [\"friday\" \"monday\" \"saturday\" \"sunday\" \"thursday\" \"tuesday\" \"unspecified\" \"wednesday\"].",
 														},
 													},
 													MarkdownDescription: "Weekly recurrence.",
@@ -399,7 +400,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("archive", "unspecified"),
 											},
-											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
+											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"].",
 										},
 										"label_fields": schema.ListNestedAttribute{
 											Optional: true,
@@ -418,7 +419,7 @@ func Schema() schema.Schema {
 														Validators: []validator.String{
 															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 														},
-														MarkdownDescription: "Dataset scope.",
+														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 													},
 												},
 											},
@@ -457,7 +458,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -478,7 +479,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -505,7 +506,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -532,7 +533,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -553,7 +554,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -581,7 +582,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("horizontal", "vertical"),
 											},
-											MarkdownDescription: "Annotation orientation.",
+											MarkdownDescription: "Annotation orientation. Valid values: [\"horizontal\" \"vertical\"].",
 										},
 										"strategy": schema.SingleNestedAttribute{
 											Required: true,
@@ -603,7 +604,7 @@ func Schema() schema.Schema {
 															Validators: []validator.String{
 																stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 															},
-															MarkdownDescription: "Unit.",
+															MarkdownDescription: "Unit. Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 														},
 														"value": schema.Float64Attribute{
 															Optional:            true,
@@ -634,7 +635,7 @@ func Schema() schema.Schema {
 															Validators: []validator.String{
 																stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 															},
-															MarkdownDescription: "Unit.",
+															MarkdownDescription: "Unit. Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 														},
 													},
 													MarkdownDescription: "Range strategy: places the annotation spanning between two absolute timestamp values.",
@@ -667,7 +668,8 @@ func Schema() schema.Schema {
 														"minimum_interval": schema.StringAttribute{
 															Optional: true,
 															Validators: []validator.String{
-																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 															},
 															MarkdownDescription: "Minimum interval duration. The calculated interval will not be smaller than this value.",
 														},
@@ -680,7 +682,8 @@ func Schema() schema.Schema {
 														"interval": schema.StringAttribute{
 															Required: true,
 															Validators: []validator.String{
-																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 															},
 															MarkdownDescription: "Fixed interval duration for time buckets, specified by the user.",
 														},
@@ -694,7 +697,8 @@ func Schema() schema.Schema {
 														"minimum_interval": schema.StringAttribute{
 															Optional: true,
 															Validators: []validator.String{
-																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 															},
 															MarkdownDescription: "Minimum interval duration constraint. The selected interval will not be smaller than this value.",
 														},
@@ -724,7 +728,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("horizontal", "vertical"),
 											},
-											MarkdownDescription: "Annotation orientation.",
+											MarkdownDescription: "Annotation orientation. Valid values: [\"horizontal\" \"vertical\"].",
 										},
 										"promql_query": schema.StringAttribute{
 											Required:            true,
@@ -754,7 +758,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("archive", "unspecified"),
 											},
-											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
+											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"].",
 										},
 										"label_fields": schema.ListNestedAttribute{
 											Optional: true,
@@ -773,7 +777,7 @@ func Schema() schema.Schema {
 														Validators: []validator.String{
 															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 														},
-														MarkdownDescription: "Dataset scope.",
+														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 													},
 												},
 											},
@@ -812,7 +816,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -833,7 +837,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -860,7 +864,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -887,7 +891,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -908,7 +912,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																	},
-																	MarkdownDescription: "Dataset scope.",
+																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																},
 															},
 															MarkdownDescription: "Observation field.",
@@ -1031,7 +1035,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 													},
-													MarkdownDescription: "Dataset scope.",
+													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 												},
 											},
 											MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -1158,14 +1162,14 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 													},
-													MarkdownDescription: "Span relation type.",
+													MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 												},
 												"scope": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
 														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 													},
-													MarkdownDescription: "Dataset scope.",
+													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 												},
 											},
 											MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -1215,12 +1219,12 @@ func Schema() schema.Schema {
 			},
 			"folder": schema.SingleNestedAttribute{
 				Optional: true,
+				Validators: []validator.Object{
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"id", "path"}, Required: true}}},
+				},
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("path")),
-						},
+						Optional:            true,
 						MarkdownDescription: "ID of the dashboards folder this dashboard belongs to. When authoring a `coralogix_dashboard` resource, this is the lifecycle-safe choice: reference a `coralogix_dashboards_folder` resource's `id` so the folder is created and destroyed by Terraform alongside the dashboard.",
 					},
 					"path": schema.StringAttribute{
@@ -1255,7 +1259,7 @@ func Schema() schema.Schema {
 								"options": schema.SingleNestedAttribute{
 									Optional: true,
 									Validators: []validator.Object{
-										oneOfArmsValidator{Conflicts: []oneOfArmConflict{{Left: []string{"collapsed", "color", "description", "name", "repetitive_var"}, Right: []string{"internal"}}}},
+										oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"internal", "name"}, Required: true}}, Conflicts: []oneOfArmConflict{{Left: []string{"collapsed", "color", "description", "name", "repetitive_var"}, Right: []string{"internal"}}}},
 									},
 									Attributes: map[string]schema.Attribute{
 										"collapsed": schema.BoolAttribute{
@@ -1267,7 +1271,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "pink", "purple"),
 											},
-											MarkdownDescription: "Color of the section header",
+											MarkdownDescription: "Color of the section header Valid values: [\"blue\" \"cyan\" \"green\" \"magenta\" \"orange\" \"pink\" \"purple\"].",
 										},
 										"description": schema.StringAttribute{
 											Optional:            true,
@@ -1325,16 +1329,13 @@ func Schema() schema.Schema {
 												NestedObject: schema.NestedAttributeObject{
 													Attributes: map[string]schema.Attribute{
 														"width": schema.Int64Attribute{
-															Optional: true,
-															Computed: true,
+															Optional:           true,
+															Computed:           true,
+															DeprecationMessage: "Widget appearance.width is ignored by the API and has no effect.",
 															PlanModifiers: []planmodifier.Int64{
 																int64planmodifier.UseNonNullStateForUnknown(),
 															},
 															MarkdownDescription: "The width.",
-														},
-														"created_at": schema.StringAttribute{
-															Computed:            true,
-															MarkdownDescription: "Creation timestamp.",
 														},
 														"definition": schema.SingleNestedAttribute{
 															Optional: true,
@@ -1357,7 +1358,7 @@ func Schema() schema.Schema {
 																			PlanModifiers: []planmodifier.String{
 																				stringplanmodifier.UseNonNullStateForUnknown(),
 																			},
-																			MarkdownDescription: "Specifies where to display the bar value",
+																			MarkdownDescription: "Specifies where to display the bar value Valid values: [\"both\" \"inside\" \"top\" \"unspecified\"].",
 																		},
 																		"color_scheme": schema.StringAttribute{
 																			Optional: true,
@@ -1372,7 +1373,7 @@ func Schema() schema.Schema {
 																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																			},
-																			MarkdownDescription: "How the bar colors should be organized",
+																			MarkdownDescription: "How the bar colors should be organized Valid values: [\"aggregation\" \"category\" \"group_by\" \"query\" \"stack\"].",
 																		},
 																		"custom_unit": schema.StringAttribute{
 																			Optional:            true,
@@ -1385,7 +1386,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("archive", "unspecified"),
 																			},
-																			MarkdownDescription: "Data mode type, either high or archive",
+																			MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																		},
 																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
@@ -1413,7 +1414,7 @@ func Schema() schema.Schema {
 																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																						listvalidator.SizeAtLeast(1),
 																					},
-																					MarkdownDescription: "List of columns to display in legend",
+																					MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
@@ -1436,7 +1437,7 @@ func Schema() schema.Schema {
 																					PlanModifiers: []planmodifier.String{
 																						stringplanmodifier.UseNonNullStateForUnknown(),
 																					},
-																					MarkdownDescription: "Location of the legend in the widget",
+																					MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
@@ -1485,7 +1486,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -1612,14 +1613,14 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																														},
-																														MarkdownDescription: "Span relation type.",
+																														MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																													},
 																													"scope": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -1748,7 +1749,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "Observation field.",
@@ -1787,7 +1788,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -1851,7 +1852,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -1881,7 +1882,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field by results are stacked in a group",
@@ -1936,7 +1937,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Aggregation function",
+																							MarkdownDescription: "Aggregation function Valid values: [\"avg\" \"last\" \"max\" \"min\" \"sum\" \"unspecified\"].",
 																						},
 																						"editor_mode": schema.StringAttribute{
 																							Optional: true,
@@ -1947,7 +1948,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode",
+																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
@@ -2019,7 +2020,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																						},
 																						"stacked_group_name": schema.StringAttribute{
 																							Optional:            true,
@@ -2073,7 +2074,7 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
@@ -2131,14 +2132,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -2222,14 +2223,14 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																										},
-																										MarkdownDescription: "Span relation type.",
+																										MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																									},
 																									"scope": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -2275,14 +2276,14 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																									},
-																									MarkdownDescription: "Span relation type.",
+																									MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																								},
 																								"scope": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field definition by which groups are divided into subgroups",
@@ -2341,7 +2342,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("name", "unspecified", "value"),
 																			},
-																			MarkdownDescription: "Sort type, by name or by value",
+																			MarkdownDescription: "Sort type, by name or by value Valid values: [\"name\" \"unspecified\" \"value\"].",
 																		},
 																		"stack_definition": schema.SingleNestedAttribute{
 																			Optional: true,
@@ -2364,7 +2365,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																			},
-																			MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																			MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																		},
 																		"xaxis": schema.SingleNestedAttribute{
 																			Optional: true,
@@ -2373,7 +2374,8 @@ func Schema() schema.Schema {
 																			},
 																			Attributes: map[string]schema.Attribute{
 																				"time": schema.SingleNestedAttribute{
-																					Optional: true,
+																					Optional:           true,
+																					DeprecationMessage: "The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration using `time` can stop matching the dashboard it manages. Use `time_buckets` instead.",
 																					Attributes: map[string]schema.Attribute{
 																						"buckets_presented": schema.Int64Attribute{
 																							Optional:            true,
@@ -2408,7 +2410,8 @@ func Schema() schema.Schema {
 																								"minimum_interval": schema.StringAttribute{
 																									Optional: true,
 																									Validators: []validator.String{
-																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 																									},
 																									MarkdownDescription: "Minimum interval duration. The calculated interval will not be smaller than this value.",
 																								},
@@ -2421,7 +2424,8 @@ func Schema() schema.Schema {
 																								"interval": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
-																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 																									},
 																									MarkdownDescription: "Fixed interval duration for time buckets, specified by the user.",
 																								},
@@ -2435,7 +2439,8 @@ func Schema() schema.Schema {
 																								"minimum_interval": schema.StringAttribute{
 																									Optional: true,
 																									Validators: []validator.String{
-																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																										stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 																									},
 																									MarkdownDescription: "Minimum interval duration constraint. The selected interval will not be smaller than this value.",
 																								},
@@ -2466,7 +2471,7 @@ func Schema() schema.Schema {
 																			PlanModifiers: []planmodifier.String{
 																				stringplanmodifier.UseNonNullStateForUnknown(),
 																			},
-																			MarkdownDescription: "Time format for the X axis (only applicable when X axis is time-based)",
+																			MarkdownDescription: "Time format for the X axis (only applicable when X axis is time-based) Valid values: [\"auto\" \"dd_mm\" \"dd_mm_hh_mm\" \"hh_mm\" \"hh_mm_dd_mm\" \"hh_mm_mm_dd\" \"mm_dd\" \"mm_dd_hh_mm\" \"unspecified\"].",
 																		},
 																		"y_axis_max": schema.Float64Attribute{
 																			Optional: true,
@@ -2521,7 +2526,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("archive", "unspecified"),
 																			},
-																			MarkdownDescription: "Data mode type, either high or archive",
+																			MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																		},
 																		"order_by": schema.SingleNestedAttribute{
 																			Optional: true,
@@ -2537,7 +2542,7 @@ func Schema() schema.Schema {
 																					Validators: []validator.String{
 																						stringvalidator.OneOf("asc", "desc", "unspecified"),
 																					},
-																					MarkdownDescription: "Order direction, ascending or descending",
+																					MarkdownDescription: "Order direction, ascending or descending Valid values: [\"asc\" \"desc\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Defines how to order the results in the table",
@@ -2582,7 +2587,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -2709,14 +2714,14 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																														},
-																														MarkdownDescription: "Span relation type.",
+																														MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																													},
 																													"scope": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -2832,7 +2837,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -2912,7 +2917,7 @@ func Schema() schema.Schema {
 																																Validators: []validator.String{
 																																	stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																																},
-																																MarkdownDescription: "Dataset scope.",
+																																MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																															},
 																														},
 																														MarkdownDescription: "Observation field.",
@@ -2968,7 +2973,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																									},
@@ -3031,7 +3036,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
+																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
@@ -3096,7 +3101,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("instant", "range", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																						},
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -3182,14 +3187,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -3245,7 +3250,7 @@ func Schema() schema.Schema {
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("dimension", "metric"),
-																															typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																															typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																														},
 																														MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																													},
@@ -3320,14 +3325,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																									},
@@ -3390,7 +3395,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("condensed", "json", "list", "one_line", "two_line", "unspecified"),
 																			},
-																			MarkdownDescription: "Specifies how rows are displayed",
+																			MarkdownDescription: "Specifies how rows are displayed Valid values: [\"condensed\" \"json\" \"list\" \"one_line\" \"two_line\" \"unspecified\"].",
 																		},
 																	},
 																	MarkdownDescription: "Data table widget definition",
@@ -3402,13 +3407,14 @@ func Schema() schema.Schema {
 																	},
 																	Attributes: map[string]schema.Attribute{
 																		"interpretation": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
+																			Optional:           true,
+																			Computed:           true,
+																			Default:            stringdefault.StaticString("unspecified"),
+																			DeprecationMessage: "Deprecated: superseded by the visualization block.",
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("categorical_analysis_horizontal_bars", "categorical_analysis_pie_chart", "categorical_analysis_vertical_bars", "multi_value_kpi", "multi_value_kpi_gauge", "multi_value_kpi_hexagon_bins", "multi_value_kpi_stat", "multi_value_kpi_stat_card", "raw_data_table", "single_value_kpi", "single_value_kpi_gauge", "single_value_kpi_stat", "single_value_kpi_stat_card", "trend_over_time_line", "unspecified"),
 																			},
-																			MarkdownDescription: "Interpretation of the query results (deprecated, use visualization instead)",
+																			MarkdownDescription: "Interpretation of the query results (deprecated, use visualization instead) Valid values: [\"categorical_analysis_horizontal_bars\" \"categorical_analysis_pie_chart\" \"categorical_analysis_vertical_bars\" \"multi_value_kpi\" \"multi_value_kpi_gauge\" \"multi_value_kpi_hexagon_bins\" \"multi_value_kpi_stat\" \"multi_value_kpi_stat_card\" \"raw_data_table\" \"single_value_kpi\" \"single_value_kpi_gauge\" \"single_value_kpi_stat\" \"single_value_kpi_stat_card\" \"trend_over_time_line\" \"unspecified\"].",
 																		},
 																		"query_definitions": schema.ListNestedAttribute{
 																			Required: true,
@@ -3445,7 +3451,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("archive", "unspecified"),
 																										},
-																										MarkdownDescription: "Data mode type",
+																										MarkdownDescription: "Data mode type Valid values: [\"archive\" \"unspecified\"].",
 																									},
 																									"query": schema.StringAttribute{
 																										Optional:            true,
@@ -3492,7 +3498,7 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "Observation field.",
@@ -3512,7 +3518,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("archive", "unspecified"),
 																										},
-																										MarkdownDescription: "Data mode type",
+																										MarkdownDescription: "Data mode type Valid values: [\"archive\" \"unspecified\"].",
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
@@ -3541,7 +3547,7 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -3603,7 +3609,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																										},
@@ -3626,7 +3632,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("builder", "text", "unspecified"),
 																										},
-																										MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
+																										MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																									},
 																									"promql_query": schema.StringAttribute{
 																										Required:            true,
@@ -3639,7 +3645,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("instant", "range", "unspecified"),
 																										},
-																										MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																										MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																									},
 																									"series_limit_type": schema.StringAttribute{
 																										Optional: true,
@@ -3648,7 +3654,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("by_point_count", "by_series_count", "unspecified"),
 																										},
-																										MarkdownDescription: "How to limit the result using series_count_limit parameter",
+																										MarkdownDescription: "How to limit the result using series_count_limit parameter Valid values: [\"by_point_count\" \"by_series_count\" \"unspecified\"].",
 																									},
 																								},
 																								MarkdownDescription: "A metrics variant of the query",
@@ -3691,7 +3697,7 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "Observation field.",
@@ -3711,7 +3717,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("archive", "unspecified"),
 																										},
-																										MarkdownDescription: "Data mode type",
+																										MarkdownDescription: "Data mode type Valid values: [\"archive\" \"unspecified\"].",
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
@@ -3756,14 +3762,14 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																															},
-																															MarkdownDescription: "Span relation type.",
+																															MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																														},
 																														"scope": schema.StringAttribute{
 																															Required: true,
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -3827,14 +3833,14 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																													},
-																													MarkdownDescription: "Span relation type.",
+																													MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																												},
 																												"scope": schema.StringAttribute{
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																										},
@@ -3936,7 +3942,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -3967,7 +3973,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -3990,7 +3996,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -4002,7 +4008,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
 																							},
-																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
+																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups Valid values: [\"groups\" \"thresholds\" \"unspecified\"].",
 																						},
 																						"max": schema.Float64Attribute{
 																							Optional:            true,
@@ -4014,6 +4020,7 @@ func Schema() schema.Schema {
 																						},
 																						"show_inner_arc": schema.BoolAttribute{
 																							Optional:            true,
+																							DeprecationMessage:  "Use `arc_display.value_arc` instead.",
 																							MarkdownDescription: "Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value",
 																						},
 																						"show_min_max": schema.BoolAttribute{
@@ -4022,6 +4029,7 @@ func Schema() schema.Schema {
 																						},
 																						"show_outer_arc": schema.BoolAttribute{
 																							Optional:            true,
+																							DeprecationMessage:  "Use `arc_display.threshold_arc` instead.",
 																							MarkdownDescription: "Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range",
 																						},
 																						"threshold_type": schema.StringAttribute{
@@ -4031,7 +4039,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of the threshold, relative or absolute",
+																							MarkdownDescription: "Type of the threshold, relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																						},
 																						"thresholds": schema.ListNestedAttribute{
 																							Optional: true,
@@ -4063,7 +4071,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
+																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom' Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -4081,7 +4089,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "",
@@ -4106,7 +4114,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -4143,7 +4151,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Observation field.",
@@ -4177,7 +4185,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Observation field.",
@@ -4204,7 +4212,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Observation field.",
@@ -4231,7 +4239,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Observation field.",
@@ -4257,14 +4265,14 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("blue", "blue_reversed", "green", "green_reversed", "red", "red_reversed", "threshold", "threshold_reversed", "unspecified"),
 																									},
-																									MarkdownDescription: "Geomap clusters will have same size, but gradient color will be applied to distinguish data values and/or applied aggregation",
+																									MarkdownDescription: "Geomap clusters will have same size, but gradient color will be applied to distinguish data values and/or applied aggregation Valid values: [\"blue\" \"blue_reversed\" \"green\" \"green_reversed\" \"red\" \"red_reversed\" \"threshold\" \"threshold_reversed\" \"unspecified\"].",
 																								},
 																								"size": schema.StringAttribute{
 																									Optional: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "purple", "red", "unspecified", "yellow"),
 																									},
-																									MarkdownDescription: "Geomap clusters will scale according to data values and/or applied aggregation, using a solid color",
+																									MarkdownDescription: "Geomap clusters will scale according to data values and/or applied aggregation, using a solid color Valid values: [\"blue\" \"cyan\" \"green\" \"magenta\" \"orange\" \"purple\" \"red\" \"unspecified\" \"yellow\"].",
 																								},
 																							},
 																							MarkdownDescription: "Color options for the nodes on the geomap, affects cluster scaling as well.",
@@ -4294,7 +4302,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Data for this field should always return valid region strings from any supported cloud provider, aggregating every provider's regions.",
@@ -4321,7 +4329,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Data for this field should always return valid AWS region strings (e.g. us-east-1, us-west-2).",
@@ -4348,7 +4356,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Data for this field should always return valid numeric coordinate (e.g. 45.756).",
@@ -4369,7 +4377,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Data for this field should always return valid numeric coordinate (e.g. -122.4194).",
@@ -4396,7 +4404,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																											MarkdownDescription: "Data for this field should always return valid IBM Cloud region strings (e.g. us-south, eu-de).",
@@ -4471,7 +4479,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																									},
@@ -4491,7 +4499,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																					},
 																					MarkdownDescription: "Geomap.",
@@ -4525,7 +4533,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("blue", "blue_reversed", "green", "green_reversed", "red", "red_reversed", "threshold", "threshold_reversed", "unspecified"),
 																							},
-																							MarkdownDescription: "Color configuration for the heatmap",
+																							MarkdownDescription: "Color configuration for the heatmap Valid values: [\"blue\" \"blue_reversed\" \"green\" \"green_reversed\" \"red\" \"red_reversed\" \"threshold\" \"threshold_reversed\" \"unspecified\"].",
 																						},
 																						"custom_unit": schema.StringAttribute{
 																							Optional:            true,
@@ -4545,14 +4553,14 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "seconds", "unspecified"),
 																							},
-																							MarkdownDescription: "Unit used to format histogram bucket boundaries when a heatmap axis represents cumulative histogram buckets",
+																							MarkdownDescription: "Unit used to format histogram bucket boundaries when a heatmap axis represents cumulative histogram buckets Valid values: [\"bytes\" \"bytes_iec\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"seconds\" \"unspecified\"].",
 																						},
 																						"preset": schema.StringAttribute{
 																							Optional: true,
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("blue", "blue_reversed", "green", "green_reversed", "red", "red_reversed", "threshold", "threshold_reversed", "unspecified"),
 																							},
-																							MarkdownDescription: "Heatmap color preset.",
+																							MarkdownDescription: "Heatmap color preset. Valid values: [\"blue\" \"blue_reversed\" \"green\" \"green_reversed\" \"red\" \"red_reversed\" \"threshold\" \"threshold_reversed\" \"unspecified\"].",
 																						},
 																						"scale_type": schema.StringAttribute{
 																							Optional: true,
@@ -4561,7 +4569,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"show_numbers": schema.BoolAttribute{
 																							Optional:            true,
@@ -4590,7 +4598,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																									},
@@ -4610,7 +4618,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -4628,7 +4636,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -4653,7 +4661,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -4666,7 +4674,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
 																							},
-																							MarkdownDescription: "Time format for the X axis (only applicable when X axis contains timestamp fields)",
+																							MarkdownDescription: "Time format for the X axis (only applicable when X axis contains timestamp fields) Valid values: [\"auto\" \"dd_mm\" \"dd_mm_hh_mm\" \"hh_mm\" \"hh_mm_dd_mm\" \"hh_mm_mm_dd\" \"mm_dd\" \"mm_dd_hh_mm\" \"unspecified\"].",
 																						},
 																						"y_axis_fields": schema.ListNestedAttribute{
 																							Optional: true,
@@ -4688,7 +4696,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -4724,7 +4732,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -4751,7 +4759,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -4774,7 +4782,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -4786,7 +4794,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
 																							},
-																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
+																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups Valid values: [\"groups\" \"thresholds\" \"unspecified\"].",
 																						},
 																						"max": schema.Float64Attribute{
 																							Optional:            true,
@@ -4803,7 +4811,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of the threshold, relative or absolute",
+																							MarkdownDescription: "Type of the threshold, relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																						},
 																						"thresholds": schema.ListNestedAttribute{
 																							Optional: true,
@@ -4835,7 +4843,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
+																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom' Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -4853,7 +4861,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -4888,7 +4896,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -4904,7 +4912,7 @@ func Schema() schema.Schema {
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
-																							MarkdownDescription: "How the bar colors should be organized",
+																							MarkdownDescription: "How the bar colors should be organized Valid values: [\"aggregation\" \"category\" \"group_by\" \"query\" \"stack\"].",
 																						},
 																						"custom_unit": schema.StringAttribute{
 																							Optional:            true,
@@ -4939,7 +4947,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -4962,7 +4970,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -4988,7 +4996,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"sort_by": schema.StringAttribute{
 																							Optional: true,
@@ -4997,7 +5005,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("name", "unspecified", "value"),
 																							},
-																							MarkdownDescription: "Sort type, by name or by value",
+																							MarkdownDescription: "Sort type, by name or by value Valid values: [\"name\" \"unspecified\" \"value\"].",
 																						},
 																						"stack_name_template": schema.StringAttribute{
 																							Optional:            true,
@@ -5023,7 +5031,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5036,7 +5044,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -5054,7 +5062,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -5080,7 +5088,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("category", "unspecified", "value"),
 																							},
-																							MarkdownDescription: "Specifies how to organize the y-axis view",
+																							MarkdownDescription: "Specifies how to organize the y-axis view Valid values: [\"category\" \"unspecified\" \"value\"].",
 																						},
 																					},
 																					MarkdownDescription: "Horizontal bars.",
@@ -5112,7 +5120,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5128,7 +5136,7 @@ func Schema() schema.Schema {
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
-																							MarkdownDescription: "How the bar colors should be organized",
+																							MarkdownDescription: "How the bar colors should be organized Valid values: [\"aggregation\" \"category\" \"group_by\" \"query\" \"stack\"].",
 																						},
 																						"custom_unit": schema.StringAttribute{
 																							Optional:            true,
@@ -5163,7 +5171,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -5186,7 +5194,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -5225,7 +5233,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "Numeric field for this query - each bar gets one value column",
@@ -5241,7 +5249,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"sort_order": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -5253,7 +5261,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("asc", "desc", "unspecified"),
 																									},
-																									MarkdownDescription: "Order direction, ascending or descending",
+																									MarkdownDescription: "Order direction, ascending or descending Valid values: [\"asc\" \"desc\" \"unspecified\"].",
 																								},
 																								"strategy": schema.SingleNestedAttribute{
 																									Optional: true,
@@ -5296,7 +5304,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"y_axis_max": schema.Float64Attribute{
 																							Optional: true,
@@ -5319,7 +5327,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("category", "unspecified", "value"),
 																							},
-																							MarkdownDescription: "Specifies how to organize the y-axis view",
+																							MarkdownDescription: "Specifies how to organize the y-axis view Valid values: [\"category\" \"unspecified\" \"value\"].",
 																						},
 																					},
 																					MarkdownDescription: "Visualization configuration for horizontal bars with multiple queries.",
@@ -5351,7 +5359,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5394,7 +5402,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("inner", "stack", "unspecified"),
 																									},
-																									MarkdownDescription: "Source of the label",
+																									MarkdownDescription: "Source of the label Valid values: [\"inner\" \"stack\" \"unspecified\"].",
 																								},
 																								"show_name": schema.BoolAttribute{
 																									Optional:            true,
@@ -5421,7 +5429,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -5444,7 +5452,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -5498,7 +5506,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5511,7 +5519,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the value - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the value - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -5529,7 +5537,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -5564,7 +5572,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5595,7 +5603,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -5618,7 +5626,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -5630,7 +5638,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
 																							},
-																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
+																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups Valid values: [\"groups\" \"thresholds\" \"unspecified\"].",
 																						},
 																						"max": schema.Float64Attribute{
 																							Optional:            true,
@@ -5647,7 +5655,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("background", "unspecified", "value"),
 																							},
-																							MarkdownDescription: "Indicates which widget element should be colorized as the threshold, either the value or the background",
+																							MarkdownDescription: "Indicates which widget element should be colorized as the threshold, either the value or the background Valid values: [\"background\" \"unspecified\" \"value\"].",
 																						},
 																						"threshold_type": schema.StringAttribute{
 																							Optional: true,
@@ -5656,7 +5664,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of the threshold, relative or absolute",
+																							MarkdownDescription: "Type of the threshold, relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																						},
 																						"thresholds": schema.ListNestedAttribute{
 																							Optional: true,
@@ -5688,10 +5696,11 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
+																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom' Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
-																							Optional: true,
+																							Optional:           true,
+																							DeprecationMessage: "Deprecated: superseded by value_fields.",
 																							Attributes: map[string]schema.Attribute{
 																								"keypath": schema.ListAttribute{
 																									Required:    true,
@@ -5706,7 +5715,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "",
@@ -5731,7 +5740,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5767,7 +5776,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -5786,7 +5795,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("background", "row", "unspecified", "value"),
 																									},
-																									MarkdownDescription: "Determines which element to colorize - value text or background",
+																									MarkdownDescription: "Determines which element to colorize - value text or background Valid values: [\"background\" \"row\" \"unspecified\" \"value\"].",
 																								},
 																								"range": schema.SingleNestedAttribute{
 																									Optional: true,
@@ -5828,7 +5837,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																											},
-																											MarkdownDescription: "Type of the threshold, relative or absolute",
+																											MarkdownDescription: "Type of the threshold, relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																										},
 																										"thresholds": schema.ListNestedAttribute{
 																											Optional: true,
@@ -5873,7 +5882,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "purple", "red", "unspecified", "yellow"),
 																														},
-																														MarkdownDescription: "Color for this mapping section",
+																														MarkdownDescription: "Color for this mapping section Valid values: [\"blue\" \"cyan\" \"green\" \"magenta\" \"orange\" \"purple\" \"red\" \"unspecified\" \"yellow\"].",
 																													},
 																													"map_to": schema.StringAttribute{
 																														Optional:            true,
@@ -5907,7 +5916,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("blue", "cyan", "green", "magenta", "orange", "purple", "red", "unspecified", "yellow"),
 																														},
-																														MarkdownDescription: "Color for this mapping section",
+																														MarkdownDescription: "Color for this mapping section Valid values: [\"blue\" \"cyan\" \"green\" \"magenta\" \"orange\" \"purple\" \"red\" \"unspecified\" \"yellow\"].",
 																													},
 																													"map_to": schema.StringAttribute{
 																														Optional:            true,
@@ -5967,7 +5976,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "A field from the query datashape to display",
@@ -6006,7 +6015,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "Resolve the variable from a query datashape field",
@@ -6031,7 +6040,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -6054,7 +6063,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -6066,7 +6075,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("groups", "thresholds", "unspecified"),
 																							},
-																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
+																							MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups Valid values: [\"groups\" \"thresholds\" \"unspecified\"].",
 																						},
 																						"primary_value": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -6077,7 +6086,7 @@ func Schema() schema.Schema {
 																								"mapped_values": schema.BoolAttribute{
 																									Optional: true,
 																									Validators: []validator.Bool{
-																										boolvalidator.Equals(true),
+																										unsupportedBoolValidator{Message: "primary_value cannot use mapped_values, because the primary value is the source the color label mapping reads from. Use observation_field or template_text instead."},
 																									},
 																									MarkdownDescription: "Display the result of the color label mapping",
 																								},
@@ -6097,7 +6106,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "A field from the query datashape to display",
@@ -6136,7 +6145,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "Resolve the variable from a query datashape field",
@@ -6180,7 +6189,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "A field from the query datashape to display",
@@ -6219,7 +6228,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "Resolve the variable from a query datashape field",
@@ -6241,7 +6250,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
+																							MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom' Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
@@ -6263,7 +6272,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -6298,7 +6307,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "Observation field.",
@@ -6348,7 +6357,7 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("center", "left", "right", "unspecified"),
 																															},
-																															MarkdownDescription: "Text alignment.",
+																															MarkdownDescription: "Text alignment. Valid values: [\"center\" \"left\" \"right\" \"unspecified\"].",
 																														},
 																														"column_display_name": schema.StringAttribute{
 																															Optional:            true,
@@ -6413,7 +6422,7 @@ func Schema() schema.Schema {
 																																	Validators: []validator.String{
 																																		stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																																	},
-																																	MarkdownDescription: "Type of the threshold, can be relative or absolute",
+																																	MarkdownDescription: "Type of the threshold, can be relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																																},
 																																"values": schema.ListNestedAttribute{
 																																	Optional: true,
@@ -6474,7 +6483,7 @@ func Schema() schema.Schema {
 																																	Validators: []validator.String{
 																																		stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																																	},
-																																	MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																																	MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																																},
 																															},
 																															MarkdownDescription: "Property units.",
@@ -6508,7 +6517,7 @@ func Schema() schema.Schema {
 																																				Validators: []validator.String{
 																																					stringvalidator.OneOf("regex", "unspecified", "value"),
 																																				},
-																																				MarkdownDescription: "Values mapping type.",
+																																				MarkdownDescription: "Values mapping type. Valid values: [\"regex\" \"unspecified\" \"value\"].",
 																																			},
 																																		},
 																																	},
@@ -6554,7 +6563,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "Observation field.",
@@ -6564,7 +6573,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("array", "boolean", "enum", "number", "object", "regex", "string", "timestamp", "union", "unspecified"),
 																												},
-																												MarkdownDescription: "Field data type.",
+																												MarkdownDescription: "Field data type. Valid values: [\"array\" \"boolean\" \"enum\" \"number\" \"object\" \"regex\" \"string\" \"timestamp\" \"union\" \"unspecified\"].",
 																											},
 																											"regex": schema.StringAttribute{
 																												Optional:            true,
@@ -6609,7 +6618,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("condensed", "json", "list", "one_line", "two_line", "unspecified"),
 																									},
-																									MarkdownDescription: "Type of row view style in the table",
+																									MarkdownDescription: "Type of row view style in the table Valid values: [\"condensed\" \"json\" \"list\" \"one_line\" \"two_line\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Table settings.",
@@ -6631,7 +6640,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("both", "inside", "top", "unspecified"),
 																							},
-																							MarkdownDescription: "Specifies where to display the bar value",
+																							MarkdownDescription: "Specifies where to display the bar value Valid values: [\"both\" \"inside\" \"top\" \"unspecified\"].",
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
@@ -6653,7 +6662,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -6688,7 +6697,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -6711,7 +6720,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -6730,7 +6739,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"series_name_template": schema.StringAttribute{
 																							Optional:            true,
@@ -6743,7 +6752,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("name", "unspecified", "value"),
 																							},
-																							MarkdownDescription: "Sort type, by name or by value",
+																							MarkdownDescription: "Sort type, by name or by value Valid values: [\"name\" \"unspecified\" \"value\"].",
 																						},
 																						"temporal_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -6761,7 +6770,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -6787,7 +6796,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_fields": schema.ListNestedAttribute{
 																							Optional: true,
@@ -6809,7 +6818,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -6822,7 +6831,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
 																							},
-																							MarkdownDescription: "Time format for the X axis",
+																							MarkdownDescription: "Time format for the X axis Valid values: [\"auto\" \"dd_mm\" \"dd_mm_hh_mm\" \"hh_mm\" \"hh_mm_dd_mm\" \"hh_mm_mm_dd\" \"mm_dd\" \"mm_dd_hh_mm\" \"unspecified\"].",
 																						},
 																						"y_axis_max": schema.Float64Attribute{
 																							Optional: true,
@@ -6842,7 +6851,8 @@ func Schema() schema.Schema {
 																					MarkdownDescription: "Time series bars.",
 																				},
 																				"time_series_lines": schema.SingleNestedAttribute{
-																					Optional: true,
+																					Optional:           true,
+																					DeprecationMessage: "Deprecated: use time_series_lines_multi instead.",
 																					Attributes: map[string]schema.Attribute{
 																						"allow_abbreviation": schema.BoolAttribute{
 																							Optional:            true,
@@ -6868,7 +6878,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -6907,7 +6917,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -6930,7 +6940,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -6942,7 +6952,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"series_count_limit": schema.Int64Attribute{
 																							Optional:            true,
@@ -6959,7 +6969,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative",
+																							MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																						},
 																						"temporal_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -6977,7 +6987,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -7003,7 +7013,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"use_data_time_range": schema.BoolAttribute{
 																							Optional:            true,
@@ -7029,7 +7039,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -7042,7 +7052,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
 																							},
-																							MarkdownDescription: "Time format for the X axis",
+																							MarkdownDescription: "Time format for the X axis Valid values: [\"auto\" \"dd_mm\" \"dd_mm_hh_mm\" \"hh_mm\" \"hh_mm_dd_mm\" \"hh_mm_mm_dd\" \"mm_dd\" \"mm_dd_hh_mm\" \"unspecified\"].",
 																						},
 																						"y_axis_max": schema.Float64Attribute{
 																							Optional: true,
@@ -7078,7 +7088,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -7101,7 +7111,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -7137,7 +7147,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																										},
@@ -7173,7 +7183,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																										},
-																										MarkdownDescription: "Scale type - linear/logarithmic",
+																										MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																									},
 																									"series_count_limit": schema.Int64Attribute{
 																										Optional:            true,
@@ -7199,7 +7209,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "Temporal field for time series data",
@@ -7211,7 +7221,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																										},
-																										MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																										MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																									},
 																									"value_fields": schema.ListNestedAttribute{
 																										Optional: true,
@@ -7233,7 +7243,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																										},
@@ -7264,7 +7274,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative",
+																							MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																						},
 																						"tooltip": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -7291,7 +7301,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("auto", "dd_mm", "dd_mm_hh_mm", "hh_mm", "hh_mm_dd_mm", "hh_mm_mm_dd", "mm_dd", "mm_dd_hh_mm", "unspecified"),
 																							},
-																							MarkdownDescription: "Time format for the X axis",
+																							MarkdownDescription: "Time format for the X axis Valid values: [\"auto\" \"dd_mm\" \"dd_mm_hh_mm\" \"hh_mm\" \"hh_mm_dd_mm\" \"hh_mm_mm_dd\" \"mm_dd\" \"mm_dd_hh_mm\" \"unspecified\"].",
 																						},
 																					},
 																					MarkdownDescription: "Time series lines multi.",
@@ -7310,7 +7320,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("both", "inside", "top", "unspecified"),
 																							},
-																							MarkdownDescription: "Specifies where to display the bar value",
+																							MarkdownDescription: "Specifies where to display the bar value Valid values: [\"both\" \"inside\" \"top\" \"unspecified\"].",
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
@@ -7332,7 +7342,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -7348,7 +7358,7 @@ func Schema() schema.Schema {
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
-																							MarkdownDescription: "How the bar colors should be organized",
+																							MarkdownDescription: "How the bar colors should be organized Valid values: [\"aggregation\" \"category\" \"group_by\" \"query\" \"stack\"].",
 																						},
 																						"custom_unit": schema.StringAttribute{
 																							Optional:            true,
@@ -7379,7 +7389,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -7402,7 +7412,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -7428,7 +7438,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"sort_by": schema.StringAttribute{
 																							Optional: true,
@@ -7437,7 +7447,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("name", "unspecified", "value"),
 																							},
-																							MarkdownDescription: "Sort type, by name or by value",
+																							MarkdownDescription: "Sort type, by name or by value Valid values: [\"name\" \"unspecified\" \"value\"].",
 																						},
 																						"stack_name_template": schema.StringAttribute{
 																							Optional:            true,
@@ -7463,7 +7473,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -7476,7 +7486,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"value_field": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -7494,7 +7504,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field.",
@@ -7530,7 +7540,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("both", "inside", "top", "unspecified"),
 																							},
-																							MarkdownDescription: "Specifies where to display the bar value",
+																							MarkdownDescription: "Specifies where to display the bar value Valid values: [\"both\" \"inside\" \"top\" \"unspecified\"].",
 																						},
 																						"category_fields": schema.ListNestedAttribute{
 																							Optional: true,
@@ -7552,7 +7562,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -7568,7 +7578,7 @@ func Schema() schema.Schema {
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																								stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																							},
-																							MarkdownDescription: "How the bar colors should be organized",
+																							MarkdownDescription: "How the bar colors should be organized Valid values: [\"aggregation\" \"category\" \"group_by\" \"query\" \"stack\"].",
 																						},
 																						"custom_unit": schema.StringAttribute{
 																							Optional:            true,
@@ -7599,7 +7609,7 @@ func Schema() schema.Schema {
 																										listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																										listvalidator.SizeAtLeast(1),
 																									},
-																									MarkdownDescription: "List of columns to display in legend",
+																									MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																								},
 																								"group_by_query": schema.BoolAttribute{
 																									Optional:            true,
@@ -7622,7 +7632,7 @@ func Schema() schema.Schema {
 																									PlanModifiers: []planmodifier.String{
 																										stringplanmodifier.UseNonNullStateForUnknown(),
 																									},
-																									MarkdownDescription: "Location of the legend in the widget",
+																									MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																								},
 																							},
 																							MarkdownDescription: "Widget's legend settings",
@@ -7661,7 +7671,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "Numeric field for this query - each bar gets one value column",
@@ -7677,7 +7687,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																							},
-																							MarkdownDescription: "Scale type - linear/logarithmic",
+																							MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																						},
 																						"sort_order": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -7689,7 +7699,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("asc", "desc", "unspecified"),
 																									},
-																									MarkdownDescription: "Order direction, ascending or descending",
+																									MarkdownDescription: "Order direction, ascending or descending Valid values: [\"asc\" \"desc\" \"unspecified\"].",
 																								},
 																								"strategy": schema.SingleNestedAttribute{
 																									Optional: true,
@@ -7732,7 +7742,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																							},
-																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																							MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																						},
 																						"y_axis_max": schema.Float64Attribute{
 																							Optional: true,
@@ -7788,7 +7798,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("archive", "unspecified"),
 																			},
-																			MarkdownDescription: "Data mode type, either high or archive",
+																			MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																		},
 																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
@@ -7814,7 +7824,7 @@ func Schema() schema.Schema {
 																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																						listvalidator.SizeAtLeast(1),
 																					},
-																					MarkdownDescription: "List of columns to display in legend",
+																					MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
@@ -7837,7 +7847,7 @@ func Schema() schema.Schema {
 																					PlanModifiers: []planmodifier.String{
 																						stringplanmodifier.UseNonNullStateForUnknown(),
 																					},
-																					MarkdownDescription: "Location of the legend in the widget",
+																					MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
@@ -7851,7 +7861,7 @@ func Schema() schema.Schema {
 																			PlanModifiers: []planmodifier.String{
 																				stringplanmodifier.UseNonNullStateForUnknown(),
 																			},
-																			MarkdownDescription: "(multigauge display only) Indicates how to group the legend elements, either by thresholds or by standard groups",
+																			MarkdownDescription: "(multigauge display only) Indicates how to group the legend elements, either by thresholds or by standard groups Valid values: [\"groups\" \"thresholds\" \"unspecified\"].",
 																		},
 																		"max": schema.Float64Attribute{
 																			Optional: true,
@@ -7909,7 +7919,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -8036,14 +8046,14 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																														},
-																														MarkdownDescription: "Span relation type.",
+																														MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																													},
 																													"scope": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -8159,7 +8169,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -8221,7 +8231,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -8258,7 +8268,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "Observation field.",
@@ -8322,7 +8332,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
 																							},
-																							MarkdownDescription: "Aggregation function",
+																							MarkdownDescription: "Aggregation function Valid values: [\"avg\" \"last\" \"max\" \"min\" \"sum\" \"unspecified\"].",
 																						},
 																						"editor_mode": schema.StringAttribute{
 																							Optional: true,
@@ -8333,7 +8343,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
+																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
@@ -8400,7 +8410,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																						},
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -8486,14 +8496,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -8580,14 +8590,14 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																										},
-																										MarkdownDescription: "Span relation type.",
+																										MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																									},
 																									"scope": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -8604,7 +8614,7 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
@@ -8683,7 +8693,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("background", "unspecified", "value"),
 																			},
-																			MarkdownDescription: "Indicates which widget element should be colorized as the threshold, either the value or the background",
+																			MarkdownDescription: "Indicates which widget element should be colorized as the threshold, either the value or the background Valid values: [\"background\" \"unspecified\" \"value\"].",
 																		},
 																		"threshold_type": schema.StringAttribute{
 																			Optional: true,
@@ -8692,7 +8702,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																			},
-																			MarkdownDescription: "Type of the threshold, relative or absolute",
+																			MarkdownDescription: "Type of the threshold, relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																		},
 																		"thresholds": schema.ListNestedAttribute{
 																			Optional: true,
@@ -8719,7 +8729,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "none", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																			},
-																			MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom'",
+																			MarkdownDescription: "Unit of the value - one from a predefined list, or 'custom' Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"none\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																		},
 																	},
 																	MarkdownDescription: "Gauge widget definition",
@@ -8741,7 +8751,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("archive", "unspecified"),
 																			},
-																			MarkdownDescription: "Data mode type, either high or archive",
+																			MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																		},
 																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
@@ -8761,7 +8771,7 @@ func Schema() schema.Schema {
 																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																						listvalidator.SizeAtLeast(1),
 																					},
-																					MarkdownDescription: "List of columns to display in legend",
+																					MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
@@ -8784,7 +8794,7 @@ func Schema() schema.Schema {
 																					PlanModifiers: []planmodifier.String{
 																						stringplanmodifier.UseNonNullStateForUnknown(),
 																					},
-																					MarkdownDescription: "Location of the legend in the widget",
+																					MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
@@ -8796,7 +8806,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("groups", "thresholds", "unspecified"),
 																			},
-																			MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups",
+																			MarkdownDescription: "Indicates how to group the legend elements, either by thresholds or by query groups Valid values: [\"groups\" \"thresholds\" \"unspecified\"].",
 																		},
 																		"max": schema.NumberAttribute{
 																			Optional:            true,
@@ -8846,7 +8856,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -8973,14 +8983,14 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																														},
-																														MarkdownDescription: "Span relation type.",
+																														MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																													},
 																													"scope": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -9096,7 +9106,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -9155,7 +9165,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -9192,7 +9202,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "Observation field.",
@@ -9256,7 +9266,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("avg", "last", "max", "min", "sum", "unspecified"),
 																							},
-																							MarkdownDescription: "Aggregation function",
+																							MarkdownDescription: "Aggregation function Valid values: [\"avg\" \"last\" \"max\" \"min\" \"sum\" \"unspecified\"].",
 																						},
 																						"editor_mode": schema.StringAttribute{
 																							Optional: true,
@@ -9267,7 +9277,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
+																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
@@ -9332,7 +9342,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("instant", "range", "unspecified"),
 																							},
-																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																						},
 																						"time_frame": schema.SingleNestedAttribute{
 																							Optional: true,
@@ -9418,14 +9428,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -9509,14 +9519,14 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																										},
-																										MarkdownDescription: "Span relation type.",
+																										MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																									},
 																									"scope": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -9533,7 +9543,7 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
@@ -9596,7 +9606,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																			},
-																			MarkdownDescription: "Type of the threshold, relative or absolute",
+																			MarkdownDescription: "Type of the threshold, relative or absolute Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																		},
 																		"thresholds": schema.SetNestedAttribute{
 																			Optional: true,
@@ -9626,7 +9636,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																			},
-																			MarkdownDescription: "Unit of the value - one from a predefined list, or custom",
+																			MarkdownDescription: "Unit of the value - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																		},
 																	},
 																	MarkdownDescription: "Hexagon widget definition",
@@ -9650,7 +9660,7 @@ func Schema() schema.Schema {
 																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																				stringvalidator.OneOf("aggregation", "category", "group_by", "query", "stack"),
 																			},
-																			MarkdownDescription: "How the bar colors should be organized",
+																			MarkdownDescription: "How the bar colors should be organized Valid values: [\"aggregation\" \"category\" \"group_by\" \"query\" \"stack\"].",
 																		},
 																		"custom_unit": schema.StringAttribute{
 																			Optional:            true,
@@ -9663,7 +9673,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("archive", "unspecified"),
 																			},
-																			MarkdownDescription: "Data mode type, either high or archive",
+																			MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																		},
 																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
@@ -9697,7 +9707,7 @@ func Schema() schema.Schema {
 																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																						listvalidator.SizeAtLeast(1),
 																					},
-																					MarkdownDescription: "List of columns to display in legend",
+																					MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
@@ -9720,7 +9730,7 @@ func Schema() schema.Schema {
 																					PlanModifiers: []planmodifier.String{
 																						stringplanmodifier.UseNonNullStateForUnknown(),
 																					},
-																					MarkdownDescription: "Location of the legend in the widget",
+																					MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
@@ -9769,7 +9779,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -9896,14 +9906,14 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																														},
-																														MarkdownDescription: "Span relation type.",
+																														MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																													},
 																													"scope": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -10032,7 +10042,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "Observation field.",
@@ -10071,7 +10081,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -10138,7 +10148,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -10168,7 +10178,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field by results are stacked in a group",
@@ -10223,7 +10233,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Aggregation function",
+																							MarkdownDescription: "Aggregation function Valid values: [\"avg\" \"last\" \"max\" \"min\" \"sum\" \"unspecified\"].",
 																						},
 																						"editor_mode": schema.StringAttribute{
 																							Optional: true,
@@ -10234,7 +10244,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode",
+																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
@@ -10306,7 +10316,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																						},
 																						"stacked_group_name": schema.StringAttribute{
 																							Optional:            true,
@@ -10360,7 +10370,7 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
@@ -10418,14 +10428,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -10509,14 +10519,14 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																										},
-																										MarkdownDescription: "Span relation type.",
+																										MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																									},
 																									"scope": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -10562,14 +10572,14 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																									},
-																									MarkdownDescription: "Span relation type.",
+																									MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																								},
 																								"scope": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field definition by which groups are divided into subgroups",
@@ -10628,7 +10638,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("name", "unspecified", "value"),
 																			},
-																			MarkdownDescription: "Sort type, by name or by value",
+																			MarkdownDescription: "Sort type, by name or by value Valid values: [\"name\" \"unspecified\" \"value\"].",
 																		},
 																		"stack_definition": schema.SingleNestedAttribute{
 																			Optional: true,
@@ -10651,7 +10661,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																			},
-																			MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																			MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																		},
 																		"y_axis_max": schema.Float64Attribute{
 																			Optional: true,
@@ -10673,7 +10683,7 @@ func Schema() schema.Schema {
 																				stringvalidator.OneOf("category", "value"),
 																				stringvalidator.OneOf("category", "value"),
 																			},
-																			MarkdownDescription: "Specifies how to organize the y-axis view",
+																			MarkdownDescription: "Specifies how to organize the y-axis view Valid values: [\"category\" \"value\"].",
 																		},
 																	},
 																	MarkdownDescription: "Horizontal bar chart widget definition",
@@ -10698,7 +10708,7 @@ func Schema() schema.Schema {
 																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																						listvalidator.SizeAtLeast(1),
 																					},
-																					MarkdownDescription: "List of columns to display in legend",
+																					MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
@@ -10721,7 +10731,7 @@ func Schema() schema.Schema {
 																					PlanModifiers: []planmodifier.String{
 																						stringplanmodifier.UseNonNullStateForUnknown(),
 																					},
-																					MarkdownDescription: "Location of the legend in the widget",
+																					MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
@@ -10748,7 +10758,7 @@ func Schema() schema.Schema {
 																						Validators: []validator.String{
 																							stringvalidator.OneOf("archive", "unspecified"),
 																						},
-																						MarkdownDescription: "Data mode type, either high or archive",
+																						MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																					},
 																					"decimal": schema.NumberAttribute{
 																						Optional:            true,
@@ -10789,7 +10799,8 @@ func Schema() schema.Schema {
 																									"minimum_interval": schema.StringAttribute{
 																										Optional: true,
 																										Validators: []validator.String{
-																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 																										},
 																										MarkdownDescription: "Minimum interval duration. The calculated interval will not be smaller than this value.",
 																									},
@@ -10802,7 +10813,8 @@ func Schema() schema.Schema {
 																									"interval": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
-																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 																										},
 																										MarkdownDescription: "Fixed interval duration for time buckets, specified by the user.",
 																									},
@@ -10816,7 +10828,8 @@ func Schema() schema.Schema {
 																									"minimum_interval": schema.StringAttribute{
 																										Optional: true,
 																										Validators: []validator.String{
-																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "a duration in seconds as the API writes it, such as 900s, 15s or 1.500s"),
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?s$`), "must be a duration in seconds, such as 900s, 15s or 1.500s"),
+																											stringvalidator.RegexMatches(regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$`), "must be written as the API stores it: 1.5s is stored by the API as \"1.500s\""),
 																										},
 																										MarkdownDescription: "Minimum interval duration constraint. The selected interval will not be smaller than this value.",
 																									},
@@ -10880,7 +10893,7 @@ func Schema() schema.Schema {
 																																	Validators: []validator.String{
 																																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																																	},
-																																	MarkdownDescription: "Dataset scope.",
+																																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																																},
 																															},
 																															MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -11007,14 +11020,14 @@ func Schema() schema.Schema {
 																																	Validators: []validator.String{
 																																		stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																																	},
-																																	MarkdownDescription: "Span relation type.",
+																																	MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																																},
 																																"scope": schema.StringAttribute{
 																																	Required: true,
 																																	Validators: []validator.String{
 																																		stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																																	},
-																																	MarkdownDescription: "Dataset scope.",
+																																	MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																																},
 																															},
 																															MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -11138,7 +11151,7 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "Observation field.",
@@ -11178,7 +11191,7 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -11245,7 +11258,7 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																										},
@@ -11305,7 +11318,7 @@ func Schema() schema.Schema {
 																										PlanModifiers: []planmodifier.String{
 																											stringplanmodifier.UseNonNullStateForUnknown(),
 																										},
-																										MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based",
+																										MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder based Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																									},
 																									"filters": schema.ListNestedAttribute{
 																										Optional: true,
@@ -11372,7 +11385,7 @@ func Schema() schema.Schema {
 																										PlanModifiers: []planmodifier.String{
 																											stringplanmodifier.UseNonNullStateForUnknown(),
 																										},
-																										MarkdownDescription: "How to limit the result using series_count_limit parameter",
+																										MarkdownDescription: "How to limit the result using series_count_limit parameter Valid values: [\"by_point_count\" \"by_series_count\" \"unspecified\"].",
 																									},
 																									"time_frame": schema.SingleNestedAttribute{
 																										Optional: true,
@@ -11429,7 +11442,7 @@ func Schema() schema.Schema {
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("dimension", "metric"),
-																														typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																														typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																													},
 																													MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																												},
@@ -11488,14 +11501,14 @@ func Schema() schema.Schema {
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																															},
-																															MarkdownDescription: "Span relation type.",
+																															MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																														},
 																														"scope": schema.StringAttribute{
 																															Required: true,
 																															Validators: []validator.String{
 																																stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																															},
-																															MarkdownDescription: "Dataset scope.",
+																															MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																														},
 																													},
 																													MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -11579,14 +11592,14 @@ func Schema() schema.Schema {
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																													},
-																													MarkdownDescription: "Span relation type.",
+																													MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																												},
 																												"scope": schema.StringAttribute{
 																													Required: true,
 																													Validators: []validator.String{
 																														stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																													},
-																													MarkdownDescription: "Dataset scope.",
+																													MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																												},
 																											},
 																										},
@@ -11658,7 +11671,7 @@ func Schema() schema.Schema {
 																						Validators: []validator.String{
 																							stringvalidator.OneOf("linear", "logarithmic", "unspecified"),
 																						},
-																						MarkdownDescription: "Scale type - linear/logarithmic",
+																						MarkdownDescription: "Scale type - linear/logarithmic Valid values: [\"linear\" \"logarithmic\" \"unspecified\"].",
 																					},
 																					"series_count_limit": schema.Int64Attribute{
 																						Optional:            true,
@@ -11675,7 +11688,7 @@ func Schema() schema.Schema {
 																						Validators: []validator.String{
 																							stringvalidator.OneOf("bytes", "bytes_iec", "custom", "datetime_iso", "euro", "euro_cents", "gbytes", "gibytes", "kbytes", "kibytes", "mbytes", "mibytes", "microseconds", "milliseconds", "nanoseconds", "percent", "percent01", "percent100", "seconds", "unspecified", "usd", "usd_cents"),
 																						},
-																						MarkdownDescription: "Unit of the query results - one from a predefined list, or custom",
+																						MarkdownDescription: "Unit of the query results - one from a predefined list, or custom Valid values: [\"bytes\" \"bytes_iec\" \"custom\" \"datetime_iso\" \"euro\" \"euro_cents\" \"gbytes\" \"gibytes\" \"kbytes\" \"kibytes\" \"mbytes\" \"mibytes\" \"microseconds\" \"milliseconds\" \"nanoseconds\" \"percent\" \"percent01\" \"percent100\" \"seconds\" \"unspecified\" \"usd\" \"usd_cents\"].",
 																					},
 																					"y_axis_max": schema.Float64Attribute{
 																						Optional: true,
@@ -11702,7 +11715,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("absolute", "relative", "unspecified"),
 																			},
-																			MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative",
+																			MarkdownDescription: "Type of stacked line, can be undefined, absolute or relative Valid values: [\"absolute\" \"relative\" \"unspecified\"].",
 																		},
 																		"tooltip": schema.SingleNestedAttribute{
 																			Optional: true,
@@ -11718,7 +11731,7 @@ func Schema() schema.Schema {
 																					Validators: []validator.String{
 																						stringvalidator.OneOf("all", "single", "unspecified"),
 																					},
-																					MarkdownDescription: "Type of the tooltip display, can be showing single series value or all series values at once",
+																					MarkdownDescription: "Type of the tooltip display, can be showing single series value or all series values at once Valid values: [\"all\" \"single\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Tooltip settings",
@@ -11736,7 +11749,7 @@ func Schema() schema.Schema {
 																			PlanModifiers: []planmodifier.String{
 																				stringplanmodifier.UseNonNullStateForUnknown(),
 																			},
-																			MarkdownDescription: "Time format for the X axis",
+																			MarkdownDescription: "Time format for the X axis Valid values: [\"auto\" \"dd_mm\" \"dd_mm_hh_mm\" \"hh_mm\" \"hh_mm_dd_mm\" \"hh_mm_mm_dd\" \"mm_dd\" \"mm_dd_hh_mm\" \"unspecified\"].",
 																		},
 																	},
 																	MarkdownDescription: "Line chart widget definition",
@@ -11776,7 +11789,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("archive", "unspecified"),
 																			},
-																			MarkdownDescription: "Data mode type, either high or archive",
+																			MarkdownDescription: "Data mode type, either high or archive Valid values: [\"archive\" \"unspecified\"].",
 																		},
 																		"decimal": schema.NumberAttribute{
 																			Optional:            true,
@@ -11810,7 +11823,7 @@ func Schema() schema.Schema {
 																					Validators: []validator.String{
 																						stringvalidator.OneOf("inner", "stack", "unspecified"),
 																					},
-																					MarkdownDescription: "Source of the label",
+																					MarkdownDescription: "Source of the label Valid values: [\"inner\" \"stack\" \"unspecified\"].",
 																				},
 																				"show_name": schema.BoolAttribute{
 																					Optional:            true,
@@ -11843,7 +11856,7 @@ func Schema() schema.Schema {
 																						listvalidator.ValueStringsAre(stringvalidator.OneOf("avg", "last", "max", "min", "name", "sum", "unspecified")),
 																						listvalidator.SizeAtLeast(1),
 																					},
-																					MarkdownDescription: "List of columns to display in legend",
+																					MarkdownDescription: "List of columns to display in legend Valid values: [\"avg\" \"last\" \"max\" \"min\" \"name\" \"sum\" \"unspecified\"].",
 																				},
 																				"group_by_query": schema.BoolAttribute{
 																					Optional:            true,
@@ -11866,7 +11879,7 @@ func Schema() schema.Schema {
 																					PlanModifiers: []planmodifier.String{
 																						stringplanmodifier.UseNonNullStateForUnknown(),
 																					},
-																					MarkdownDescription: "Location of the legend in the widget",
+																					MarkdownDescription: "Location of the legend in the widget Valid values: [\"auto\" \"bottom\" \"hidden\" \"side\" \"unspecified\"].",
 																				},
 																			},
 																			MarkdownDescription: "Widget's legend settings",
@@ -11919,7 +11932,7 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -12046,14 +12059,14 @@ func Schema() schema.Schema {
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																														},
-																														MarkdownDescription: "Span relation type.",
+																														MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																													},
 																													"scope": schema.StringAttribute{
 																														Required: true,
 																														Validators: []validator.String{
 																															stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																														},
-																														MarkdownDescription: "Dataset scope.",
+																														MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																													},
 																												},
 																												MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -12182,7 +12195,7 @@ func Schema() schema.Schema {
 																											Validators: []validator.String{
 																												stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																											},
-																											MarkdownDescription: "Dataset scope.",
+																											MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																										},
 																									},
 																									MarkdownDescription: "Observation field.",
@@ -12221,7 +12234,7 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation log field to which the filter is applied.",
@@ -12288,7 +12301,7 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -12318,7 +12331,7 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field by results are stacked in a group",
@@ -12373,7 +12386,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Aggregation function",
+																							MarkdownDescription: "Aggregation function Valid values: [\"avg\" \"last\" \"max\" \"min\" \"sum\" \"unspecified\"].",
 																						},
 																						"editor_mode": schema.StringAttribute{
 																							Optional: true,
@@ -12384,7 +12397,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode",
+																							MarkdownDescription: "Type of the query editor used to generate the query, can be text or builder mode Valid values: [\"builder\" \"text\" \"unspecified\"].",
 																						},
 																						"filters": schema.ListNestedAttribute{
 																							Optional: true,
@@ -12456,7 +12469,7 @@ func Schema() schema.Schema {
 																							PlanModifiers: []planmodifier.String{
 																								stringplanmodifier.UseNonNullStateForUnknown(),
 																							},
-																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant",
+																							MarkdownDescription: "Type of the PromQL query, can be Range or Instant Valid values: [\"instant\" \"range\" \"unspecified\"].",
 																						},
 																						"stacked_group_name": schema.StringAttribute{
 																							Optional:            true,
@@ -12510,7 +12523,7 @@ func Schema() schema.Schema {
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("dimension", "metric"),
-																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}}}},
+																										typedArmValidator{Names: []string{"aggregation_type", "field"}, Fields: map[string][]string{"dimension": {"aggregation_type", "field"}, "metric": {"aggregation_type", "field"}}, Values: map[string]map[string][]validator.String{"dimension": {"aggregation_type": {stringvalidator.OneOf("error_count", "unique_count")}, "field": {stringvalidator.OneOf("trace_id")}}, "metric": {"aggregation_type": {stringvalidator.OneOf("avg", "max", "min", "percentile_50", "percentile_95", "percentile_99", "sum")}, "field": {stringvalidator.OneOf("duration")}}}},
 																									},
 																									MarkdownDescription: "Which arm of the oneOf the object holds. One of \"dimension\", \"metric\".",
 																								},
@@ -12568,14 +12581,14 @@ func Schema() schema.Schema {
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																												},
-																												MarkdownDescription: "Span relation type.",
+																												MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																											},
 																											"scope": schema.StringAttribute{
 																												Required: true,
 																												Validators: []validator.String{
 																													stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																												},
-																												MarkdownDescription: "Dataset scope.",
+																												MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																											},
 																										},
 																										MarkdownDescription: "The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters)",
@@ -12659,14 +12672,14 @@ func Schema() schema.Schema {
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																										},
-																										MarkdownDescription: "Span relation type.",
+																										MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																									},
 																									"scope": schema.StringAttribute{
 																										Required: true,
 																										Validators: []validator.String{
 																											stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																										},
-																										MarkdownDescription: "Dataset scope.",
+																										MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																									},
 																								},
 																							},
@@ -12712,14 +12725,14 @@ func Schema() schema.Schema {
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("other", "parent", "root", "unspecified"),
 																									},
-																									MarkdownDescription: "Span relation type.",
+																									MarkdownDescription: "Span relation type. Valid values: [\"other\" \"parent\" \"root\" \"unspecified\"].",
 																								},
 																								"scope": schema.StringAttribute{
 																									Required: true,
 																									Validators: []validator.String{
 																										stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																									},
-																									MarkdownDescription: "Dataset scope.",
+																									MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																								},
 																							},
 																							MarkdownDescription: "Observation field definition by which groups are divided into subgroups",
@@ -12809,9 +12822,9 @@ func Schema() schema.Schema {
 															Optional: true,
 															Computed: true,
 															PlanModifiers: []planmodifier.Bool{
-																serverDefaultModifier{value: types.BoolValue(false)},
+																boolplanmodifier.UseNonNullStateForUnknown(),
 															},
-															MarkdownDescription: "Deprecated: has no effect. The value is stored and returned unchanged; it does not highlight anything.",
+															MarkdownDescription: "Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.",
 														},
 														"id": schema.StringAttribute{
 															Optional: true,
@@ -12820,10 +12833,6 @@ func Schema() schema.Schema {
 																stringplanmodifier.UseNonNullStateForUnknown(),
 															},
 															MarkdownDescription: "Widget unique identifier",
-														},
-														"layout_columns": schema.Int32Attribute{
-															Optional:            true,
-															MarkdownDescription: "Number of columns occupied by the widget in the dashboard layout",
 														},
 														"reference": schema.SingleNestedAttribute{
 															Optional: true,
@@ -12843,12 +12852,11 @@ func Schema() schema.Schema {
 															Optional:            true,
 															MarkdownDescription: "Name of the widget",
 														},
-														"updated_at": schema.StringAttribute{
-															Computed:            true,
-															MarkdownDescription: "Last-updated timestamp.",
-														},
 														"custom_actions": schema.ListNestedAttribute{
 															Optional: true,
+															Validators: []validator.List{
+																listvalidator.SizeAtLeast(1),
+															},
 															NestedObject: schema.NestedAttributeObject{
 																Attributes: map[string]schema.Attribute{
 																	"data_source": schema.StringAttribute{
@@ -12856,7 +12864,7 @@ func Schema() schema.Schema {
 																		Validators: []validator.String{
 																			stringvalidator.OneOf("dataprime", "logs", "metrics", "spans"),
 																		},
-																		MarkdownDescription: "Defines the data source type of the action, if applicable",
+																		MarkdownDescription: "Defines the data source type of the action, if applicable Valid values: [\"dataprime\" \"logs\" \"metrics\" \"spans\"].",
 																	},
 																	"url": schema.StringAttribute{
 																		Required:            true,
@@ -12887,6 +12895,9 @@ func Schema() schema.Schema {
 															MarkdownDescription: "",
 														},
 													},
+													Validators: []validator.Object{
+														oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"definition", "reference"}, Required: true}}},
+													},
 												},
 												MarkdownDescription: "The list of widgets in the row",
 											},
@@ -12905,12 +12916,9 @@ func Schema() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "The display name of the dashboard",
 			},
-			"slug_name": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "A unique slug name serving as an alias for accessing the dashboard",
-			},
 			"variables": schema.ListNestedAttribute{
-				Optional: true,
+				Optional:           true,
+				DeprecationMessage: "Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
@@ -12924,6 +12932,7 @@ func Schema() schema.Schema {
 							Attributes: map[string]schema.Attribute{
 								"constant_value": schema.StringAttribute{
 									Optional:            true,
+									DeprecationMessage:  "`constant_value` is deprecated and rejected by the Coralogix API. Use a `multi_select` variable with a `constant_list` source and a single `selected_values` entry instead, e.g. `multi_select = { source = { constant_list = [\"value\"] }, selected_values = [\"value\"], values_order_direction = \"asc\" }`.",
 									MarkdownDescription: "",
 								},
 								"multi_select": schema.SingleNestedAttribute{
@@ -12941,7 +12950,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("multi", "single"),
 											},
-											MarkdownDescription: "Selection type.",
+											MarkdownDescription: "Selection type. Valid values: [\"multi\" \"single\"].",
 										},
 										"source": schema.SingleNestedAttribute{
 											Optional: true,
@@ -13016,7 +13025,7 @@ func Schema() schema.Schema {
 																							Validators: []validator.String{
 																								stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																							},
-																							MarkdownDescription: "Dataset scope.",
+																							MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																						},
 																					},
 																					MarkdownDescription: "Observation field.",
@@ -13218,7 +13227,7 @@ func Schema() schema.Schema {
 															Validators: []validator.String{
 																stringvalidator.OneOf("on_dashboard_load", "on_time_frame_change", "unspecified"),
 															},
-															MarkdownDescription: "Refresh strategy.",
+															MarkdownDescription: "Refresh strategy. Valid values: [\"on_dashboard_load\" \"on_time_frame_change\" \"unspecified\"].",
 														},
 														"value_display_options": schema.SingleNestedAttribute{
 															Optional: true,
@@ -13263,7 +13272,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("asc", "desc", "unspecified"),
 											},
-											MarkdownDescription: "Order direction.",
+											MarkdownDescription: "Order direction. Valid values: [\"asc\" \"desc\" \"unspecified\"].",
 										},
 									},
 									MarkdownDescription: "A dashboard variable that allows selecting one or more values from a dynamically or statically populated list.",
@@ -13278,13 +13287,6 @@ func Schema() schema.Schema {
 						"display_name": schema.StringAttribute{
 							Required:            true,
 							MarkdownDescription: "The display name.",
-						},
-						"display_type": schema.StringAttribute{
-							Optional: true,
-							Validators: []validator.String{
-								stringvalidator.OneOf("label_value", "nothing", "value"),
-							},
-							MarkdownDescription: "Variable display type.",
 						},
 						"name": schema.StringAttribute{
 							Optional:            true,
@@ -13320,7 +13322,7 @@ func Schema() schema.Schema {
 							Validators: []validator.String{
 								stringvalidator.OneOf("label_value", "nothing", "value"),
 							},
-							MarkdownDescription: "How the variable is rendered in the dashboard header. A concrete value is required — VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED is rejected.",
+							MarkdownDescription: "How the variable is rendered in the dashboard header. A concrete value is required — VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED is rejected. Valid values: [\"label_value\" \"nothing\" \"value\"].",
 						},
 						"id": schema.StringAttribute{
 							Optional: true,
@@ -13374,9 +13376,9 @@ func Schema() schema.Schema {
 																	Computed: true,
 																	Default:  stringdefault.StaticString("high"),
 																	Validators: []validator.String{
-																		stringvalidator.OneOf("archive", "unspecified"),
+																		stringvalidator.OneOf("archive", "high"),
 																	},
-																	MarkdownDescription: "Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
+																	MarkdownDescription: "Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"high\"].",
 																},
 																"query": schema.StringAttribute{
 																	Required:            true,
@@ -13429,7 +13431,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																			},
-																			MarkdownDescription: "Dataset scope.",
+																			MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																		},
 																	},
 																	MarkdownDescription: "Observation field.",
@@ -13597,7 +13599,7 @@ func Schema() schema.Schema {
 																	Validators: []validator.String{
 																		stringvalidator.OneOf("instant", "range"),
 																	},
-																	MarkdownDescription: "Whether to execute the PromQL query as an instant or a range query. Defaults to instant for variable use cases.",
+																	MarkdownDescription: "Whether to execute the PromQL query as an instant or a range query. Defaults to instant for variable use cases. Valid values: [\"instant\" \"range\"].",
 																},
 																"query": schema.StringAttribute{
 																	Required:            true,
@@ -13617,7 +13619,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("on_dashboard_load", "on_time_frame_change"),
 											},
-											MarkdownDescription: "Refresh strategy.",
+											MarkdownDescription: "Refresh strategy. Valid values: [\"on_dashboard_load\" \"on_time_frame_change\"].",
 										},
 										"spans_query": schema.SingleNestedAttribute{
 											Optional: true,
@@ -13657,7 +13659,7 @@ func Schema() schema.Schema {
 																			Validators: []validator.String{
 																				stringvalidator.OneOf("label", "metadata", "unspecified", "user_data"),
 																			},
-																			MarkdownDescription: "Dataset scope.",
+																			MarkdownDescription: "Dataset scope. Valid values: [\"label\" \"metadata\" \"unspecified\" \"user_data\"].",
 																		},
 																	},
 																	MarkdownDescription: "The span observation field to fetch values for. Preferred over value. Setting both observationField and value is rejected.",
@@ -13710,7 +13712,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("asc", "desc", "none"),
 											},
-											MarkdownDescription: "Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected.",
+											MarkdownDescription: "Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected. Valid values: [\"asc\" \"desc\" \"none\"].",
 										},
 									},
 									MarkdownDescription: "Variable source backed by a query against logs, metrics, spans, or Dataprime data. Exactly one of logsQuery, metricsQuery, spansQuery, or dataprimeQuery must be set — the service rejects an object with no query arm (this exactly-one rule is enforced by the API, not by the OpenAPI oneOf schema). valuesOrderDirection is required and must be a concrete value — ORDER_DIRECTION_UNSPECIFIED is rejected. PromQL (metricsQuery.type.promqlQuery) and Dataprime (dataprimeQuery.type.queryText) query text is syntax-checked only by POST /dashboards/check/v1 — create and replace accept it without compiling.",
@@ -13766,7 +13768,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("asc", "desc", "none"),
 											},
-											MarkdownDescription: "Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected.",
+											MarkdownDescription: "Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected. Valid values: [\"asc\" \"desc\" \"none\"].",
 										},
 									},
 									MarkdownDescription: "Static source — a fixed list of values defined directly on the variable. valuesOrderDirection is required and must be a concrete value — ORDER_DIRECTION_UNSPECIFIED is rejected.",
@@ -13798,9 +13800,9 @@ func Schema() schema.Schema {
 															Computed: true,
 															Default:  stringdefault.StaticString("high"),
 															Validators: []validator.String{
-																stringvalidator.OneOf("archive", "unspecified"),
+																stringvalidator.OneOf("archive", "high"),
 															},
-															MarkdownDescription: "Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data.",
+															MarkdownDescription: "Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"high\"].",
 														},
 														"value": schema.StringAttribute{
 															Required:            true,
@@ -13853,10 +13855,12 @@ func Schema() schema.Schema {
 												},
 												"single_numeric": schema.Float32Attribute{
 													Optional:            true,
+													DeprecationMessage:  "Deprecated: the Coralogix UI no longer writes this default. Use `default_string_value` or `default_numeric_value` instead.",
 													MarkdownDescription: "Deprecated. Default numeric value for the textbox variable.",
 												},
 												"single_string": schema.StringAttribute{
 													Optional:            true,
+													DeprecationMessage:  "Deprecated: the Coralogix UI no longer writes this default. Use `default_string_value` or `default_numeric_value` instead.",
 													MarkdownDescription: "Deprecated. Default string value for the textbox variable.",
 												},
 											},
@@ -14016,48 +14020,13 @@ func Schema() schema.Schema {
 				MarkdownDescription: "An option to set the dashboard content from a json file. It excludes every other attribute of the dashboard, except `folder`, `auto_refresh`, and `access_policy`.",
 			},
 		},
+		MarkdownDescription: "Coralogix Custom Dashboard. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/introduction/.",
 	}
 }
 
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
-}
-
-// serverDefaultModifier distinguishes removal from a steady server default.
-// It never inserts the default into configuration or an API request. When a
-// user removes a different value, it makes the plan unknown. Update then sends
-// the field in the update mask without a body value, and the API resets it.
-type serverDefaultModifier struct{ value attr.Value }
-
-func (m serverDefaultModifier) Description(context.Context) string {
-	return "Resets a removed value to the server default."
-}
-
-func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
-	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
-		return false, false
-	}
-	if state.Equal(declared) {
-		return false, true
-	}
-	return true, false
-}
-
-func (m serverDefaultModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
-	if req.Plan.Raw.IsNull() {
-		return
-	}
-	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
-	if unknown {
-		resp.PlanValue = types.BoolUnknown()
-	} else if preserve {
-		resp.PlanValue = req.StateValue
-	}
 }
 
 // typedInferArm is an arm of a typedArms object whose type can be left out, with the fields that it has.
@@ -14261,6 +14230,23 @@ func (v typedArmValidator) ValidateString(ctx context.Context, req validator.Str
 			resp.Diagnostics.Append(out.Diagnostics...)
 		}
 	}
+}
+
+// unsupportedBoolValidator rejects a bool that the configuration sets, with its message: the API never
+// accepts the attribute at this place.
+type unsupportedBoolValidator struct{ Message string }
+
+func (v unsupportedBoolValidator) Description(context.Context) string { return v.Message }
+
+func (v unsupportedBoolValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v unsupportedBoolValidator) ValidateBool(_ context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Unsupported Attribute Combination", v.Message)
 }
 
 // oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its

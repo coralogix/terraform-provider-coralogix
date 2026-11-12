@@ -33,9 +33,9 @@ var updateFields = []struct {
 	{attr: "folder", serverDefault: false},
 	{attr: "layout", serverDefault: false},
 	{attr: "name", serverDefault: false},
-	{attr: "slug_name", serverDefault: false},
 	{attr: "variables", serverDefault: false},
 	{attr: "variables_v2", serverDefault: false},
+	{attr: "access_policy", serverDefault: false},
 	{attr: "content_json", serverDefault: false},
 }
 

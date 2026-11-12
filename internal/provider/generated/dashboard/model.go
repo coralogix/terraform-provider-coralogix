@@ -18,7 +18,6 @@ type DashboardModel struct {
 	Id           types.String             `tfsdk:"id"`
 	Layout       *LayoutModel             `tfsdk:"layout"`
 	Name         types.String             `tfsdk:"name"`
-	SlugName     types.String             `tfsdk:"slug_name"`
 	Variables    types.List               `tfsdk:"variables"`
 	VariablesV2  types.List               `tfsdk:"variables_v2"`
 	AccessPolicy types.String             `tfsdk:"access_policy"`
@@ -936,19 +935,26 @@ type StatVisualElementModel struct {
 	TemplateVariables types.List             `tfsdk:"template_variables"`
 }
 
+type StatVisualElementAtStatCardPrimaryValueModel struct {
+	MappedValues      types.Bool             `tfsdk:"mapped_values"`
+	ObservationField  *ObservationFieldModel `tfsdk:"observation_field"`
+	TemplateText      types.String           `tfsdk:"template_text"`
+	TemplateVariables types.List             `tfsdk:"template_variables"`
+}
+
 type StatCardModel struct {
-	AllowAbbreviation types.Bool              `tfsdk:"allow_abbreviation"`
-	CategoryFields    types.List              `tfsdk:"category_fields"`
-	ColorLabelMapping *ColorLabelMappingModel `tfsdk:"color_label_mapping"`
-	CustomUnit        types.String            `tfsdk:"custom_unit"`
-	DecimalPrecision  types.Int64             `tfsdk:"decimal_precision"`
-	Label             *StatVisualElementModel `tfsdk:"label"`
-	Legend            *LegendModel            `tfsdk:"legend"`
-	LegendBy          types.String            `tfsdk:"legend_by"`
-	PrimaryValue      *StatVisualElementModel `tfsdk:"primary_value"`
-	Title             *StatVisualElementModel `tfsdk:"title"`
-	Unit              types.String            `tfsdk:"unit"`
-	ValueFields       types.List              `tfsdk:"value_fields"`
+	AllowAbbreviation types.Bool                                    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List                                    `tfsdk:"category_fields"`
+	ColorLabelMapping *ColorLabelMappingModel                       `tfsdk:"color_label_mapping"`
+	CustomUnit        types.String                                  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                                   `tfsdk:"decimal_precision"`
+	Label             *StatVisualElementModel                       `tfsdk:"label"`
+	Legend            *LegendModel                                  `tfsdk:"legend"`
+	LegendBy          types.String                                  `tfsdk:"legend_by"`
+	PrimaryValue      *StatVisualElementAtStatCardPrimaryValueModel `tfsdk:"primary_value"`
+	Title             *StatVisualElementModel                       `tfsdk:"title"`
+	Unit              types.String                                  `tfsdk:"unit"`
+	ValueFields       types.List                                    `tfsdk:"value_fields"`
 }
 
 type ObservationFieldAtTableColumnFieldModel struct {
@@ -1624,15 +1630,12 @@ type DashboardActionModel struct {
 
 type WidgetModel struct {
 	Width         types.Int64            `tfsdk:"width"`
-	CreatedAt     types.String           `tfsdk:"created_at"`
 	Definition    *WidgetDefinitionModel `tfsdk:"definition"`
 	Description   types.String           `tfsdk:"description"`
 	Highlighted   types.Bool             `tfsdk:"highlighted"`
 	Id            types.String           `tfsdk:"id"`
-	LayoutColumns types.Int32            `tfsdk:"layout_columns"`
 	Reference     *WidgetReferenceModel  `tfsdk:"reference"`
 	Title         types.String           `tfsdk:"title"`
-	UpdatedAt     types.String           `tfsdk:"updated_at"`
 	CustomActions types.List             `tfsdk:"custom_actions"`
 }
 
@@ -1773,7 +1776,6 @@ type VariableModel struct {
 	Definition  *VariableDefinitionModel `tfsdk:"definition"`
 	Description types.String             `tfsdk:"description"`
 	DisplayName types.String             `tfsdk:"display_name"`
-	DisplayType types.String             `tfsdk:"display_type"`
 	Name        types.String             `tfsdk:"name"`
 }
 
