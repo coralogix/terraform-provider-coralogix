@@ -1,0 +1,176 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "made with Terraform",
+      "name": "unread",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "unread",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "unread",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "unread",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: Get after Update answers 500",
+    "config": {
+      "description": "made with Terraform",
+      "name": "unread-renamed",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "unread-renamed",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "unread-renamed",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error refreshing updated coralogix_custom_role. State was not updated | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "unread",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    }
+  },
+  {
+    "step": "apply again: Get answers",
+    "config": {
+      "description": "made with Terraform",
+      "name": "unread-renamed",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "unread-renamed",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "unread-renamed",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "unread-renamed",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "unread-renamed",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  }
+]

@@ -1,0 +1,134 @@
+[
+  {
+    "step": "create with two permissions",
+    "config": {
+      "description": "made with Terraform",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "outside",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig",
+            "spans.events2metrics:ReadConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the API has fewer permissions",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "drift": [
+      "AttributeName(\"permissions\")",
+      "AttributeName(\"permissions\").ElementKeyValue(tftypes.String<\"spans.events2metrics:ReadConfig\">)"
+    ]
+  },
+  {
+    "step": "apply the configuration again",
+    "config": {
+      "description": "made with Terraform",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "outside",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:UpdateConfig",
+              "spans.events2metrics:ReadConfig"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "outside",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "replanEmpty": true
+  }
+]
