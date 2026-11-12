@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -277,5 +278,48 @@ func TestSweepMakesCopiesOfTheResource(t *testing.T) {
 	}
 	if len(singleton) < 3 {
 		t.Fatalf("got %d steps for a singleton, want a step for what a copy cannot hold together", len(singleton))
+	}
+}
+
+// A step holds a limited number of extra elements in all of its lists. An element that the limit
+// drops must not count as set: a later step or copy sets its value. Else a value is on the checklist
+// and in no config. The lists of sections and of widgets in them add up to more than the limit.
+func TestSweepSetsTheValuesOfADroppedElementLater(t *testing.T) {
+	var options []enumOption
+	for i := 1; i <= 100; i++ {
+		options = append(options, enumOption{API: fmt.Sprintf("MODE_%d", i), TF: fmt.Sprintf("v%d", i)})
+	}
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "sections", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+			{Name: "title", Kind: "String", Required: true},
+			{Name: "widgets", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+				{Name: "title", Kind: "String", Required: true},
+				{Name: "mode", Kind: "String", Optional: true, EnumSchema: "Mode", EnumChoices: options},
+			}},
+		}},
+	}}
+	s := testSynth(t, "")
+	s.cov = map[string]bool{}
+	full, _, err := s.attrs(res.Attributes, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps, err := s.sweepSteps(res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := full
+	for _, step := range steps {
+		all += "\n" + step.Config
+	}
+	var missing []string
+	for _, option := range options {
+		if !strings.Contains(all, `mode = "`+option.TF+`"`) {
+			missing = append(missing, option.TF)
+		}
+	}
+	if len(missing) != 0 {
+		t.Errorf("no config sets %d modes, and the sweep took them as set: %v", len(missing), missing)
 	}
 }

@@ -340,6 +340,7 @@ func (s *accSynth) sweepElements(a *tfAttr, tfPath, key string, mode accMode) (s
 	for n := 0; n < limit; n++ {
 		s.element = n
 		before := len(s.cov)
+		snapshot, extra := maps.Clone(s.cov), s.extra
 		path := tfPath + "." + strconv.Itoa(n)
 		if a.Kind == "SetNested" {
 			path = tfPath + ".*" // the position of a set element is not known: no element checks
@@ -349,7 +350,11 @@ func (s *accSynth) sweepElements(a *tfAttr, tfPath, key string, mode accMode) (s
 			return "", nil, err
 		}
 		if n > 0 && (len(s.cov) == before || s.extra >= maxStepElements) {
-			break // this element sets nothing new, or the step has enough elements
+			// This element sets nothing new, or the step has enough elements. Its HCL is dropped, so
+			// what it marked as set (also in the lists below it) goes back: a later step sets it.
+			restoreCoverage(s.cov, snapshot)
+			s.extra = extra
+			break
 		}
 		if n > 0 {
 			s.extra++
@@ -361,6 +366,15 @@ func (s *accSynth) sweepElements(a *tfAttr, tfPath, key string, mode accMode) (s
 	}
 	checks = append([]accCheck{{Path: tfPath + ".#", Value: strconv.Itoa(len(elements))}}, checks...)
 	return "[\n" + strings.Join(elements, "\n") + "\n]", checks, nil
+}
+
+// restoreCoverage takes from cov what it holds and the snapshot does not.
+func restoreCoverage(cov, snapshot map[string]bool) {
+	for key := range cov {
+		if !snapshot[key] {
+			delete(cov, key)
+		}
+	}
 }
 
 // sizeCap returns the most elements that the size validators of a collection allow.
