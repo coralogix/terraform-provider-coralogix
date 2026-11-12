@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -277,7 +278,7 @@ func flattenMethodThing(ctx context.Context, p path.Path, v *method_things_servi
 	if prior != nil {
 		priorElements = prior.Permissions.Elements()
 	}
-	out.Permissions = flattenStringsSet(ctx, keepPriorElementCase(priorElements, v.Permissions), diags)
+	out.Permissions = flattenStringsSet(ctx, keepPriorElementCase(priorElements, v.Permissions, false), diags)
 	return out
 }
 
@@ -449,25 +450,37 @@ func flattenTime(v *time.Time) types.String {
 
 // keepPriorElementCase returns the API elements, each in the spelling of the prior element that
 // differs from it only in case. An element without a prior twin keeps the API spelling. A prior
-// element serves one API element: an exact match first, then the first unused twin, so that two
-// elements that differ only in case keep their own spellings.
-func keepPriorElementCase(prior []attr.Value, api []string) []string {
+// element serves one API element. In a list (ordered), the prior element at the same index serves
+// the API element at that index when the two match in any case, so twins that differ only in case
+// keep their spellings at their places. Then, in a list or a set, an exact match goes first, and
+// then the first unused twin, so that elements that differ only in case keep their own spellings.
+func keepPriorElementCase(prior []attr.Value, api []string, ordered bool) []string {
 	if api == nil {
 		return nil
 	}
-	var spellings []string
-	for _, element := range prior {
+	spellings := make([]string, len(prior))
+	known := make([]bool, len(prior))
+	for j, element := range prior {
 		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
-			spellings = append(spellings, s.ValueString())
+			spellings[j], known[j] = s.ValueString(), true
 		}
 	}
-	used := make([]bool, len(spellings))
-	out := make([]string, len(api))
+	used := make([]bool, len(prior))
+	out := slices.Clone(api)
 	done := make([]bool, len(api))
+	if ordered {
+		for i, element := range api {
+			if i < len(prior) && known[i] && strings.EqualFold(spellings[i], element) {
+				out[i], used[i], done[i] = spellings[i], true, true
+			}
+		}
+	}
 	for i, element := range api {
-		out[i] = element
+		if done[i] {
+			continue
+		}
 		for j, spelled := range spellings {
-			if !used[j] && spelled == element {
+			if known[j] && !used[j] && spelled == element {
 				used[j], done[i] = true, true
 				break
 			}
@@ -478,7 +491,7 @@ func keepPriorElementCase(prior []attr.Value, api []string) []string {
 			continue
 		}
 		for j, spelled := range spellings {
-			if !used[j] && strings.EqualFold(spelled, element) {
+			if known[j] && !used[j] && strings.EqualFold(spelled, element) {
 				used[j], out[i] = true, spelled
 				break
 			}
