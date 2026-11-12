@@ -24,6 +24,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -32,11 +33,14 @@ const (
 	ipAccessGeneratedLiveAck         = "IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION"
 	ipAccessGeneratedLiveAckValue    = "I_UNDERSTAND_THIS_USES_A_DISPOSABLE_TEAM"
 	ipAccessGeneratedResourceAddress = "coralogix_ip_access.generated_live"
+	ipAccessReleasedProviderSource   = "registry.terraform.io/coralogix/coralogix"
+	ipAccessReleasedProviderVersion  = "= 3.25.0"
 )
 
-// TestIpAccessGeneratedLiveAcceptance exercises the generated resource against EU2. It is
-// opt-in and only runs after confirming that the disposable team has no IP rules and that
-// customer-support access is disabled. It creates only disabled documentation ranges.
+// TestIpAccessGeneratedLiveAcceptance creates the resource with released provider 3.25.0, checks
+// that the generated provider plans no change, then exercises generated update, import, data-source
+// reads, and cleanup against EU2. It is opt-in and requires an empty disposable team with support
+// access disabled; it creates only disabled documentation ranges.
 func TestIpAccessGeneratedLiveAcceptance(t *testing.T) {
 	if os.Getenv(ipAccessGeneratedLiveOptIn) != "1" {
 		t.Skipf("set %s=1 to run against the disposable EU2 team", ipAccessGeneratedLiveOptIn)
@@ -50,6 +54,9 @@ func TestIpAccessGeneratedLiveAcceptance(t *testing.T) {
 	}
 	if !strings.EqualFold(os.Getenv("CORALOGIX_ENV"), "EU2") {
 		t.Fatal("CORALOGIX_ENV must be EU2 for the generated live acceptance test")
+	}
+	if os.Getenv("TF_ACC_PROVIDER_NAMESPACE") != "coralogix" {
+		t.Fatal("TF_ACC_PROVIDER_NAMESPACE must be coralogix for the released-provider upgrade step")
 	}
 	base, ok := cxsdk.URLFromRegion("eu2")
 	if !ok {
@@ -88,6 +95,30 @@ data "coralogix_ip_access" "without_id" {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             checkIpAccessGeneratedLiveDestroy(base, apiKey),
 		Steps: []resource.TestStep{
+			{
+				Config: resourceConfig(firstRange, false),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"coralogix": {Source: ipAccessReleasedProviderSource, VersionConstraint: ipAccessReleasedProviderVersion},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(ipAccessGeneratedResourceAddress, "id"),
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.#", "1"),
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.0.ip_range", firstRange),
+				),
+			},
+			{
+				Config:                   resourceConfig(firstRange, false),
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(ipAccessGeneratedResourceAddress, plancheck.ResourceActionNoop)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(ipAccessGeneratedResourceAddress, "id"),
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.#", "1"),
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.0.ip_range", firstRange),
+				),
+			},
 			{
 				Config: resourceConfig(firstRange, false),
 				Check: resource.ComposeAggregateTestCheckFunc(
