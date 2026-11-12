@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading Dashboard | dashboard response did not include dashboard"
+      "error: Missing resource | The API response has no Dashboard."
     ],
     "state": {
       "access_policy": null,

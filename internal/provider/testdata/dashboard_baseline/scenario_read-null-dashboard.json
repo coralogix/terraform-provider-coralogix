@@ -193,7 +193,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading Dashboard | dashboard response did not include dashboard"
+      "error: Missing resource | The API response has no Dashboard."
     ],
     "state": {
       "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",

@@ -25,6 +25,14 @@ const (
 	TYPEDMODE_MODE_EXACT       TypedMode = "MODE_EXACT"
 )
 
+type TypedRounding string
+
+const (
+	TYPEDROUNDING_ROUNDING_UNSPECIFIED TypedRounding = "ROUNDING_UNSPECIFIED"
+	TYPEDROUNDING_ROUNDING_UP          TypedRounding = "ROUNDING_UP"
+	TYPEDROUNDING_ROUNDING_DOWN        TypedRounding = "ROUNDING_DOWN"
+)
+
 // Mode is an enum here and free text in TypedPercentile: the two arms share the attribute.
 type TypedAverage struct {
 	Field  *string
@@ -32,6 +40,8 @@ type TypedAverage struct {
 	Weight *float64
 	// AverageUnit and PercentileUnit are one attribute, unit.
 	AverageUnit *string
+	// Rounding is a second enum in the same arm as Mode: both are checked when the type is avg.
+	Rounding *TypedRounding
 }
 
 type TypedPercentile struct {
@@ -41,6 +51,8 @@ type TypedPercentile struct {
 	Percent        *float64
 	Bucket         *TypedBucket
 	PercentileUnit *string
+	// Rounding is free text here and an enum in TypedAverage: two shared fields with checks in one arm.
+	Rounding *string
 }
 
 // A oneOf: one arm is set. Count is an arm with no fields.

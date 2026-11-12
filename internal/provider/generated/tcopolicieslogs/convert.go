@@ -502,8 +502,8 @@ func flattenUsageTier(ctx context.Context, p path.Path, v *policies_service.Usag
 	}
 	out := &UsageTierModel{}
 	out.DailyQuotaPercentage = types.Float64PointerValue(v.DailyQuotaPercentage)
-	if api := v.Priority; api != nil && *api == "PRIORITY_TYPE_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := v.Priority; api != nil && (*api == "PRIORITY_TYPE_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.Priority = types.StringNull()
 	} else {
 		out.Priority = flattenEnumMapped(p.AtName("priority"), api, quotaV1PriorityFromAPI, diags)
@@ -550,8 +550,8 @@ func flattenV1Target(ctx context.Context, p path.Path, v *policies_service.V1Tar
 	}
 	out.Dataset = types.StringPointerValue(v.Dataset)
 	out.Dataspace = types.StringPointerValue(v.Dataspace)
-	if api := v.Priority; api != nil && *api == "PRIORITY_TYPE_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := v.Priority; api != nil && (*api == "PRIORITY_TYPE_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.Priority = types.StringNull()
 	} else {
 		out.Priority = flattenEnumMapped(p.AtName("priority"), api, quotaV1PriorityFromAPI, diags)
@@ -630,8 +630,8 @@ func flattenPolicy(ctx context.Context, p path.Path, v *policies_service.Policy,
 	}
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Order = types.Int64PointerValue(int32AsInt64(&v.Order))
-	if api := &v.Priority; api != nil && *api == "PRIORITY_TYPE_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := &v.Priority; api != nil && (*api == "PRIORITY_TYPE_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.Priority = types.StringNull()
 	} else {
 		out.Priority = flattenEnumMapped(p.AtName("priority"), api, quotaV1PriorityFromAPI, diags)

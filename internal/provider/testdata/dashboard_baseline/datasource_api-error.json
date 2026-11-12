@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading Dashboard | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}\noperation - Get"
+      "error: Unable to read coralogix_dashboard | id fakeboard000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}"
     ],
     "state": {
       "access_policy": null,

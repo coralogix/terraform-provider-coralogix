@@ -113,6 +113,7 @@
                               }
                             }
                           },
+                          "scaleType": "SCALE_TYPE_LINEAR",
                           "sortBy": "SORT_BY_TYPE_NAME",
                           "stackDefinition": {
                             "maxSlicesPerBar": 1,
@@ -178,6 +179,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -257,7 +259,7 @@
                           "metrics": null,
                           "spans": null
                         },
-                        "scale_type": "unspecified",
+                        "scale_type": "linear",
                         "sort_by": "name",
                         "stack_definition": {
                           "max_slices_per_bar": 1,
@@ -419,6 +421,7 @@
                               }
                             }
                           },
+                          "scaleType": "SCALE_TYPE_LINEAR",
                           "sortBy": "SORT_BY_TYPE_NAME",
                           "stackDefinition": {
                             "maxSlicesPerBar": 1,
@@ -484,6 +487,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -563,7 +567,7 @@
                           "metrics": null,
                           "spans": null
                         },
-                        "scale_type": "unspecified",
+                        "scale_type": "linear",
                         "sort_by": "name",
                         "stack_definition": {
                           "max_slices_per_bar": 1,
@@ -612,11 +616,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (36)",
@@ -671,14 +671,14 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.decimalPrecision",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.groupNameTemplate",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.hashColors",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.maxBarsPerChart",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.filters[0].field",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.groupNames[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.groupNames",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.luceneQuery",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.stackedGroupName",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.scaleType: \"SCALE_TYPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.scaleType: \"SCALE_TYPE_LINEAR\" → \"SCALE_TYPE_UNSPECIFIED\"",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.sortBy: \"SORT_BY_TYPE_NAME\" → \"SORT_BY_TYPE_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.stackDefinition.maxSlicesPerBar",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.stackDefinition.stackNameTemplate",
@@ -705,6 +705,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names: [\"value-group_names\"] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.lucene_query: \"value-lucene_query\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.stacked_group_name: \"value-stacked_group_name\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type: \"linear\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.sort_by: \"name\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.stack_definition.max_slices_per_bar: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.stack_definition.stack_name_template: \"value-stack_name_template\" → null",
@@ -723,7 +724,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:c536fcc3] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:b476605f] → null"
     ],
     "replanEmpty": true
   },
@@ -740,7 +741,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:19561558] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:bf22d08f] → null"
     ],
     "replanEmpty": true
   },
@@ -751,7 +752,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:7905672d] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:c9dfec2f] → null"
     ],
     "replanEmpty": true
   },
@@ -775,20 +776,13 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.xAxis"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query: {\"data_prime\":null,\"logs\":{\"aggregation\":{\"field\":null,\"observation_field\":null,\"percent\":null,\"type\":\"count\"},\"filters\":[{\"field\":\"value-field\",\"observation_fi…[sha256:12a5206b] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.stack_definition: {\"max_slices_per_bar\":1,\"stack_name_template\":\"value-stack_name_template\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis: {\"time\":{\"buckets_presented\":1,\"interval\":\"1m0s\"},\"time_buckets\":null,\"value\":null} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects, round 5 (4)",
@@ -814,14 +808,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.stacked_group_name_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.filters[].observation_field",
@@ -835,32 +822,18 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:c536fcc3] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -953,24 +926,13 @@
     ],
     "requestDiff": [
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.groupNames[0]",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.groupNamesFields"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.groupNamesFields[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names: [\"value-group_names\"] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names[0]",
+      "- .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names_fields[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names",
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.group_names_fields",
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_names\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_names_fields\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (9)",
@@ -1011,14 +973,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.unit: \"bytes\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.x_axis_time_format: \"auto\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (9)",
@@ -1034,8 +989,7 @@
       "set layout.sections[].rows[].widgets[].definition.bar_chart.unit = usd_cents"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"xaxis\").AttributeName(\"time\")] | The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration u",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1049,8 +1003,7 @@
       "set layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.aggregation.type = percentile"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"xaxis\").AttributeName(\"time\")] | The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration u",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1073,14 +1026,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.color_scheme: \"classic\" → \"blue\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (2)",
@@ -1089,8 +1035,7 @@
       "set layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.aggregation.type = percentile"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"xaxis\").AttributeName(\"time\")] | The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration u",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1108,20 +1053,12 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.colors_by: \"stack\" → \"category\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.aggregation.type = percentile",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observ",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"xaxis\").AttributeName(\"time\")] | The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration u",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1153,14 +1090,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.sort_by: \"name\" → \"value\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.unit: \"bytes\" → \"usd_cents\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
@@ -1221,14 +1151,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time: {\"buckets_presented\":1,\"interval\":\"1m0s\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets: null → {\"auto\":{\"maximum_data_points\":1,\"minimum_interval\":\"900s\"},\"manual\":null,\"use_advanced_limit\":true}"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (4)",
@@ -1239,87 +1162,41 @@
       "remove layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.use_advanced_limit"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "remove optional values (2)",
-    "changes": [
-      "remove layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.filters[].operator.selected_values",
-      "remove layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.auto.maximum_data_points"
-    ],
-    "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "remove layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.filters[].operator.selected_values",
-    "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "remove layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.auto.maximum_data_points",
-    "diagnostics": [
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.xAxis.timeBuckets.auto.maximumDataPoints"
-    ],
-    "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets.auto.maximum_data_points: 1 → null"
-    ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
-  },
-  {
-    "step": "remove optional values (2)",
-    "changes": [
-      "remove layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.auto.minimum_interval",
-      "remove layout.sections[].rows[].widgets[].definition.bar_chart.xaxis.time_buckets.use_advanced_limit"
-    ],
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ],
-    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.filters[0].operator.notEquals.selection.list.values[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.xAxis.timeBuckets.auto.maximumDataPoints",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.xAxis.timeBuckets.auto.minimumInterval",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.xAxis.timeBuckets.useAdvancedLimit"
     ],
     "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.filters[0].operator.selected_values[0]",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets.auto.maximum_data_points: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets.auto.minimum_interval: \"900s\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets.use_advanced_limit: true → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.aggregation.observation_field",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"count_distinct\", exactly one of field, ob",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.aggregation.observation_field.scope = unspecified",
@@ -1332,14 +1209,7 @@
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.aggregation.observation_field.scope: \"metadata\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (2)",
@@ -1358,14 +1228,7 @@
       "~ .layout.sections[0].options.color: \"green\" → \"orange\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.logs.aggregation.observation_field.scope: \"metadata\" → \"user_data\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 2",
@@ -1407,19 +1270,12 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time: {\"buckets_presented\":1,\"interval\":\"1m0s\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.value: null → {}"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.bar_chart.query.logs.aggregation.field",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `sum`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"sum\", exactly one of field, observation_f",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -1471,14 +1327,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.unit: \"bytes\" → \"datetime_iso\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.x_axis_time_format: \"auto\" → \"hh_mm\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 4",
@@ -1516,14 +1365,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time: {\"buckets_presented\":1,\"interval\":\"1m0s\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets: null → {\"auto\":null,\"manual\":{\"interval\":\"900s\",\"maximum_data_points\":1,\"minimum_interval\":\"900s\"},\"use_advanced_limit\":true}"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (2)",
@@ -1542,13 +1384,6 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets.manual.maximum_data_points: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.xaxis.time_buckets.manual.minimum_interval: \"900s\" → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.bar_chart.scale_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"bar_chart\").AttributeName(\"scale_type\")"
-    ]
+    "replanEmpty": true
   }
 ]

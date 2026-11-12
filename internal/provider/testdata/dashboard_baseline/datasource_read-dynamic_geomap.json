@@ -43,6 +43,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -97,6 +98,7 @@
                               "size": null
                             },
                             "config": {
+                              "all_region_config": null,
                               "aws_region_config": {
                                 "aws_region_field": {
                                   "keypath": [
@@ -105,7 +107,8 @@
                                   "scope": "label"
                                 }
                               },
-                              "coordinate_config": null
+                              "coordinate_config": null,
+                              "ibm_region_config": null
                             },
                             "custom_unit": "value-custom_unit",
                             "decimal_precision": 1,

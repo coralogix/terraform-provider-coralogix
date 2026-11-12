@@ -23,6 +23,7 @@ type TypedAverageModel struct {
 	Mode        types.String  `tfsdk:"mode"`
 	Weight      types.Float64 `tfsdk:"weight"`
 	AverageUnit types.String  `tfsdk:"unit"`
+	Rounding    types.String  `tfsdk:"rounding"`
 }
 
 type TypedBucketModel struct {
@@ -35,6 +36,7 @@ type TypedPercentileModel struct {
 	Weight         types.Float64     `tfsdk:"weight"`
 	Percent        types.Float64     `tfsdk:"percent"`
 	PercentileUnit types.String      `tfsdk:"unit"`
+	Rounding       types.String      `tfsdk:"rounding"`
 	Bucket         *TypedBucketModel `tfsdk:"bucket"`
 }
 
@@ -44,6 +46,7 @@ type TypedAggregationModel struct {
 	Mode        types.String      `tfsdk:"mode"`
 	Weight      types.Float64     `tfsdk:"weight"`
 	AverageUnit types.String      `tfsdk:"unit"`
+	Rounding    types.String      `tfsdk:"rounding"`
 	Percent     types.Float64     `tfsdk:"percent"`
 	Bucket      *TypedBucketModel `tfsdk:"bucket"`
 }

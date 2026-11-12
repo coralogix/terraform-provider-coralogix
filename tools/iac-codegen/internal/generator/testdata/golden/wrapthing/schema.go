@@ -4,12 +4,14 @@
 package wrapthing
 
 import (
+	"context"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -18,6 +20,7 @@ import (
 // Schema is the Terraform schema of the resource.
 func Schema() schema.Schema {
 	return schema.Schema{
+		Version: 2,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -96,6 +99,14 @@ func Schema() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "",
 			},
+			"span": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
+			"step": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
 			"extra_label": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
@@ -120,6 +131,29 @@ func Schema() schema.Schema {
 						},
 						"title": schema.StringAttribute{
 							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"legacy": schema.BoolAttribute{
+							Optional: true,
+							Validators: []validator.Bool{
+								unsupportedBoolValidator{Message: "A panel cannot use legacy."},
+							},
+							MarkdownDescription: "",
+						},
+						"level": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
+							MarkdownDescription: "",
+						},
+						"size": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "",
 						},
 						"panel_notes": schema.ListNestedAttribute{
@@ -152,6 +186,12 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "The notes of this panel.",
 						},
+						"remark": schema.StringAttribute{
+							Optional:            true,
+							Computed:            true,
+							Default:             stringdefault.StaticString("none"),
+							MarkdownDescription: "A remark that only Terraform keeps.",
+						},
 					},
 				},
 				MarkdownDescription: "",
@@ -159,6 +199,52 @@ func Schema() schema.Schema {
 			"folder_path": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "",
+			},
+			"marks": schema.SetNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"label": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"ratio": schema.NumberAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"link": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"title": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								siblingDefaultModifier{Sibling: "label"},
+							},
+							MarkdownDescription: "",
+						},
+						"created_at": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "",
+						},
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"home": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+					"path": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "Where the thing lives, by id or by path.",
 			},
 			"offset": schema.Int64Attribute{
 				Optional:            true,
@@ -171,4 +257,53 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// unsupportedBoolValidator rejects a bool that the configuration sets, with its message: the API never
+// accepts the attribute at this place.
+type unsupportedBoolValidator struct{ Message string }
+
+func (v unsupportedBoolValidator) Description(context.Context) string { return v.Message }
+
+func (v unsupportedBoolValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v unsupportedBoolValidator) ValidateBool(_ context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Unsupported Attribute Combination", v.Message)
+}
+
+// siblingDefaultModifier plans the value of a sibling attribute for a computed string that the
+// configuration leaves out. It does not keep the state value: a value that follows its sibling changes
+// with it.
+type siblingDefaultModifier struct {
+	Sibling string
+}
+
+func (m siblingDefaultModifier) Description(context.Context) string {
+	return "When this is omitted, it is the value of " + m.Sibling + "."
+}
+
+func (m siblingDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m siblingDefaultModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsUnknown() || !req.ConfigValue.IsNull() {
+		return
+	}
+	var sibling types.String
+	if diags := req.Plan.GetAttribute(ctx, req.Path.ParentPath().AtName(m.Sibling), &sibling); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	switch {
+	case sibling.IsUnknown():
+		resp.PlanValue = types.StringUnknown()
+	case !sibling.IsNull():
+		resp.PlanValue = sibling
+	}
 }

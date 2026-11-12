@@ -164,6 +164,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -221,7 +222,7 @@
                                   }
                                 ],
                                 "promql_query": "value-promql_query",
-                                "promql_query_type": "unspecified",
+                                "promql_query_type": "value-promql_query_type",
                                 "series_limit_type": "by_point_count",
                                 "time_frame": {
                                   "absolute": {
@@ -441,6 +442,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -498,7 +500,7 @@
                                   }
                                 ],
                                 "promql_query": "value-promql_query",
-                                "promql_query_type": "unspecified",
+                                "promql_query_type": "value-promql_query_type",
                                 "series_limit_type": "by_point_count",
                                 "time_frame": {
                                   "absolute": {
@@ -554,11 +556,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"promql_query_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (40)",
@@ -607,7 +605,7 @@
     "requestDiff": [
       "- .dashboard.actions[0].shouldOpenInNewWindow",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.connectNulls",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].colorScheme",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].customUnit",
@@ -648,6 +646,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution.use_advanced_limit: true → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].name: \"value-name\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.metrics.filters[0].label: \"value-label\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.metrics.promql_query_type: \"value-promql_query_type\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].scale_type: \"linear\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].series_count_limit: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].series_name_template: \"value-series_name_template\" → null",
@@ -676,7 +675,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:792070ef] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:328b9eb7] → null"
     ],
     "replanEmpty": true
   },
@@ -693,7 +692,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:00458ccc] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:88aebd32] → null"
     ],
     "replanEmpty": true
   },
@@ -704,7 +703,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:c31fa49a] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:3c2d0a36] → null"
     ],
     "replanEmpty": true
   },
@@ -732,7 +731,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.tooltip"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution: {\"auto\":{\"maximum_data_points\":1,\"minimum_interval\":\"900s\"},\"manual\":null,\"use_advanced_limit\":true} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.metrics.filters: [{\"label\":\"value-label\",\"metric\":\"value-metric\",\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}] → null",
@@ -740,32 +739,18 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].resolution: {\"buckets_presented\":1,\"interval\":null} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip: {\"show_labels\":true,\"type\":\"all\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.metrics.promql_query_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"promql_query_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:792070ef] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -864,14 +849,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type: \"all\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.x_axis_time_format: \"auto\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.metrics.promql_query_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"promql_query_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (3)",
@@ -893,19 +871,12 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].color_scheme: \"classic\" → \"blue\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].unit: \"bytes\" → \"usd_cents\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.metrics.promql_query_type"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"promql_query_type\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -917,14 +888,14 @@
       "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.metrics.filters[].operator.selected_values"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.maximum_data_points",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -935,35 +906,35 @@
       "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.metrics.filters[].operator.selected_values"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.minimum_interval",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.metrics.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.metrics.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "set layout.sections[].options.color = orange",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid duration [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"resolution\").AttributeName(\"interval\")] | error parsing duration \"1m0s\": want seconds:<n> or minutes:<n>",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   }

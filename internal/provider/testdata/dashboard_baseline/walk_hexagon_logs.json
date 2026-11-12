@@ -157,6 +157,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -420,6 +421,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -564,7 +566,7 @@
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.decimal",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.decimalPrecision",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.groupByQuery: true → false",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legendBy: \"LEGEND_BY_GROUPS\" → \"LEGEND_BY_UNSPECIFIED\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.max",
@@ -605,7 +607,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:7e34def3] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:1155a5bc] → null"
     ],
     "replanEmpty": true
   },
@@ -622,7 +624,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:f3c695e9] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:38947ad6] → null"
     ],
     "replanEmpty": true
   },
@@ -633,7 +635,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:6f3a3e0d] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:de7fea84] → null"
     ],
     "replanEmpty": true
   },
@@ -656,15 +658,15 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.groupBy",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.timeFrame",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds[0]"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals…[sha256:5c322404] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
-      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds[0]"
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds: [{\"color\":\"value-color\",\"from\":1,\"label\":\"value-label\"}] → null"
     ],
     "replanEmpty": true
   },
@@ -685,19 +687,12 @@
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:7e34def3] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -776,19 +771,12 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.groupBy"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.groupBy[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (7)",
@@ -834,8 +822,7 @@
       "set layout.sections[].rows[].widgets[].definition.hexagon.unit = usd_cents"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observat",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -846,8 +833,7 @@
       "set layout.sections[].rows[].widgets[].definition.hexagon.query.logs.aggregation.type = percentile"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observat",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -867,8 +853,7 @@
   {
     "step": "set layout.sections[].rows[].widgets[].definition.hexagon.query.logs.aggregation.type = percentile",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"percentile\", exactly one of field, observat",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -945,23 +930,35 @@
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.aggregation.observation_field",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregation\").AttributeName(\"field\")] | When the type is \"count_distinct\", exactly one of field, obse",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.hexagon.query.logs.aggregation.observation_field.scope = unspecified",

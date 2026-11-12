@@ -44,7 +44,8 @@ types:
   UnionItem:
     fields:
       extra: {inline: true}
-      value: {inline: true}
+      # The object has a field named value too: the extra keys of this line are the keys of that field.
+      value: {inline: true, markdownDescription: The value of the item.}
   ItemOptions:
     fields:
       custom: {inline: true}
@@ -52,9 +53,12 @@ types:
   # says that the API always has it, so a request always sends the link. An action holds its
   # definition in an object that it inlines too, so the url is a flat attribute of the action. The
   # skip line of the target is carried to the action.
+  # The url of the link is promoted twice: the action inlines its definition, and the definition inlines
+  # its link. The line of the url is a line of the action.
   ItemAction:
     fields:
       definition: {inline: true}
+      url: {markdownDescription: The url of the action.}
   ActionDefinition:
     fields:
       link: {inline: true, required: true}
@@ -68,6 +72,9 @@ types:
     at:
       UnionItem.first:
         fields: {label: {name: title}}
+      # Any key of a field line is a place line. The second place requires the label, and the first does not.
+      UnionItem.second:
+        fields: {label: {required: true, markdownDescription: The label of the second tag.}}
 
   # The same component holds its value in an object in two places. The first place inlines the
   # value, and names the note remark. The items of the list keep the object and the note.

@@ -5,7 +5,7 @@
       "id": "fakeboard000000000001"
     },
     "applyDiagnostics": [
-      "error: Error reading Dashboard | error - Get \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001\": dashboards transport unavailable\noperation - Get"
+      "error: Unable to read coralogix_dashboard | id fakeboard000000000001: Get \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001\": dashboards transport unavailable"
     ],
     "state": {
       "access_policy": null,

@@ -1,7 +1,33 @@
 # Unreleased
 
 #### tools/iac-codegen
+- FEAT: A one-of group, a `typedArms` object, and a sibling `exactlyOneOf` or `conflictsWith` line are checked by one validator of the parent object. A validator on each arm walked the whole configuration for each sibling, so plan time grew with the number of objects.
+- FEAT: Keys `keepPriorArm` (group), `unsupportedArms` for a plain field with the hook `AllowUnsupported`, `unsupportedIfEmpty`, `durationFormat`, `enumAs`, the validator `unsupported`, `readNullAs` for an enum, a top-level `readEmptyAs`, place lines with every field key, `defaultFromSibling`, string extra attributes with a default inside list items, and `validators` on a `distributeTo` line.
 - FEAT: Support a released API whose Create is a PUT and whose Update is a POST (`api.methods`; an Update by POST has no update mask and needs `updateMask: omit`), a Create response that holds only an integer id, a `oneOf` of the Create request that a `skip` line reduces to one arm, and `equality: caseInsensitive` on a list or set of strings.
+
+#### provider
+- FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
+
+#### resource/coralogix_alert
+- FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
+
+#### resource/coralogix_dashboard
+- CHORE: The resource is generated from the API contract. The schema, the import, the state versions 1 to 3, and the requests are the same, except as listed below. A plan of a dashboard that 3.25.0 created from the same configuration is empty.
+- FIX: Plan and validate time of a dashboard is not slower than in 3.25.0. The generated one-of checks run once for each object.
+- FIX: A 404 for a missing API route is an error. Before, a refresh removed the dashboard from state.
+- FIX: A state upgrade of a dashboard that the API no longer has fails with an error that names `terraform state rm`. Before, it warned and wrote no state.
+- FIX: Removing a widget or a section from the configuration no longer ends with an inconsistent result.
+- CHORE: API errors read `Unable to create dashboard`, `Unable to update dashboard`, and so on. A missing dashboard on refresh reads `Resource disappeared during read`.
+- CHORE: An invalid combination of arms, such as `definition` with `reference` on a widget, reports `Invalid Attribute Combination` on the object that holds them.
+- CHORE: A `not_equals` operator with an empty `selected_values` is accepted at plan and fails at apply, in the provider, with `The selection_type "all" is not one of list`. Before, it failed at plan.
+- CHORE: These invalid configs fail at apply, with the text of the API, instead of at plan: `highlighted = true` on a widget that has only a `reference`, `display_full_row = true` on a variable that is not a textbox, and a `value_display_options` without `value_regex` or `label_regex`.
+- FIX: A dashboard that `content_json` manages reads even when the typed schema cannot show a value in it, such as a dashboard without a time frame or a legend column that the schema does not accept. Before, the typed read ran first and failed.
+- CHORE: A failed read after a create leaves the new dashboard in state as tainted. Before, the provider deleted it. The next apply replaces it.
+- FEAT: New optional attributes: `query_id` of a custom action, `description` of a legacy variable, `data_mode_type` of a logs and a spans annotation, `interval_resolution` of a metrics annotation, `observation_field` of a spans filter, `group_by` and `group_bys` of a table grouping, `all_region_config` and `ibm_region_config` of a geomap, `field_name` of a logs and a spans variable query, and the deprecated `single_string` and `single_numeric` defaults of a textbox variable.
+- FEAT: The resource has a generated acceptance test.
+
+#### data-source/coralogix_dashboard
+- CHORE: The data source is generated with the resource and has the same attributes.
 
 # Release 3.25.0
 

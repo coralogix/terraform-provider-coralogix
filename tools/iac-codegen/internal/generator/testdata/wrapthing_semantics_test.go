@@ -2,10 +2,12 @@ package wrapthing
 
 import (
 	"context"
+	"math/big"
 	"reflect"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -15,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -56,6 +59,7 @@ func fullModel() *WrapThingModel {
 		Selection:  stringList("x", "y"),
 		Tags:       stringSet("p", "q"),
 		Panels:     types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()}),
+		Marks:      types.SetNull(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}),
 		FolderPath: types.StringNull(),
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
@@ -143,7 +147,7 @@ func TestExpandSendsZeroValuesInTheirWrappers(t *testing.T) {
 }
 
 func TestFlattenTakesValuesOutOfTheirWrappers(t *testing.T) {
-	got, diags := flatten(context.Background(), fullResponse())
+	got, diags := flatten(context.Background(), fullResponse(), nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -158,7 +162,7 @@ func TestFlattenReadsAMissingValueAsNull(t *testing.T) {
 		Priority:  &wrap_things_service.PriorityValue{},
 		Selection: &wrap_things_service.Selection{},
 		MainLabel: &wrap_things_service.Label{},
-	})
+	}, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -179,7 +183,7 @@ func TestFlattenKeepsAnItemWithoutValue(t *testing.T) {
 	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{
 		Id:        "thing-1",
 		WidgetIds: []wrap_things_service.UUID{{Value: ptr("a")}, {}},
-	})
+	}, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -217,17 +221,17 @@ func TestSignedDigitStringIsSentAsDecimalText(t *testing.T) {
 // Flatten parses the text of the API. A text that is no 64-bit number is an error, not a null.
 func TestSignedDigitStringIsReadAsAnInteger(t *testing.T) {
 	for text, want := range map[string]int64{"-5": -5, "0": 0, "42": 42, "-9223372036854775808": -1 << 63} {
-		got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)})
+		got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}, nil)
 		if diags.HasError() || got.Offset.ValueInt64() != want {
 			t.Fatalf("offset of %q = %v (%v), want %d", text, got.Offset, diags, want)
 		}
 	}
-	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1"})
+	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1"}, nil)
 	if diags.HasError() || !got.Offset.IsNull() {
 		t.Fatalf("a missing offset = %v (%v), want null", got.Offset, diags)
 	}
 	for _, text := range []string{"", "abc", "1.5", "9223372036854775808", "-9223372036854775809"} {
-		if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}); !diags.HasError() {
+		if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}, nil); !diags.HasError() {
 			t.Errorf("offset %q: want an error", text)
 		}
 	}
@@ -256,22 +260,23 @@ func TestWrappedSetIsSentInItsWrapper(t *testing.T) {
 	}
 }
 
-// Flatten builds the set from the list in the wrapper, in any order. A missing wrapper, and a
-// wrapper without values, are null.
+// Flatten builds the set from the list in the wrapper, in any order. A missing wrapper, a wrapper
+// without values, and a wrapper of an empty list are null: the file reads every empty list as null
+// (readEmptyAs), and a configured empty set keeps its form through the prior value.
 func TestWrappedSetIsReadFromItsWrapper(t *testing.T) {
-	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{"b", "a"}}})
+	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{"b", "a"}}}, nil)
 	if diags.HasError() || !got.Tags.Equal(stringSet("a", "b")) {
 		t.Fatalf("tags = %s (%v), want [a b] as a set", got.Tags, diags)
 	}
-	got, diags = flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{}}})
-	if diags.HasError() || got.Tags.IsNull() || len(got.Tags.Elements()) != 0 {
-		t.Fatalf("tags = %s (%v), want an empty set", got.Tags, diags)
+	got, diags = flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{}}}, nil)
+	if diags.HasError() || !got.Tags.IsNull() {
+		t.Fatalf("tags = %s (%v), want null", got.Tags, diags)
 	}
 	for name, response := range map[string]*wrap_things_service.WrapThing{
 		"no wrapper":           {Id: "thing-1"},
 		"a wrapper of no list": {Id: "thing-1", Tags: &wrap_things_service.Tags{}},
 	} {
-		got, diags = flatten(context.Background(), response)
+		got, diags = flatten(context.Background(), response, nil)
 		if diags.HasError() || !got.Tags.IsNull() {
 			t.Errorf("%s: tags = %s (%v), want null", name, got.Tags, diags)
 		}
@@ -319,18 +324,18 @@ func TestFoldedOneOfIsReadFromTheArmOfTheResponse(t *testing.T) {
 		"no object":       {nil, types.StringNull()},
 	} {
 		t.Run(name, func(t *testing.T) {
-			got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: test.api})
+			got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: test.api}, nil)
 			if diags.HasError() || !got.Window.Equal(test.want) {
 				t.Fatalf("window = %s (%v), want %s", got.Window, diags, test.want)
 			}
 		})
 	}
 	both := &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5), CustomValue: ptr("5m")}
-	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: both}); !diags.HasError() {
+	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: both}, nil); !diags.HasError() {
 		t.Fatal("a response with both arms: want an error")
 	}
 	unknown := &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_99"))}
-	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: unknown}); !diags.HasError() {
+	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: unknown}, nil); !diags.HasError() {
 		t.Fatal("an enum value that the enums line lacks: want an error")
 	}
 }
@@ -413,7 +418,7 @@ func TestClientIDReadsBackAsTheAPIHasIt(t *testing.T) {
 	}
 	{
 		name := "an import, no prior"
-		got, diags := flatten(ctx, resp)
+		got, diags := flatten(ctx, resp, nil)
 		if diags.HasError() {
 			t.Fatalf("%s: %v", name, diags)
 		}
@@ -457,7 +462,7 @@ func TestClientIDPlansUnknownForANewItemAndKeepsTheStateId(t *testing.T) {
 	panelType := root.AttributeTypes["panels"].(tftypes.List).ElementType.(tftypes.Object)
 	panel := func(id tftypes.Value) tftypes.Value {
 		return tftypes.NewValue(panelType, map[string]tftypes.Value{
-			"id": id, "title": tftypes.NewValue(tftypes.String, nil), "panel_notes": tftypes.NewValue(panelType.AttributeTypes["panel_notes"], nil),
+			"id": id, "title": tftypes.NewValue(tftypes.String, nil), "remark": tftypes.NewValue(tftypes.String, nil), "level": tftypes.NewValue(tftypes.String, nil), "size": tftypes.NewValue(tftypes.String, nil), "legacy": tftypes.NewValue(tftypes.Bool, nil), "panel_notes": tftypes.NewValue(panelType.AttributeTypes["panel_notes"], nil),
 		})
 	}
 	thing := func(id string, panels ...tftypes.Value) tftypes.Value {
@@ -541,7 +546,7 @@ func TestJoinedSegmentsAreOneText(t *testing.T) {
 		}
 		resp := fullResponse()
 		resp.FolderPath = &wrap_things_service.FolderPath{Segments: want}
-		got, diags := flatten(ctx, resp)
+		got, diags := flatten(ctx, resp, nil)
 		if diags.HasError() || got.FolderPath.ValueString() != text {
 			t.Errorf("%v read as %q (%v), want %q", want, got.FolderPath.ValueString(), diags, text)
 		}
@@ -556,9 +561,110 @@ func TestJoinedSegmentsAreOneText(t *testing.T) {
 			t.Errorf("%s sent %+v, want no wrapper", name, body.FolderPath)
 		}
 	}
-	got, _ := flatten(ctx, fullResponse())
+	got, _ := flatten(ctx, fullResponse(), nil)
 	if !got.FolderPath.IsNull() {
 		t.Errorf("a response without the path read as %v, want null", got.FolderPath)
+	}
+}
+
+// A group can name a field like a field of the resource, and its fields can sit in wrappers. The
+// home has an id (a UUID wrapper) and a path (the segments), next to the id of the thing.
+func homeModel(home *WrapThingHomeModel) *WrapThingModel {
+	return &WrapThingModel{
+		Query: types.StringNull(), Priority: types.StringNull(), Threshold: types.Float64Null(),
+		WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), Tags: types.SetNull(types.StringType), MainLabel: types.StringNull(),
+		FolderPath: types.StringNull(), Home: home,
+	}
+}
+
+// A null group sends neither arm. The id sends the wrapper. The path "Team/Sub" sends two segments.
+func TestGroupFieldsInWrappersAreSent(t *testing.T) {
+	ctx := context.Background()
+	body, diags := expandCreate(ctx, homeModel(nil))
+	if diags.HasError() || body.HomeId != nil || body.HomePath != nil {
+		t.Fatalf("a null group sent %+v %+v (%v), want neither arm", body.HomeId, body.HomePath, diags)
+	}
+	body, diags = expandCreate(ctx, homeModel(&WrapThingHomeModel{HomeId: types.StringValue("abc"), HomePath: types.StringNull()}))
+	if diags.HasError() || body.HomeId == nil || *body.HomeId.Value != "abc" || body.HomePath != nil {
+		t.Fatalf("the id sent %+v %+v (%v), want only the id", body.HomeId, body.HomePath, diags)
+	}
+	body, diags = expandCreate(ctx, homeModel(&WrapThingHomeModel{HomeId: types.StringNull(), HomePath: types.StringValue("Team/Sub")}))
+	if diags.HasError() || body.HomeId != nil || body.HomePath == nil || !reflect.DeepEqual(body.HomePath.Segments, []string{"Team", "Sub"}) {
+		t.Fatalf("the path sent %+v %+v (%v), want two segments", body.HomeId, body.HomePath, diags)
+	}
+}
+
+// A response with neither arm reads as a null group. The id and the path are read from their wrappers,
+// and the id of the thing is not changed by the id of the home.
+func TestGroupFieldsInWrappersAreRead(t *testing.T) {
+	ctx := context.Background()
+	got, diags := flatten(ctx, fullResponse(), nil)
+	if diags.HasError() || got.Home != nil {
+		t.Fatalf("a response with neither arm read as %+v (%v), want a null group", got.Home, diags)
+	}
+	resp := fullResponse()
+	resp.HomeId = &wrap_things_service.UUID{Value: ptr("abc")}
+	got, diags = flatten(ctx, resp, nil)
+	if diags.HasError() || got.Home == nil || got.Home.HomeId.ValueString() != "abc" || !got.Home.HomePath.IsNull() {
+		t.Fatalf("the id read as %+v (%v), want the id and a null path", got.Home, diags)
+	}
+	if got.Id.ValueString() != fullResponse().Id {
+		t.Errorf("the id of the thing is %q: the home must not change it", got.Id.ValueString())
+	}
+	resp = fullResponse()
+	resp.HomePath = &wrap_things_service.FolderPath{Segments: []string{"Team", "Sub"}}
+	got, diags = flatten(ctx, resp, nil)
+	if diags.HasError() || got.Home == nil || got.Home.HomePath.ValueString() != "Team/Sub" || !got.Home.HomeId.IsNull() {
+		t.Fatalf("the path read as %+v (%v), want the path and a null id", got.Home, diags)
+	}
+}
+
+// The API can answer another arm than the one the user wrote: a path comes back as an id. The home
+// keeps the arm of the prior value (the plan after a write, the state on a read). With no prior value,
+// as in an import, the response decides.
+func TestGroupKeepsThePriorArm(t *testing.T) {
+	ctx := context.Background()
+	byID := &wrap_things_service.UUID{Value: ptr("abc")}
+	byPath := &wrap_things_service.FolderPath{Segments: []string{"Team", "Sub"}}
+	prior := func(id, path types.String) *WrapThingModel {
+		m := fullModel()
+		m.Home = &WrapThingHomeModel{HomeId: id, HomePath: path}
+		return m
+	}
+	home := func(m *WrapThingModel) string {
+		if m.Home == nil {
+			return "null"
+		}
+		return "id=" + m.Home.HomeId.String() + " path=" + m.Home.HomePath.String()
+	}
+	null := types.StringNull()
+	tests := map[string]struct {
+		prior *WrapThingModel
+		id    *wrap_things_service.UUID
+		path  *wrap_things_service.FolderPath
+		want  string
+	}{
+		"a written path, answered as an id, stays a path":    {prior(null, types.StringValue("Team/Sub")), byID, nil, `id=<null> path="Team/Sub"`},
+		"a written id, answered as a path, stays an id":      {prior(types.StringValue("abc"), null), nil, byPath, `id="abc" path=<null>`},
+		"a written id, answered as the id, is the id":        {prior(types.StringValue("old"), null), byID, nil, `id="abc" path=<null>`},
+		"a written path, answered as the path, is read":      {prior(null, types.StringValue("Old/Path")), nil, byPath, `id=<null> path="Team/Sub"`},
+		"an import has no prior value, so the id is read":    {nil, byID, nil, `id="abc" path=<null>`},
+		"a prior group without an arm reads the response":    {prior(null, null), byID, nil, `id="abc" path=<null>`},
+		"a prior group with unknown arms reads the response": {prior(types.StringUnknown(), types.StringUnknown()), byID, nil, `id="abc" path=<null>`},
+		"a response without an arm is a null group":          {prior(null, types.StringValue("Team/Sub")), nil, nil, "null"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			resp := fullResponse()
+			resp.HomeId, resp.HomePath = test.id, test.path
+			got, diags := flatten(ctx, resp, test.prior)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if h := home(got); h != test.want {
+				t.Errorf("home = %s, want %s", h, test.want)
+			}
+		})
 	}
 }
 
@@ -740,7 +846,7 @@ func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
 			{Id: "g", PanelId: wrap_things_service.UUID{}, Detail: &wrap_things_service.NoteDetail{Url: ptr("u5")}},
 		},
 	}
-	got, diags := flatten(ctx, response)
+	got, diags := flatten(ctx, response, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -761,7 +867,7 @@ func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
 	}
 	// A response without notes gives every panel null.
 	response.Notes = nil
-	got, diags = flatten(ctx, response)
+	got, diags = flatten(ctx, response, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -777,15 +883,15 @@ func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
 func TestDistributedItemsSurviveARoundTrip(t *testing.T) {
 	ctx := context.Background()
 	model := notesModel(t,
-		WrapPanelModel{Id: types.StringValue("p1"), Title: types.StringValue("one"), PanelNotes: noteList(t, noteOf("a", "x", "u1"), noteOf("b", "y", "u2"))},
-		WrapPanelModel{Id: types.StringValue("p2"), Title: types.StringNull(), PanelNotes: noteList(t, noteOf("c", "z", "u3"))},
-		WrapPanelModel{Id: types.StringValue("p3"), Title: types.StringNull(), PanelNotes: types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})},
+		WrapPanelModel{Id: types.StringValue("p1"), Title: types.StringValue("one"), Remark: types.StringValue("none"), Level: types.StringValue("unspecified"), Size: types.StringNull(), PanelNotes: noteList(t, noteOf("a", "x", "u1"), noteOf("b", "y", "u2"))},
+		WrapPanelModel{Id: types.StringValue("p2"), Title: types.StringNull(), Remark: types.StringValue("none"), Level: types.StringValue("unspecified"), Size: types.StringNull(), PanelNotes: noteList(t, noteOf("c", "z", "u3"))},
+		WrapPanelModel{Id: types.StringValue("p3"), Title: types.StringNull(), Remark: types.StringValue("none"), Level: types.StringValue("unspecified"), Size: types.StringNull(), PanelNotes: types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})},
 	)
 	body, diags := expandCreate(ctx, model)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
-	got, diags := flatten(ctx, &wrap_things_service.WrapThing{Id: "thing-1", Query: body.Query, Panels: body.Panels, Notes: body.Notes})
+	got, diags := flatten(ctx, &wrap_things_service.WrapThing{Id: "thing-1", Query: body.Query, Panels: body.Panels, Notes: body.Notes}, nil)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -844,7 +950,7 @@ func TestEmptyDistributedListKeepsItsFormInTheState(t *testing.T) {
 		values["id"] = tftypes.NewValue(tftypes.String, "thing-1")
 		values["query"] = tftypes.NewValue(tftypes.String, "q")
 		panel := map[string]tftypes.Value{
-			"id": tftypes.NewValue(tftypes.String, "p1"), "title": tftypes.NewValue(tftypes.String, nil), "panel_notes": notes,
+			"id": tftypes.NewValue(tftypes.String, "p1"), "title": tftypes.NewValue(tftypes.String, nil), "remark": tftypes.NewValue(tftypes.String, nil), "level": tftypes.NewValue(tftypes.String, nil), "size": tftypes.NewValue(tftypes.String, nil), "legacy": tftypes.NewValue(tftypes.Bool, nil), "panel_notes": notes,
 		}
 		values["panels"] = tftypes.NewValue(root.AttributeTypes["panels"], []tftypes.Value{tftypes.NewValue(panelType, panel)})
 		return tftypes.NewValue(root, values)
@@ -875,5 +981,354 @@ func TestEmptyDistributedListKeepsItsFormInTheState(t *testing.T) {
 				t.Errorf("panel_notes = %s, want null=%t", notes, test.wantNull)
 			}
 		})
+	}
+}
+
+// The marks are a set of objects with a Number: a configured 0.1 has more bits than a double, and the
+// API answers the double. Flatten pairs each API item with the prior item that has the same request
+// value, so the configured number stays, whatever the order of the items is.
+func TestSetItemsKeepThePriorNumberWhateverTheOrder(t *testing.T) {
+	ctx := context.Background()
+	exact := func(text string) types.Number {
+		f, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return types.NumberValue(f)
+	}
+	markType := types.ObjectType{AttrTypes: wrapMarkAttrTypes()}
+	set := func(marks ...WrapMarkModel) types.Set {
+		v, diags := types.SetValueFrom(ctx, markType, marks)
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		return v
+	}
+	prior := fullModel()
+	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.1")}, WrapMarkModel{Label: types.StringValue("b"), Ratio: exact("0.3")})
+	resp := fullResponse()
+	a, b, one, three := "a", "b", 0.1, 0.3
+	// The API returns the items in another order.
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &b, Ratio: &three}, {Label: &a, Ratio: &one}}
+	got, diags := flatten(ctx, resp, prior)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var marks []WrapMarkModel
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, m := range marks {
+		want := map[string]types.Number{"a": exact("0.1"), "b": exact("0.3")}[m.Label.ValueString()]
+		if !m.Ratio.Equal(want) {
+			t.Errorf("mark %s ratio = %v, want the configured %v", m.Label.ValueString(), m.Ratio, want)
+		}
+	}
+	// With no prior value (an import), the API number is read as it is.
+	got, _ = flatten(ctx, resp, nil)
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() || len(marks) != 2 {
+		t.Fatalf("import marks = %v (%v)", marks, diags)
+	}
+	// A prior item with another value is not paired: the API value wins.
+	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.5")})
+	got, _ = flatten(ctx, resp, prior)
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, m := range marks {
+		if m.Label.ValueString() == "a" && m.Ratio.Equal(exact("0.5")) {
+			t.Error("a prior item with another ratio was paired")
+		}
+	}
+}
+
+// A place line that skips a field gives the place a copy of the component without it, so a wrapper with
+// two properties collapses at that place: the link of a mark is its target, a string. The hint is not
+// sent, and it is not read.
+func TestPlaceThatSkipsAFieldUnwrapsTheComponent(t *testing.T) {
+	ctx := context.Background()
+	model := fullModel()
+	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringValue("there"), "title": types.StringNull(), "created_at": types.StringNull()}),
+	})
+	body, diags := expandCreate(ctx, model)
+	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].Link == nil || *body.Marks[0].Link.Target != "there" || body.Marks[0].Link.Hint != nil {
+		t.Fatalf("sent marks = %+v (%v), want the link with the target and no hint", body.Marks, diags)
+	}
+	resp := fullResponse()
+	target, hint, label := "there", "never shown", "a"
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &label, Link: &wrap_things_service.LinkRef{Target: &target, Hint: &hint}}}
+	got, diags := flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var marks []WrapMarkModel
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() || len(marks) != 1 || marks[0].Link.ValueString() != "there" {
+		t.Fatalf("read marks = %+v (%v), want the link there", marks, diags)
+	}
+}
+
+// An omitted title is the label of its mark. The plan takes the label, also while the label is unknown,
+// and it does not take a label that is null. A configured title stays.
+func TestSiblingDefaultPlansTheValueOfTheSibling(t *testing.T) {
+	ctx := context.Background()
+	objectType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"label": tftypes.String, "title": tftypes.String}}
+	sch := schema.Schema{Attributes: map[string]schema.Attribute{"mark": schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
+		"label": schema.StringAttribute{Optional: true}, "title": schema.StringAttribute{Optional: true, Computed: true},
+	}}}}
+	rootType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"mark": objectType}}
+	modifier := siblingDefaultModifier{Sibling: "label"}
+	tests := map[string]struct {
+		label  tftypes.Value
+		config types.String
+		want   types.String
+	}{
+		"the label":                   {tftypes.NewValue(tftypes.String, "tag"), types.StringNull(), types.StringValue("tag")},
+		"an unknown label":            {tftypes.NewValue(tftypes.String, tftypes.UnknownValue), types.StringNull(), types.StringUnknown()},
+		"a null label":                {tftypes.NewValue(tftypes.String, nil), types.StringNull(), types.StringNull()},
+		"a configured title":          {tftypes.NewValue(tftypes.String, "tag"), types.StringValue("mine"), types.StringValue("mine")},
+		"an unknown configured title": {tftypes.NewValue(tftypes.String, "tag"), types.StringUnknown(), types.StringUnknown()},
+	}
+	for name, test := range tests {
+		raw := tftypes.NewValue(rootType, map[string]tftypes.Value{"mark": tftypes.NewValue(objectType, map[string]tftypes.Value{
+			"label": test.label, "title": tftypes.NewValue(tftypes.String, tftypes.UnknownValue)})})
+		req := planmodifier.StringRequest{Path: path.Root("mark").AtName("title"), Plan: tfsdk.Plan{Schema: sch, Raw: raw}, ConfigValue: test.config, PlanValue: test.config}
+		if test.config.IsNull() {
+			req.PlanValue = types.StringUnknown()
+		}
+		resp := &planmodifier.StringResponse{PlanValue: req.PlanValue}
+		modifier.PlanModifyString(ctx, req, resp)
+		want := test.want
+		if test.config.IsNull() && test.label.IsNull() {
+			want = types.StringUnknown() // a null label leaves the plan as it was
+		}
+		if resp.Diagnostics.HasError() || !resp.PlanValue.Equal(want) {
+			t.Errorf("%s: plan = %v (%v), want %v", name, resp.PlanValue, resp.Diagnostics, want)
+		}
+	}
+}
+
+// A time that only the server sets can be in a component that the requests share, when its line says
+// readOnly: the request does not send it, and the response shows it.
+func TestResponseOnlyTimeInASharedComponentIsNotSent(t *testing.T) {
+	ctx := context.Background()
+	model := fullModel()
+	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringNull(), "title": types.StringNull(), "created_at": types.StringUnknown()}),
+	})
+	body, diags := expandCreate(ctx, model)
+	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].CreatedAt != nil {
+		t.Fatalf("sent marks = %+v (%v), want no time", body.Marks, diags)
+	}
+	when := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	label := "a"
+	resp := fullResponse()
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &label, CreatedAt: &when}}
+	got, diags := flatten(ctx, resp, nil)
+	var marks []WrapMarkModel
+	if diags.HasError() || got.Marks.ElementsAs(ctx, &marks, false).HasError() || len(marks) != 1 || marks[0].CreatedAt.ValueString() != "2026-01-02T03:04:05Z" {
+		t.Fatalf("read marks = %+v (%v), want the time of the server", marks, diags)
+	}
+}
+
+// A duration keeps its released text: the API holds 900s. The span is seconds:900 (minutes:15 is also
+// accepted), the step is the Go text 15m0s. A text that is no duration is an error on the attribute,
+// and a value that the API wrote in another way stays as it is.
+func TestDurationKeepsItsReleasedText(t *testing.T) {
+	ctx := context.Background()
+	for _, c := range []struct{ span, step, wireSpan, wireStep, backSpan, backStep string }{
+		{"seconds:900", "15m0s", "900s", "900s", "seconds:900", "15m0s"},
+		{"minutes:15", "1.5s", "900s", "1.500s", "seconds:900", "1.5s"},
+		{"seconds:0", "0s", "0s", "0s", "seconds:0", "0s"},
+	} {
+		model := homeModel(nil)
+		model.Span, model.Step = types.StringValue(c.span), types.StringValue(c.step)
+		body, diags := expandCreate(ctx, model)
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		if body.Span == nil || *body.Span != c.wireSpan || body.Step == nil || *body.Step != c.wireStep {
+			t.Errorf("%q and %q sent %v and %v, want %q and %q", c.span, c.step, body.Span, body.Step, c.wireSpan, c.wireStep)
+		}
+		resp := fullResponse()
+		resp.Span, resp.Step = &c.wireSpan, &c.wireStep
+		got, diags := flatten(ctx, resp, nil)
+		if diags.HasError() || got.Span.ValueString() != c.backSpan || got.Step.ValueString() != c.backStep {
+			t.Errorf("%q and %q read as %q and %q (%v), want %q and %q", c.wireSpan, c.wireStep, got.Span.ValueString(), got.Step.ValueString(), diags, c.backSpan, c.backStep)
+		}
+	}
+	for _, text := range []string{"900s", "hours:1", "seconds:x", ""} {
+		model := homeModel(nil)
+		model.Span = types.StringValue(text)
+		if _, diags := expandCreate(ctx, model); !diags.HasError() {
+			t.Errorf("span %q was accepted", text)
+		}
+	}
+	model := homeModel(nil)
+	model.Step = types.StringValue("soon")
+	if _, diags := expandCreate(ctx, model); !diags.HasError() {
+		t.Error("step soon was accepted")
+	}
+	odd := "tomorrow"
+	resp := fullResponse()
+	resp.Span = &odd
+	if got, _ := flatten(ctx, resp, nil); got.Span.ValueString() != odd {
+		t.Errorf("an odd value read as %q, want it as it is", got.Span.ValueString())
+	}
+	if got, _ := flatten(ctx, fullResponse(), nil); !got.Span.IsNull() || !got.Step.IsNull() {
+		t.Errorf("a missing duration read as %v and %v, want null", got.Span, got.Step)
+	}
+	model = homeModel(nil)
+	if body, _ := expandCreate(ctx, model); body.Span != nil || body.Step != nil {
+		t.Errorf("a null duration sent %v and %v, want none", body.Span, body.Step)
+	}
+}
+
+// A field that the typed schema cannot show is no attribute. A response that sets it is an error on
+// read, so the state never loses it silently. The hook AllowUnsupported turns the error off for a
+// resource that is managed another way, such as by a document.
+func TestUnsupportedFieldIsReportedUnlessAllowed(t *testing.T) {
+	ctx := context.Background()
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}, Retired: ptr("old")}}
+	if _, diags := flatten(ctx, resp, nil); !diags.HasError() || diags.Errors()[0].Summary() != "Unsupported panel" {
+		t.Errorf("a response with the retired field gave %v, want the unsupported error", diags)
+	}
+	if _, diags := flatten(withUnsupportedAllowed(ctx), resp, nil); diags.HasError() {
+		t.Errorf("an allowed response gave %v, want no error", diags)
+	}
+	resp.Panels[0].Retired = nil
+	if _, diags := flatten(ctx, resp, nil); diags.HasError() {
+		t.Errorf("a response without the field gave %v, want no error", diags)
+	}
+}
+
+// A string that only Terraform holds, inside an item of a list, keeps the value of the prior item:
+// the API does not have it, so a read that took null would make Terraform report an inconsistent result.
+func TestExtraStringInAListItemKeepsThePriorValue(t *testing.T) {
+	ctx := context.Background()
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}}, {Id: wrap_things_service.UUID{Value: ptr("p2")}}}
+	prior, diags := flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var panels []WrapPanelModel
+	if diags := prior.Panels.ElementsAs(ctx, &panels, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if panels[0].Remark.ValueString() != "none" {
+		t.Fatalf("without a prior the remark is %v, want its default", panels[0].Remark)
+	}
+	panels[0].Remark, panels[1].Remark = types.StringValue("first"), types.StringValue("second")
+	list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, panels)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	prior.Panels = list
+	got, diags := flatten(ctx, resp, prior)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var read []WrapPanelModel
+	if diags := got.Panels.ElementsAs(ctx, &read, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if read[0].Remark.ValueString() != "first" || read[1].Remark.ValueString() != "second" {
+		t.Errorf("remarks = %v and %v, want the prior values", read[0].Remark, read[1].Remark)
+	}
+}
+
+// An object field with unsupportedIfEmpty cannot be shown when the response has no value in it: a read
+// reports the error, unless the resource is managed another way (AllowUnsupported).
+func TestEmptyObjectIsReportedUnlessAllowed(t *testing.T) {
+	ctx := context.Background()
+	for name, detail := range map[string]*wrap_things_service.NoteDetail{"no object": nil, "an empty object": {}} {
+		var diags diag.Diagnostics
+		flattenWrapNote(ctx, path.Root("note"), &wrap_things_service.WrapNote{Id: "n", Detail: detail}, &diags)
+		if len(diags.Errors()) != 1 || diags.Errors()[0].Summary() != "Unsupported note" {
+			t.Errorf("%s gave %v, want the unsupported error", name, diags)
+		}
+		var allowed diag.Diagnostics
+		flattenWrapNote(withUnsupportedAllowed(ctx), path.Root("note"), &wrap_things_service.WrapNote{Id: "n", Detail: detail}, &allowed)
+		if allowed.HasError() {
+			t.Errorf("%s with the check off gave %v, want no error", name, allowed)
+		}
+	}
+	var diags diag.Diagnostics
+	flattenWrapNote(ctx, path.Root("note"), &wrap_things_service.WrapNote{Id: "n", Detail: &wrap_things_service.NoteDetail{Url: ptr("u")}}, &diags)
+	if diags.HasError() {
+		t.Errorf("a detail with a value gave %v, want no error", diags)
+	}
+}
+
+// An enum that the API fills in reads as the value of readNullAs when the response has none, as a
+// released resource read a missing value. A value that the response has is read as it is.
+func TestMissingEnumReadsAsTheReadNullAsValue(t *testing.T) {
+	ctx := context.Background()
+	five := wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}}, {Id: wrap_things_service.UUID{Value: ptr("p2")}, Level: &five}}
+	got, diags := flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var panels []WrapPanelModel
+	if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if panels[0].Level.ValueString() != "unspecified" || panels[1].Level.ValueString() != "5_MINUTES" {
+		t.Errorf("levels = %v and %v, want unspecified and 5_MINUTES", panels[0].Level, panels[1].Level)
+	}
+	// A value that the resource rejects reads as the value of readRejectedAs, not as an error.
+	rejected := wrap_things_service.WINDOWVALUE_WINDOW_VALUE_DAYS_7
+	resp.Panels[1].Level = &rejected
+	got, diags = flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatalf("a rejected value failed the read: %v", diags)
+	}
+	if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() || panels[1].Level.ValueString() != "unspecified" {
+		t.Errorf("the rejected level read as %v (%v), want unspecified", panels[1].Level, diags)
+	}
+	// With readRejectedAs: "null" the rejected value reads as null, and an accepted one reads as it is.
+	resp.Panels[1].Size = &rejected
+	resp.Panels[0].Size = &five
+	got, diags = flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatalf("a rejected size failed the read: %v", diags)
+	}
+	if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() || panels[0].Size.ValueString() != "5_MINUTES" || !panels[1].Size.IsNull() {
+		t.Errorf("sizes = %v and %v (%v), want 5_MINUTES and null", panels[0].Size, panels[1].Size, diags)
+	}
+}
+
+// A bool with the unsupported validator is rejected whenever the configuration sets it, true or false,
+// with the text of the line. A null or unknown value passes.
+func TestUnsupportedBoolIsRejectedWhenSet(t *testing.T) {
+	ctx := context.Background()
+	check := unsupportedBoolValidator{Message: "A panel cannot use legacy."}
+	for name, value := range map[string]types.Bool{"true": types.BoolValue(true), "false": types.BoolValue(false)} {
+		resp := &validator.BoolResponse{}
+		check.ValidateBool(ctx, validator.BoolRequest{Path: path.Root("legacy"), ConfigValue: value}, resp)
+		if len(resp.Diagnostics.Errors()) != 1 || resp.Diagnostics.Errors()[0].Detail() != "A panel cannot use legacy." {
+			t.Errorf("%s gave %v, want the message of the line", name, resp.Diagnostics)
+		}
+	}
+	for name, value := range map[string]types.Bool{"null": types.BoolNull(), "unknown": types.BoolUnknown()} {
+		resp := &validator.BoolResponse{}
+		check.ValidateBool(ctx, validator.BoolRequest{Path: path.Root("legacy"), ConfigValue: value}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Errorf("%s gave %v, want no error", name, resp.Diagnostics)
+		}
+	}
+	var resp frameworkresource.SchemaResponse
+	(&Resource{}).Schema(ctx, frameworkresource.SchemaRequest{}, &resp)
+	panels, ok := resp.Schema.Attributes["panels"].(schema.ListNestedAttribute)
+	if !ok {
+		t.Fatal("panels is not a list of objects")
+	}
+	legacy, ok := panels.NestedObject.Attributes["legacy"].(schema.BoolAttribute)
+	if !ok || len(legacy.Validators) != 1 {
+		t.Fatalf("legacy = %#v, want a bool with the validator", panels.NestedObject.Attributes["legacy"])
 	}
 }

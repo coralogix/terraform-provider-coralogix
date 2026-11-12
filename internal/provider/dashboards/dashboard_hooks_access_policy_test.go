@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func TestFlattenDashboardAccessPolicy(t *testing.T) {
+func TestFoldDashboardAccessPolicy(t *testing.T) {
 	// The backend's key order for the same policy a jsonencode-based
 	// configuration would produce.
 	backendText := `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[]}`
@@ -132,10 +132,7 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, diags := flattenDashboardAccessPolicy(tt.plan, tt.accessPolicy)
-			if diags.HasError() {
-				t.Fatalf("diagnostics: %v", diags)
-			}
+			got := foldDashboardAccessPolicy(tt.plan, tt.accessPolicy)
 			if !got.Equal(tt.want) {
 				t.Fatalf("access_policy = %s, want %s", got, tt.want)
 			}

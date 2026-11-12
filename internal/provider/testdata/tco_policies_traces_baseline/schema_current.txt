@@ -5,6 +5,7 @@ id  StringAttribute computed
     markdown: "The fixed id of this singleton: there is one per company."
 policies  ListNestedAttribute required
 policies[]  NestedObject
+    validator: tcopoliciestraces.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 policies[].actions  SingleNestedAttribute optional
     markdown: "The actions to apply the policy on. Applies the policy on all the actions by default."
 policies[].actions.names  SetAttribute required elem=basetypes.StringType
@@ -31,7 +32,6 @@ policies[].description  StringAttribute optional computed
     markdown: "The policy description"
 policies[].dpxl_expression  StringAttribute optional
     markdown: "DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`."
-    validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.services,<.actions,<.tags,<.applications,<.subsystems]"
     validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
 policies[].enabled  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to true

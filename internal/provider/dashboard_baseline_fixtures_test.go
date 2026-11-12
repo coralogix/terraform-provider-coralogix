@@ -98,6 +98,7 @@ var undeclaredGroups = [][]string{
 	{"preset", "color_range"},
 	{"size", "color_range"},
 	{"field", "regex", "field_type"},
+	{"duration", "instant", "range"},
 }
 
 // objectGroup is a set of attributes of which at most one (or exactly one) is set. A conflict
@@ -553,6 +554,23 @@ func dashboardHint(path, name string) (any, bool) {
 		return "seconds:900", true
 	case name == "widget_ids":
 		return []any{"11111111-1111-4111-8111-111111111111"}, true
+	}
+	return enumHint(path, name)
+}
+
+// enumHint gives a value that the generated schema accepts for an enum that the released schema does
+// not list. A made-up text would be rejected, and the walk would drop the rest of its base.
+func enumHint(path, name string) (any, bool) {
+	spansAggregation := strings.Contains(path, ".spans.") && strings.Contains(path, "aggregation")
+	switch {
+	case name == "scale_type":
+		return "linear", true
+	case name == "unit" && strings.Contains(path, "pie_chart."):
+		return "percent", true
+	case spansAggregation && name == "aggregation_type":
+		return "avg", true
+	case spansAggregation && name == "field":
+		return "duration", true
 	}
 	return nil, false
 }

@@ -98,7 +98,7 @@ func removeUnsupportedArms(r *model.Resource, file *overrides.File) ([]string, e
 			return walk(at, t.Elem)
 		}
 		if arms := file.Types[t.Schema].UnsupportedArms; t.Schema != "" && len(arms) != 0 {
-			removed, err := dropArms(t, arms)
+			removed, err := dropMembers(t, arms, true)
 			if err != nil {
 				return fmt.Errorf("types.%s.unsupportedArms: %w", t.Schema, err)
 			}
@@ -172,6 +172,12 @@ func dropRootArms(r *model.Resource, arms []string) ([]string, error) {
 // dropArms removes the arms from t: an object whose oneOf groups hold them, or a oneOf. It
 // returns the removed arms in the order of the fields.
 func dropArms(t *model.Type, arms []string) ([]string, error) {
+	return dropMembers(t, arms, false)
+}
+
+// dropMembers is dropArms; with fields true, an object can also list a plain field that the
+// resource does not configure, such as a deprecated field that the typed schema cannot show.
+func dropMembers(t *model.Type, arms []string, fields bool) ([]string, error) {
 	var groupArms []string
 	for _, g := range t.Groups {
 		groupArms = append(groupArms, g.Arms...)
@@ -183,7 +189,7 @@ func dropArms(t *model.Type, arms []string) ([]string, error) {
 		return slices.Contains(groupArms, name)
 	}
 	for _, arm := range arms {
-		if !slices.ContainsFunc(t.Fields, func(f *model.Field) bool { return f.Name == arm }) || !isArm(arm) {
+		if !slices.ContainsFunc(t.Fields, func(f *model.Field) bool { return f.Name == arm }) || !isArm(arm) && !(fields && t.Kind != model.OneOf) {
 			return nil, fmt.Errorf("%q is not a oneOf arm", arm)
 		}
 	}

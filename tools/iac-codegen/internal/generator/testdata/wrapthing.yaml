@@ -36,6 +36,8 @@ paths:
                 tags: {$ref: '#/components/schemas/Tags'}
                 window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
+                span: {type: string, x-coralogix-presence: true}
+                step: {type: string, x-coralogix-presence: true}
                 extraLabel: {$ref: '#/components/schemas/Label'}
                 panels:
                   type: array
@@ -44,6 +46,9 @@ paths:
                   type: array
                   items: {$ref: '#/components/schemas/WrapNote'}
                 folderPath: {$ref: '#/components/schemas/FolderPath'}
+                marks: {type: array, items: {$ref: '#/components/schemas/WrapMark'}}
+                homeId: {$ref: '#/components/schemas/UUID'}
+                homePath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -88,6 +93,8 @@ paths:
                 tags: {$ref: '#/components/schemas/Tags'}
                 window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
+                span: {type: string, x-coralogix-presence: true}
+                step: {type: string, x-coralogix-presence: true}
                 extraLabel: {$ref: '#/components/schemas/Label'}
                 panels:
                   type: array
@@ -96,6 +103,9 @@ paths:
                   type: array
                   items: {$ref: '#/components/schemas/WrapNote'}
                 folderPath: {$ref: '#/components/schemas/FolderPath'}
+                marks: {type: array, items: {$ref: '#/components/schemas/WrapMark'}}
+                homeId: {$ref: '#/components/schemas/UUID'}
+                homePath: {$ref: '#/components/schemas/FolderPath'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
@@ -140,6 +150,8 @@ components:
         tags: {$ref: '#/components/schemas/Tags'}
         window: {$ref: '#/components/schemas/Window'}
         mainLabel: {$ref: '#/components/schemas/Label'}
+        span: {type: string, x-coralogix-presence: true}
+        step: {type: string, x-coralogix-presence: true}
         extraLabel: {$ref: '#/components/schemas/Label'}
         panels:
           type: array
@@ -148,6 +160,9 @@ components:
           type: array
           items: {$ref: '#/components/schemas/WrapNote'}
         folderPath: {$ref: '#/components/schemas/FolderPath'}
+        marks: {type: array, items: {$ref: '#/components/schemas/WrapMark'}}
+        homeId: {$ref: '#/components/schemas/UUID'}
+        homePath: {$ref: '#/components/schemas/FolderPath'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     LuceneQuery:
       type: object
@@ -213,7 +228,7 @@ components:
         customValue: {type: string}
     WindowValue:
       type: string
-      enum: [WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED, WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+      enum: [WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED, WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2, WINDOW_VALUE_DAYS_7]
     Tags:
       type: object
       required: []
@@ -233,6 +248,13 @@ components:
       properties:
         id: {$ref: '#/components/schemas/UUID'}
         title: {type: string, x-coralogix-presence: true}
+        # A deprecated field that the typed schema does not show.
+        retired: {type: string, x-coralogix-presence: true}
+        # A flag that the API never accepts on a panel.
+        legacy: {type: boolean, x-coralogix-presence: true}
+        # The API fills the level in when the request leaves it out.
+        level: {$ref: '#/components/schemas/WindowValue'}
+        size: {$ref: '#/components/schemas/WindowValue'}
     # A note names its panel by the id of the panel, a UUID in a wrapper. The notes are in the list of
     # the thing, not in the panel. The detail is set for a note of this kind, and a note without a url
     # is another kind of note, which the resource does not show.
@@ -249,6 +271,23 @@ components:
       required: []
       properties:
         url: {type: string, x-coralogix-presence: true}
+    # A link has a target and a hint that the released resource never showed. At the place of the mark,
+    # Terraform shows the link as its target, a string, and the hint is skipped.
+    LinkRef:
+      type: object
+      properties:
+        target: {type: string, x-coralogix-presence: true}
+        hint: {type: string, x-coralogix-presence: true}
+    # A mark is an item of a set. Its ratio is a double that Terraform shows as a Number, so the
+    # configured decimal (0.1) must stay in the state: flatten pairs each item with the prior item.
+    WrapMark:
+      type: object
+      properties:
+        label: {type: string, x-coralogix-presence: true}
+        ratio: {type: number, format: double, x-coralogix-presence: true}
+        link: {$ref: '#/components/schemas/LinkRef'}
+        title: {type: string, x-coralogix-presence: true}
+        createdAt: {type: string, format: date-time, x-coralogix-presence: true}
     # A folder path: the segments, held in an object, which Terraform shows as one text "Team/Sub".
     FolderPath:
       type: object

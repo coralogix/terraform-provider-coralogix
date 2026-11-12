@@ -72,7 +72,10 @@
                                 "spans": {
                                   "aggregations": [
                                     {
-                                      "metricAggregation": {}
+                                      "metricAggregation": {
+                                        "aggregationType": "METRIC_AGGREGATION_TYPE_AVERAGE",
+                                        "metricField": "METRIC_FIELD_DURATION"
+                                      }
                                     }
                                   ],
                                   "filters": [
@@ -189,6 +192,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -236,8 +240,8 @@
                               "spans": {
                                 "aggregations": [
                                   {
-                                    "aggregation_type": "unspecified",
-                                    "field": "unspecified",
+                                    "aggregation_type": "avg",
+                                    "field": "duration",
                                     "type": "metric"
                                   }
                                 ],
@@ -402,7 +406,10 @@
                                 "spans": {
                                   "aggregations": [
                                     {
-                                      "metricAggregation": {}
+                                      "metricAggregation": {
+                                        "aggregationType": "METRIC_AGGREGATION_TYPE_AVERAGE",
+                                        "metricField": "METRIC_FIELD_DURATION"
+                                      }
                                     }
                                   ],
                                   "filters": [
@@ -519,6 +526,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -566,8 +574,8 @@
                               "spans": {
                                 "aggregations": [
                                   {
-                                    "aggregation_type": "unspecified",
-                                    "field": "unspecified",
+                                    "aggregation_type": "avg",
+                                    "field": "duration",
                                     "type": "metric"
                                   }
                                 ],
@@ -660,12 +668,7 @@
   },
   {
     "step": "refresh and plan variant 0",
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional values (39)",
@@ -713,7 +716,7 @@
     "requestDiff": [
       "- .dashboard.actions[0].shouldOpenInNewWindow",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.connectNulls",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.columns[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.columns",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.legend.groupByQuery: true → false",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].colorScheme",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].customUnit",
@@ -771,15 +774,11 @@
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
     "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field",
       "layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type"
     ],
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")",
       "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"tooltip\").AttributeName(\"type\")"
     ]
   },
@@ -790,7 +789,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d3a1eb85] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:11de1c21] → null"
     ],
     "replanEmpty": true
   },
@@ -807,7 +806,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:99576696] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:0108240e] → null"
     ],
     "replanEmpty": true
   },
@@ -818,7 +817,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:950f502c] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:c3ba03bd] → null"
     ],
     "replanEmpty": true
   },
@@ -852,10 +851,10 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.tooltip"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution: {\"auto\":{\"maximum_data_points\":1,\"minimum_interval\":\"900s\"},\"manual\":null,\"use_advanced_limit\":true} → null",
-      "- .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0]",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations: [{\"aggregation_type\":\"avg\",\"field\":\"duration\",\"type\":\"metric\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters: [{\"field\":{\"type\":\"metadata\",\"value\":\"service_name\"},\"observation_field\":{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"},\"operator\":{\"sele…[sha256:1cefcaac] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys: [{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"}] → null",
@@ -863,14 +862,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].resolution: {\"buckets_presented\":1,\"interval\":null} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip: {\"show_labels\":true,\"type\":\"all\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove optional objects, round 5 (2)",
@@ -889,34 +881,18 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].field: {\"type\":\"metadata\",\"value\":\"service_name\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"} → null"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d3a1eb85] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -992,7 +968,7 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.aggregations"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.aggregations[0]"
     ],
     "stateDiff": [
       "- .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0]"
@@ -1036,23 +1012,12 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBy"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.lineChart.queryDefinitions[0].query.spans.groupBy[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by: [{\"type\":\"metadata\",\"value\":\"service_name\"}] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field",
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_by"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.group_bys",
@@ -1105,16 +1070,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type: \"all\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.x_axis_time_format: \"auto\" → \"unspecified\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to their last value (7)",
@@ -1150,21 +1106,12 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.group_bys[0].scope: \"label\" → \"user_data\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].unit: \"bytes\" → \"usd_cents\""
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].aggregation_type",
-      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.spans.aggregations[0].field"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation_type\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"field\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply variant 1",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -1176,14 +1123,14 @@
       "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.maximum_data_points",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -1194,35 +1141,35 @@
       "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values"
     ],
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].interval_resolution.manual.minimum_interval",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "set layout.sections[].options.color = orange",
     "diagnostics": [
-      "error: Error Expand resolution.interval | error parsing duration: [1m0s]",
+      "error: Invalid Attribute Value Match [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   }

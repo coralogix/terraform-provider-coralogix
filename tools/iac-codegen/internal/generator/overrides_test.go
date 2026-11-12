@@ -1346,10 +1346,10 @@ func TestRequiredLineOnAResponseOnlyComponent(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := overrides.Line{Kind: overrides.KindField, Component: "Item", Field: "priority", Required: true}
-	if problem := fieldLineProblem(schema, line, true, true, nil); problem != nil {
+	if problem := fieldLineProblem(schema, line, nil, true, true, nil); problem != nil {
 		t.Fatalf("problem = %v, want none for a component that no request reaches", problem)
 	}
-	if problem := fieldLineProblem(schema, line, true, false, nil); problem == nil || !slices.Contains(problem.stale, "required") {
+	if problem := fieldLineProblem(schema, line, nil, true, false, nil); problem == nil || !slices.Contains(problem.stale, "required") {
 		t.Fatalf("problem = %v, want a stale required key for a shared component", problem)
 	}
 }

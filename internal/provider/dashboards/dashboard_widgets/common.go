@@ -28,7 +28,6 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -1491,21 +1490,6 @@ func int32PointerToInt64Type(value *int32) types.Int64 {
 	return types.Int64Value(int64(*value))
 }
 
-func numberTypeToFloat64Pointer(value types.Number) *float64 {
-	if value.IsNull() || value.IsUnknown() {
-		return nil
-	}
-	converted, _ := value.ValueBigFloat().Float64()
-	return &converted
-}
-
-func float64PointerToNumberType(value *float64) types.Number {
-	if value == nil {
-		return types.NumberNull()
-	}
-	return types.NumberValue(big.NewFloat(*value))
-}
-
 func numberTypeToInt32Pointer(value types.Number) *int32 {
 	if value.IsNull() || value.IsUnknown() {
 		return nil
@@ -1635,19 +1619,6 @@ func FlattenDashboardFilterSourceMetrics(metrics *dashboardservice.MetricsFilter
 	}, nil
 }
 
-func FlattenDashboardTimeFrame(ctx context.Context, d *dashboardservice.Dashboard) (*TimeFrameModel, diag.Diagnostics) {
-	switch {
-	case d == nil:
-		return nil, nil
-	case d.AbsoluteTimeFrame != nil:
-		return flattenAbsoluteTimeFrame(ctx, d.AbsoluteTimeFrame)
-	case d.RelativeTimeFrame != nil:
-		return flattenRelativeTimeFrame(ctx, d.RelativeTimeFrame)
-	default:
-		return nil, nil
-	}
-}
-
 func FlattenTimeFrameSelect(ctx context.Context, d *dashboardservice.TimeFrameSelect) (*TimeFrameModel, diag.Diagnostics) {
 	if d == nil {
 		return nil, nil
@@ -1704,51 +1675,6 @@ func flattenRelativeTimeFrame(ctx context.Context, timeFrame *string) (*TimeFram
 		Absolute: nil,
 	}
 	return flattenedTimeFrame, nil
-}
-
-func FlattenSpansFilters(ctx context.Context, filters []dashboardservice.SpansFilter) (types.List, diag.Diagnostics) {
-	if len(filters) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: SpansFilterModelAttr()}), nil
-	}
-
-	var diagnostics diag.Diagnostics
-	filtersElements := make([]attr.Value, 0, len(filters))
-	for i := range filters {
-		flattenedFilter, dg := FlattenSpansFilter(&filters[i])
-		if dg != nil {
-			diagnostics.Append(dg)
-			continue
-		}
-		filterElement, diags := types.ObjectValueFrom(ctx, SpansFilterModelAttr(), flattenedFilter)
-		if diags.HasError() {
-			diagnostics = append(diagnostics, diags...)
-			continue
-		}
-		filtersElements = append(filtersElements, filterElement)
-	}
-
-	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFilterModelAttr()}, filtersElements), diagnostics
-}
-
-func FlattenSpansFilter(filter *dashboardservice.SpansFilter) (*SpansFilterModel, diag.Diagnostic) {
-	if filter == nil {
-		return nil, nil
-	}
-
-	operator, dg := FlattenFilterOperator(filter.Operator)
-	if dg != nil {
-		return nil, dg
-	}
-
-	field, dg := FlattenSpansField(filter.Field)
-	if dg != nil {
-		return nil, dg
-	}
-
-	return &SpansFilterModel{
-		Field:    field,
-		Operator: operator,
-	}, nil
 }
 
 func FlattenFilterOperator(operator *dashboardservice.FilterOperator) (*FilterOperatorModel, diag.Diagnostic) {
@@ -2218,31 +2144,6 @@ func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*das
 	return &tf, nil
 }
 
-func ExpandDashboardTimeFrame(ctx context.Context, dashboard *dashboardservice.Dashboard, timeFrame *TimeFrameModel) (*dashboardservice.Dashboard, diag.Diagnostics) {
-	if timeFrame == nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("No time frame received", "time frame was nil")}
-	}
-
-	var diags diag.Diagnostics
-	switch {
-	case timeFrame.Relative != nil:
-		relative, diags := expandRelativeTimeFrame(ctx, timeFrame.Relative)
-		if diags.HasError() {
-			return nil, diags
-		}
-		dashboard.RelativeTimeFrame = relative
-	case timeFrame.Absolute != nil:
-		absoluteTimeFrame, diags := expandAbsoluteTimeFrame(ctx, timeFrame.Absolute)
-		if diags.HasError() {
-			return nil, diags
-		}
-		dashboard.AbsoluteTimeFrame = absoluteTimeFrame
-	default:
-		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")}
-	}
-	return dashboard, diags
-}
-
 func expandRelativeTimeFrame(ctx context.Context, timeFrame *TimeFrameRelativeModel) (*string, diag.Diagnostics) {
 	duration, dg := legacyDurationToOpenAPI(timeFrame.Duration.ValueString(), "Relative Dashboard Time Frame")
 	if dg != nil {
@@ -2508,13 +2409,6 @@ func ExactlyOneOfString(expressions ...path.Expression) validator.String {
 	}
 }
 
-func ExactlyOneOfInt64(expressions ...path.Expression) validator.Int64 {
-	return friendlyExactlyOneOfInt64Validator{
-		Int64:           int64validator.ExactlyOneOf(expressions...),
-		PathExpressions: expressions,
-	}
-}
-
 type FriendlyExactlyOneOfObjectValidator struct {
 	validator.Object
 	PathExpressions path.Expressions
@@ -2549,32 +2443,11 @@ func (v friendlyExactlyOneOfStringValidator) ValidateString(ctx context.Context,
 	}, delegateResp.Diagnostics, &resp.Diagnostics)
 }
 
-type friendlyExactlyOneOfInt64Validator struct {
-	validator.Int64
-	PathExpressions path.Expressions
-}
-
-func (v friendlyExactlyOneOfInt64Validator) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
-	var delegateResp validator.Int64Response
-	v.Int64.ValidateInt64(ctx, req, &delegateResp)
-	rewriteExactlyOneOfDiagnostics(ctx, exactlyOneOfDiagnosticRequest{
-		Config:          req.Config,
-		ConfigValue:     req.ConfigValue,
-		Path:            req.Path,
-		PathExpression:  req.PathExpression,
-		PathExpressions: v.PathExpressions,
-	}, delegateResp.Diagnostics, &resp.Diagnostics)
-}
-
 func (v FriendlyExactlyOneOfObjectValidator) exactlyOneOfPathExpressions() path.Expressions {
 	return v.PathExpressions
 }
 
 func (v friendlyExactlyOneOfStringValidator) exactlyOneOfPathExpressions() path.Expressions {
-	return v.PathExpressions
-}
-
-func (v friendlyExactlyOneOfInt64Validator) exactlyOneOfPathExpressions() path.Expressions {
 	return v.PathExpressions
 }
 

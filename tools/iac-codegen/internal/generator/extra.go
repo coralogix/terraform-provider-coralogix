@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
@@ -13,6 +14,12 @@ type extraFlatten struct {
 	Name   string // Go field
 	TFName string // Terraform attribute name
 	Expr   string // typed null, for example types.MapNull(types.StringType)
+	// Keep: flatten takes the value of the prior object, because the API does not hold the
+	// attribute (a string extra attribute with a default, inside an object).
+	Keep bool
+	// Default is the Go expression of the static default of the attribute. A read without a prior
+	// object, such as an import, starts with it.
+	Default string
 }
 
 func extraElem(elementType string) (tfType, nullExpr string, err error) {
@@ -82,7 +89,7 @@ func attachOneExtra(out *tfResource, file *overrides.File, component string, mod
 		computed = computed || inherited
 	}
 	model.Fields = append(model.Fields, field)
-	if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
+	if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr, extra.Type == "string" && component != file.Resource && extraDefaultExpr(extra) != "", extraDefaultExpr(extra)); err != nil {
 		return false, fmt.Errorf("%s: %w", location, err)
 	}
 	if err := attachExtraBehavior(out, file.Resource, component, name, extra, attrType); err != nil {
@@ -392,7 +399,15 @@ func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelFie
 	return attribute, field, attrType, nullExpr, nil
 }
 
-func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr string) error {
+// extraDefaultExpr is the Go expression of the static string default of an extra attribute, or "".
+func extraDefaultExpr(extra overrides.ExtraAttribute) string {
+	if text, ok := extra.Default.(string); ok && extra.Type == "string" {
+		return "types.StringValue(" + strconv.Quote(text) + ")"
+	}
+	return ""
+}
+
+func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr string, keep bool, defaultExpr string) error {
 	if conv == nil {
 		return nil
 	}
@@ -408,7 +423,15 @@ func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr s
 				Expr:   attrType,
 			})
 		}
-		obj.ExtraFlatten = append(obj.ExtraFlatten, extraFlatten{Name: goName, TFName: tfName, Expr: nullExpr})
+		obj.ExtraFlatten = append(obj.ExtraFlatten, extraFlatten{Name: goName, TFName: tfName, Expr: nullExpr, Keep: keep, Default: defaultExpr})
+		if keep {
+			// The flatten function reads the attribute from the prior object, and so do the
+			// functions of the objects above it.
+			obj.NeedsPrior = true
+		}
+	}
+	if matched && keep {
+		propagatePrior(conv)
 	}
 	if !matched {
 		matched = attachEmptyConvExtra(conv, model, tfName, goName, attrType, nullExpr)

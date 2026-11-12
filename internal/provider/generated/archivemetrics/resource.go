@@ -50,6 +50,10 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *metrics_data_archive_service.TenantConfigV2) diag.Diagnostics
+	// AllowUnsupported says that the resource is managed in a way that does not read the
+	// unsupported fields and arms (unsupportedArms), so flatten does not report them. It gets the
+	// plan after Create or Update, or the state before Read; a state upgrade gets the prior state.
+	AllowUnsupported func(context.Context, any) bool
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -276,7 +280,24 @@ func (r *Resource) setState(ctx context.Context, v *metrics_data_archive_service
 			return diags
 		}
 	}
+	if r.hooks.AllowUnsupported != nil {
+		source := prior
+		if source != nil && r.hooks.AllowUnsupported(ctx, source) {
+			ctx = withUnsupportedAllowed(ctx)
+		}
+	}
 	m, flattenDiags := flatten(ctx, v)
+	if m != nil && unsupportedAllowed(ctx) {
+		// The hook that allowed the unsupported values manages the resource another way and drops its
+		// typed attributes, so a value that the schema cannot show is no error here.
+		kept := flattenDiags[:0:0]
+		for _, d := range flattenDiags {
+			if d.Severity() != diag.SeverityError {
+				kept = append(kept, d)
+			}
+		}
+		flattenDiags = kept
+	}
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
 		return diags
@@ -299,6 +320,17 @@ func (r *Resource) setState(ctx context.Context, v *metrics_data_archive_service
 // uses the schema and the model of this resource. It has no prior model.
 func Flatten(ctx context.Context, v *metrics_data_archive_service.TenantConfigV2) (*TenantConfigV2Model, diag.Diagnostics) {
 	return flatten(ctx, v)
+}
+
+// Expand returns what Create sends in the place of the resource, for a hook that has to build the
+// request itself, such as a check of the plan before the write. It is the same conversion that
+// Create uses: a null or unknown value is left out, and a field that the generator adds later is
+// in it with no edit of the hook. When the Create body holds the resource in one field, Expand
+// returns that resource, as the API response has it, and not the body.
+func Expand(ctx context.Context, m *TenantConfigV2Model) (*metrics_data_archive_service.ConfigureTenantRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	out := expandConfigureTenantRequest(ctx, path.Empty(), m, &diags)
+	return out, diags
 }
 
 // stateID returns the id in the state.

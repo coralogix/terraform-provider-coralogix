@@ -141,15 +141,14 @@ notification_group.webhooks_settings  SetNestedAttribute optional
     markdown: "The settings for webhooks associated with the alert definition"
 notification_group.webhooks_settings[]  NestedObject
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    validator: alert.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 notification_group.webhooks_settings[].integration_id  StringAttribute optional
     markdown: "The integration ID for the notification"
-    validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.recipients]"
 notification_group.webhooks_settings[].notify_on  StringAttribute optional computed
     markdown: "Notify on. Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]. When omitted (along with retriggering_period), Advanced Notification is disabled."
     validator: stringvalidator.oneOfValidator value must be one of: ["Triggered "Triggered Only" Resolved" and]
 notification_group.webhooks_settings[].recipients  SetAttribute optional elem=basetypes.StringType
     markdown: "The recipients for the notification."
-    validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.integration_id]"
 notification_group.webhooks_settings[].retriggering_period  SingleNestedAttribute optional computed
     markdown: "Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence."
     plan modifier: alert.setItemStateModifier Once set, the value of this attribute in state will not change.
@@ -181,9 +180,9 @@ schedule.active_on.utc_offset  StringAttribute optional computed
     validator: stringvalidator.regexMatchesValidator Time zone to interpret the start/end times in, using a UTC offset like -0700
 type_definition  SingleNestedAttribute required
     markdown: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview)."
+    validator: alert.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 type_definition.analytics_immediate  SingleNestedAttribute optional
     markdown: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`."
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_threshold]"
 type_definition.analytics_immediate.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -211,7 +210,6 @@ type_definition.analytics_immediate.use_rows_as_permutations  BoolAttribute opti
     markdown: "Whether each result row is treated as a separate permutation. Defaults to false for immediate alerts to avoid high-cardinality alerts by mistake."
 type_definition.analytics_threshold  SingleNestedAttribute optional
     markdown: "Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`."
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate]"
 type_definition.analytics_threshold.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -258,7 +256,6 @@ type_definition.analytics_threshold.use_rows_as_permutations  BoolAttribute opti
     markdown: "Whether each result row is treated as a separate permutation. Defaults to true for threshold alerts as permutation count is easier to estimate."
 type_definition.flow  SingleNestedAttribute optional
     markdown: "Configuration for flow-based alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.flow.enforce_suppression  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
     markdown: "The enforce suppression."
@@ -290,7 +287,6 @@ type_definition.flow.stages[].timeframe_type  StringAttribute required
     validator: stringvalidator.oneOfValidator value must be one of: ["Unspecified" "Up To"]
 type_definition.logs_anomaly  SingleNestedAttribute optional
     markdown: "Configuration for log-based anomaly detection alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_anomaly.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -348,7 +344,6 @@ type_definition.logs_anomaly.rules[].condition.time_window  StringAttribute requ
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"]
 type_definition.logs_immediate  SingleNestedAttribute optional
     markdown: "Configuration for immediate log-based alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_immediate.logs_filter  SingleNestedAttribute optional computed
     markdown: "The filter to match log entries for immediate alerts."
     plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
@@ -386,7 +381,6 @@ type_definition.logs_immediate.notification_payload_filter  SetAttribute optiona
     markdown: "The notification payload filter."
 type_definition.logs_new_value  SingleNestedAttribute optional
     markdown: "Configuration for alerts triggered by new log values"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_new_value.logs_filter  SingleNestedAttribute optional computed
     markdown: "The filter to match log entries for the alert."
     plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
@@ -435,7 +429,6 @@ type_definition.logs_new_value.rules[].condition.time_window  StringAttribute re
     validator: stringvalidator.oneOfValidator value must be one of: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"]
 type_definition.logs_ratio_threshold  SingleNestedAttribute optional
     markdown: "Configuration for log-based ratio threshold alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_ratio_threshold.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -550,7 +543,6 @@ type_definition.logs_ratio_threshold.undetected_values_management.trigger_undete
     markdown: "Should trigger the alert when undetected values are detected"
 type_definition.logs_threshold  SingleNestedAttribute optional
     markdown: "Configuration for log-based threshold alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_threshold.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -630,7 +622,6 @@ type_definition.logs_threshold.undetected_values_management.trigger_undetected_v
     markdown: "Should trigger the alert when undetected values are detected"
 type_definition.logs_time_relative_threshold  SingleNestedAttribute optional
     markdown: "Configuration for time-relative log threshold alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_time_relative_threshold.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -704,7 +695,6 @@ type_definition.logs_time_relative_threshold.undetected_values_management.trigge
     markdown: "Should trigger the alert when undetected values are detected"
 type_definition.logs_unique_count  SingleNestedAttribute optional
     markdown: "Configuration for alerts based on unique log value counts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.logs_unique_count.logs_filter  SingleNestedAttribute optional computed
     markdown: "The filter to match log entries for the alert."
     plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
@@ -757,7 +747,6 @@ type_definition.logs_unique_count.unique_count_keypath  StringAttribute required
     markdown: "The keypath in the logs to be used for unique count"
 type_definition.metric_anomaly  SingleNestedAttribute optional
     markdown: "Configuration for metric-based anomaly detection alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.metric_anomaly.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -787,7 +776,6 @@ type_definition.metric_anomaly.rules[].condition.threshold  Float64Attribute req
     markdown: "The threshold value for the alert condition"
 type_definition.metric_threshold  SingleNestedAttribute optional
     markdown: "Configuration for metric-based threshold alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.metric_threshold.custom_evaluation_delay  Int32Attribute optional
     markdown: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."
     validator: int32validator.atLeastValidator value must be at least 0
@@ -797,12 +785,11 @@ type_definition.metric_threshold.metric_filter.promql  StringAttribute required
     markdown: "A PromQL filter for metrics"
 type_definition.metric_threshold.missing_values  SingleNestedAttribute required
     markdown: "Configuration for handling missing values in the alert."
+    validator: alert.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 type_definition.metric_threshold.missing_values.min_non_null_values_pct  Int64Attribute optional
     markdown: "If set, specifies the minimum percentage of non-null values required for the alert to be triggered"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.replace_with_zero]"
 type_definition.metric_threshold.missing_values.replace_with_zero  BoolAttribute optional
     markdown: "If set to true, missing values will be replaced with zero"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.min_non_null_values_pct]"
 type_definition.metric_threshold.no_data_policy  SingleNestedAttribute optional computed
     markdown: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."
     plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
@@ -846,13 +833,12 @@ type_definition.metric_threshold.undetected_values_management.trigger_undetected
     markdown: "Should trigger the alert when undetected values are detected"
 type_definition.slo_threshold  SingleNestedAttribute optional
     markdown: "Configuration for SLO-based alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.analytics_immediate,<.analytics_threshold]"
+    validator: alert.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 type_definition.slo_threshold.burn_rate  SingleNestedAttribute optional
     markdown: "Burn rate threshold"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.error_budget]"
+    validator: alert.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
 type_definition.slo_threshold.burn_rate.dual  SingleNestedAttribute optional
     markdown: "Burn rate type dual"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.single]"
 type_definition.slo_threshold.burn_rate.dual.time_duration  SingleNestedAttribute required
     markdown: "Configuration for time duration"
 type_definition.slo_threshold.burn_rate.dual.time_duration.duration  Int64Attribute required
@@ -874,7 +860,6 @@ type_definition.slo_threshold.burn_rate.rules[].override.priority  StringAttribu
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.slo_threshold.burn_rate.single  SingleNestedAttribute optional
     markdown: "Burn rate type single"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.dual]"
 type_definition.slo_threshold.burn_rate.single.time_duration  SingleNestedAttribute required
     markdown: "Configuration for time duration"
 type_definition.slo_threshold.burn_rate.single.time_duration.duration  Int64Attribute required
@@ -884,7 +869,6 @@ type_definition.slo_threshold.burn_rate.single.time_duration.unit  StringAttribu
     validator: stringvalidator.oneOfValidator value must be one of: ["HOURS" "UNSPECIFIED"]
 type_definition.slo_threshold.error_budget  SingleNestedAttribute optional
     markdown: "Error budget threshold"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.burn_rate]"
 type_definition.slo_threshold.error_budget.rules  ListNestedAttribute required
     markdown: "The rules for the error budget threshold"
 type_definition.slo_threshold.error_budget.rules[]  NestedObject
@@ -903,7 +887,6 @@ type_definition.slo_threshold.slo_definition.slo_id  StringAttribute required
     markdown: "The SLO ID"
 type_definition.tracing_immediate  SingleNestedAttribute optional
     markdown: "Configuration for immediate tracing-based alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.tracing_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.tracing_immediate.notification_payload_filter  SetAttribute optional elem=basetypes.StringType
     markdown: "Notification payload field filter"
 type_definition.tracing_immediate.tracing_filter  SingleNestedAttribute required
@@ -963,7 +946,6 @@ type_definition.tracing_immediate.tracing_filter.tracing_label_filters.subsystem
     markdown: "The values of the label to filter by"
 type_definition.tracing_threshold  SingleNestedAttribute optional
     markdown: "Configuration for tracing-based threshold alerts"
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.logs_immediate,<.tracing_immediate,<.logs_threshold,<.logs_ratio_threshold,<.logs_time_relative_threshold,<.metric_threshold,<.flow,<.logs_anomaly,<.metric_anomaly,<.logs_new_value,<.logs_unique_count,<.slo_threshold,<.analytics_immediate,<.analytics_threshold]"
 type_definition.tracing_threshold.notification_payload_filter  SetAttribute optional elem=basetypes.StringType
     markdown: "Notification payload field filter"
 type_definition.tracing_threshold.rules  SetNestedAttribute required

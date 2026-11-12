@@ -557,8 +557,13 @@ func typedValidator(attrs []*tfAttr, arms []*model.Field, values map[string]stri
 	for _, arm := range arms {
 		v := values[arm.Name]
 		fields = append(fields, fmt.Sprintf("%q: {%s}", v, quote(has[v])))
+		// One entry for each arm: a map literal cannot repeat a key.
+		var perAttr []string
 		for _, attr := range slices.Sorted(mapsKeys(checked[v])) {
-			vals = append(vals, fmt.Sprintf("%q: {%q: {%s}}", v, attr, strings.Join(checked[v][attr], ", ")))
+			perAttr = append(perAttr, fmt.Sprintf("%q: {%s}", attr, strings.Join(checked[v][attr], ", ")))
+		}
+		if len(perAttr) > 0 {
+			vals = append(vals, fmt.Sprintf("%q: {%s}", v, strings.Join(perAttr, ", ")))
 		}
 	}
 	out := fmt.Sprintf("%s{Names: []string{%s}, Fields: map[string][]string{%s}", typedArmValidatorName, quote(names), strings.Join(fields, ", "))

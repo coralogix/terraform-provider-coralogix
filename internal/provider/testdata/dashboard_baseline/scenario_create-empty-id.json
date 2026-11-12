@@ -124,7 +124,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating Dashboard | OpenAPI create response did not include dashboardId"
+      "error: Unable to create dashboard | the API did not return the id of the new resource"
     ],
     "state": null
   }

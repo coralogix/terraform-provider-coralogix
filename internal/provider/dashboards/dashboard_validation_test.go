@@ -31,7 +31,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
-	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	gendashboard "github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/dashboard"
 )
 
 func TestAttributePathFromPointer(t *testing.T) {
@@ -423,13 +423,19 @@ func TestModifyPlanSkipsDestroyPlan(t *testing.T) {
 		writeIssues(w)
 	})
 
-	objectType := dashboardschema.V4().Type().TerraformType(context.Background())
+	objectType := gendashboard.Schema().Type().TerraformType(context.Background())
+	// A destroy plan: the state exists and the plan is null.
+	existing := map[string]tftypes.Value{}
+	for name, attributeType := range objectType.(tftypes.Object).AttributeTypes {
+		existing[name] = tftypes.NewValue(attributeType, nil)
+	}
 	req := resource.ModifyPlanRequest{
-		Plan: tfsdk.Plan{Schema: dashboardschema.V4(), Raw: tftypes.NewValue(objectType, nil)},
+		State: tfsdk.State{Schema: gendashboard.Schema(), Raw: tftypes.NewValue(objectType, existing)},
+		Plan:  tfsdk.Plan{Schema: gendashboard.Schema(), Raw: tftypes.NewValue(objectType, nil)},
 	}
 	resp := &resource.ModifyPlanResponse{}
 
-	resourceUnderTest.ModifyPlan(context.Background(), req, resp)
+	resourceUnderTest.modifyPlan(context.Background(), req, resp)
 
 	if requests != 0 {
 		t.Errorf("made %d validation requests on a destroy plan, want 0", requests)
@@ -446,7 +452,7 @@ func TestModifyPlanSkipsUnchangedResource(t *testing.T) {
 		writeIssues(w)
 	})
 
-	dashboardSchema := dashboardschema.V4()
+	dashboardSchema := gendashboard.Schema()
 	unchanged := emptyDashboardObject(t)
 
 	req := resource.ModifyPlanRequest{
@@ -455,7 +461,7 @@ func TestModifyPlanSkipsUnchangedResource(t *testing.T) {
 	}
 	resp := &resource.ModifyPlanResponse{}
 
-	resourceUnderTest.ModifyPlan(context.Background(), req, resp)
+	resourceUnderTest.modifyPlan(context.Background(), req, resp)
 
 	if requests != 0 {
 		t.Errorf("made %d validation requests for an unchanged dashboard, want 0", requests)
@@ -472,7 +478,7 @@ func TestModifyPlanValidatesCreate(t *testing.T) {
 		writeIssues(w)
 	})
 
-	dashboardSchema := dashboardschema.V4()
+	dashboardSchema := gendashboard.Schema()
 	objectType := dashboardSchema.Type().TerraformType(context.Background())
 
 	req := resource.ModifyPlanRequest{
@@ -481,7 +487,7 @@ func TestModifyPlanValidatesCreate(t *testing.T) {
 	}
 	resp := &resource.ModifyPlanResponse{}
 
-	resourceUnderTest.ModifyPlan(context.Background(), req, resp)
+	resourceUnderTest.modifyPlan(context.Background(), req, resp)
 
 	if requests != 1 {
 		t.Errorf("made %d validation requests on create, want 1", requests)
@@ -492,15 +498,15 @@ func TestModifyPlanValidatesCreate(t *testing.T) {
 }
 
 func TestModifyPlanWithoutClientDoesNothing(t *testing.T) {
-	unconfigured := &DashboardResource{}
-	objectType := dashboardschema.V4().Type().TerraformType(context.Background())
+	unconfigured := &planCheck{}
+	objectType := gendashboard.Schema().Type().TerraformType(context.Background())
 
 	req := resource.ModifyPlanRequest{
-		Plan: tfsdk.Plan{Schema: dashboardschema.V4(), Raw: tftypes.NewValue(objectType, nil)},
+		Plan: tfsdk.Plan{Schema: gendashboard.Schema(), Raw: tftypes.NewValue(objectType, nil)},
 	}
 	resp := &resource.ModifyPlanResponse{}
 
-	unconfigured.ModifyPlan(context.Background(), req, resp)
+	unconfigured.modifyPlan(context.Background(), req, resp)
 
 	if len(resp.Diagnostics) != 0 {
 		t.Errorf("diagnostics = %v, want none", resp.Diagnostics)
@@ -516,7 +522,7 @@ func TestCheckReturnsIssues(t *testing.T) {
 			`{"severity":"SEVERITY_ERROR","location":"/layout/sections/0/rows/0/widgets/1","message":"duplicate widget id"}`)
 	})
 
-	issues, err := client.Check(context.Background(), &dashboardservice.Dashboard{Name: "probe"})
+	issues, err := client.check(context.Background(), &dashboardservice.Dashboard{Name: "probe"})
 	if err != nil {
 		t.Fatalf("Check: %s", err)
 	}
@@ -534,7 +540,7 @@ func TestCheckFailureIsReportedAsError(t *testing.T) {
 		_, _ = w.Write([]byte(`{"message":"boom"}`))
 	})
 
-	if _, err := client.Check(context.Background(), &dashboardservice.Dashboard{Name: "probe"}); err == nil {
+	if _, err := client.check(context.Background(), &dashboardservice.Dashboard{Name: "probe"}); err == nil {
 		t.Fatal("expected an error from a failing check call")
 	}
 }
@@ -558,7 +564,7 @@ func writeIssues(w http.ResponseWriter, issues ...string) {
 func emptyDashboardObject(t *testing.T) tftypes.Value {
 	t.Helper()
 
-	objectType, ok := dashboardschema.V4().Type().TerraformType(context.Background()).(tftypes.Object)
+	objectType, ok := gendashboard.Schema().Type().TerraformType(context.Background()).(tftypes.Object)
 	if !ok {
 		t.Fatal("dashboard schema is not an object type")
 	}
@@ -574,14 +580,14 @@ func emptyDashboardObject(t *testing.T) tftypes.Value {
 // schemaResolver reports whether a path exists in the real dashboard schema,
 // the same check ModifyPlan performs.
 func schemaResolver() func(*tftypes.AttributePath) bool {
-	dashboardSchema := dashboardschema.V4()
+	dashboardSchema := gendashboard.Schema()
 	return func(attributePath *tftypes.AttributePath) bool {
 		_, err := dashboardSchema.AttributeAtTerraformPath(context.Background(), attributePath)
 		return err == nil
 	}
 }
 
-func dashboardClientForTest(t *testing.T, handler http.HandlerFunc) *dashboardOpenAPIClient {
+func dashboardClientForTest(t *testing.T, handler http.HandlerFunc) *planCheck {
 	t.Helper()
 
 	server := httptest.NewServer(handler)
@@ -590,10 +596,10 @@ func dashboardClientForTest(t *testing.T, handler http.HandlerFunc) *dashboardOp
 	configuration := dashboardservice.NewConfiguration()
 	configuration.Servers = dashboardservice.ServerConfigurations{{URL: server.URL}}
 
-	return newDashboardOpenAPIClient(dashboardservice.NewAPIClient(configuration).DashboardServiceAPI)
+	return &planCheck{client: dashboardservice.NewAPIClient(configuration).DashboardServiceAPI}
 }
 
-func dashboardResourceForTest(t *testing.T, handler http.HandlerFunc) *DashboardResource {
+func dashboardResourceForTest(t *testing.T, handler http.HandlerFunc) *planCheck {
 	t.Helper()
-	return &DashboardResource{openAPIClient: dashboardClientForTest(t, handler)}
+	return dashboardClientForTest(t, handler)
 }

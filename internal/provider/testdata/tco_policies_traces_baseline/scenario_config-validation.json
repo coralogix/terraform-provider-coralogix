@@ -30,7 +30,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"dpxl_expression\")] | Attribute \"policies[0].services\" cannot be specified when \"policies[0].dpxl_expression\" is specified"
+      "error: Invalid Attribute Combination [AttributeName(\"policies\").ElementKeyInt(0)] | These attributes cannot be configured together: `dpxl_expression` and `services`."
     ],
     "state": null
   },

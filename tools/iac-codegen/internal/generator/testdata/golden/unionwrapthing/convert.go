@@ -103,10 +103,11 @@ var computedAttrs = map[string]bool{
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"name":             true,
-	"kind":             true,
-	"kind.arm_a.value": true,
-	"items.name":       true,
+	"name":               true,
+	"kind":               true,
+	"kind.arm_a.value":   true,
+	"items.name":         true,
+	"items.second.label": true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -397,7 +398,7 @@ func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags 
 	out.Value.Label = expandString(m.Label)
 	out.Options = expandItemOptions(ctx, p.AtName("options"), m.Options, diags)
 	out.First = expandTagAtUnionItemFirst(ctx, p.AtName("first"), m.First, diags)
-	out.Second = expandTag(ctx, p.AtName("second"), m.Second, diags)
+	out.Second = expandTagAtUnionItemSecond(ctx, p.AtName("second"), m.Second, diags)
 	out.Choice = expandPickAtUnionItemChoice(ctx, p.AtName("choice"), m.Choice, diags)
 	if items := expandElements[PickModel](ctx, p.AtName("choices"), m.Choices, diags); items != nil {
 		out.Choices = make([]union_wrap_things_service.Pick, 0, len(items))
@@ -455,7 +456,7 @@ func flattenUnionItem(ctx context.Context, p path.Path, v *union_wrap_things_ser
 	out.Label = types.StringPointerValue(v.Value.Label)
 	out.Options = flattenItemOptions(ctx, p.AtName("options"), v.Options, diags)
 	out.First = flattenTagAtUnionItemFirst(ctx, p.AtName("first"), v.First, diags)
-	out.Second = flattenTag(ctx, p.AtName("second"), v.Second, diags)
+	out.Second = flattenTagAtUnionItemSecond(ctx, p.AtName("second"), v.Second, diags)
 	out.Choice = flattenPickAtUnionItemChoice(ctx, p.AtName("choice"), v.Choice, diags)
 	out.Choices = types.ListNull(types.ObjectType{AttrTypes: pickAttrTypes()})
 	if v.Choices != nil {
@@ -490,7 +491,7 @@ func unionItemAttrTypes() map[string]attr.Type {
 		"label":     types.StringType,
 		"options":   types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
 		"first":     types.ObjectType{AttrTypes: tagAtUnionItemFirstAttrTypes()},
-		"second":    types.ObjectType{AttrTypes: tagAttrTypes()},
+		"second":    types.ObjectType{AttrTypes: tagAtUnionItemSecondAttrTypes()},
 		"choice":    types.ObjectType{AttrTypes: pickAtUnionItemChoiceAttrTypes()},
 		"choices":   types.ListType{ElemType: types.ObjectType{AttrTypes: pickAttrTypes()}},
 		"action":    types.ObjectType{AttrTypes: itemActionAttrTypes()},
@@ -567,7 +568,7 @@ func tagAtUnionItemFirstAttrTypes() map[string]attr.Type {
 	}
 }
 
-func expandTag(ctx context.Context, p path.Path, m *TagModel, diags *diag.Diagnostics) *union_wrap_things_service.Tag {
+func expandTagAtUnionItemSecond(ctx context.Context, p path.Path, m *TagAtUnionItemSecondModel, diags *diag.Diagnostics) *union_wrap_things_service.Tag {
 	if m == nil {
 		return nil
 	}
@@ -576,16 +577,16 @@ func expandTag(ctx context.Context, p path.Path, m *TagModel, diags *diag.Diagno
 	return out
 }
 
-func flattenTag(ctx context.Context, p path.Path, v *union_wrap_things_service.Tag, diags *diag.Diagnostics) *TagModel {
+func flattenTagAtUnionItemSecond(ctx context.Context, p path.Path, v *union_wrap_things_service.Tag, diags *diag.Diagnostics) *TagAtUnionItemSecondModel {
 	if v == nil {
 		return nil
 	}
-	out := &TagModel{}
+	out := &TagAtUnionItemSecondModel{}
 	out.Label = types.StringPointerValue(v.Label)
 	return out
 }
 
-func tagAttrTypes() map[string]attr.Type {
+func tagAtUnionItemSecondAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"label": types.StringType,
 	}

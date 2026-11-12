@@ -155,6 +155,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -206,6 +207,7 @@
                                   "name": "value-name"
                                 }
                               ],
+                              "group_by": null,
                               "group_bys": [
                                 {
                                   "keypath": [
@@ -414,6 +416,7 @@
                         "data_source": "dataprime",
                         "id": "<id-1>",
                         "name": "value-name",
+                        "query_id": null,
                         "should_open_in_new_window": true,
                         "url": "value-url"
                       }
@@ -465,6 +468,7 @@
                                   "name": "value-name"
                                 }
                               ],
+                              "group_by": null,
                               "group_bys": [
                                 {
                                   "keypath": [
@@ -571,7 +575,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:f8a811a9] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:6e5400fc] → null"
     ],
     "replanEmpty": true
   },
@@ -588,7 +592,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
-      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:f934dc4d] → null"
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:fc359a74] → null"
     ],
     "replanEmpty": true
   },
@@ -599,7 +603,7 @@
       "- .dashboard.layout.sections[0].rows[0].widgets"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:a07c367e] → null"
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,…[sha256:53457a38] → null"
     ],
     "replanEmpty": true
   },
@@ -625,11 +629,11 @@
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.timeFrame"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"query_id\":null,\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.columns: [{\"field\":\"value-field\",\"width\":1}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.order_by: {\"field\":\"value-field\",\"order_direction\":\"asc\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals…[sha256:5c322404] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping: {\"aggregations\":[{\"aggregation\":{\"field\":null,\"observation_field\":null,\"percent\":null,\"type\":\"count\"},\"id\":\"<id-1>\",\"is_visible\":t…[sha256:688740c2] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping: {\"aggregations\":[{\"aggregation\":{\"field\":null,\"observation_field\":null,\"percent\":null,\"type\":\"count\"},\"id\":\"<id-1>\",\"is_visible\":t…[sha256:710c23ff] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null"
     ],
     "replanEmpty": true
@@ -660,19 +664,12 @@
     "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
-      "- .dashboard.layout.sections"
+      "- .dashboard.layout.sections[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:f8a811a9] → null"
+      "- .layout.sections[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "empty layout.sections[].rows",
@@ -757,23 +754,14 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "requestDiff": [
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.grouping.aggregations",
-      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.grouping.groupBys"
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.grouping.aggregations[0]",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.grouping.groupBys[0]"
     ],
     "stateDiff": [
-      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping.aggregations: [{\"aggregation\":{\"field\":null,\"observation_field\":null,\"percent\":null,\"type\":\"count\"},\"id\":\"<id-1>\",\"is_visible\":true,\"name\":\"valu…[sha256:c7282d7f] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping.group_bys: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+      "- .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping.aggregations[0]",
+      "- .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping.group_bys[0]"
     ],
-    "inconsistentResult": [
-      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping.aggregations",
-      "layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.grouping.group_bys"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"grouping\").AttributeName(\"aggregations\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"grouping\").AttributeName(\"group_bys\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "set enums to unspecified (5)",
@@ -812,8 +800,7 @@
       "set layout.sections[].rows[].widgets[].definition.data_table.query.logs.grouping.group_bys[].scope = user_data"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeNa",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -843,16 +830,14 @@
       "set layout.sections[].rows[].widgets[].definition.data_table.query.logs.grouping.group_bys[].scope = user_data"
     ],
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeNa",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.data_table.query.logs.grouping.aggregations[].aggregation.type = percentile",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
-      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeNa",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
@@ -914,23 +899,35 @@
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.data_table.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "remove layout.sections[].rows[].widgets[].definition.data_table.query.logs.grouping.aggregations[].aggregation.observation_field",
     "diagnostics": [
-      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "error: Invalid attribute combination [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"data_table\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"grouping\").AttributeName(\"aggregations\").ElementKeyInt(0).AttributeName(\"aggregation\").AttributeNa",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
     "step": "empty layout.sections[].rows[].widgets[].definition.data_table.query.logs.filters[].operator.selected_values",
     "diagnostics": [
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dataTable.query.logs.filters[0].operator.notEquals.selection.list.values[0]"
+    ],
+    "stateDiff": [
+      "- .layout.sections[0].rows[0].widgets[0].definition.data_table.query.logs.filters[0].operator.selected_values[0]"
+    ],
+    "replanEmpty": true
   },
   {
     "step": "set layout.sections[].rows[].widgets[].definition.data_table.query.logs.grouping.aggregations[].aggregation.observation_field.scope = unspecified",
