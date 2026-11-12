@@ -366,6 +366,13 @@ var userScenarios = map[string]func(h *grHarness){
 		h.users().forget(idOf(s))
 		h.RefreshPlan("refresh: the user is gone", s)
 	},
+	"read-result-without-user-id": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		if !h.users().omitID(idOf(s)) {
+			h.t.Fatal("the fake did not have the created user")
+		}
+		h.RefreshPlan("refresh: SearchUsers returns the user without userId", s)
+	},
 	"update-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().forget(idOf(s))
@@ -507,6 +514,13 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Import("import by email: the search lists two users and one is exact", userA)
 		h.Apply("plan matching config", s, userConfig(userA, j{"name": userTestName}))
 	},
+	"import-by-email-result-without-user-id": func(h *grHarness) {
+		id := h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
+		if !h.users().omitID(id) {
+			h.t.Fatal("the fake did not have the seeded user")
+		}
+		h.Import("import by email: SearchUsers returns the user without userId", userA)
+	},
 	"import-email-not-found": func(h *grHarness) {
 		h.users().seed(j{"username": userB})
 		h.Import("import by an email that no user has", userA)
@@ -562,6 +576,13 @@ var userDataSourceScenarios = map[string]func(h *grHarness){
 		h.users().seed(j{"username": userPartialMatch})
 		h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
 		h.ReadDataSource("read by user_name: the search lists two users and one is exact", j{"user_name": userA})
+	},
+	"read-by-user-name-result-without-user-id": func(h *grHarness) {
+		id := h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
+		if !h.users().omitID(id) {
+			h.t.Fatal("the fake did not have the seeded user")
+		}
+		h.ReadDataSource("read by user_name: SearchUsers returns the user without userId", j{"user_name": userA})
 	},
 	"read-with-groups": func(h *grHarness) {
 		id := h.users().seed(j{"username": userA, "groupIds": l{float64(22), float64(11)}})

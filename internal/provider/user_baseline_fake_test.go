@@ -110,6 +110,19 @@ func (f *userFake) seed(user map[string]any) string {
 	return stored["userId"].(string)
 }
 
+// omitID removes the id from a stored user, so a scenario can record how callers handle a
+// malformed SearchUsers result. It returns false when the fake does not have the user.
+func (f *userFake) omitID(id string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	user := f.find(id)
+	if user == nil {
+		return false
+	}
+	delete(user, "userId")
+	return true
+}
+
 // forget removes a user without a request, as if it was removed outside Terraform.
 func (f *userFake) forget(id string) {
 	f.mu.Lock()

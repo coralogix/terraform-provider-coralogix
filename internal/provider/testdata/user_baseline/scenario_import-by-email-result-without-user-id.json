@@ -1,0 +1,9 @@
+[
+  {
+    "step": "import by email: SearchUsers returns the user without userId",
+    "applyDiagnostics": [
+      "error: User with user_name \"tf-acc-user-1@coralogix.com\" was returned without an id | Use the user id instead, or report this to the provider developers."
+    ],
+    "state": null
+  }
+]
