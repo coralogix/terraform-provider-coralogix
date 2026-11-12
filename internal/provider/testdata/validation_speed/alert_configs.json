@@ -1,0 +1,1790 @@
+[
+ {
+  "name": "tfbaseline-analytics-validation",
+  "type_definition": {
+   "analytics_immediate": {}
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 20
+   }
+  }
+ },
+ {
+  "description": "full",
+  "enabled": false,
+  "group_by": [
+   "app"
+  ],
+  "name": "tfbaseline-analytics-immediate",
+  "priority": "P2",
+  "type_definition": {
+   "analytics_immediate": {
+    "custom_evaluation_delay": 120000,
+    "dataprime_query": {
+     "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+    },
+    "no_data_policy": {
+     "auto_retire_seconds": 3600,
+     "state": "ALERTING"
+    },
+    "timeframe_minutes": 45,
+    "use_rows_as_permutations": true
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate-prio",
+  "priority": "P1",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-immediate",
+  "type_definition": {
+   "analytics_immediate": {
+    "dataprime_query": {
+     "query": "source logs | count"
+    },
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-validation",
+  "type_definition": {
+   "analytics_threshold": {}
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 20
+   }
+  }
+ },
+ {
+  "description": "full",
+  "enabled": false,
+  "group_by": [
+   "app"
+  ],
+  "name": "tfbaseline-analytics-threshold",
+  "priority": "P2",
+  "type_definition": {
+   "analytics_threshold": {
+    "custom_evaluation_delay": 120000,
+    "dataprime_query": {
+     "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
+    },
+    "no_data_policy": {
+     "auto_retire_seconds": 3600,
+     "state": "ALERTING"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 45,
+    "use_rows_as_permutations": true
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold-ops",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold-prio",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 1
+      },
+      "override": {
+       "priority": "P1"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 5
+      },
+      "override": {
+       "priority": "P3"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-analytics-threshold-rules",
+  "type_definition": {
+   "analytics_threshold": {
+    "dataprime_query": {
+     "query": "source logs | count as c"
+    },
+    "operator": "MORE_THAN",
+    "rules": [
+     {
+      "condition": {
+       "threshold": 1
+      },
+      "override": {
+       "priority": "P1"
+      }
+     }
+    ],
+    "target_column": "c",
+    "timeframe_minutes": 10
+   }
+  }
+ },
+ {
+  "access_policy": "{\"default\":{\"permissions\":{\"alerts:ReadAccessPolicy\":\"grant\",\"alerts:ReadConfig\":\"grant\",\"alerts:UpdateAccessPolicy\":\"grant\",\"alerts:UpdateConfig\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+  "name": "tfbaseline-common-policy-create",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-policy",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "case_settings": {
+   "auto_resolve_mode": "auto"
+  },
+  "name": "tfbaseline-common-case-validation",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "case_settings": {
+   "auto_resolve_mode": "disabled",
+   "enrichment_queries": [
+    {
+     "query": "source logs | limit 1"
+    }
+   ]
+  },
+  "name": "tfbaseline-common-case",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-validation",
+  "priority": "P6",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "data_sources": [
+   {
+    "data_space": "default"
+   }
+  ],
+  "name": "tfbaseline-common-data-sources-validation",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "data_sources": [
+   {
+    "data_set": "logs",
+    "data_space": "default"
+   }
+  ],
+  "name": "tfbaseline-common-data-sources",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-gone",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "description": "imported",
+  "name": "tfbaseline-common-import",
+  "priority": "P3",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "incidents_settings": {
+   "notify_on": "Triggered Only",
+   "retriggering_period": {
+    "minutes": 15
+   }
+  },
+  "name": "tfbaseline-common-incidents",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "labels": {
+   "a": "1",
+   "b": "2"
+  },
+  "name": "tfbaseline-common-labels",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-destination",
+  "notification_group": {
+   "destinations": [
+    {
+     "connector_id": "does-not-exist",
+     "preset_id": "does-not-exist"
+    }
+   ]
+  },
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-recipients",
+  "notification_group": {
+   "webhooks_settings": [
+    {
+     "recipients": [
+      "a@example.com",
+      "b@example.com"
+     ]
+    }
+   ]
+  },
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-router",
+  "notification_group": {
+   "router": {
+    "id": "router_default"
+   }
+  },
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-phantom",
+  "phantom_mode": true,
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-priority",
+  "priority": "P1",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-schedule",
+  "schedule": {
+   "active_on": {
+    "days_of_week": [
+     "Monday",
+     "Wednesday"
+    ],
+    "end_time": "17:30",
+    "start_time": "08:00"
+   }
+  },
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "description": "baseline",
+  "enabled": false,
+  "labels": {
+   "env": "test",
+   "team": "a"
+  },
+  "name": "tfbaseline-common-top",
+  "priority": "P2",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-omitted",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-common-switch",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-coll",
+  "type_definition": {
+   "flow": {
+    "stages": []
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-validation",
+  "type_definition": {
+   "flow": {}
+  }
+ },
+ {
+  "name": "tfbaseline-flow-outside",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 10,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-suppression",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 10,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-enums",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "AND",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 10,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "description": "full",
+  "enabled": false,
+  "name": "tfbaseline-flow-full",
+  "priority": "P2",
+  "type_definition": {
+   "flow": {
+    "enforce_suppression": true,
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "not": true
+         },
+         {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "not": false
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       },
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "not": true
+         }
+        ],
+        "alerts_op": "AND",
+        "next_op": "OR"
+       }
+      ],
+      "timeframe_ms": 60000,
+      "timeframe_type": "Up To"
+     },
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "AND",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 120000,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-group-by",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 10,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-lifecycle",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 10,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-refs",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000003"
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 10,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-flow-timeframe",
+  "type_definition": {
+   "flow": {
+    "stages": [
+     {
+      "flow_stages_groups": [
+       {
+        "alert_defs": [
+         {
+          "id": "00000000-0000-4000-8000-000000000001"
+         }
+        ],
+        "alerts_op": "OR",
+        "next_op": "AND"
+       }
+      ],
+      "timeframe_ms": 0,
+      "timeframe_type": "Up To"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-errors",
+  "type_definition": {
+   "logs_anomaly": {
+    "custom_evaluation_delay": 10800001,
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-delay",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-filters",
+  "type_definition": {
+   "logs_anomaly": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    },
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "group_by": [
+   "coralogix.metadata.applicationName"
+  ],
+  "name": "tfbaseline-anomaly-full",
+  "type_definition": {
+   "logs_anomaly": {
+    "custom_evaluation_delay": 100,
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "IS",
+         "value": "app-a"
+        },
+        {
+         "operation": "STARTS_WITH",
+         "value": "app-"
+        }
+       ],
+       "severities": [
+        "Warning",
+        "Error"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "ENDS_WITH",
+         "value": "-sub"
+        },
+        {
+         "operation": "INCLUDES",
+         "value": "ub"
+        }
+       ]
+      },
+      "lucene_query": "message:\"tfbaseline\""
+     }
+    },
+    "notification_payload_filter": [
+     "coralogix.metadata.sdkId",
+     "coralogix.metadata.sdkName"
+    ],
+    "percentage_of_deviation": 15.5,
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-group-by",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-lifecycle",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-payload",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-percentage",
+  "type_definition": {
+   "logs_anomaly": {
+    "percentage_of_deviation": 0,
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-threshold",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 0,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-windows",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "5_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "group_by": [
+   "coralogix.metadata.applicationName"
+  ],
+  "name": "tfbaseline-anomaly-unset",
+  "type_definition": {
+   "logs_anomaly": {
+    "custom_evaluation_delay": 100,
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "IS",
+         "value": "app-a"
+        },
+        {
+         "operation": "STARTS_WITH",
+         "value": "app-"
+        }
+       ],
+       "severities": [
+        "Warning",
+        "Error"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "ENDS_WITH",
+         "value": "-sub"
+        },
+        {
+         "operation": "INCLUDES",
+         "value": "ub"
+        }
+       ]
+      },
+      "lucene_query": "message:\"tfbaseline\""
+     }
+    },
+    "notification_payload_filter": [
+     "coralogix.metadata.sdkId",
+     "coralogix.metadata.sdkName"
+    ],
+    "percentage_of_deviation": 15.5,
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-anomaly-validation",
+  "type_definition": {
+   "logs_anomaly": {
+    "rules": [
+     {
+      "condition": {
+       "minimum_threshold": 5,
+       "time_window": "10_MINUTES"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-errors",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "(("
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-collections",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {},
+      "lucene_query": "q"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "v",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "q"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-empty-create",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [],
+       "severities": [],
+       "subsystem_name": []
+      },
+      "lucene_query": "q"
+     }
+    },
+    "notification_payload_filter": []
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-shapes",
+  "type_definition": {
+   "logs_immediate": {}
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-full",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "IS",
+         "value": "app-a"
+        },
+        {
+         "operation": "STARTS_WITH",
+         "value": "app-b"
+        }
+       ],
+       "severities": [
+        "Error",
+        "Critical"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "ENDS_WITH",
+         "value": "sub-a"
+        }
+       ]
+      },
+      "lucene_query": "message:\"error\""
+     }
+    },
+    "notification_payload_filter": [
+     "coralogix.metadata.applicationName",
+     "coralogix.metadata.subsystemName"
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-operations",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "IS",
+         "value": "app"
+        }
+       ],
+       "subsystem_name": [
+        {
+         "operation": "INCLUDES",
+         "value": "sub"
+        }
+       ]
+      },
+      "lucene_query": "q"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-minimal",
+  "type_definition": {
+   "logs_immediate": {}
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-payload",
+  "type_definition": {
+   "logs_immediate": {
+    "notification_payload_filter": [
+     "coralogix.metadata.applicationName"
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-severities",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "severities": [
+        "Critical"
+       ]
+      },
+      "lucene_query": "q"
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-immediate-unset",
+  "type_definition": {
+   "logs_immediate": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "INCLUDES",
+         "value": "app"
+        }
+       ],
+       "severities": [
+        "Error"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "STARTS_WITH",
+         "value": "sub"
+        }
+       ]
+      },
+      "lucene_query": "message:\"x\""
+     }
+    },
+    "notification_payload_filter": [
+     "coralogix.metadata.applicationName"
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-errors",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "a",
+       "time_window": "24_HOURS"
+      }
+     },
+     {
+      "condition": {
+       "keypath_to_track": "b",
+       "time_window": "12_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-filters",
+  "type_definition": {
+   "logs_new_value": {
+    "logs_filter": {
+     "simple_filter": {
+      "lucene_query": "tfbaseline"
+     }
+    },
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-full",
+  "type_definition": {
+   "logs_new_value": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "IS",
+         "value": "app-a"
+        },
+        {
+         "operation": "STARTS_WITH",
+         "value": "app-"
+        }
+       ],
+       "severities": [
+        "Warning",
+        "Error"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "ENDS_WITH",
+         "value": "-sub"
+        },
+        {
+         "operation": "INCLUDES",
+         "value": "ub"
+        }
+       ]
+      },
+      "lucene_query": "message:\"tfbaseline\""
+     }
+    },
+    "notification_payload_filter": [
+     "coralogix.metadata.sdkId",
+     "coralogix.metadata.sdkName"
+    ],
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-group-by",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-keypath",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "a",
+       "time_window": "12_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-lifecycle",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-payload",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-windows",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "a.b",
+       "time_window": "12_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-unset",
+  "type_definition": {
+   "logs_new_value": {
+    "logs_filter": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "IS",
+         "value": "app-a"
+        },
+        {
+         "operation": "STARTS_WITH",
+         "value": "app-"
+        }
+       ],
+       "severities": [
+        "Warning",
+        "Error"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "ENDS_WITH",
+         "value": "-sub"
+        },
+        {
+         "operation": "INCLUDES",
+         "value": "ub"
+        }
+       ]
+      },
+      "lucene_query": "message:\"tfbaseline\""
+     }
+    },
+    "notification_payload_filter": [
+     "coralogix.metadata.sdkId",
+     "coralogix.metadata.sdkName"
+    ],
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-new-value-validation",
+  "type_definition": {
+   "logs_new_value": {
+    "rules": [
+     {
+      "condition": {
+       "keypath_to_track": "remote_addr_geoip.country_name",
+       "time_window": "24_HOURS"
+      }
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-ratio-aliases",
+  "type_definition": {
+   "logs_ratio_threshold": {
+    "denominator_alias": "all",
+    "numerator_alias": "errors",
+    "rules": [
+     {
+      "condition": {
+       "condition_type": "MORE_THAN",
+       "threshold": 0.5,
+       "time_window": "10_MINUTES"
+      },
+      "override": {}
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-ratio-conditions",
+  "type_definition": {
+   "logs_ratio_threshold": {
+    "denominator_alias": "all",
+    "numerator_alias": "errors",
+    "rules": [
+     {
+      "condition": {
+       "condition_type": "MORE_THAN",
+       "threshold": 0.5,
+       "time_window": "10_MINUTES"
+      },
+      "override": {}
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "v",
+  "type_definition": {
+   "logs_ratio_threshold": {
+    "denominator_alias": "all",
+    "numerator_alias": "errors",
+    "rules": [
+     {
+      "condition": {
+       "condition_type": "MORE_THAN",
+       "threshold": 0.5,
+       "time_window": "10_MINUTES"
+      },
+      "override": {}
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-ratio-priority",
+  "priority": "P3",
+  "type_definition": {
+   "logs_ratio_threshold": {
+    "denominator_alias": "all",
+    "numerator_alias": "errors",
+    "rules": [
+     {
+      "condition": {
+       "condition_type": "MORE_THAN",
+       "threshold": 0.5,
+       "time_window": "10_MINUTES"
+      },
+      "override": {}
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "tfbaseline-logs-ratio-delay",
+  "type_definition": {
+   "logs_ratio_threshold": {
+    "denominator_alias": "all",
+    "numerator_alias": "errors",
+    "rules": [
+     {
+      "condition": {
+       "condition_type": "MORE_THAN",
+       "threshold": 0.5,
+       "time_window": "10_MINUTES"
+      },
+      "override": {}
+     }
+    ]
+   }
+  }
+ },
+ {
+  "group_by": [
+   "coralogix.metadata.applicationName"
+  ],
+  "name": "tfbaseline-logs-ratio-full",
+  "priority": "P3",
+  "type_definition": {
+   "logs_ratio_threshold": {
+    "denominator": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "STARTS_WITH",
+         "value": "app-a"
+        }
+       ],
+       "severities": [
+        "Info",
+        "Warning"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "IS",
+         "value": "sub-b"
+        }
+       ]
+      },
+      "lucene_query": "level:*"
+     }
+    },
+    "denominator_alias": "all",
+    "group_by_for": "Numerator Only",
+    "ignore_infinity": true,
+    "notification_payload_filter": [
+     "coralogix.metadata.applicationName"
+    ],
+    "numerator": {
+     "simple_filter": {
+      "label_filters": {
+       "application_name": [
+        {
+         "operation": "INCLUDES",
+         "value": "app-a"
+        }
+       ],
+       "severities": [
+        "Error"
+       ],
+       "subsystem_name": [
+        {
+         "operation": "ENDS_WITH",
+         "value": "sub-a"
+        }
+       ]
+      },
+      "lucene_query": "level:error"
+     }
+    },
+    "numerator_alias": "errors",
+    "rules": [
+     {
+      "condition": {
+       "condition_type": "LESS_THAN",
+       "threshold": 0.25,
+       "time_window": "30_MINUTES"
+      },
+      "override": {
+       "priority": "P1"
+      }
+     }
+    ],
+    "undetected_values_management": {
+     "auto_retire_timeframe": "1_HOUR",
+     "trigger_undetected_values": true
+    }
+   }
+  }
+ }
+]

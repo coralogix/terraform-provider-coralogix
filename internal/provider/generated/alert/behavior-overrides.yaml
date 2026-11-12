@@ -1,5 +1,5 @@
-# Behavior overrides of coralogix_alert (schema version 3). The target is the released schema in
-# internal/provider/testdata/alert_baseline/schema_current.txt.
+# Behavior overrides of coralogix_alert (schema version 3). The target is the schema of the released
+# resource.
 #
 # Not expressible with the keys of the generator, so the generated schema differs from the released one
 # (each needs a generator key or a hook):

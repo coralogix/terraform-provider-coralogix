@@ -1,8 +1,8 @@
 # What the generated acceptance test needs for coralogix_dashboard, besides the schema.
 #
-# The test makes one dashboard with one widget kind: the generator sets the first arm of each oneOf
-# group, so it is a bar chart. The other widget kinds are covered by the baseline walk (it runs
-# every kind against a fake API) and by the handwritten acceptance tests.
+# The full test makes one dashboard with one widget kind: the generator sets the first arm of each
+# oneOf group, so it is a bar chart. The values-and-choices subtest sets the other widget kinds and
+# every other enum value, and the handwritten acceptance tests cover more.
 resource: Dashboard
 
 prerequisites: |

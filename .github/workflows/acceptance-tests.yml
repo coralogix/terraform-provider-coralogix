@@ -94,15 +94,6 @@ env:
   NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive)$'
   NON_DASHBOARD_SHARD_ACCESS_CONTROL: &non_dashboard_shard_access_control '^Test(AccCoralogix(Resource|DataSource)(CustomRole|ApiKey|Group|Scope)|ApiKeyResource|CustomRole)'
   NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|ViewFolder)|(DataSource)?RecordingRules)'
-  # The coralogix_alert protocol baseline has about 230 scenarios that run one after the other, so
-  # they run in three shards, split by scenario prefix as in the alert-baseline job of build.yml. The
-  # catch-all skips the scenarios, and keeps the other alert baseline tests, which take milliseconds.
-  # The last shard takes every scenario that the other two leave out, so a scenario with a new
-  # prefix is never missed.
-  ALERT_BASELINE_SCENARIOS: &alert_baseline_scenarios '^TestAlertBaselineScenarios$'
-  NON_DASHBOARD_SHARD_ALERT_BASELINE_CORE: &non_dashboard_shard_alert_baseline_core '^TestAlertBaselineScenarios$/^(common-|logs-immediate-|logs-threshold-|logs-ratio-)'
-  NON_DASHBOARD_SHARD_ALERT_BASELINE_LOGS: &non_dashboard_shard_alert_baseline_logs '^TestAlertBaselineScenarios$/^(logs-anomaly-|logs-new-value-|logs-unique-count-|logs-time-relative-|slo-threshold-)'
-  NON_DASHBOARD_SHARD_ALERT_BASELINE_REST_SKIP: &non_dashboard_shard_alert_baseline_rest_skip '^TestAlertBaselineScenarios$/^(common-|logs-|slo-threshold-)'
 
 jobs:
   # Two buckets of jobs: the dashboard jobs, and every other job. .github/scripts/detect-test-scope.sh
@@ -172,13 +163,6 @@ jobs:
             pattern: *non_dashboard_shard_access_control
           - shard: slo-ai-views-and-recording-rules
             pattern: *non_dashboard_shard_slo_ai_views_and_recording_rules
-          - shard: alert-baseline-core
-            pattern: *non_dashboard_shard_alert_baseline_core
-          - shard: alert-baseline-logs
-            pattern: *non_dashboard_shard_alert_baseline_logs
-          - shard: alert-baseline-rest
-            pattern: *alert_baseline_scenarios
-            skip: *non_dashboard_shard_alert_baseline_rest_skip
     runs-on: ubuntu-latest
     steps:
       # Skips the shard when its bucket did not change. A step-level check keeps the matrix
@@ -289,7 +273,7 @@ jobs:
             "$NON_DASHBOARD_SHARD_ACCESS_CONTROL"
             "$NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES"
           )
-          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN|$TCO_ACC_PATTERN|$TEAM_ACC_PATTERN|$ALERT_BASELINE_SCENARIOS"
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN|$TCO_ACC_PATTERN|$TEAM_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
