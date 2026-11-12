@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
@@ -262,6 +263,23 @@ func TestAccCoralogixResourceTcoPoliciesLogsGenerated(t *testing.T) {
 				{Config: config(run, variant1Config)},
 			},
 		})
+	})
+}
+
+// TestFailurePathsTcoPoliciesLogsGenerated checks, without a tenant, what the resource does when the API
+// fails: a local server answers every request with an error (failpaths.Run). It needs no API key.
+func TestFailurePathsTcoPoliciesLogsGenerated(t *testing.T) {
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Skipf("%s is not set: the test config reads it", name)
+		}
+	}
+	failpaths.Run(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_tco_policies_logs",
+		IDAttr:         "id",
+		Singleton:      true,
+		Config:         render("failure-paths", minimalConfig),
 	})
 }
 

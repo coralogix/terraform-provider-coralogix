@@ -48,11 +48,16 @@ type acceptanceData struct {
 	ProviderImport         string // import path of the provider package
 	Name                   string // resource name, for the names of the tests
 	Address                string // address of the resource in the config
-	IDAttr                 string
-	IDCustom               bool // the id attribute is not "id": the import step names it
-	Env                    []string
-	Prerequisites          string
-	Full, Updated, Minimal *accStep
+	TypeName               string // the Terraform type, such as coralogix_alert
+	FailPathsImport        string // import path of the package that checks the failure paths
+	// FailSingleton and FailNoDelete tell the failure path test what the API has: one resource of the
+	// kind (a singleton, or a list that one write replaces), and no delete.
+	FailSingleton, FailNoDelete bool
+	IDAttr                      string
+	IDCustom                    bool // the id attribute is not "id": the import step names it
+	Env                         []string
+	Prerequisites               string
+	Full, Updated, Minimal      *accStep
 	// Variants are the configs after the full config in the values-and-choices subtest: each sets
 	// the enum values and the oneOf arms that no earlier config set. Empty: no subtest.
 	Variants []*accStep
@@ -178,16 +183,20 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	typeName := res.CRUD.TypeName
 	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}, updated: map[string]bool{}}
 	out := &acceptanceData{
-		Package:        res.Package,
-		VersionHeader:  version.Header,
-		ProviderImport: providerModule + "/internal/provider",
-		Name:           camelize(typeName), // the Terraform type, which can differ from the SDK type
-		Address:        "coralogix_" + typeName + ".test",
-		IDAttr:         res.CRUD.IDAttr,
-		IDCustom:       res.CRUD.IDAttr != "id",
-		Env:            file.Env,
-		Prerequisites:  strings.TrimSpace(file.Prerequisites),
-		UpgradeFrom:    file.UpgradeFrom,
+		Package:         res.Package,
+		VersionHeader:   version.Header,
+		ProviderImport:  providerModule + "/internal/provider",
+		Name:            camelize(typeName), // the Terraform type, which can differ from the SDK type
+		Address:         "coralogix_" + typeName + ".test",
+		TypeName:        "coralogix_" + typeName,
+		FailSingleton:   res.CRUD.Singleton || res.CRUD.Overwrite,
+		FailNoDelete:    res.CRUD.Upsert,
+		FailPathsImport: providerModule + "/internal/acctest/failpaths",
+		IDAttr:          res.CRUD.IDAttr,
+		IDCustom:        res.CRUD.IDAttr != "id",
+		Env:             file.Env,
+		Prerequisites:   strings.TrimSpace(file.Prerequisites),
+		UpgradeFrom:     file.UpgradeFrom,
 	}
 	if file.Leftovers != "" {
 		dir := file.LeftoversPackage()
