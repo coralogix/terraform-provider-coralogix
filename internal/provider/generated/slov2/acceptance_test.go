@@ -480,137 +480,6 @@ func TestAccCoralogixResourceSloV2GeneratedUpgrade(t *testing.T) {
 
 const variant1Config = `resource "coralogix_slo_v2" "test" {
   sli = {
-    window_based_metric_sli = {
-      comparison_operator = "greater_than"
-      missing_data_strategy = "uncounted"
-      query = {
-        query = "@{run}-query"
-      }
-      threshold = 1.5
-      window = "1_minute"
-    }
-  }
-  description = "@{run}-description"
-  labels = { team = "payments" }
-  name = "@{run}-slo"
-  ownership_tags = {
-    environment = {
-      static_values = ["production"]
-    }
-    service = {
-      label_keys = ["service_name"]
-    }
-    team = {
-      static_values = ["payments"]
-    }
-  }
-  product_type = "apm"
-  window = {
-    slo_time_frame = "7_days"
-  }
-  target_threshold_percentage = 99.5
-}
-
-resource "coralogix_slo_v2" "test_2" {
-  sli = {
-    request_based_metric_sli = {
-      good_events = {
-        query = "@{run}-query-2"
-      }
-      total_events = {
-        query = "@{run}-query-2"
-      }
-    }
-  }
-  description = "@{run}-description-2"
-  labels = { team = "payments" }
-  name = "@{run}-slo"
-  ownership_tags = {
-    environment = {
-      static_values = ["production"]
-    }
-    service = {
-      label_keys = ["service_name"]
-    }
-    team = {
-      static_values = ["payments"]
-    }
-  }
-  product_type = "apm"
-  window = {
-    slo_time_frame = "7_days"
-  }
-  target_threshold_percentage = 99.5
-}
-
-resource "coralogix_slo_v2" "test_3" {
-  sli = {
-    window_based_metric_sli = {
-      comparison_operator = "greater_than_or_equals"
-      missing_data_strategy = "good"
-      query = {
-        query = "@{run}-query-3"
-      }
-      threshold = 1.5
-      window = "5_minutes"
-    }
-  }
-  description = "@{run}-description-3"
-  labels = { team = "payments" }
-  name = "@{run}-slo"
-  ownership_tags = {
-    environment = {
-      static_values = ["production"]
-    }
-    service = {
-      label_keys = ["service_name"]
-    }
-    team = {
-      static_values = ["payments"]
-    }
-  }
-  product_type = "apm"
-  window = {
-    slo_time_frame = "7_days"
-  }
-  target_threshold_percentage = 99.5
-}
-
-resource "coralogix_slo_v2" "test_4" {
-  sli = {
-    window_based_metric_sli = {
-      comparison_operator = "less_than"
-      missing_data_strategy = "bad"
-      query = {
-        query = "@{run}-query-4"
-      }
-      threshold = 1.5
-      window = "1_minute"
-    }
-  }
-  description = "@{run}-description-4"
-  labels = { team = "payments" }
-  name = "@{run}-slo"
-  ownership_tags = {
-    environment = {
-      static_values = ["production"]
-    }
-    service = {
-      label_keys = ["service_name"]
-    }
-    team = {
-      static_values = ["payments"]
-    }
-  }
-  product_type = "apm"
-  window = {
-    slo_time_frame = "7_days"
-  }
-  target_threshold_percentage = 99.5
-}
-
-resource "coralogix_slo_v2" "test_5" {
-  sli = {
     apm_sli = {
       filters = [
         {
@@ -638,7 +507,7 @@ resource "coralogix_slo_v2" "test_5" {
       services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
-  description = "@{run}-description-5"
+  description = "@{run}-description"
   labels = { team = "payments" }
   name = "@{run}-slo"
   ownership_tags = {
@@ -659,19 +528,28 @@ resource "coralogix_slo_v2" "test_5" {
   target_threshold_percentage = 99.5
 }
 
-resource "coralogix_slo_v2" "test_6" {
+resource "coralogix_slo_v2" "test_2" {
   sli = {
-    window_based_metric_sli = {
-      comparison_operator = "less_than_or_equals"
-      missing_data_strategy = "bad"
-      query = {
-        query = "@{run}-query-6"
+    apm_sli = {
+      filters = [
+        {
+          key = "http.status_code"
+          match_operator = "ends_with"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["http_method"]
+      latency_config = {
+        quantile = {
+          percentile = 1.5
+        }
+        threshold = 1.5
+        time_window = "5_minutes"
       }
-      threshold = 1.5
-      window = "1_minute"
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
-  description = "@{run}-description-6"
+  description = "@{run}-description-2"
   labels = { team = "payments" }
   name = "@{run}-slo"
   ownership_tags = {

@@ -33,4 +33,11 @@ skip:
 minimal: [product_type]
 upgradeMinimal: [product_type]
 
+# product_type = "apm" needs the APM SLI (400: apm_sli is required when product_type is APM), and a
+# metric SLI needs product_type = "unspecified" and a metric of the account. Every config sets apm.
+skipChoices:
+  Slo:
+    choices: [requestBasedMetricSli, windowBasedMetricSli]
+    reason: The metric SLIs need product_type unspecified and a metric of the account, and every config sets product_type apm.
+
 upgradeFrom: "3.21.0"
