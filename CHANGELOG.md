@@ -1,5 +1,8 @@
 # Unreleased
 
+#### tools/iac-codegen
+- FEAT: Support a released API whose Create is a PUT and whose Update is a POST (`api.methods`; an Update by POST has no update mask and needs `updateMask: omit`), a Create response that holds only an integer id, a `oneOf` of the Create request that a `skip` line reduces to one arm, and `equality: caseInsensitive` on a list or set of strings.
+
 # Release 3.25.0
 
 #### provider
@@ -7,7 +10,6 @@
 
 #### tools/iac-codegen
 - FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
-- FEAT: Support a released API whose Create is a PUT and whose Update is a POST (`api.methods`; an Update by POST has no update mask and needs `updateMask: omit`), a Create response that holds only an integer id, a `oneOf` of the Create request that a `skip` line reduces to one arm, and `equality: caseInsensitive` on a list or set of strings.
 
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
