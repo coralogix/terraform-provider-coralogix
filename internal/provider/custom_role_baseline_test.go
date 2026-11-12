@@ -127,6 +127,14 @@ var customRoleScenarios = map[string]func(h *grHarness){
 		s = h.Refresh("refresh: the API has another permission", s)
 		h.Apply("apply the configuration again", s, crConfig("outside", crUpdateConfig))
 	},
+	// The role lost a permission outside Terraform. The refresh shows the reduced set, and the
+	// plan puts the permission back.
+	"permissions-removed-outside": func(h *grHarness) {
+		s := h.Apply("create with two permissions", h.null(), crConfig("outside", crUpdateConfig, crReadConfig))
+		h.customRoles().roles[customRoleFirstID].permissions = []string{crUpdateConfig}
+		s = h.Refresh("refresh: the API has fewer permissions", s)
+		h.Apply("apply the configuration again", s, crConfig("outside", crUpdateConfig, crReadConfig))
+	},
 	"description-changed-outside": func(h *grHarness) {
 		s := h.Apply("create", h.null(), crConfig("outside", crUpdateConfig))
 		h.customRoles().roles[customRoleFirstID].description = "changed in the UI"
@@ -242,6 +250,15 @@ var customRoleScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create", h.null(), crConfig("unread", crUpdateConfig))
 		h.customRoles().getStatus = 500
 		h.Apply("update: Get after Update answers 500", s, crConfig("unread-renamed", crUpdateConfig))
+	},
+	// The Update succeeds and the Get after it fails once. The next apply reads the role again.
+	"update-read-fails-then-succeeds": func(h *grHarness) {
+		s := h.Apply("create", h.null(), crConfig("unread", crUpdateConfig))
+		h.customRoles().getStatus = 500
+		s = h.Apply("update: Get after Update answers 500", s, crConfig("unread-renamed", crUpdateConfig))
+		h.customRoles().getStatus = 0
+		s = h.Apply("apply again: Get answers", s, crConfig("unread-renamed", crUpdateConfig))
+		h.RefreshPlan("refresh and replan", s)
 	},
 	"delete-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), crConfig("gone", crUpdateConfig))
