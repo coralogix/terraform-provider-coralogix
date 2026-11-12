@@ -431,12 +431,6 @@ func dynamicStatSchema() schema.Attribute {
 	}
 }
 
-func DynamicType() types.ObjectType {
-	return types.ObjectType{
-		AttrTypes: dynamicModelAttr(),
-	}
-}
-
 func dynamicModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"query_definitions": types.ListType{
