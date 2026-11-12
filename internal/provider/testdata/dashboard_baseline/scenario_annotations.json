@@ -54,6 +54,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": null,
               "message_template": null,
               "orientation": "vertical",
@@ -129,7 +130,6 @@
                 "name": "first",
                 "source": {
                   "metrics": {
-                    "labels": [],
                     "orientation": "ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED",
                     "promqlQuery": {
                       "value": "vector(1)"
@@ -201,6 +201,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": null,
               "message_template": null,
               "orientation": "vertical",
@@ -290,6 +291,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": null,
               "message_template": null,
               "orientation": "vertical",
@@ -409,6 +411,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": null,
               "message_template": null,
               "orientation": "vertical",
@@ -484,7 +487,6 @@
                 "name": "renamed",
                 "source": {
                   "metrics": {
-                    "labels": [],
                     "orientation": "ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED",
                     "promqlQuery": {
                       "value": "vector(1)"
@@ -558,6 +560,7 @@
             "logs": null,
             "manual": null,
             "metrics": {
+              "interval_resolution": null,
               "labels": null,
               "message_template": null,
               "orientation": "vertical",

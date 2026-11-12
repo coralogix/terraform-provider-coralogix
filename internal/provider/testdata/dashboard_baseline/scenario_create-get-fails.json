@@ -126,20 +126,40 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
         "status": 500
-      },
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to create dashboard | created dashboard with id fakeboard000000000001, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}"
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "apply again: delete the tainted resource",
+    "requests": [
       {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
         "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Error getting Dashboard | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}\noperation - Get"
-    ],
     "state": null
   },
   {
-    "step": "apply again: no state, so create again",
+    "step": "apply again: create it again",
     "config": {
       "layout": {
         "sections": [

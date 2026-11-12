@@ -229,6 +229,11 @@ var dashboardMoreScenarios = map[string]func(*grHarness){
 	"content-json-dynamic-unsupported-visualization": func(h *grHarness) {
 		contentJSONLifecycle(h, "content_json_dynamic_unsupported_visualization.json")
 	},
+	"content-json-no-time-frame": func(h *grHarness) {
+		// The typed read of this dashboard has no arm of the time frame to show, which the typed schema
+		// reports as an error. content_json manages the dashboard, so the read must still work.
+		contentJSONLifecycle(h, "content_json_no_time_frame.json")
+	},
 	"content-json-dynamic-legacy-query": func(h *grHarness) {
 		contentJSONLifecycle(h, "content_json_dynamic_legacy_query.json")
 	},

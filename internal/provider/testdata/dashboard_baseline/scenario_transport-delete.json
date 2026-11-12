@@ -186,7 +186,7 @@
   {
     "step": "delete transport failure",
     "applyDiagnostics": [
-      "error: Error Deleting Dashboard fakeboard000000000001 | error - Delete \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001\": dashboards transport unavailable\noperation - Delete"
+      "error: Unable to delete dashboard | id fakeboard000000000001: Delete \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001\": dashboards transport unavailable"
     ],
     "state": {
       "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",

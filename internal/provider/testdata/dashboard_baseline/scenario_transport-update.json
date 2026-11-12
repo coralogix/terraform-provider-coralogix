@@ -263,7 +263,7 @@
       "variables_v2": null
     },
     "applyDiagnostics": [
-      "error: Error updating Dashboard | error - Put \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1\": dashboards transport unavailable\noperation - Replace"
+      "error: Unable to update dashboard | id fakeboard000000000001: Put \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1\": dashboards transport unavailable"
     ],
     "state": {
       "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",

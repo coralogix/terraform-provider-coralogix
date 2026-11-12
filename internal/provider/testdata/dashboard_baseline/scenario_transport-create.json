@@ -79,7 +79,7 @@
       "variables_v2": null
     },
     "applyDiagnostics": [
-      "error: Error creating Dashboard | error - Post \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1\": dashboards transport unavailable\noperation - Create"
+      "error: Unable to create dashboard | Post \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1\": dashboards transport unavailable"
     ],
     "state": null
   },

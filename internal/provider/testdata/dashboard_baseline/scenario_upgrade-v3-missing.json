@@ -13,22 +13,8 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: Dashboard \"missing-dashboard-001\" is in state, but no longer exists in Coralogix backend | missing-dashboard-001 will be recreated when you apply"
+      "error: Resource no longer exists | The API did not find dashboard with id missing-dashboard-001, so Terraform cannot upgrade its state. Run terraform state rm on its address to remove it from state, and the next plan creates it again."
     ],
-    "state": {
-      "access_policy": null,
-      "annotations": null,
-      "auto_refresh": null,
-      "content_json": null,
-      "description": null,
-      "filters": null,
-      "folder": null,
-      "id": "missing-dashboard-001",
-      "layout": null,
-      "name": "old name",
-      "time_frame": null,
-      "variables": null,
-      "variables_v2": null
-    }
+    "state": null
   }
 ]
