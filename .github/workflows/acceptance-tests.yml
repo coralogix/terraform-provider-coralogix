@@ -77,6 +77,9 @@ env:
   DASHBOARD_SHARD_PARITY_FIELDS: &dashboard_shard_parity_fields '^TestAccCoralogixResourceDashboard(LineChart|BarChart|Gauge|PieChart)ParityFields$'
   DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS: &dashboard_shard_actions_sections_and_annotations '^TestAccCoralogixResourceDashboard(WidgetCustomActions|SectionOptionBranches|AccessPolicyAddedLater|MetricAnnotationOrientation|AnnotationScope|DataprimeAnnotation|EventRecurrenceAnnotation)$'
   DASHBOARD_SHARD_VARIABLES_V2: &dashboard_shard_variables_v2 '^TestAccCoralogixResourceDashboardVariablesV2'
+  # The generated dashboard test sends every widget kind and every enum value, in copies of the resource. It takes
+  # about 8 minutes, so it has its own shard. Its upgrade test stays in the generated-upgrade shard.
+  DASHBOARD_SHARD_GENERATED: &dashboard_shard_generated '^TestAccCoralogixResourceDashboardGenerated$'
   # Together these two match what the old alerts-and-integrations shard matched. A test that
   # matches both, such as TestAccCoralogixAlertWebhooksNotifyOnMandatory, is an alert test: the
   # notification-center shard skips the alerts pattern.
@@ -347,6 +350,8 @@ jobs:
             pattern: *dashboard_shard_actions_sections_and_annotations
           - shard: variables-v2
             pattern: *dashboard_shard_variables_v2
+          - shard: generated
+            pattern: *dashboard_shard_generated
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -433,6 +438,7 @@ jobs:
             "$DASHBOARD_SHARD_PARITY_FIELDS"
             "$DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS"
             "$DASHBOARD_SHARD_VARIABLES_V2"
+            "$DASHBOARD_SHARD_GENERATED"
           )
           skip_pattern="($DASHBOARD_MIGRATION_ACC_PATTERN)"
           for pattern in "${shard_patterns[@]}"; do
