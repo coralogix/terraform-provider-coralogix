@@ -52,6 +52,20 @@ values:
   layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars.y_axis_max: "2"
   layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars_multi.y_axis_min: "1"
   layout.sections[].rows[].widgets[].definition.dynamic.visualization.vertical_bars_multi.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.geomap.min_max.custom.min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.geomap.min_max.custom.max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.table.rules[].properties[].definition.thresholds.min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.table.rules[].properties[].definition.thresholds.max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.table.rules[].properties[].definition.units.min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.table.rules[].properties[].definition.units.max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.time_series_bars.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.time_series_bars.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.time_series_lines.y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.time_series_lines.y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.time_series_lines_multi.query_display_settings[].y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.dynamic.visualization.time_series_lines_multi.query_display_settings[].y_axis_max: "2"
+  layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].y_axis_min: "1"
+  layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].y_axis_max: "2"
   # A spans field value has an observation field or a value, not both.
   # DataPrime queries that compile, in every widget kind.
   layout.sections[].rows[].widgets[].definition.data_table.query.data_prime.query: '"source logs | limit 1"'
@@ -108,3 +122,12 @@ skip:
   # With selection_type all, the operator has no selected values.
   - filters[].source.logs.operator.selected_values
   - layout.sections[].rows[].widgets[].definition.bar_chart.query.data_prime.filters[].logs.operator.selected_values
+
+# The API takes one aggregation in the logs and spans query of a line chart (400: aggregations should
+# contain a single element). The values-and-choices subtest puts one in a query, and the other
+# values in copies.
+maxElements:
+  layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.logs.aggregations: 1
+  layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations: 1
+  layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations: 1
+  layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations: 1
