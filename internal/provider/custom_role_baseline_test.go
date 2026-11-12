@@ -251,13 +251,25 @@ var customRoleScenarios = map[string]func(h *grHarness){
 		h.customRoles().getStatus = 500
 		h.Apply("update: Get after Update answers 500", s, crConfig("unread-renamed", crUpdateConfig))
 	},
-	// The Update succeeds and the Get after it fails once. The next apply reads the role again.
+	// The Update succeeds and the Get after it fails once. Without a refresh, the state keeps the
+	// old name, so the next apply sends the Update again (terraform apply -refresh=false).
 	"update-read-fails-then-succeeds": func(h *grHarness) {
 		s := h.Apply("create", h.null(), crConfig("unread", crUpdateConfig))
 		h.customRoles().getStatus = 500
 		s = h.Apply("update: Get after Update answers 500", s, crConfig("unread-renamed", crUpdateConfig))
 		h.customRoles().getStatus = 0
 		s = h.Apply("apply again: Get answers", s, crConfig("unread-renamed", crUpdateConfig))
+		h.RefreshPlan("refresh and replan", s)
+	},
+	// The same failure, then a normal run: the plan refreshes the role first, so the state has the
+	// new name and the apply sends no second Update.
+	"update-read-fails-then-refresh": func(h *grHarness) {
+		s := h.Apply("create", h.null(), crConfig("unread", crUpdateConfig))
+		h.customRoles().getStatus = 500
+		s = h.Apply("update: Get after Update answers 500", s, crConfig("unread-renamed", crUpdateConfig))
+		h.customRoles().getStatus = 0
+		s = h.Refresh("refresh: Get answers", s)
+		s = h.Apply("apply again after the refresh", s, crConfig("unread-renamed", crUpdateConfig))
 		h.RefreshPlan("refresh and replan", s)
 	},
 	"delete-not-found": func(h *grHarness) {
