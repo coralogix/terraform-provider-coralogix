@@ -21,7 +21,7 @@ set -euo pipefail
 
 ignored='^(\.claude/|\.cursor/)|\.md$'
 
-dashboards='^(internal/provider/(dashboards/|generated/dashboardsfolder/|testdata/dashboard|dashboard|(resource|data_source)_coralogix_dashboard)|examples/(resources|data-sources)/coralogix_dashboard)'
+dashboards='^(internal/provider/(dashboards/|generated/dashboard(sfolder)?/|testdata/dashboard|dashboard|(resource|data_source)_coralogix_dashboard)|examples/(resources|data-sources)/coralogix_dashboard)'
 
 # Files that the dashboard tests use but that are not dashboard files. Keep this list in step
 # with the tests: when a dashboard test starts to use a helper of another file, add that file.
