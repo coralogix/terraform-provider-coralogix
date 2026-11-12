@@ -37,6 +37,12 @@ type File struct {
 	// value that no plan modifier of one attribute can state: one that reads another attribute, or
 	// that changes values inside the items of a set.
 	ModifyPlan bool `yaml:"modifyPlan"`
+	// ReadEmptyAs: "null" reads an empty list or set of objects or strings as null in every object of the
+	// resource, as a released resource did for the repeated fields of its API: the API cannot tell an
+	// empty list from a missing one, and a configuration that leaves the attribute out must plan no
+	// change for a dashboard whose list the API returns as []. A configured empty list keeps its form
+	// through the prior value, as for a readEmptyAs line. A line of a field can still set readNullAs.
+	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// GetHooks gives a released resource two hooks around its Get call: Get replaces the call, to
 	// add a query parameter or to retry it, and AfterGet receives the whole Get response, with the
 	// values that sit next to the resource. The data source runs them too. A singleton has no
@@ -908,7 +914,8 @@ type Field struct {
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
-	// ReadNullAs: "empty" reads a missing string as "", and a missing list or set of objects as an
+	// ReadNullAs: a Terraform value reads a missing enum as that value, as a released resource did for an
+	// enum that the API fills in. "empty" reads a missing string as "", and a missing list or set of objects as an
 	// empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
 	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
@@ -943,6 +950,11 @@ type Field struct {
 	// request omits the field. Removing the value from the configuration then clears it. It needs
 	// readEmptyAs: "null", so that the stored "" reads back as null.
 	SendNullAsEmpty bool `yaml:"sendNullAsEmpty"`
+	// UnsupportedIfEmpty makes a read fail when the response holds no value of the object field,
+	// or an object whose fields are all unset: the typed schema cannot show it, and a state that
+	// shows nothing would hide the data that the API holds. The resource reports the summary and the
+	// detail. The AllowUnsupported hook turns the check off, as for unsupportedArms.
+	UnsupportedIfEmpty *UnsupportedText `yaml:"unsupportedIfEmpty"`
 	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
 	// resource required one arm even though the contract allows none.
 	RequireOne bool `yaml:"requireOne"`
@@ -972,6 +984,15 @@ type Field struct {
 	// Split shows a string that the API holds as values joined by this separator, "a,b", as a set
 	// of strings, as the released resource did. Expand joins the values; flatten splits the text.
 	Split string `yaml:"split"`
+	// DurationFormat keeps the released text of a duration that the API holds as a protobuf JSON
+	// duration, such as 900s. protoText shows it as seconds:900 (minutes:15 is also accepted),
+	// goDuration as the Go text 15m0s. Expand converts the text to the API value; flatten converts
+	// it back. The field must be a plain string.
+	DurationFormat string `yaml:"durationFormat"`
+	// EnumAs picks another spelling of the enum of the field: the entry "<Enum>@<EnumAs>" of the enums
+	// section. A released resource spelled the same API enum in two ways in two places (the zero value
+	// "high" in one block, "unspecified" in another), and one enums entry has one spelling.
+	EnumAs string `yaml:"enumAs"`
 }
 
 // Distribute is a distributeTo line. Each item of the list names the component item that it
@@ -1139,6 +1160,9 @@ type Validator struct {
 	// KeysAre is a released mapvalidator.KeysAre(stringvalidator.RegexMatches) of a map: each key
 	// must match the pattern.
 	KeysAre *RegexMatches `yaml:"keysAre"`
+	// Unsupported rejects any configured value of a bool with this message, for an attribute that the
+	// API never accepts at this place, as a released validator did.
+	Unsupported string `yaml:"unsupported"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -1153,8 +1177,14 @@ func (e Enum) RejectedTFValue(v string) string {
 	if e.ReadRejected == ReadRejectedLower {
 		return strings.ToLower(v)
 	}
+	if e.ReadRejectedAs != "" {
+		return e.ReadRejectedAs
+	}
 	return v
 }
+
+// ReadsRejected reports whether a rejected value reads back, by readRejected or by readRejectedAs.
+func (e Enum) ReadsRejected() bool { return e.ReadRejected.On() || e.ReadRejectedAs != "" }
 
 // checkUnsupported checks the unsupported arm keys: the three keys are set together, no arm is
 // listed twice, and no unsupported arm has a field line, because the arm is not in the schema.
@@ -1174,6 +1204,12 @@ func (t Type) checkUnsupported() error {
 		}
 	}
 	return nil
+}
+
+// UnsupportedText is the error that a read reports for a value that the typed schema cannot show.
+type UnsupportedText struct {
+	Summary string `yaml:"summary"`
+	Detail  string `yaml:"detail"`
 }
 
 // TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
@@ -1262,6 +1298,11 @@ type Enum struct {
 	// map and the schema validator do not accept it. Without this key, a rejected value fails
 	// the read.
 	ReadRejected ReadRejected `yaml:"readRejected"`
+	// ReadRejectedAs reads every rejected value as this one Terraform value, for a released resource
+	// that read an API value that it did not accept as unspecified. The value need not be accepted.
+	// "null" reads a rejected value as null, as a released switch that had no case for it did; it is
+	// for a field, not for a list or set of the enum.
+	ReadRejectedAs string `yaml:"readRejectedAs"`
 }
 
 // ReadRejected is how a rejected enum value reads back: not at all (""), as the API spelling
@@ -1315,6 +1356,9 @@ func Parse(data []byte) (*File, error) {
 }
 
 func (f *File) check() error {
+	if f.ReadEmptyAs != "" && f.ReadEmptyAs != "null" {
+		return fmt.Errorf("readEmptyAs is %q, want \"null\"", f.ReadEmptyAs)
+	}
 	if f.Resource == "" {
 		return errors.New("resource is required")
 	}
@@ -1448,6 +1492,9 @@ func (f *File) checkTypes() error {
 			if line.Join != "" && (line.Collection != "" || line.KeyedBy != nil || line.Split != "" || len(line.ValueNames) != 0 || line.ItemName != "" || line.SplitArms) {
 				return fmt.Errorf("types.%s.fields.%s: join shows a list of strings as one string, so collection, keyedBy, split, valueNames, itemName, and splitArms cannot be set", name, field)
 			}
+			if line.DurationFormat != "" && line.DurationFormat != "protoText" && line.DurationFormat != "goDuration" {
+				return fmt.Errorf("types.%s.fields.%s: durationFormat is protoText or goDuration, not %q", name, field, line.DurationFormat)
+			}
 			if line.Split != "" && (line.Collection != "" || line.KeyedBy != nil) {
 				return fmt.Errorf("types.%s.fields.%s: split shows a string as a set, so collection and keyedBy cannot be set", name, field)
 			}
@@ -1530,6 +1577,9 @@ func (f *File) checkEnums() error {
 		if e.ReadRejected == ReadRejectedLower && e.Verbatim {
 			return fmt.Errorf("enums.%s: readRejected: lower excludes verbatim", name)
 		}
+		if e.ReadRejectedAs != "" && e.ReadRejected.On() {
+			return fmt.Errorf("enums.%s: readRejected and readRejectedAs cannot both be set", name)
+		}
 		if e.ReadRejected.On() {
 			// A rejected value reads back as its read spelling, so no accepted value can have it.
 			for _, v := range e.Rejected {
@@ -1585,6 +1635,7 @@ func (l Field) keys() []string {
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
+	add(l.UnsupportedIfEmpty != nil, "unsupportedIfEmpty")
 	add(l.SendUnknownAsZero, "sendUnknownAsZero")
 	add(l.SplitArms, "splitArms")
 	add(l.ShowInverted, "showInverted")
@@ -1606,6 +1657,8 @@ func (l Field) keys() []string {
 	add(l.ItemName != "", "itemName")
 	add(l.Negate, "negate")
 	add(l.Split != "", "split")
+	add(l.DurationFormat != "", "durationFormat")
+	add(l.EnumAs != "", "enumAs")
 	add(l.Join != "", "join")
 	add(l.ClientID != "", "clientID")
 	add(l.DistributeTo != nil, "distributeTo")
@@ -1805,12 +1858,15 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == "" && l.Join == "" && l.ClientID == "" && l.DistributeTo == nil
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == "" && l.DurationFormat == "" && l.EnumAs == "" && l.Join == "" && l.ClientID == "" && l.DistributeTo == nil && l.UnsupportedIfEmpty == nil
 }
 
 func (l Field) check() error {
 	if l.empty() {
 		return errors.New("the line sets nothing")
+	}
+	if t := l.UnsupportedIfEmpty; t != nil && (t.Summary == "" || t.Detail == "") {
+		return errors.New("unsupportedIfEmpty needs a summary and a detail")
 	}
 	if err := l.checkConflicts(); err != nil {
 		return err
@@ -1907,9 +1963,8 @@ func (l Field) checkConflicts() error {
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
 	}
-	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
-		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
-	}
+	// "empty" reads a missing string or list as empty. Any other text is the Terraform value that a
+	// missing enum reads as: the generator checks that the field is an enum.
 	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
 		return errors.New("readEmptyAs and readNullAs cannot both be set")
 	}
@@ -1950,10 +2005,10 @@ func (l Field) checkDistributeTo() error {
 		return err
 	}
 	others := slices.DeleteFunc(l.keys(), func(key string) bool {
-		return key == "distributeTo" || key == "description" || key == "markdownDescription"
+		return key == "distributeTo" || key == "description" || key == "markdownDescription" || key == "validators"
 	})
 	if len(others) != 0 {
-		return fmt.Errorf("distributeTo moves the list into another component, so the line sets only description and markdownDescription besides it, not %s", strings.Join(others, ", "))
+		return fmt.Errorf("distributeTo moves the list into another component, so the line sets only description, markdownDescription, and validators besides it, not %s", strings.Join(others, ", "))
 	}
 	return nil
 }
@@ -2163,7 +2218,7 @@ func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.DefaultFromSibling != "" || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
-		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.Join != "" || l.ClientID != "" || l.DistributeTo != nil
+		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.DurationFormat != "" || l.Join != "" || l.ClientID != "" || l.DistributeTo != nil
 }
 
 func checkValidators(validators []Validator) error {
@@ -2226,8 +2281,11 @@ func checkValidators(validators []Validator) error {
 				return fmt.Errorf("keysAre needs a pattern that Go compiles: %q", v.KeysAre.Pattern)
 			}
 		}
+		if v.Unsupported != "" {
+			set++
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, equals, atLeast, regexMatches, and keysAre")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, equals, atLeast, regexMatches, keysAre, and unsupported")
 		}
 	}
 	return nil

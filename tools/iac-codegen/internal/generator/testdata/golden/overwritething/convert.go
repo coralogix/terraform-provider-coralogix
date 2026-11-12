@@ -392,8 +392,8 @@ func flattenThing(ctx context.Context, p path.Path, v *overwrite_things_service.
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Description = types.StringPointerValue(v.Description)
 	out.Enabled = types.BoolPointerValue(v.Enabled)
-	if api := v.Priority; api != nil && *api == "THING_PRIORITY_UNSPECIFIED" {
-		// The zero value means that the API has no value.
+	if api := v.Priority; api != nil && (*api == "THING_PRIORITY_UNSPECIFIED") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.Priority = types.StringNull()
 	} else {
 		out.Priority = flattenEnumMapped(p.AtName("priority"), api, thingPriorityFromAPI, diags)

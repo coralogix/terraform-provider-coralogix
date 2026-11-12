@@ -836,3 +836,39 @@ func TestSchemaOptionalModeKeys(t *testing.T) {
 		}
 	}
 }
+
+// The keys that keep a released shape are checked when the file is read: a bad value fails at parse, not
+// in the generated code.
+func TestReleasedShapeKeysAreChecked(t *testing.T) {
+	for name, test := range map[string]struct {
+		lines   string
+		wantErr string
+	}{
+		"a duration format that does not exist": {
+			lines:   "types:\n  Thing:\n    fields:\n      span: {durationFormat: seconds}\n",
+			wantErr: "durationFormat is protoText or goDuration",
+		},
+		"a duration format": {lines: "types:\n  Thing:\n    fields:\n      span: {durationFormat: protoText}\n"},
+		"an empty-object error without a detail": {
+			lines:   "types:\n  Thing:\n    fields:\n      body: {unsupportedIfEmpty: {summary: Unsupported}}\n",
+			wantErr: "unsupportedIfEmpty needs a summary and a detail",
+		},
+		"an empty-object error": {lines: "types:\n  Thing:\n    fields:\n      body: {unsupportedIfEmpty: {summary: Unsupported, detail: Not shown.}}\n"},
+		"a top-level readEmptyAs that is no null": {
+			lines:   "readEmptyAs: empty\n",
+			wantErr: `readEmptyAs is "empty", want "null"`,
+		},
+		"a top-level readEmptyAs":   {lines: "readEmptyAs: \"null\"\n"},
+		"a readNullAs with a value": {lines: "types:\n  Thing:\n    fields:\n      mode: {computed: true, readNullAs: unspecified}\n"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n" + test.lines))
+			switch {
+			case test.wantErr == "" && err != nil:
+				t.Fatalf("Parse() = %v, want no error", err)
+			case test.wantErr != "" && (err == nil || !strings.Contains(err.Error(), test.wantErr)):
+				t.Fatalf("Parse() = %v, want an error with %q", err, test.wantErr)
+			}
+		})
+	}
+}

@@ -280,7 +280,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 		return nil, diags
 	}
 {{- range .RootUnsupported}}
-	if v.{{.SDK}} != nil {
+	if v.{{.SDK}} != nil && !unsupportedAllowed(ctx) {
 		diags.AddError({{printf "%q" .Summary}}, {{printf "%q" .Detail}})
 		return nil, diags
 	}
@@ -617,10 +617,16 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 {{- end}}
 {{- $model := .Model}}
 {{- range .Unsupported}}
-	if v.{{.SDK}} != nil {
+	if v.{{.SDK}} != nil && !unsupportedAllowed(ctx) {
 		diags.AddError({{printf "%q" .Summary}}, {{printf "%q" .Detail}})
-		return &{{$model}}{}
 	}
+{{- end}}
+{{- range $f := .Fields}}
+{{- if $f.EmptyError}}
+	if !unsupportedAllowed(ctx) && (v.{{$f.SDK}} == nil{{if $f.Object.LeafSDK}} || ({{range $i, $leaf := $f.Object.LeafSDK}}{{if $i}} && {{end}}v.{{$f.SDK}}.{{$leaf}} == nil{{end}}){{end}}) {
+		diags.AddError({{printf "%q" $f.EmptyError.Summary}}, {{printf "%q" $f.EmptyError.Detail}})
+	}
+{{- end}}
 {{- end}}
 {{- if .FlattenParents}}
 	// The fields of an inlined object read as null when the API returns no object.
@@ -643,6 +649,14 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 {{- end}}
 {{- range .ExtraFlatten}}
 	out.{{.Name}} = {{.Expr}}
+{{- if .Keep}}
+{{- if .Default}}
+	out.{{.Name}} = {{.Default}}
+{{- end}}
+	if prior != nil{{if .Default}} && !prior.{{.Name}}.IsNull(){{end}} {
+		out.{{.Name}} = prior.{{.Name}}
+	}
+{{- end}}
 {{- end}}
 {{- if .RequireOne}}
 	arms := 0
@@ -1687,6 +1701,110 @@ func otherArm(prior, now []bool) bool {
 	return anyPrior && anyNow
 }
 {{- end}}
+{{- if .Conv.UsesUnsupported}}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
+}
+{{- end}}
+{{- if .Conv.UsesDuration}}
+
+// expandDuration converts the released text of a duration to the protobuf JSON duration that the API
+// holds: seconds:900 (protoText, also minutes:15) or 15m0s (goDuration) become 900s. A null or unknown
+// text is no value.
+func expandDuration(p path.Path, v types.String, format string, diags *diag.Diagnostics) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	d, err := parseDurationText(v.ValueString(), format)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid duration", err.Error())
+		return nil
+	}
+	wire := wireDuration(d)
+	return &wire
+}
+
+// flattenDuration converts a protobuf JSON duration to the released text. A value that is no duration
+// stays as the API wrote it.
+func flattenDuration(v *string, format string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	d, ok := parseWireDuration(*v)
+	if !ok {
+		return types.StringValue(*v)
+	}
+	if format == "goDuration" {
+		return types.StringValue(d.String())
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos != 0:
+		return types.StringValue(fmt.Sprintf("seconds:%d nanos:%d", seconds, nanos))
+	default:
+		return types.StringValue(fmt.Sprintf("seconds:%d", seconds))
+	}
+}
+
+func parseDurationText(text, format string) (time.Duration, error) {
+	if format == "goDuration" {
+		return time.ParseDuration(text)
+	}
+	unit, number, found := strings.Cut(text, ":")
+	if !found {
+		return 0, fmt.Errorf("error parsing duration %q: want seconds:<n> or minutes:<n>", text)
+	}
+	n, err := strconv.Atoi(number)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing duration numbers in %q", text)
+	}
+	switch unit {
+	case "seconds":
+		return time.Second * time.Duration(n), nil
+	case "minutes":
+		return time.Minute * time.Duration(n), nil
+	}
+	return 0, fmt.Errorf("error parsing duration unit %q", unit)
+}
+
+// wireDuration writes a duration as the protobuf JSON text: whole seconds, then a fraction of 3, 6, or
+// 9 digits, then s.
+func wireDuration(d time.Duration) string {
+	sign := ""
+	if d < 0 {
+		sign, d = "-", -d
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos == 0:
+		return fmt.Sprintf("%s%ds", sign, seconds)
+	case nanos%1000000 == 0:
+		return fmt.Sprintf("%s%d.%03ds", sign, seconds, nanos/1000000)
+	case nanos%1000 == 0:
+		return fmt.Sprintf("%s%d.%06ds", sign, seconds, nanos/1000)
+	}
+	return fmt.Sprintf("%s%d.%09ds", sign, seconds, nanos)
+}
+
+func parseWireDuration(text string) (time.Duration, bool) {
+	number, ok := strings.CutSuffix(text, "s")
+	if !ok || number == "" {
+		return 0, false
+	}
+	d, err := time.ParseDuration(number + "s")
+	return d, err == nil
+}
+{{- end}}
 {{- if .Conv.UsesJoin}}
 
 // splitText returns the elements of a text that Terraform shows for a list of strings: the text split
@@ -2068,6 +2186,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if and (eq .Conv "string") .ClientID}}
 	{{.Dst}} = {{$l}}expandClientUUID(m.{{.Model}}){{$r}}
+{{- else if and (eq .Conv "string") .Duration}}
+	{{.Dst}} = {{$l}}expandDuration({{$p}}, m.{{.Model}}, {{printf "%q" .Duration}}, diags){{$r}}
 {{- else if eq .Conv "string"}}
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "split"}}
@@ -2344,6 +2464,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = joinText({{.Src}}, {{printf "%q" .Join}})
 {{- else if eq .Conv "split"}}
 	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})
+{{- else if and (eq .Conv "string") .Duration}}
+	out.{{.Model}} = flattenDuration({{$v}}, {{printf "%q" .Duration}})
 {{- else if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
 	{{- if .ReadNullAsEmpty}}
@@ -2439,9 +2561,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenRFC3339({{$v}})
 {{- else if eq .Conv "times"}}
 	out.{{.Model}} = flattenTimes{{.Collection}}(ctx, {{.Src}}, diags)
-{{- else if and (eq .Conv "enum") .EnumMap .EnumMap.ZeroNull}}
-	if api := {{$v}}; api != nil && *api == {{printf "%q" .EnumMap.ZeroNull}} {
-		// The zero value means that the API has no value.
+{{- else if and (eq .Conv "enum") .EnumMap .EnumMap.NullAPIValues}}
+	if api := {{$v}}; api != nil && ({{range $i, $n := .EnumMap.NullAPIValues}}{{if $i}} || {{end}}*api == {{printf "%q" $n}}{{end}}) {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.{{.Model}} = types.StringNull()
 	} else {
 		out.{{.Model}} = flattenEnumMapped({{$p}}, api, {{.EnumMap.Name}}FromAPI, diags)

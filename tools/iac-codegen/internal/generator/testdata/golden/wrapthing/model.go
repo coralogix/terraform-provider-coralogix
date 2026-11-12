@@ -20,6 +20,8 @@ type WrapThingModel struct {
 	Tags       types.Set           `tfsdk:"tags"`
 	Window     types.String        `tfsdk:"window"`
 	MainLabel  types.String        `tfsdk:"main_label"`
+	Span       types.String        `tfsdk:"span"`
+	Step       types.String        `tfsdk:"step"`
 	ExtraLabel *LabelModel         `tfsdk:"extra_label"`
 	Panels     types.List          `tfsdk:"panels"`
 	FolderPath types.String        `tfsdk:"folder_path"`
@@ -55,7 +57,11 @@ type WrapNoteModel struct {
 type WrapPanelModel struct {
 	Id         types.String `tfsdk:"id"`
 	Title      types.String `tfsdk:"title"`
+	Legacy     types.Bool   `tfsdk:"legacy"`
+	Level      types.String `tfsdk:"level"`
+	Size       types.String `tfsdk:"size"`
 	PanelNotes types.List   `tfsdk:"panel_notes"`
+	Remark     types.String `tfsdk:"remark"`
 }
 
 type WrapMarkModel struct {

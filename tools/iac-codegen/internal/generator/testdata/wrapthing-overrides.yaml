@@ -2,6 +2,9 @@
 resource: WrapThing
 mode: existing
 
+# The API cannot tell an empty list from a missing one: every list reads empty as null.
+readEmptyAs: "null"
+
 validators:
   inferred: false
 
@@ -28,6 +31,9 @@ types:
           by: {listField: panelId, itemField: id}
           keep: detail.url
       marks: {collection: set}
+      # The API holds a duration as 900s. Terraform shows the span as seconds:900 and the step as 15m0s.
+      span: {durationFormat: protoText}
+      step: {durationFormat: goDuration}
       homeId: {name: id}
       homePath: {name: path}
       rawQuery:
@@ -68,15 +74,50 @@ types:
     fields:
       segments: {join: "/"}
   # The client makes the id of a panel when the configuration leaves it out.
+  # The retired field is no attribute. A response that has it cannot be shown, so a read reports it,
+  # unless the AllowUnsupported hook says that the resource is managed another way.
   WrapPanel:
+    unsupportedArms: [retired]
+    unsupportedSummary: Unsupported panel
+    unsupportedDetail: The panel uses the retired field.
+    # A text that only Terraform holds, inside an item of a list: the API does not have it, so a read
+    # keeps the text of the prior item.
+    extraAttributes:
+      remark: {type: string, optional: true, computed: true, default: none, markdownDescription: A remark that only Terraform keeps.}
     fields:
       id: {clientID: uuid}
+      # The API never accepts the flag on a panel, and a released validator rejected it with this text.
+      legacy: {validators: [{unsupported: A panel cannot use legacy.}]}
+      # The API fills the level in, and a released resource read a missing level as the first value.
+      level: {computed: true, useNonNullStateForUnknown: true, readNullAs: unspecified, enumAs: panel}
+      # The size reads a value that the resource does not accept as null, as a released switch did.
+      size: {computed: true, useNonNullStateForUnknown: true, enumAs: size}
   # The client makes the id of a note too.
+  # A note whose detail has no value cannot be shown, so a read reports it, unless the resource is managed
+  # another way (AllowUnsupported).
   WrapNote:
     fields:
       id: {clientID: uuid}
+      detail:
+        unsupportedIfEmpty: {summary: Unsupported note, detail: The note has a detail without a value.}
 enums:
   WindowValue:
     zero: 1_MINUTE
     values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    rejected: [WINDOW_VALUE_DAYS_7]
+    names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}
+  # The level of a panel spells the same API enum another way: the zero value is unspecified.
+  WindowValue@size:
+    zero: unspecified
+    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    rejected: [WINDOW_VALUE_DAYS_7]
+    readRejectedAs: "null"
+    names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}
+  WindowValue@panel:
+    zero: unspecified
+    values: [WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
+    # A value that the resource does not accept still reads, as unspecified, so a dashboard that someone
+    # edited elsewhere does not fail the refresh.
+    rejected: [WINDOW_VALUE_DAYS_7]
+    readRejectedAs: unspecified
     names: {WINDOW_VALUE_MINUTES_5: 5_MINUTES, WINDOW_VALUE_HOURS_2: 2_HOURS}

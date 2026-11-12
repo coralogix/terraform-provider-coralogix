@@ -50,6 +50,10 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *storage_service.StorageConfig) diag.Diagnostics
+	// AllowUnsupported says that the resource is managed in a way that does not read the
+	// unsupported fields and arms (unsupportedArms), so flatten does not report them. It gets the
+	// plan after Create or Update, or the state before Read; a state upgrade gets the prior state.
+	AllowUnsupported func(context.Context, any) bool
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -276,7 +280,24 @@ func (r *Resource) setState(ctx context.Context, v *storage_service.StorageConfi
 			return diags
 		}
 	}
+	if r.hooks.AllowUnsupported != nil {
+		source := prior
+		if source != nil && r.hooks.AllowUnsupported(ctx, source) {
+			ctx = withUnsupportedAllowed(ctx)
+		}
+	}
 	m, flattenDiags := flatten(ctx, v)
+	if m != nil && unsupportedAllowed(ctx) {
+		// The hook that allowed the unsupported values manages the resource another way and drops its
+		// typed attributes, so a value that the schema cannot show is no error here.
+		kept := flattenDiags[:0:0]
+		for _, d := range flattenDiags {
+			if d.Severity() != diag.SeverityError {
+				kept = append(kept, d)
+			}
+		}
+		flattenDiags = kept
+	}
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
 		return diags

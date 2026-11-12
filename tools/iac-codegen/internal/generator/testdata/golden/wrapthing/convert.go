@@ -38,6 +38,36 @@ var windowValueFromAPI = map[wrap_things_service.WindowValue]string{
 	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
 }
 
+// windowValuePanelToAPI maps the Terraform values of the enum to its API values.
+var windowValuePanelToAPI = map[string]wrap_things_service.WindowValue{
+	"unspecified": wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"),
+	"5_MINUTES":   wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"),
+	"2_HOURS":     wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"),
+}
+
+// windowValuePanelFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
+var windowValuePanelFromAPI = map[wrap_things_service.WindowValue]string{
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"): "unspecified",
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"):                "5_MINUTES",
+	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
+	wrap_things_service.WindowValue("WINDOW_VALUE_DAYS_7"):                   "unspecified",
+}
+
+// windowValueSizeToAPI maps the Terraform values of the enum to its API values.
+var windowValueSizeToAPI = map[string]wrap_things_service.WindowValue{
+	"unspecified": wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"),
+	"5_MINUTES":   wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"),
+	"2_HOURS":     wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"),
+}
+
+// windowValueSizeFromAPI maps the API values of the enum to its Terraform values.
+var windowValueSizeFromAPI = map[wrap_things_service.WindowValue]string{
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"): "unspecified",
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"):                "5_MINUTES",
+	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
+}
+
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -57,6 +87,8 @@ var createFields = []struct {
 	{attr: "tags", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
+	{attr: "span", serverDefault: false},
+	{attr: "step", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
 	{attr: "folder_path", serverDefault: false},
@@ -191,7 +223,10 @@ var oneOfArms = map[string]bool{}
 var computedAttrs = map[string]bool{
 	"id":                    true,
 	"panels.id":             true,
+	"panels.level":          true,
+	"panels.size":           true,
 	"panels.panel_notes.id": true,
+	"panels.remark":         true,
 	"marks.title":           true,
 	"marks.created_at":      true,
 }
@@ -440,6 +475,8 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		inner = expandString(m.MainLabel)
 		out.MainLabel = wrapLabel(inner)
 	}
+	out.Span = expandDuration(p.AtName("span"), m.Span, "protoText", diags)
+	out.Step = expandDuration(p.AtName("step"), m.Step, "goDuration", diags)
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
 	if items := expandElements[WrapPanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
 		out.Panels = make([]wrap_things_service.WrapPanel, 0, len(items))
@@ -533,6 +570,9 @@ func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags 
 		out.Id = valueOf(wrapUUID(inner))
 	}
 	out.Title = expandString(m.Title)
+	out.Legacy = expandBool(m.Legacy)
+	out.Level = expandEnumMapped(p.AtName("level"), m.Level, windowValuePanelToAPI, diags)
+	out.Size = expandEnumMapped(p.AtName("size"), m.Size, windowValueSizeToAPI, diags)
 	if items := expandElements[WrapNoteModel](ctx, p.AtName("panel_notes"), m.PanelNotes, diags); len(items) != 0 {
 		if collected := distributedNotesOf(ctx); collected != nil {
 			// The items name this object by its id, as the request holds it.
@@ -555,9 +595,12 @@ func expandWrapPanel(ctx context.Context, p path.Path, m *WrapPanelModel, diags 
 	return out
 }
 
-func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.WrapPanel, diags *diag.Diagnostics) *WrapPanelModel {
+func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.WrapPanel, prior *WrapPanelModel, diags *diag.Diagnostics) *WrapPanelModel {
 	if v == nil {
 		return nil
+	}
+	if v.Retired != nil && !unsupportedAllowed(ctx) {
+		diags.AddError("Unsupported panel", "The panel uses the retired field.")
 	}
 	out := &WrapPanelModel{}
 	{
@@ -565,6 +608,18 @@ func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.Id = types.StringPointerValue(inner)
 	}
 	out.Title = types.StringPointerValue(v.Title)
+	out.Legacy = types.BoolPointerValue(v.Legacy)
+	if v.Level == nil {
+		out.Level = types.StringValue("unspecified")
+	} else {
+		out.Level = flattenEnumMapped(p.AtName("level"), v.Level, windowValuePanelFromAPI, diags)
+	}
+	if api := v.Size; api != nil && (*api == "WINDOW_VALUE_DAYS_7") {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
+		out.Size = types.StringNull()
+	} else {
+		out.Size = flattenEnumMapped(p.AtName("size"), api, windowValueSizeFromAPI, diags)
+	}
 	out.PanelNotes = types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})
 	if collected := distributedNotesOf(ctx); collected != nil {
 		if id := unwrapUUID(&v.Id); id != nil {
@@ -577,6 +632,11 @@ func flattenWrapPanel(ctx context.Context, p path.Path, v *wrap_things_service.W
 			}
 		}
 	}
+	out.Remark = types.StringNull()
+	out.Remark = types.StringValue("none")
+	if prior != nil && !prior.Remark.IsNull() {
+		out.Remark = prior.Remark
+	}
 	return out
 }
 
@@ -584,7 +644,11 @@ func wrapPanelAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"id":          types.StringType,
 		"title":       types.StringType,
+		"legacy":      types.BoolType,
+		"level":       types.StringType,
+		"size":        types.StringType,
 		"panel_notes": types.ListType{ElemType: types.ObjectType{AttrTypes: wrapNoteAttrTypes()}},
+		"remark":      types.StringType,
 	}
 }
 
@@ -674,6 +738,9 @@ func expandWrapNote(ctx context.Context, p path.Path, m *WrapNoteModel, diags *d
 func flattenWrapNote(ctx context.Context, p path.Path, v *wrap_things_service.WrapNote, diags *diag.Diagnostics) *WrapNoteModel {
 	if v == nil {
 		return nil
+	}
+	if !unsupportedAllowed(ctx) && (v.Detail == nil || (v.Detail.Url == nil)) {
+		diags.AddError("Unsupported note", "The note has a detail without a value.")
 	}
 	out := &WrapNoteModel{}
 	out.Id = types.StringPointerValue(&v.Id)
@@ -773,6 +840,8 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		inner = expandString(m.MainLabel)
 		out.MainLabel = wrapLabel(inner)
 	}
+	out.Span = expandDuration(p.AtName("span"), m.Span, "protoText", diags)
+	out.Step = expandDuration(p.AtName("step"), m.Step, "goDuration", diags)
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
 	if items := expandElements[WrapPanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
 		out.Panels = make([]wrap_things_service.WrapPanel, 0, len(items))
@@ -838,6 +907,10 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapUUID_items(v.WidgetIds)
 		out.WidgetIds = flattenStringsList(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.WidgetIds = types.ListNull(types.StringType)
+		}
 	}
 	{
 		inner := unwrapFilterHolder(v.Filter)
@@ -846,10 +919,18 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapSelection_ListSelection(v.Selection)
 		out.Selection = flattenStringsList(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.Selection = types.ListNull(types.StringType)
+		}
 	}
 	{
 		inner := unwrapTags(v.Tags)
 		out.Tags = flattenStringsSet(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.Tags = types.SetNull(types.StringType)
+		}
 	}
 	out.Window = types.StringNull()
 	if fold := v.Window; fold != nil {
@@ -866,12 +947,23 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		inner := unwrapLabel(v.MainLabel)
 		out.MainLabel = types.StringPointerValue(inner)
 	}
+	out.Span = flattenDuration(v.Span, "protoText")
+	out.Step = flattenDuration(v.Step, "goDuration")
 	out.ExtraLabel = flattenLabel(ctx, p.AtName("extra_label"), v.ExtraLabel, diags)
 	out.Panels = types.ListNull(types.ObjectType{AttrTypes: wrapPanelAttrTypes()})
-	if v.Panels != nil {
+	if len(v.Panels) != 0 {
 		items := make([]WrapPanelModel, 0, len(v.Panels))
+		var priorPanels []WrapPanelModel
+		if prior != nil {
+			priorPanels = priorItems[WrapPanelModel](ctx, prior.Panels)
+		}
 		for i := range v.Panels {
-			items = append(items, *flattenWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &v.Panels[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *WrapPanelModel
+			if i < len(priorPanels) {
+				priorItem = &priorPanels[i]
+			}
+			items = append(items, *flattenWrapPanel(ctx, p.AtName("panels").AtListIndex(i), &v.Panels[i], priorItem, diags))
 		}
 		out.Panels = flattenList(ctx, types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, items, diags)
 	}
@@ -880,7 +972,7 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.FolderPath = joinText(inner, "/")
 	}
 	out.Marks = types.SetNull(types.ObjectType{AttrTypes: wrapMarkAttrTypes()})
-	if v.Marks != nil {
+	if len(v.Marks) != 0 {
 		items := make([]WrapMarkModel, 0, len(v.Marks))
 		var priorMarks []WrapMarkModel
 		if prior != nil {
@@ -1511,6 +1603,106 @@ func otherArm(prior, now []bool) bool {
 		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
 	}
 	return anyPrior && anyNow
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
+}
+
+// expandDuration converts the released text of a duration to the protobuf JSON duration that the API
+// holds: seconds:900 (protoText, also minutes:15) or 15m0s (goDuration) become 900s. A null or unknown
+// text is no value.
+func expandDuration(p path.Path, v types.String, format string, diags *diag.Diagnostics) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	d, err := parseDurationText(v.ValueString(), format)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid duration", err.Error())
+		return nil
+	}
+	wire := wireDuration(d)
+	return &wire
+}
+
+// flattenDuration converts a protobuf JSON duration to the released text. A value that is no duration
+// stays as the API wrote it.
+func flattenDuration(v *string, format string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	d, ok := parseWireDuration(*v)
+	if !ok {
+		return types.StringValue(*v)
+	}
+	if format == "goDuration" {
+		return types.StringValue(d.String())
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos != 0:
+		return types.StringValue(fmt.Sprintf("seconds:%d nanos:%d", seconds, nanos))
+	default:
+		return types.StringValue(fmt.Sprintf("seconds:%d", seconds))
+	}
+}
+
+func parseDurationText(text, format string) (time.Duration, error) {
+	if format == "goDuration" {
+		return time.ParseDuration(text)
+	}
+	unit, number, found := strings.Cut(text, ":")
+	if !found {
+		return 0, fmt.Errorf("error parsing duration %q: want seconds:<n> or minutes:<n>", text)
+	}
+	n, err := strconv.Atoi(number)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing duration numbers in %q", text)
+	}
+	switch unit {
+	case "seconds":
+		return time.Second * time.Duration(n), nil
+	case "minutes":
+		return time.Minute * time.Duration(n), nil
+	}
+	return 0, fmt.Errorf("error parsing duration unit %q", unit)
+}
+
+// wireDuration writes a duration as the protobuf JSON text: whole seconds, then a fraction of 3, 6, or
+// 9 digits, then s.
+func wireDuration(d time.Duration) string {
+	sign := ""
+	if d < 0 {
+		sign, d = "-", -d
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos == 0:
+		return fmt.Sprintf("%s%ds", sign, seconds)
+	case nanos%1000000 == 0:
+		return fmt.Sprintf("%s%d.%03ds", sign, seconds, nanos/1000000)
+	case nanos%1000 == 0:
+		return fmt.Sprintf("%s%d.%06ds", sign, seconds, nanos/1000)
+	}
+	return fmt.Sprintf("%s%d.%09ds", sign, seconds, nanos)
+}
+
+func parseWireDuration(text string) (time.Duration, bool) {
+	number, ok := strings.CutSuffix(text, "s")
+	if !ok || number == "" {
+		return 0, false
+	}
+	d, err := time.ParseDuration(number + "s")
+	return d, err == nil
 }
 
 // splitText returns the elements of a text that Terraform shows for a list of strings: the text split

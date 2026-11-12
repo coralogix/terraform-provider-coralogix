@@ -162,6 +162,18 @@ type enumMap struct {
 	Read []enumMapValue
 	// ZeroNull is the API zero value that flatten reads as null (zeroNull), or "".
 	ZeroNull string
+	// NullValues are rejected API values that flatten reads as null (readRejectedAs: "null").
+	NullValues []string
+}
+
+// NullAPIValues are the API values that flatten reads as null: the zero value with zeroNull, and the
+// rejected values with readRejectedAs: "null".
+func (m *enumMap) NullAPIValues() []string {
+	var out []string
+	if m.ZeroNull != "" {
+		out = append(out, m.ZeroNull)
+	}
+	return append(out, m.NullValues...)
 }
 
 type enumMapValue struct{ TF, API string }
@@ -397,8 +409,16 @@ type convField struct {
 	// ReadNullAsEmpty: flatten reads a missing string as "", and a missing list or set of objects
 	// as an empty collection.
 	ReadNullAsEmpty bool
+	// EnumVariant is the enumAs of the line: the spelling of the enum at this field.
+	EnumVariant string
+	// ReadNullAsValue is the Terraform value that flatten gives an enum that the response does not
+	// have (readNullAs with a value).
+	ReadNullAsValue string
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
+	// EmptyError is the error that flatten reports when the response has no value of this object
+	// field, or an object with all fields unset (unsupportedIfEmpty).
+	EmptyError *unsupportedArm
 	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
 	// the value in any case, and flatten keeps the prior spelling of an equal value.
 	CaseInsensitive bool
@@ -485,6 +505,9 @@ type convField struct {
 	Negated bool
 	// Split is the separator of a split field: the API holds the values of the set joined by it.
 	Split string
+	// Duration is the released text of a duration (protoText or goDuration): the API holds a
+	// protobuf JSON duration such as 900s.
+	Duration string
 }
 
 // dropParent is an optional request object that expand leaves out when the configuration sets
@@ -698,6 +721,21 @@ func (f *convField) SetIn(v string) string {
 		return v + "." + f.Model + " != nil"
 	}
 	return "!" + v + "." + f.Model + ".IsNull() && !" + v + "." + f.Model + ".IsUnknown()"
+}
+
+// UsesUnsupported reports whether the resource has unsupported fields or arms (unsupportedArms).
+// The template then emits the context switch that the AllowUnsupported hook turns on.
+func (d *convData) UsesUnsupported() bool {
+	return len(d.RootUnsupported) != 0 || slices.ContainsFunc(d.Objects, func(o *convObject) bool {
+		return len(o.Unsupported) != 0 || slices.ContainsFunc(o.Fields, func(f *convField) bool { return f.EmptyError != nil })
+	})
+}
+
+// UsesDuration reports whether a field keeps a released duration text. The template then emits its helpers.
+func (d *convData) UsesDuration() bool {
+	return slices.ContainsFunc(d.Objects, func(o *convObject) bool {
+		return slices.ContainsFunc(o.Fields, func(f *convField) bool { return f.Duration != "" })
+	})
 }
 
 // UsesJoin reports whether a field shows a list as one string. The template then emits its helpers.
@@ -1217,10 +1255,21 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref)
 	return &convObject{Func: function, Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
 }
 
+// checkEmptyError rejects unsupportedIfEmpty on a field that is no pointer to an object.
+func checkEmptyError(cf *convField) error {
+	if cf.EmptyError != nil && (cf.Conv != convObj || cf.ObjectValue) {
+		return fmt.Errorf("unsupportedIfEmpty needs an object field that the SDK holds in a pointer: %s", cf.TFName)
+	}
+	return nil
+}
+
 // checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
 // works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
 // do nothing, and the released normalization that the line states would be missing.
 func checkReadEmptyAs(cf *convField) error {
+	if err := checkEmptyError(cf); err != nil {
+		return err
+	}
 	if cf.SendNullAsEmpty && cf.Conv != convString {
 		return fmt.Errorf("sendNullAsEmpty is supported for a string, not for the %s field %s", cf.Conv, cf.TFName)
 	}
@@ -1519,7 +1568,10 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	for _, v := range over.Values {
 		m.Values = append(m.Values, enumMapValue{TF: over.TFValue(v), API: v})
 	}
-	if over.ReadRejected.On() {
+	switch {
+	case over.ReadRejectedAs == "null":
+		m.NullValues = slices.Clone(over.Rejected)
+	case over.ReadsRejected():
 		for _, v := range over.Rejected {
 			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
@@ -1612,8 +1664,15 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 	line := b.file.Types[component].Fields[name]
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+	cf.EnumVariant = line.EnumAs
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
+	if line.ReadNullAs != "" && line.ReadNullAs != "empty" {
+		cf.ReadNullAsValue = line.ReadNullAs
+	}
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
+	if t := line.UnsupportedIfEmpty; t != nil {
+		cf.EmptyError = &unsupportedArm{SDK: cf.SDK, Summary: t.Summary, Detail: t.Detail}
+	}
 	cf.ClientID = line.ClientID != ""
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
@@ -1823,6 +1882,15 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 			return nil, fmt.Errorf("%s: split needs a plain string field", cf.TFName)
 		}
 		cf.Conv, cf.Split, cf.Collection = convSplit, sep, "Set"
+	}
+	if b.file != nil && b.file.ReadEmptyAs == "null" && (cf.Conv == convObjects || cf.Conv == convStrings) && !cf.ReadEmptyAsNull && !cf.ReadNullAsEmpty && !cf.SendEmpty {
+		cf.ReadEmptyAsNull = true
+	}
+	if format := durationOf(b.file, component, name); format != "" {
+		if cf.Conv != convString || cf.Wrap != nil {
+			return nil, fmt.Errorf("%s: durationFormat needs a plain string field", cf.TFName)
+		}
+		cf.Duration = format
 	}
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
@@ -2105,10 +2173,24 @@ func (b *convBuilder) applyUpdateDefault(cf *convField, component, name string) 
 	return nil
 }
 
+// enumKey is the key of the enums entry of the field for the contract enum schema.
+func (f *convField) enumKey(schema string) string {
+	if f.EnumVariant != "" && schema != "" {
+		return schema + "@" + f.EnumVariant
+	}
+	return schema
+}
+
 // checkReadAs checks the readEmptyAs and readNullAs keys of the line of cf.
 func checkReadAs(cf *convField) error {
 	if err := checkReadEmptyAs(cf); err != nil {
 		return err
+	}
+	if cf.ReadNullAsValue != "" {
+		if cf.Conv != convEnum || cf.EnumMap == nil {
+			return fmt.Errorf("%s: readNullAs: %s needs an enum", cf.TFName, cf.ReadNullAsValue)
+		}
+		cf.Missing = cf.ReadNullAsValue
 	}
 	if cf.ReadNullAsEmpty && cf.Conv != convObjects && cf.Conv != convString {
 		return fmt.Errorf("%s: readNullAs: empty needs a string, or a list or set of objects", cf.TFName)
@@ -2162,12 +2244,12 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 			return "", err
 		}
 		cf.Conv, cf.SDKType, cf.EnumZero = convEnum, b.qualify(enum.Name), t.EnumZero
-		m, err := b.enumMapFor(t.Schema, b.qualify(enum.Name), t)
+		m, err := b.enumMapFor(cf.enumKey(t.Schema), b.qualify(enum.Name), t)
 		if err != nil {
 			return "", err
 		}
 		cf.EnumMap = m
-		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[t.Schema].CaseInsensitive
+		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[cf.enumKey(t.Schema)].CaseInsensitive
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
 		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
@@ -2281,16 +2363,16 @@ func (b *convBuilder) enumsConv(cf *convField, t *model.Type) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if b.file != nil && b.file.Enums[t.Elem.Schema].CaseInsensitive {
+	if b.file != nil && b.file.Enums[cf.enumKey(t.Elem.Schema)].CaseInsensitive {
 		return "", fmt.Errorf("%s: enums caseInsensitive (%s) is for a scalar field of the enum: a list or set has no prior value per element to keep", cf.TFName, t.Elem.Schema)
 	}
 	cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
 	// An enums line maps each element, the zero value too when the line names it.
-	m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
+	m, err := b.enumMapFor(cf.enumKey(t.Elem.Schema), cf.SDKType, t.Elem)
 	if err != nil {
 		return "", err
 	}
-	if m != nil && m.ZeroNull != "" {
+	if m != nil && len(m.NullAPIValues()) != 0 {
 		// A list or set has no null element to read the zero value as.
 		return "", fmt.Errorf("zeroNull on %s reads its zero value as null, but a list or set of it has no null element", t.Elem.Schema)
 	}

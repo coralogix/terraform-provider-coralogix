@@ -36,6 +36,8 @@ var updateFields = []struct {
 	{attr: "tags", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
+	{attr: "span", serverDefault: false},
+	{attr: "step", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "panels", serverDefault: false},
 	{attr: "folder_path", serverDefault: false},

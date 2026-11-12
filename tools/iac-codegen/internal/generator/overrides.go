@@ -160,9 +160,11 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
-	proxy := doc.Components.Schemas.GetOrZero(line.Component)
+	// An enums entry "<Enum>@<variant>" is another spelling of the contract enum <Enum>.
+	contractComponent, _, _ := strings.Cut(line.Component, "@")
+	proxy := doc.Components.Schemas.GetOrZero(contractComponent)
 	if proxy == nil {
-		return wholeLine(fmt.Errorf("no component %q", line.Component))
+		return wholeLine(fmt.Errorf("no component %q", contractComponent))
 	}
 	schema, err := proxy.BuildSchema()
 	if err != nil {

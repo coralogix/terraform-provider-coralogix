@@ -260,16 +260,17 @@ func TestWrappedSetIsSentInItsWrapper(t *testing.T) {
 	}
 }
 
-// Flatten builds the set from the list in the wrapper, in any order. A missing wrapper, and a
-// wrapper without values, are null.
+// Flatten builds the set from the list in the wrapper, in any order. A missing wrapper, a wrapper
+// without values, and a wrapper of an empty list are null: the file reads every empty list as null
+// (readEmptyAs), and a configured empty set keeps its form through the prior value.
 func TestWrappedSetIsReadFromItsWrapper(t *testing.T) {
 	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{"b", "a"}}}, nil)
 	if diags.HasError() || !got.Tags.Equal(stringSet("a", "b")) {
 		t.Fatalf("tags = %s (%v), want [a b] as a set", got.Tags, diags)
 	}
 	got, diags = flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{}}}, nil)
-	if diags.HasError() || got.Tags.IsNull() || len(got.Tags.Elements()) != 0 {
-		t.Fatalf("tags = %s (%v), want an empty set", got.Tags, diags)
+	if diags.HasError() || !got.Tags.IsNull() {
+		t.Fatalf("tags = %s (%v), want null", got.Tags, diags)
 	}
 	for name, response := range map[string]*wrap_things_service.WrapThing{
 		"no wrapper":           {Id: "thing-1"},
@@ -461,7 +462,7 @@ func TestClientIDPlansUnknownForANewItemAndKeepsTheStateId(t *testing.T) {
 	panelType := root.AttributeTypes["panels"].(tftypes.List).ElementType.(tftypes.Object)
 	panel := func(id tftypes.Value) tftypes.Value {
 		return tftypes.NewValue(panelType, map[string]tftypes.Value{
-			"id": id, "title": tftypes.NewValue(tftypes.String, nil), "panel_notes": tftypes.NewValue(panelType.AttributeTypes["panel_notes"], nil),
+			"id": id, "title": tftypes.NewValue(tftypes.String, nil), "remark": tftypes.NewValue(tftypes.String, nil), "level": tftypes.NewValue(tftypes.String, nil), "size": tftypes.NewValue(tftypes.String, nil), "legacy": tftypes.NewValue(tftypes.Bool, nil), "panel_notes": tftypes.NewValue(panelType.AttributeTypes["panel_notes"], nil),
 		})
 	}
 	thing := func(id string, panels ...tftypes.Value) tftypes.Value {
@@ -882,9 +883,9 @@ func TestDistributedItemsAreReadIntoTheirPanels(t *testing.T) {
 func TestDistributedItemsSurviveARoundTrip(t *testing.T) {
 	ctx := context.Background()
 	model := notesModel(t,
-		WrapPanelModel{Id: types.StringValue("p1"), Title: types.StringValue("one"), PanelNotes: noteList(t, noteOf("a", "x", "u1"), noteOf("b", "y", "u2"))},
-		WrapPanelModel{Id: types.StringValue("p2"), Title: types.StringNull(), PanelNotes: noteList(t, noteOf("c", "z", "u3"))},
-		WrapPanelModel{Id: types.StringValue("p3"), Title: types.StringNull(), PanelNotes: types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})},
+		WrapPanelModel{Id: types.StringValue("p1"), Title: types.StringValue("one"), Remark: types.StringValue("none"), Level: types.StringValue("unspecified"), Size: types.StringNull(), PanelNotes: noteList(t, noteOf("a", "x", "u1"), noteOf("b", "y", "u2"))},
+		WrapPanelModel{Id: types.StringValue("p2"), Title: types.StringNull(), Remark: types.StringValue("none"), Level: types.StringValue("unspecified"), Size: types.StringNull(), PanelNotes: noteList(t, noteOf("c", "z", "u3"))},
+		WrapPanelModel{Id: types.StringValue("p3"), Title: types.StringNull(), Remark: types.StringValue("none"), Level: types.StringValue("unspecified"), Size: types.StringNull(), PanelNotes: types.ListNull(types.ObjectType{AttrTypes: wrapNoteAttrTypes()})},
 	)
 	body, diags := expandCreate(ctx, model)
 	if diags.HasError() {
@@ -949,7 +950,7 @@ func TestEmptyDistributedListKeepsItsFormInTheState(t *testing.T) {
 		values["id"] = tftypes.NewValue(tftypes.String, "thing-1")
 		values["query"] = tftypes.NewValue(tftypes.String, "q")
 		panel := map[string]tftypes.Value{
-			"id": tftypes.NewValue(tftypes.String, "p1"), "title": tftypes.NewValue(tftypes.String, nil), "panel_notes": notes,
+			"id": tftypes.NewValue(tftypes.String, "p1"), "title": tftypes.NewValue(tftypes.String, nil), "remark": tftypes.NewValue(tftypes.String, nil), "level": tftypes.NewValue(tftypes.String, nil), "size": tftypes.NewValue(tftypes.String, nil), "legacy": tftypes.NewValue(tftypes.Bool, nil), "panel_notes": notes,
 		}
 		values["panels"] = tftypes.NewValue(root.AttributeTypes["panels"], []tftypes.Value{tftypes.NewValue(panelType, panel)})
 		return tftypes.NewValue(root, values)
@@ -1127,5 +1128,207 @@ func TestResponseOnlyTimeInASharedComponentIsNotSent(t *testing.T) {
 	var marks []WrapMarkModel
 	if diags.HasError() || got.Marks.ElementsAs(ctx, &marks, false).HasError() || len(marks) != 1 || marks[0].CreatedAt.ValueString() != "2026-01-02T03:04:05Z" {
 		t.Fatalf("read marks = %+v (%v), want the time of the server", marks, diags)
+	}
+}
+
+// A duration keeps its released text: the API holds 900s. The span is seconds:900 (minutes:15 is also
+// accepted), the step is the Go text 15m0s. A text that is no duration is an error on the attribute,
+// and a value that the API wrote in another way stays as it is.
+func TestDurationKeepsItsReleasedText(t *testing.T) {
+	ctx := context.Background()
+	for _, c := range []struct{ span, step, wireSpan, wireStep, backSpan, backStep string }{
+		{"seconds:900", "15m0s", "900s", "900s", "seconds:900", "15m0s"},
+		{"minutes:15", "1.5s", "900s", "1.500s", "seconds:900", "1.5s"},
+		{"seconds:0", "0s", "0s", "0s", "seconds:0", "0s"},
+	} {
+		model := homeModel(nil)
+		model.Span, model.Step = types.StringValue(c.span), types.StringValue(c.step)
+		body, diags := expandCreate(ctx, model)
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		if body.Span == nil || *body.Span != c.wireSpan || body.Step == nil || *body.Step != c.wireStep {
+			t.Errorf("%q and %q sent %v and %v, want %q and %q", c.span, c.step, body.Span, body.Step, c.wireSpan, c.wireStep)
+		}
+		resp := fullResponse()
+		resp.Span, resp.Step = &c.wireSpan, &c.wireStep
+		got, diags := flatten(ctx, resp, nil)
+		if diags.HasError() || got.Span.ValueString() != c.backSpan || got.Step.ValueString() != c.backStep {
+			t.Errorf("%q and %q read as %q and %q (%v), want %q and %q", c.wireSpan, c.wireStep, got.Span.ValueString(), got.Step.ValueString(), diags, c.backSpan, c.backStep)
+		}
+	}
+	for _, text := range []string{"900s", "hours:1", "seconds:x", ""} {
+		model := homeModel(nil)
+		model.Span = types.StringValue(text)
+		if _, diags := expandCreate(ctx, model); !diags.HasError() {
+			t.Errorf("span %q was accepted", text)
+		}
+	}
+	model := homeModel(nil)
+	model.Step = types.StringValue("soon")
+	if _, diags := expandCreate(ctx, model); !diags.HasError() {
+		t.Error("step soon was accepted")
+	}
+	odd := "tomorrow"
+	resp := fullResponse()
+	resp.Span = &odd
+	if got, _ := flatten(ctx, resp, nil); got.Span.ValueString() != odd {
+		t.Errorf("an odd value read as %q, want it as it is", got.Span.ValueString())
+	}
+	if got, _ := flatten(ctx, fullResponse(), nil); !got.Span.IsNull() || !got.Step.IsNull() {
+		t.Errorf("a missing duration read as %v and %v, want null", got.Span, got.Step)
+	}
+	model = homeModel(nil)
+	if body, _ := expandCreate(ctx, model); body.Span != nil || body.Step != nil {
+		t.Errorf("a null duration sent %v and %v, want none", body.Span, body.Step)
+	}
+}
+
+// A field that the typed schema cannot show is no attribute. A response that sets it is an error on
+// read, so the state never loses it silently. The hook AllowUnsupported turns the error off for a
+// resource that is managed another way, such as by a document.
+func TestUnsupportedFieldIsReportedUnlessAllowed(t *testing.T) {
+	ctx := context.Background()
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}, Retired: ptr("old")}}
+	if _, diags := flatten(ctx, resp, nil); !diags.HasError() || diags.Errors()[0].Summary() != "Unsupported panel" {
+		t.Errorf("a response with the retired field gave %v, want the unsupported error", diags)
+	}
+	if _, diags := flatten(withUnsupportedAllowed(ctx), resp, nil); diags.HasError() {
+		t.Errorf("an allowed response gave %v, want no error", diags)
+	}
+	resp.Panels[0].Retired = nil
+	if _, diags := flatten(ctx, resp, nil); diags.HasError() {
+		t.Errorf("a response without the field gave %v, want no error", diags)
+	}
+}
+
+// A string that only Terraform holds, inside an item of a list, keeps the value of the prior item:
+// the API does not have it, so a read that took null would make Terraform report an inconsistent result.
+func TestExtraStringInAListItemKeepsThePriorValue(t *testing.T) {
+	ctx := context.Background()
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}}, {Id: wrap_things_service.UUID{Value: ptr("p2")}}}
+	prior, diags := flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var panels []WrapPanelModel
+	if diags := prior.Panels.ElementsAs(ctx, &panels, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if panels[0].Remark.ValueString() != "none" {
+		t.Fatalf("without a prior the remark is %v, want its default", panels[0].Remark)
+	}
+	panels[0].Remark, panels[1].Remark = types.StringValue("first"), types.StringValue("second")
+	list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: wrapPanelAttrTypes()}, panels)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	prior.Panels = list
+	got, diags := flatten(ctx, resp, prior)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var read []WrapPanelModel
+	if diags := got.Panels.ElementsAs(ctx, &read, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if read[0].Remark.ValueString() != "first" || read[1].Remark.ValueString() != "second" {
+		t.Errorf("remarks = %v and %v, want the prior values", read[0].Remark, read[1].Remark)
+	}
+}
+
+// An object field with unsupportedIfEmpty cannot be shown when the response has no value in it: a read
+// reports the error, unless the resource is managed another way (AllowUnsupported).
+func TestEmptyObjectIsReportedUnlessAllowed(t *testing.T) {
+	ctx := context.Background()
+	for name, detail := range map[string]*wrap_things_service.NoteDetail{"no object": nil, "an empty object": {}} {
+		var diags diag.Diagnostics
+		flattenWrapNote(ctx, path.Root("note"), &wrap_things_service.WrapNote{Id: "n", Detail: detail}, &diags)
+		if len(diags.Errors()) != 1 || diags.Errors()[0].Summary() != "Unsupported note" {
+			t.Errorf("%s gave %v, want the unsupported error", name, diags)
+		}
+		var allowed diag.Diagnostics
+		flattenWrapNote(withUnsupportedAllowed(ctx), path.Root("note"), &wrap_things_service.WrapNote{Id: "n", Detail: detail}, &allowed)
+		if allowed.HasError() {
+			t.Errorf("%s with the check off gave %v, want no error", name, allowed)
+		}
+	}
+	var diags diag.Diagnostics
+	flattenWrapNote(ctx, path.Root("note"), &wrap_things_service.WrapNote{Id: "n", Detail: &wrap_things_service.NoteDetail{Url: ptr("u")}}, &diags)
+	if diags.HasError() {
+		t.Errorf("a detail with a value gave %v, want no error", diags)
+	}
+}
+
+// An enum that the API fills in reads as the value of readNullAs when the response has none, as a
+// released resource read a missing value. A value that the response has is read as it is.
+func TestMissingEnumReadsAsTheReadNullAsValue(t *testing.T) {
+	ctx := context.Background()
+	five := wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5
+	resp := fullResponse()
+	resp.Panels = []wrap_things_service.WrapPanel{{Id: wrap_things_service.UUID{Value: ptr("p1")}}, {Id: wrap_things_service.UUID{Value: ptr("p2")}, Level: &five}}
+	got, diags := flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var panels []WrapPanelModel
+	if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if panels[0].Level.ValueString() != "unspecified" || panels[1].Level.ValueString() != "5_MINUTES" {
+		t.Errorf("levels = %v and %v, want unspecified and 5_MINUTES", panels[0].Level, panels[1].Level)
+	}
+	// A value that the resource rejects reads as the value of readRejectedAs, not as an error.
+	rejected := wrap_things_service.WINDOWVALUE_WINDOW_VALUE_DAYS_7
+	resp.Panels[1].Level = &rejected
+	got, diags = flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatalf("a rejected value failed the read: %v", diags)
+	}
+	if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() || panels[1].Level.ValueString() != "unspecified" {
+		t.Errorf("the rejected level read as %v (%v), want unspecified", panels[1].Level, diags)
+	}
+	// With readRejectedAs: "null" the rejected value reads as null, and an accepted one reads as it is.
+	resp.Panels[1].Size = &rejected
+	resp.Panels[0].Size = &five
+	got, diags = flatten(ctx, resp, nil)
+	if diags.HasError() {
+		t.Fatalf("a rejected size failed the read: %v", diags)
+	}
+	if diags := got.Panels.ElementsAs(ctx, &panels, false); diags.HasError() || panels[0].Size.ValueString() != "5_MINUTES" || !panels[1].Size.IsNull() {
+		t.Errorf("sizes = %v and %v (%v), want 5_MINUTES and null", panels[0].Size, panels[1].Size, diags)
+	}
+}
+
+// A bool with the unsupported validator is rejected whenever the configuration sets it, true or false,
+// with the text of the line. A null or unknown value passes.
+func TestUnsupportedBoolIsRejectedWhenSet(t *testing.T) {
+	ctx := context.Background()
+	check := unsupportedBoolValidator{Message: "A panel cannot use legacy."}
+	for name, value := range map[string]types.Bool{"true": types.BoolValue(true), "false": types.BoolValue(false)} {
+		resp := &validator.BoolResponse{}
+		check.ValidateBool(ctx, validator.BoolRequest{Path: path.Root("legacy"), ConfigValue: value}, resp)
+		if len(resp.Diagnostics.Errors()) != 1 || resp.Diagnostics.Errors()[0].Detail() != "A panel cannot use legacy." {
+			t.Errorf("%s gave %v, want the message of the line", name, resp.Diagnostics)
+		}
+	}
+	for name, value := range map[string]types.Bool{"null": types.BoolNull(), "unknown": types.BoolUnknown()} {
+		resp := &validator.BoolResponse{}
+		check.ValidateBool(ctx, validator.BoolRequest{Path: path.Root("legacy"), ConfigValue: value}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Errorf("%s gave %v, want no error", name, resp.Diagnostics)
+		}
+	}
+	var resp frameworkresource.SchemaResponse
+	(&Resource{}).Schema(ctx, frameworkresource.SchemaRequest{}, &resp)
+	panels, ok := resp.Schema.Attributes["panels"].(schema.ListNestedAttribute)
+	if !ok {
+		t.Fatal("panels is not a list of objects")
+	}
+	legacy, ok := panels.NestedObject.Attributes["legacy"].(schema.BoolAttribute)
+	if !ok || len(legacy.Validators) != 1 {
+		t.Fatalf("legacy = %#v, want a bool with the validator", panels.NestedObject.Attributes["legacy"])
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -97,6 +98,14 @@ func Schema() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "",
 			},
+			"span": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
+			"step": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
 			"extra_label": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
@@ -121,6 +130,29 @@ func Schema() schema.Schema {
 						},
 						"title": schema.StringAttribute{
 							Optional:            true,
+							MarkdownDescription: "",
+						},
+						"legacy": schema.BoolAttribute{
+							Optional: true,
+							Validators: []validator.Bool{
+								unsupportedBoolValidator{Message: "A panel cannot use legacy."},
+							},
+							MarkdownDescription: "",
+						},
+						"level": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
+							MarkdownDescription: "",
+						},
+						"size": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "",
 						},
 						"panel_notes": schema.ListNestedAttribute{
@@ -152,6 +184,12 @@ func Schema() schema.Schema {
 								},
 							},
 							MarkdownDescription: "The notes of this panel.",
+						},
+						"remark": schema.StringAttribute{
+							Optional:            true,
+							Computed:            true,
+							Default:             stringdefault.StaticString("none"),
+							MarkdownDescription: "A remark that only Terraform keeps.",
 						},
 					},
 				},
@@ -218,6 +256,23 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// unsupportedBoolValidator rejects a bool that the configuration sets, with its message: the API never
+// accepts the attribute at this place.
+type unsupportedBoolValidator struct{ Message string }
+
+func (v unsupportedBoolValidator) Description(context.Context) string { return v.Message }
+
+func (v unsupportedBoolValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v unsupportedBoolValidator) ValidateBool(_ context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Unsupported Attribute Combination", v.Message)
 }
 
 // siblingDefaultModifier plans the value of a sibling attribute for a computed string that the

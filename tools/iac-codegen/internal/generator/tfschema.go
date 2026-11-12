@@ -92,6 +92,10 @@ type tfAttr struct {
 	// CustomType is the Terraform type of a scalar attribute that is not the plain type of its
 	// kind, for example rfc3339Type, or "".
 	CustomType string
+	// SiblingRules are the exactlyOneOf and conflictsWith lines of the attribute that name only its
+	// siblings in an object. The oneOfArmsValidator of the parent object checks them, so the cost does
+	// not grow with the number of objects (see addArmValidators).
+	SiblingRules []siblingRule
 	// UpSteps are the path steps that each object level above the attribute takes, the nearest last:
 	// 1 for a single object, and 2 for an item of a list, set, or map (the element and the name of
 	// the collection). A "../" in a validator target goes up one level, so it removes that many steps.
@@ -701,6 +705,10 @@ func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			enumOnly = true
 			continue
 		}
+		if rule, ok := siblingRuleOf(a, v); ok {
+			a.SiblingRules = append(a.SiblingRules, rule)
+			continue
+		}
 		expr, err := validatorExpr(a, v, file)
 		if err != nil {
 			return err
@@ -973,6 +981,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return pkg + ".AlsoRequires(" + siblingPaths(a.UpSteps, v.AlsoRequires) + ")", nil
 	case len(v.ConflictsWith) != 0:
 		return pkg + ".ConflictsWith(" + siblingPaths(a.UpSteps, v.ConflictsWith) + ")", nil
+	case v.Unsupported != "" && a.ValueKind == "Bool":
+		return fmt.Sprintf("%s{Message: %q}", unsupportedBoolValidatorName, v.Unsupported), nil
 	case v.Equals != nil && a.ValueKind == "Bool":
 		return fmt.Sprintf("boolvalidator.Equals(%t)", *v.Equals), nil
 	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
@@ -1329,6 +1339,25 @@ func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model
 	return a, nil
 }
 
+// enumKeyFor returns the key of the enums entry of a field: the contract enum, or its variant when
+// the line of the field has enumAs.
+func enumKeyFor(file *overrides.File, component, property, schema string) string {
+	if file == nil || schema == "" {
+		return schema
+	}
+	if variant := file.Types[component].Fields[property].EnumAs; variant != "" {
+		return schema + "@" + variant
+	}
+	return schema
+}
+
+func durationOf(file *overrides.File, component, name string) string {
+	if file == nil {
+		return ""
+	}
+	return file.Types[component].Fields[name].DurationFormat
+}
+
 // splitOf is the separator of the split line of field name of component: the API holds the values
 // of a Terraform set of strings joined by it. "" when the field has none.
 func splitOf(file *overrides.File, component, name string) string {
@@ -1350,7 +1379,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
 		a.Uint64 = t.Kind == model.Integer && t.WireString && (t.Format == "uint64" || t.Format == "int64")
 		if t.Kind == model.Enum {
-			a.EnumSchema = t.Schema
+			a.EnumSchema = enumKeyFor(b.file, a.Component, a.Property, t.Schema)
 		}
 		if sentTime(t, computed) {
 			a.CustomType = rfc3339Type

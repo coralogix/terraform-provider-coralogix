@@ -2,8 +2,44 @@ package generator
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
+
+// siblingRule is an exactlyOneOf or a conflictsWith line that names only the siblings of the
+// attribute in its object.
+type siblingRule struct {
+	Exactly bool     // exactlyOneOf: exactly one of Names is set; else the attribute conflicts with Names
+	Names   []string // the Terraform names: for exactlyOneOf the attribute and its siblings
+}
+
+// siblingRuleOf returns the rule of a validator line when it names only siblings of an attribute that
+// is inside an object. A name with "../" reaches another object, and an attribute at the top level has
+// no object validator, so those keep the path expression.
+func siblingRuleOf(a *tfAttr, v overrides.Validator) (siblingRule, bool) {
+	if len(a.UpSteps) == 0 {
+		return siblingRule{}, false
+	}
+	targets := v.ExactlyOneOf
+	exactly := true
+	if len(targets) == 0 {
+		targets, exactly = v.ConflictsWith, false
+	}
+	if len(targets) == 0 || len(v.ExactlyOneOf) != 0 && len(v.ConflictsWith) != 0 {
+		return siblingRule{}, false
+	}
+	for _, t := range targets {
+		if ups, _ := splitTarget(t); ups != 0 {
+			return siblingRule{}, false
+		}
+	}
+	if exactly {
+		return siblingRule{Exactly: true, Names: append([]string{a.Name}, targets...)}, true
+	}
+	return siblingRule{Names: slices.Clone(targets)}, true
+}
 
 // oneOfArmsValidatorName is the name of the validator type that the generated schema file defines for
 // the oneOf groups of an object.
@@ -59,6 +95,24 @@ func armsValidatorExpr(children []*tfAttr) string {
 				conflictWith[key] = c.ArmConflicts
 			}
 			conflicts[key] = append(conflicts[key], c.Name)
+		}
+	}
+	for _, c := range children {
+		for _, rule := range c.SiblingRules {
+			if rule.Exactly {
+				names := slices.Sorted(slices.Values(rule.Names))
+				key := "rule:" + strings.Join(names, ",")
+				if _, ok := arms[key]; !ok {
+					order = append(order, key)
+					arms[key] = names
+					required[key] = true
+				}
+				continue
+			}
+			key := c.Name + "!" + strings.Join(rule.Names, ",")
+			conflictOrder = append(conflictOrder, key)
+			conflicts[key] = []string{c.Name}
+			conflictWith[key] = rule.Names
 		}
 	}
 	if len(order) == 0 && len(conflictOrder) == 0 {
@@ -126,6 +180,30 @@ func (r *tfResource) HasSiblingDefaults() bool {
 		for _, a := range attrs {
 			for _, m := range a.Modifiers {
 				if strings.HasPrefix(m, siblingDefaultModifierName+"{") {
+					return true
+				}
+			}
+			if uses(a.Attributes) {
+				return true
+			}
+		}
+		return false
+	}
+	return uses(r.Attributes)
+}
+
+// unsupportedBoolValidatorName is the name of the validator type that the generated schema file defines
+// for a bool that the API never accepts at its place (the unsupported validator).
+const unsupportedBoolValidatorName = "unsupportedBoolValidator"
+
+// HasUnsupportedValidators reports whether an attribute has the unsupportedBoolValidator, which the
+// schema file then defines.
+func (r *tfResource) HasUnsupportedValidators() bool {
+	var uses func(attrs []*tfAttr) bool
+	uses = func(attrs []*tfAttr) bool {
+		for _, a := range attrs {
+			for _, v := range a.Validators {
+				if strings.HasPrefix(v, unsupportedBoolValidatorName+"{") {
 					return true
 				}
 			}

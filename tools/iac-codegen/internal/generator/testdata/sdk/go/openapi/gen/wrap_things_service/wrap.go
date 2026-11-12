@@ -72,6 +72,7 @@ type WindowValue string
 const (
 	WINDOWVALUE_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED WindowValue = "WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"
 	WINDOWVALUE_WINDOW_VALUE_MINUTES_5                WindowValue = "WINDOW_VALUE_MINUTES_5"
+	WINDOWVALUE_WINDOW_VALUE_DAYS_7                   WindowValue = "WINDOW_VALUE_DAYS_7"
 	WINDOWVALUE_WINDOW_VALUE_HOURS_2                  WindowValue = "WINDOW_VALUE_HOURS_2"
 )
 
@@ -91,8 +92,12 @@ type FolderPath struct {
 
 // WrapPanel requires its id, so the SDK holds it as a value.
 type WrapPanel struct {
-	Id    UUID
-	Title *string
+	Id      UUID
+	Title   *string
+	Retired *string
+	Legacy  *bool
+	Level   *WindowValue
+	Size    *WindowValue
 }
 
 // WrapNote requires its id and its panel id, so the SDK holds them as values.
@@ -121,6 +126,8 @@ type WrapThing struct {
 	Tags       *Tags
 	Window     *Window
 	MainLabel  *Label
+	Span       *string
+	Step       *string
 	ExtraLabel *Label
 	Panels     []WrapPanel
 	Notes      []WrapNote
@@ -143,6 +150,8 @@ type CreateWrapThingRequest struct {
 	Tags       *Tags
 	Window     *Window
 	MainLabel  *Label
+	Span       *string
+	Step       *string
 	ExtraLabel *Label
 	Panels     []WrapPanel
 	Notes      []WrapNote
@@ -165,6 +174,8 @@ type ReplaceWrapThingRequest struct {
 	Tags       *Tags
 	Window     *Window
 	MainLabel  *Label
+	Span       *string
+	Step       *string
 	ExtraLabel *Label
 	Panels     []WrapPanel
 	Notes      []WrapNote

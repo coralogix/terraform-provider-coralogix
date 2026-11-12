@@ -3,7 +3,7 @@
 package {{.Package}}
 
 import (
-{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms .HasArmValidators .HasSiblingDefaults .SetItemState}}
+{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms .HasArmValidators .HasSiblingDefaults .SetItemState .HasUnsupportedValidators}}
 	"context"
 {{- end}}
 {{- if or .HasTypedArms .HasArmValidators}}
@@ -618,6 +618,25 @@ func (v typedArmValidator) ValidateString(ctx context.Context, req validator.Str
 			resp.Diagnostics.Append(out.Diagnostics...)
 		}
 	}
+}
+{{- end}}
+{{- if .HasUnsupportedValidators}}
+
+// unsupportedBoolValidator rejects a bool that the configuration sets, with its message: the API never
+// accepts the attribute at this place.
+type unsupportedBoolValidator struct{ Message string }
+
+func (v unsupportedBoolValidator) Description(context.Context) string { return v.Message }
+
+func (v unsupportedBoolValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v unsupportedBoolValidator) ValidateBool(_ context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Unsupported Attribute Combination", v.Message)
 }
 {{- end}}
 {{- if .HasArmValidators}}
