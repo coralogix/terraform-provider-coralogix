@@ -1567,14 +1567,46 @@ const variant1Config = `resource "coralogix_dashboard" "test" {
                                   selection_type = "all"
                                 }
                               },
+                            ]
+                            group_by = [
                               {
-                                field = {
-                                  type = "process_tag"
-                                  value = "@{run}-value-2"
-                                }
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query"
+                          }
+                        }
+                      },
+                      {
+                        id = "@{run}-id-2"
+                        name = "@{run}-name-2"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "avg"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            data_mode_type = "archive"
+                            filters = [
+                              {
+                                field = "@{run}-field"
                                 observation_field = {
                                   keypath = ["@{run}-keypath"]
-                                  relation_type = "parent"
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                              {
+                                field = "@{run}-field-2"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
                                   scope = "label"
                                 }
                                 operator = {
@@ -1583,45 +1615,26 @@ const variant1Config = `resource "coralogix_dashboard" "test" {
                                   selected_values = ["@{run}-selected_values"]
                                 }
                               },
-                              {
-                                field = {
-                                  type = "tag"
-                                  value = "@{run}-value-3"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "root"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "operation_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
                             ]
                             group_by = [
                               {
                                 keypath = ["@{run}-keypath"]
-                                relation_type = "other"
                                 scope = "label"
                               },
                             ]
-                            lucene_query = "@{run}-lucene_query"
+                            lucene_query = "@{run}-lucene_query-2"
+                          }
+                        }
+                      },
+                      {
+                        id = "@{run}-id-3"
+                        name = "@{run}-name-3"
+                        query = {
+                          metrics = {
+                            editor_mode = "text"
+                            promql_query = "@{run}-promql_query-3"
+                            promql_query_type = "range"
+                            series_limit_type = "by_series_count"
                           }
                         }
                       },
@@ -2119,90 +2132,7 @@ resource "coralogix_dashboard" "test_2" {
                               }
                               observation_field = {
                                 keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-3"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-4"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-5"
-                              metric_name = "@{run}-metric_name-5"
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-6"
-                              metric_name = "@{run}-metric_name-6"
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "tag"
-                                value = "@{run}-value-7"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
+                                relation_type = "parent"
                                 scope = "label"
                               }
                               operator = {
@@ -2256,6 +2186,277 @@ resource "coralogix_dashboard" "test_2" {
                   },
                 ]
               },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-2"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["sum"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "hidden"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "metadata"
+                                value = "application_name"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "value"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "none"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  line_chart = {
+                    connect_nulls = true
+                    legend = {
+                      columns = ["last"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    query_definitions = [
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                spans = {
+                                  field = {
+                                    type = "metadata"
+                                    value = "application_name"
+                                  }
+                                  observation_field = {
+                                    keypath = ["@{run}-keypath"]
+                                    relation_type = "other"
+                                    scope = "label"
+                                  }
+                                  operator = {
+                                    type = "equals"
+                                    selection_type = "all"
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "classic"
+                        custom_unit = "@{run}-custom_unit-2"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-2"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-2"
+                        query = {
+                          spans = {
+                            aggregations = [
+                              {
+                                type = "dimension"
+                                aggregation_type = "error_count"
+                                field = "trace_id"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = {
+                                  type = "metadata"
+                                  value = "application_name"
+                                }
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  relation_type = "other"
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = [
+                              {
+                                type = "metadata"
+                                value = "application_name"
+                              },
+                              {
+                                type = "process_tag"
+                                value = "@{run}-value-2"
+                              },
+                              {
+                                type = "tag"
+                                value = "@{run}-value-3"
+                              },
+                              {
+                                type = "metadata"
+                                value = "operation_name"
+                              },
+                              {
+                                type = "metadata"
+                                value = "service_name"
+                              },
+                              {
+                                type = "metadata"
+                                value = "subsystem_name"
+                              },
+                            ]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-2"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "logarithmic"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-2"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                    ]
+                    stacked_line = "absolute"
+                    tooltip = {
+                      show_labels = true
+                      type = "all"
+                    }
+                    use_data_time_range = true
+                    x_axis_time_format = "dd_mm"
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
             ]
           },
         ]
@@ -2282,79 +2483,6 @@ resource "coralogix_dashboard" "test_2" {
       value = {
         multi_string = {
           all = {}
-        }
-      }
-    },
-    {
-      description = "@{run}-description-2"
-      display_full_row = false
-      display_name = "@{run}-display_name-2"
-      display_type = "label_value"
-      name = "@{run}-name-2"
-      source = {
-        query = {
-          all_option = {
-            include_all = true
-            label = "@{run}-label-2"
-          }
-          metrics_query = {
-            type = {
-              label_value = {
-                label_filters = [
-                  {
-                    label = {
-                      string_value = "@{run}-string_value"
-                    }
-                    metric = {
-                      variable_name = "@{run}-variable_name"
-                    }
-                    operator = {
-                      type = "equals"
-                      selected_values = [
-                        {
-                          string_value = "@{run}-string_value"
-                        },
-                      ]
-                    }
-                  },
-                  {
-                    label = {
-                      string_value = "@{run}-string_value-2"
-                    }
-                    metric = {
-                      string_value = "@{run}-string_value-2"
-                    }
-                    operator = {
-                      type = "not_equals"
-                      selected_values = [
-                        {
-                          string_value = "@{run}-string_value"
-                        },
-                      ]
-                    }
-                  },
-                ]
-                label_name = {
-                  string_value = "@{run}-string_value-2"
-                }
-                metric_name = {
-                  string_value = "@{run}-string_value-2"
-                }
-              }
-            }
-          }
-          refresh_strategy = "on_time_frame_change"
-          value_display_options = {
-            label_regex = "@{run}-label_regex-2"
-            value_regex = "@{run}-value_regex-2"
-          }
-          values_order_direction = "none"
-        }
-      }
-      value = {
-        regex = {
-          label = "@{run}-label-2"
-          value = "@{run}-value-2"
         }
       }
     },
@@ -2610,21 +2738,160 @@ resource "coralogix_dashboard" "test_3" {
               {
                 width = 1
                 definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
+                  pie_chart = {
+                    color_scheme = "blue"
                     custom_unit = "@{run}-custom_unit"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_series_name = true
+                    group_name_template = "@{run}-group_name_template"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
                     legend = {
-                      columns = ["sum"]
+                      columns = ["name"]
                       group_by_query = true
                       is_visible = true
-                      placement = "hidden"
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "metadata"
+                                value = "application_name"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-2"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "metadata"
+                                value = "application_name"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "one_line"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-3"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
                     }
                     legend_by = "groups"
                     max = 2
@@ -2650,89 +2917,6 @@ resource "coralogix_dashboard" "test_3" {
                               }
                             }
                           },
-                          {
-                            spans = {
-                              field = {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-3"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-4"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-5"
-                              metric_name = "@{run}-metric_name-5"
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-6"
-                              metric_name = "@{run}-metric_name-6"
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "tag"
-                                value = "@{run}-value-7"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
                         ]
                         time_frame = {
                           absolute = {
@@ -2742,24 +2926,20 @@ resource "coralogix_dashboard" "test_3" {
                         }
                       }
                     }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "value"
                     threshold_type = "absolute"
                     thresholds = [
                       {
                         color = "@{run}-color"
-                        from = 1.5
+                        from = 1
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "none"
+                    unit = "bytes"
                   }
                 }
-                description = "@{run}-description"
+                description = "@{run}-description-3"
                 highlighted = true
-                title = "@{run}-title"
+                title = "@{run}-title-3"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -2774,169 +2954,14 @@ resource "coralogix_dashboard" "test_3" {
               {
                 width = 1
                 definition = {
-                  line_chart = {
-                    connect_nulls = true
-                    legend = {
-                      columns = ["last"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    query_definitions = [
-                      {
-                        color_scheme = "blue"
-                        custom_unit = "@{run}-custom_unit"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            query = "source logs | limit 1"
-                            filters = [
-                              {
-                                spans = {
-                                  field = {
-                                    type = "metadata"
-                                    value = "application_name"
-                                  }
-                                  observation_field = {
-                                    keypath = ["@{run}-keypath"]
-                                    relation_type = "other"
-                                    scope = "label"
-                                  }
-                                  operator = {
-                                    type = "equals"
-                                    selection_type = "all"
-                                  }
-                                }
-                              },
-                              {
-                                spans = {
-                                  field = {
-                                    type = "process_tag"
-                                    value = "@{run}-value-2"
-                                  }
-                                  observation_field = {
-                                    keypath = ["@{run}-keypath"]
-                                    relation_type = "other"
-                                    scope = "label"
-                                  }
-                                  operator = {
-                                    type = "not_equals"
-                                    selection_type = "list"
-                                    selected_values = ["@{run}-selected_values"]
-                                  }
-                                }
-                              },
-                              {
-                                logs = {
-                                  field = "@{run}-field-3"
-                                  observation_field = {
-                                    keypath = ["@{run}-keypath"]
-                                    scope = "label"
-                                  }
-                                  operator = {
-                                    type = "equals"
-                                    selection_type = "all"
-                                  }
-                                }
-                              },
-                              {
-                                logs = {
-                                  field = "@{run}-field-4"
-                                  observation_field = {
-                                    keypath = ["@{run}-keypath"]
-                                    scope = "label"
-                                  }
-                                  operator = {
-                                    type = "not_equals"
-                                    selection_type = "list"
-                                    selected_values = ["@{run}-selected_values"]
-                                  }
-                                }
-                              },
-                              {
-                                metrics = {
-                                  label = "@{run}-label-5"
-                                  metric_name = "@{run}-metric_name-5"
-                                  operator = {
-                                    type = "equals"
-                                    selection_type = "all"
-                                  }
-                                }
-                              },
-                              {
-                                metrics = {
-                                  label = "@{run}-label-6"
-                                  metric_name = "@{run}-metric_name-6"
-                                  operator = {
-                                    type = "not_equals"
-                                    selection_type = "list"
-                                    selected_values = ["@{run}-selected_values"]
-                                  }
-                                }
-                              },
-                              {
-                                spans = {
-                                  field = {
-                                    type = "tag"
-                                    value = "@{run}-value-7"
-                                  }
-                                  observation_field = {
-                                    keypath = ["@{run}-keypath"]
-                                    relation_type = "other"
-                                    scope = "label"
-                                  }
-                                  operator = {
-                                    type = "equals"
-                                    selection_type = "all"
-                                  }
-                                }
-                              },
-                            ]
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                    ]
-                    stacked_line = "absolute"
-                    tooltip = {
-                      show_labels = true
-                      type = "all"
-                    }
-                    use_data_time_range = true
-                    x_axis_time_format = "dd_mm"
+                  markdown = {
+                    markdown_text = "@{run}-markdown_text-4"
+                    tooltip_text = "@{run}-tooltip_text-4"
                   }
                 }
-                description = "@{run}-description-2"
+                description = "@{run}-description-4"
                 highlighted = true
-                title = "@{run}-title-2"
+                title = "@{run}-title-4"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -2968,28 +2993,64 @@ resource "coralogix_dashboard" "test_3" {
             include_all = true
             label = "@{run}-label"
           }
-          logs_query = {
+          metrics_query = {
             type = {
-              field_value = {
-                observation_field = {
-                  keypath = ["@{run}-keypath"]
-                  scope = "label"
+              label_value = {
+                label_filters = [
+                  {
+                    label = {
+                      string_value = "@{run}-string_value"
+                    }
+                    metric = {
+                      variable_name = "@{run}-variable_name"
+                    }
+                    operator = {
+                      type = "equals"
+                      selected_values = [
+                        {
+                          string_value = "@{run}-string_value"
+                        },
+                      ]
+                    }
+                  },
+                  {
+                    label = {
+                      string_value = "@{run}-string_value-2"
+                    }
+                    metric = {
+                      string_value = "@{run}-string_value-2"
+                    }
+                    operator = {
+                      type = "not_equals"
+                      selected_values = [
+                        {
+                          string_value = "@{run}-string_value"
+                        },
+                      ]
+                    }
+                  },
+                ]
+                label_name = {
+                  string_value = "@{run}-string_value"
+                }
+                metric_name = {
+                  string_value = "@{run}-string_value"
                 }
               }
             }
           }
-          refresh_strategy = "on_dashboard_load"
+          refresh_strategy = "on_time_frame_change"
           value_display_options = {
             label_regex = "@{run}-label_regex"
             value_regex = "@{run}-value_regex"
           }
-          values_order_direction = "asc"
+          values_order_direction = "none"
         }
       }
       value = {
-        single_numeric = {
+        regex = {
           label = "@{run}-label"
-          value = 1.5
+          value = "@{run}-value"
         }
       }
     },
@@ -3005,6 +3066,43 @@ resource "coralogix_dashboard" "test_3" {
             include_all = true
             label = "@{run}-label-2"
           }
+          logs_query = {
+            type = {
+              field_value = {
+                observation_field = {
+                  keypath = ["@{run}-keypath"]
+                  scope = "label"
+                }
+              }
+            }
+          }
+          refresh_strategy = "on_dashboard_load"
+          value_display_options = {
+            label_regex = "@{run}-label_regex-2"
+            value_regex = "@{run}-value_regex-2"
+          }
+          values_order_direction = "asc"
+        }
+      }
+      value = {
+        single_numeric = {
+          label = "@{run}-label-2"
+          value = 1.5
+        }
+      }
+    },
+    {
+      description = "@{run}-description-3"
+      display_full_row = false
+      display_name = "@{run}-display_name-3"
+      display_type = "label_value"
+      name = "@{run}-name-3"
+      source = {
+        query = {
+          all_option = {
+            include_all = true
+            label = "@{run}-label-3"
+          }
           refresh_strategy = "on_dashboard_load"
           spans_query = {
             type = {
@@ -3017,16 +3115,51 @@ resource "coralogix_dashboard" "test_3" {
             }
           }
           value_display_options = {
-            label_regex = "@{run}-label_regex-2"
-            value_regex = "@{run}-value_regex-2"
+            label_regex = "@{run}-label_regex-3"
+            value_regex = "@{run}-value_regex-3"
           }
           values_order_direction = "asc"
         }
       }
       value = {
         single_string = {
-          label = "@{run}-label-2"
-          value = "@{run}-value-2"
+          label = "@{run}-label-3"
+          value = "@{run}-value-3"
+        }
+      }
+    },
+    {
+      description = "@{run}-description-4"
+      display_full_row = false
+      display_name = "@{run}-display_name-4"
+      display_type = "label_value"
+      name = "@{run}-name-4"
+      source = {
+        query = {
+          all_option = {
+            include_all = true
+            label = "@{run}-label-4"
+          }
+          metrics_query = {
+            type = {
+              promql_query = {
+                promql_query_type = "instant"
+                query = "@{run}-query-4"
+              }
+            }
+          }
+          refresh_strategy = "on_dashboard_load"
+          value_display_options = {
+            label_regex = "@{run}-label_regex-4"
+            value_regex = "@{run}-value_regex-4"
+          }
+          values_order_direction = "asc"
+        }
+      }
+      value = {
+        interval = {
+          label = "@{run}-label-4"
+          value = "@{run}-value-4"
         }
       }
     },
@@ -3126,629 +3259,6 @@ resource "coralogix_dashboard" "test_4" {
               {
                 width = 1
                 definition = {
-                  pie_chart = {
-                    color_scheme = "blue"
-                    custom_unit = "@{run}-custom_unit"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "inner"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
-                    legend = {
-                      columns = ["name"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            spans = {
-                              field = {
-                                type = "metadata"
-                                value = "application_name"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-3"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-4"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-5"
-                              metric_name = "@{run}-metric_name-5"
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-6"
-                              metric_name = "@{run}-metric_name-6"
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "tag"
-                                value = "@{run}-value-7"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        group_names = ["@{run}-group_names"]
-                        stacked_group_name = "@{run}-stacked_group_name"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template"
-                    }
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description"
-                highlighted = true
-                title = "@{run}-title"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  data_table = {
-                    columns = [
-                      {
-                        field = "@{run}-field"
-                        width = 1
-                      },
-                    ]
-                    data_mode_type = "archive"
-                    order_by = {
-                      field = "@{run}-field-2"
-                      order_direction = "asc"
-                    }
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            spans = {
-                              field = {
-                                type = "metadata"
-                                value = "application_name"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-3"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-4"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-5"
-                              metric_name = "@{run}-metric_name-5"
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-6"
-                              metric_name = "@{run}-metric_name-6"
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "tag"
-                                value = "@{run}-value-7"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    results_per_page = 1
-                    row_style = "one_line"
-                  }
-                }
-                description = "@{run}-description-2"
-                highlighted = true
-                title = "@{run}-title-2"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-3"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            spans = {
-                              field = {
-                                type = "metadata"
-                                value = "application_name"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-3"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-4"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-5"
-                              metric_name = "@{run}-metric_name-5"
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-6"
-                              metric_name = "@{run}-metric_name-6"
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "tag"
-                                value = "@{run}-value-7"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-            ]
-          },
-        ]
-      },
-    ]
-  }
-  name = "@{run}-name-4"
-  variables_v2 = [
-    {
-      description = "@{run}-description"
-      display_full_row = false
-      display_name = "@{run}-display_name"
-      display_type = "label_value"
-      name = "@{run}-name"
-      source = {
-        query = {
-          all_option = {
-            include_all = true
-            label = "@{run}-label"
-          }
-          metrics_query = {
-            type = {
-              promql_query = {
-                promql_query_type = "range"
-                query = "@{run}-query"
-              }
-            }
-          }
-          refresh_strategy = "on_dashboard_load"
-          value_display_options = {
-            label_regex = "@{run}-label_regex"
-            value_regex = "@{run}-value_regex"
-          }
-          values_order_direction = "asc"
-        }
-      }
-      value = {
-        interval = {
-          label = "@{run}-label"
-          value = "@{run}-value"
-        }
-      }
-    },
-  ]
-}
-
-resource "coralogix_dashboard" "test_5" {
-  time_frame = {
-    absolute = {
-      start = "2030-01-01T00:00:00Z"
-      end = "2030-01-01T00:00:00Z"
-    }
-  }
-  annotations = [
-    {
-      color = "blue"
-      description = "@{run}-description"
-      enabled = true
-      name = "@{run}-name"
-      scope = {
-        all_widgets = {}
-      }
-      source = {
-        dataprime = {
-          data_mode_type = "archive"
-          label_fields = [
-            {
-              keypath = ["@{run}-keypath"]
-              scope = "label"
-            },
-          ]
-          message_template = "@{run}-message_template"
-          orientation = "horizontal"
-          query = "source logs | limit 1"
-          strategy = {
-            duration = {
-              duration_field = {
-                keypath = ["@{run}-keypath"]
-                scope = "label"
-              }
-              start_timestamp_field = {
-                keypath = ["@{run}-keypath"]
-                scope = "label"
-              }
-            }
-          }
-        }
-      }
-    },
-  ]
-  description = "@{run}-description-5"
-  auto_refresh = {
-    type = "off"
-  }
-  filters = [
-    {
-      collapsed = true
-      display_name = "@{run}-display_name"
-      enabled = true
-      scope = {
-        all_widgets = {}
-      }
-      source = {
-        logs = {
-          field = "@{run}-field"
-          observation_field = {
-            keypath = ["@{run}-keypath"]
-            scope = "label"
-          }
-          operator = {
-            type = "equals"
-            selection_type = "all"
-          }
-        }
-      }
-    },
-  ]
-  folder = {
-    id = coralogix_dashboards_folder.folder.id
-  }
-  layout = {
-    sections = [
-      {
-        options = {
-          collapsed = true
-          color = "pink"
-          description = "@{run}-description"
-          name = "@{run}-name"
-          repetitive_var = {
-            name = "@{run}-name"
-          }
-        }
-        rows = [
-          {
-            height = 1
-            widgets = [
-              {
-                width = 1
-                definition = {
-                  markdown = {
-                    markdown_text = "@{run}-markdown_text"
-                    tooltip_text = "@{run}-tooltip_text"
-                  }
-                }
-                description = "@{run}-description"
-                highlighted = true
-                title = "@{run}-title"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
                   dynamic = {
                     interpretation = "trend_over_time_line"
                     query_definitions = [
@@ -3756,30 +3266,32 @@ resource "coralogix_dashboard" "test_5" {
                         id = "@{run}-id"
                         name = "@{run}-name"
                         query = {
-                          logs = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                      {
+                        id = "@{run}-id-2"
+                        name = "@{run}-name-2"
+                        query = {
+                          spans = {
                             aggregations = [
                               {
-                                type = "avg"
-                                field = "@{run}-field"
+                                type = "count"
                               },
                             ]
                             data_mode_type = "archive"
                             filters = [
                               {
-                                field = "@{run}-field"
+                                field = {
+                                  type = "process_tag"
+                                  value = "@{run}-value"
+                                }
                                 observation_field = {
                                   keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = "@{run}-field-2"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
+                                  relation_type = "other"
                                   scope = "label"
                                 }
                                 operator = {
@@ -3792,22 +3304,11 @@ resource "coralogix_dashboard" "test_5" {
                             group_by = [
                               {
                                 keypath = ["@{run}-keypath"]
+                                relation_type = "root"
                                 scope = "label"
                               },
                             ]
-                            lucene_query = "@{run}-lucene_query"
-                          }
-                        }
-                      },
-                      {
-                        id = "@{run}-id-2"
-                        name = "@{run}-name-2"
-                        query = {
-                          metrics = {
-                            editor_mode = "text"
-                            promql_query = "@{run}-promql_query-2"
-                            promql_query_type = "instant"
-                            series_limit_type = "by_series_count"
+                            lucene_query = "@{run}-lucene_query-2"
                           }
                         }
                       },
@@ -3815,9 +3316,11 @@ resource "coralogix_dashboard" "test_5" {
                         id = "@{run}-id-3"
                         name = "@{run}-name-3"
                         query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
+                          metrics = {
+                            editor_mode = "builder"
+                            promql_query = "@{run}-promql_query-3"
+                            promql_query_type = "instant"
+                            series_limit_type = "by_point_count"
                           }
                         }
                       },
@@ -3825,11 +3328,39 @@ resource "coralogix_dashboard" "test_5" {
                         id = "@{run}-id-4"
                         name = "@{run}-name-4"
                         query = {
-                          metrics = {
-                            editor_mode = "builder"
-                            promql_query = "@{run}-promql_query-4"
-                            promql_query_type = "instant"
-                            series_limit_type = "by_point_count"
+                          spans = {
+                            aggregations = [
+                              {
+                                type = "count_distinct"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            data_mode_type = "archive"
+                            filters = [
+                              {
+                                field = {
+                                  type = "tag"
+                                  value = "@{run}-value"
+                                }
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  relation_type = "other"
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-4"
                           }
                         }
                       },
@@ -4050,7 +3581,48 @@ resource "coralogix_dashboard" "test_5" {
                           spans = {
                             aggregations = [
                               {
-                                type = "count"
+                                type = "max"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            data_mode_type = "archive"
+                            filters = [
+                              {
+                                field = {
+                                  type = "metadata"
+                                  value = "operation_name"
+                                }
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  relation_type = "other"
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-11"
+                          }
+                        }
+                      },
+                      {
+                        id = "@{run}-id-12"
+                        name = "@{run}-name-12"
+                        query = {
+                          spans = {
+                            aggregations = [
+                              {
+                                type = "min"
+                                field = "@{run}-field"
                               },
                             ]
                             data_mode_type = "archive"
@@ -4070,66 +3642,11 @@ resource "coralogix_dashboard" "test_5" {
                                   selection_type = "all"
                                 }
                               },
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "subsystem_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
                             ]
                             group_by = [
                               {
                                 keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-11"
-                          }
-                        }
-                      },
-                      {
-                        id = "@{run}-id-12"
-                        name = "@{run}-name-12"
-                        query = {
-                          spans = {
-                            aggregations = [
-                              {
-                                type = "count_distinct"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            data_mode_type = "archive"
-                            filters = [
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "application_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
+                                relation_type = "root"
                                 scope = "label"
                               },
                             ]
@@ -4150,10 +3667,10 @@ resource "coralogix_dashboard" "test_5" {
                         color_axis_max = 1.5
                         color_axis_min = 1.5
                         color_range = "blue"
-                        custom_unit = "@{run}-custom_unit-2"
+                        custom_unit = "@{run}-custom_unit"
                         decimal_precision = 1
                         histogram_bucket_unit = "nanoseconds"
-                        scale_type = "logarithmic"
+                        scale_type = "linear"
                         show_numbers = true
                         tooltip = {
                           labels = [
@@ -4162,7 +3679,7 @@ resource "coralogix_dashboard" "test_5" {
                               scope = "label"
                             },
                           ]
-                          message_template = "@{run}-message_template-2"
+                          message_template = "@{run}-message_template"
                         }
                         unit = "bytes"
                         value_field = {
@@ -4186,9 +3703,9 @@ resource "coralogix_dashboard" "test_5" {
                     }
                   }
                 }
-                description = "@{run}-description-2"
+                description = "@{run}-description"
                 highlighted = true
-                title = "@{run}-title-2"
+                title = "@{run}-title"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -4206,7 +3723,7 @@ resource "coralogix_dashboard" "test_5" {
       },
     ]
   }
-  name = "@{run}-name-5"
+  name = "@{run}-name-4"
   variables_v2 = [
     {
       description = "@{run}-description"
@@ -4246,7 +3763,7 @@ resource "coralogix_dashboard" "test_5" {
   ]
 }
 
-resource "coralogix_dashboard" "test_6" {
+resource "coralogix_dashboard" "test_5" {
   time_frame = {
     absolute = {
       start = "2030-01-01T00:00:00Z"
@@ -4290,7 +3807,7 @@ resource "coralogix_dashboard" "test_6" {
       }
     },
   ]
-  description = "@{run}-description-6"
+  description = "@{run}-description-5"
   auto_refresh = {
     type = "off"
   }
@@ -4325,7 +3842,7 @@ resource "coralogix_dashboard" "test_6" {
       {
         options = {
           collapsed = true
-          color = "orange"
+          color = "pink"
           description = "@{run}-description"
           name = "@{run}-name"
           repetitive_var = {
@@ -4349,86 +3866,6 @@ resource "coralogix_dashboard" "test_6" {
                           spans = {
                             aggregations = [
                               {
-                                type = "max"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            data_mode_type = "archive"
-                            filters = [
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "application_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query"
-                          }
-                        }
-                      },
-                      {
-                        id = "@{run}-id-2"
-                        name = "@{run}-name-2"
-                        query = {
-                          spans = {
-                            aggregations = [
-                              {
-                                type = "min"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            data_mode_type = "archive"
-                            filters = [
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "application_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-2"
-                          }
-                        }
-                      },
-                      {
-                        id = "@{run}-id-3"
-                        name = "@{run}-name-3"
-                        query = {
-                          spans = {
-                            aggregations = [
-                              {
                                 type = "percentile"
                                 field = "@{run}-field"
                                 percent = 1.5
@@ -4439,7 +3876,7 @@ resource "coralogix_dashboard" "test_6" {
                               {
                                 field = {
                                   type = "metadata"
-                                  value = "application_name"
+                                  value = "subsystem_name"
                                 }
                                 observation_field = {
                                   keypath = ["@{run}-keypath"]
@@ -4455,17 +3892,17 @@ resource "coralogix_dashboard" "test_6" {
                             group_by = [
                               {
                                 keypath = ["@{run}-keypath"]
-                                relation_type = "other"
+                                relation_type = "root"
                                 scope = "label"
                               },
                             ]
-                            lucene_query = "@{run}-lucene_query-3"
+                            lucene_query = "@{run}-lucene_query"
                           }
                         }
                       },
                       {
-                        id = "@{run}-id-4"
-                        name = "@{run}-name-4"
+                        id = "@{run}-id-2"
+                        name = "@{run}-name-2"
                         query = {
                           spans = {
                             aggregations = [
@@ -4495,11 +3932,11 @@ resource "coralogix_dashboard" "test_6" {
                             group_by = [
                               {
                                 keypath = ["@{run}-keypath"]
-                                relation_type = "other"
+                                relation_type = "root"
                                 scope = "label"
                               },
                             ]
-                            lucene_query = "@{run}-lucene_query-4"
+                            lucene_query = "@{run}-lucene_query-2"
                           }
                         }
                       },
@@ -4746,6 +4183,38 @@ resource "coralogix_dashboard" "test_6" {
                               field_type = "array"
                             }
                           },
+                          {
+                            description = "@{run}-description-9"
+                            id = "@{run}-id-9"
+                            name = "@{run}-name-9"
+                            properties = [
+                              {
+                                definition = {
+                                  alignment = "center"
+                                }
+                                id = "@{run}-id"
+                              },
+                            ]
+                            rule_scope = {
+                              field_type = "regex"
+                            }
+                          },
+                          {
+                            description = "@{run}-description-10"
+                            id = "@{run}-id-10"
+                            name = "@{run}-name-10"
+                            properties = [
+                              {
+                                definition = {
+                                  alignment = "center"
+                                }
+                                id = "@{run}-id"
+                              },
+                            ]
+                            rule_scope = {
+                              field_type = "union"
+                            }
+                          },
                         ]
                         settings = {
                           column_widths = [
@@ -4780,7 +4249,7 @@ resource "coralogix_dashboard" "test_6" {
       },
     ]
   }
-  name = "@{run}-name-6"
+  name = "@{run}-name-5"
   variables_v2 = [
     {
       description = "@{run}-description"
@@ -4820,7 +4289,7 @@ resource "coralogix_dashboard" "test_6" {
   ]
 }
 
-resource "coralogix_dashboard" "test_7" {
+resource "coralogix_dashboard" "test_6" {
   time_frame = {
     absolute = {
       start = "2030-01-01T00:00:00Z"
@@ -4864,7 +4333,7 @@ resource "coralogix_dashboard" "test_7" {
       }
     },
   ]
-  description = "@{run}-description-7"
+  description = "@{run}-description-6"
   auto_refresh = {
     type = "off"
   }
@@ -4899,7 +4368,7 @@ resource "coralogix_dashboard" "test_7" {
       {
         options = {
           collapsed = true
-          color = "blue"
+          color = "orange"
           description = "@{run}-description"
           name = "@{run}-name"
           repetitive_var = {
@@ -5624,82 +5093,6 @@ resource "coralogix_dashboard" "test_7" {
                               selection_type = "all"
                             }
                           },
-                          {
-                            field = {
-                              type = "process_tag"
-                              value = "@{run}-value-2"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                          {
-                            field = {
-                              type = "tag"
-                              value = "@{run}-value-3"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "operation_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "service_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "subsystem_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
                         ]
                         group_names = [
                           {
@@ -5730,7 +5123,7 @@ resource "coralogix_dashboard" "test_7" {
                         group_names_fields = [
                           {
                             keypath = ["@{run}-keypath"]
-                            relation_type = "other"
+                            relation_type = "root"
                             scope = "label"
                           },
                         ]
@@ -5741,7 +5134,7 @@ resource "coralogix_dashboard" "test_7" {
                         }
                         stacked_group_name_field = {
                           keypath = ["@{run}-keypath"]
-                          relation_type = "other"
+                          relation_type = "root"
                           scope = "label"
                         }
                         time_frame = {
@@ -5947,6 +5340,802 @@ resource "coralogix_dashboard" "test_7" {
                   },
                 ]
               },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "multi_value_kpi_stat_card"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      gauge = {
+                        allow_abbreviation = true
+                        arc_display = {
+                          threshold_arc = true
+                          value_arc = true
+                        }
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        custom_unit = "@{run}-custom_unit-12"
+                        decimal_precision = 1
+                        display_series_name = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        legend_by = "groups"
+                        max = 2
+                        min = 1
+                        show_inner_arc = true
+                        show_min_max = true
+                        show_outer_arc = true
+                        threshold_type = "absolute"
+                        thresholds = [
+                          {
+                            color = "@{run}-color"
+                            from = 1.5
+                            label = "@{run}-label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        value_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-12"
+                highlighted = true
+                title = "@{run}-title-12"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+            ]
+          },
+          {
+            height = 1
+            widgets = [
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "inside"
+                    color_scheme = "cold"
+                    colors_by = "group_by"
+                    custom_unit = "@{run}-custom_unit"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "avg"
+                          field = "@{run}-field"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            field = "@{run}-field-2"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query"
+                        stacked_group_name = "@{run}-stacked_group_name"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "hh_mm_mm_dd"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+            ]
+          },
+        ]
+      },
+    ]
+  }
+  name = "@{run}-name-6"
+  variables_v2 = [
+    {
+      description = "@{run}-description"
+      display_full_row = false
+      display_name = "@{run}-display_name"
+      display_type = "label_value"
+      name = "@{run}-name"
+      source = {
+        query = {
+          all_option = {
+            include_all = true
+            label = "@{run}-label"
+          }
+          dataprime_query = {
+            type = {
+              query_text = {
+                data_mode_type = "archive"
+                query = "source logs | limit 1"
+              }
+            }
+          }
+          refresh_strategy = "on_dashboard_load"
+          value_display_options = {
+            label_regex = "@{run}-label_regex"
+            value_regex = "@{run}-value_regex"
+          }
+          values_order_direction = "asc"
+        }
+      }
+      value = {
+        interval = {
+          label = "@{run}-label"
+          value = "@{run}-value"
+        }
+      }
+    },
+  ]
+}
+
+resource "coralogix_dashboard" "test_7" {
+  time_frame = {
+    absolute = {
+      start = "2030-01-01T00:00:00Z"
+      end = "2030-01-01T00:00:00Z"
+    }
+  }
+  annotations = [
+    {
+      color = "blue"
+      description = "@{run}-description"
+      enabled = true
+      name = "@{run}-name"
+      scope = {
+        all_widgets = {}
+      }
+      source = {
+        dataprime = {
+          data_mode_type = "archive"
+          label_fields = [
+            {
+              keypath = ["@{run}-keypath"]
+              scope = "label"
+            },
+          ]
+          message_template = "@{run}-message_template"
+          orientation = "horizontal"
+          query = "source logs | limit 1"
+          strategy = {
+            duration = {
+              duration_field = {
+                keypath = ["@{run}-keypath"]
+                scope = "label"
+              }
+              start_timestamp_field = {
+                keypath = ["@{run}-keypath"]
+                scope = "label"
+              }
+            }
+          }
+        }
+      }
+    },
+  ]
+  description = "@{run}-description-7"
+  auto_refresh = {
+    type = "off"
+  }
+  filters = [
+    {
+      collapsed = true
+      display_name = "@{run}-display_name"
+      enabled = true
+      scope = {
+        all_widgets = {}
+      }
+      source = {
+        logs = {
+          field = "@{run}-field"
+          observation_field = {
+            keypath = ["@{run}-keypath"]
+            scope = "label"
+          }
+          operator = {
+            type = "equals"
+            selection_type = "all"
+          }
+        }
+      }
+    },
+  ]
+  folder = {
+    id = coralogix_dashboards_folder.folder.id
+  }
+  layout = {
+    sections = [
+      {
+        options = {
+          collapsed = true
+          color = "blue"
+          description = "@{run}-description"
+          name = "@{run}-name"
+          repetitive_var = {
+            name = "@{run}-name"
+          }
+        }
+        rows = [
+          {
+            height = 1
+            widgets = [
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "classic"
+                    colors_by = "category"
+                    custom_unit = "@{run}-custom_unit"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "error_count"
+                          field = "trace_id"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "metadata"
+                              value = "application_name"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                          {
+                            type = "process_tag"
+                            value = "@{run}-value-2"
+                          },
+                          {
+                            type = "tag"
+                            value = "@{run}-value-3"
+                          },
+                          {
+                            type = "metadata"
+                            value = "operation_name"
+                          },
+                          {
+                            type = "metadata"
+                            value = "service_name"
+                          },
+                          {
+                            type = "metadata"
+                            value = "subsystem_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query"
+                        stacked_group_name = {
+                          type = "metadata"
+                          value = "application_name"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "value"
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "classic"
+                    custom_unit = "@{run}-custom_unit-2"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-2"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "stack"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "error_count"
+                          field = "trace_id"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "metadata"
+                              value = "application_name"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                          {
+                            type = "process_tag"
+                            value = "@{run}-value-2"
+                          },
+                          {
+                            type = "tag"
+                            value = "@{run}-value-3"
+                          },
+                          {
+                            type = "metadata"
+                            value = "operation_name"
+                          },
+                          {
+                            type = "metadata"
+                            value = "service_name"
+                          },
+                          {
+                            type = "metadata"
+                            value = "subsystem_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-2"
+                        stacked_group_name = {
+                          type = "metadata"
+                          value = "application_name"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-2"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-3"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      spans = {
+                        filters = [
+                          {
+                            field = {
+                              type = "metadata"
+                              value = "application_name"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                          {
+                            type = "process_tag"
+                            value = "@{run}-value-2"
+                          },
+                          {
+                            type = "tag"
+                            value = "@{run}-value-3"
+                          },
+                          {
+                            type = "metadata"
+                            value = "operation_name"
+                          },
+                          {
+                            type = "metadata"
+                            value = "service_name"
+                          },
+                          {
+                            type = "metadata"
+                            value = "subsystem_name"
+                          },
+                        ]
+                        group_bys = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-3"
+                        spans_aggregation = {
+                          type = "dimension"
+                          aggregation_type = "error_count"
+                          field = "trace_id"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "percent"
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "cold"
+                    colors_by = "group_by"
+                    custom_unit = "@{run}-custom_unit-4"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-4"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "avg"
+                          field = "@{run}-field-4"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            field = "@{run}-field-2"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-4"
+                        stacked_group_name = "@{run}-stacked_group_name-4"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-4"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
             ]
           },
         ]
@@ -6086,75 +6275,760 @@ resource "coralogix_dashboard" "test_8" {
               {
                 width = 1
                 definition = {
-                  dynamic = {
-                    interpretation = "multi_value_kpi_stat_card"
+                  line_chart = {
+                    connect_nulls = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
                     query_definitions = [
                       {
+                        color_scheme = "cold"
+                        custom_unit = "@{run}-custom_unit"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
                         id = "@{run}-id"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
                         name = "@{run}-name"
                         query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "avg"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                              {
+                                field = "@{run}-field-2"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "not_equals"
+                                  selection_type = "list"
+                                  selected_values = ["@{run}-selected_values"]
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
                           }
                         }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "green"
+                        custom_unit = "@{run}-custom_unit-2"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-2"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-2"
+                        query = {
+                          metrics = {
+                            editor_mode = "builder"
+                            filters = [
+                              {
+                                label = "@{run}-label"
+                                metric = "@{run}-metric"
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                              {
+                                label = "@{run}-label-2"
+                                metric = "@{run}-metric-2"
+                                operator = {
+                                  type = "not_equals"
+                                  selection_type = "list"
+                                  selected_values = ["@{run}-selected_values"]
+                                }
+                              },
+                            ]
+                            promql_query = "@{run}-promql_query-2"
+                            series_limit_type = "by_point_count"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-2"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "negative"
+                        custom_unit = "@{run}-custom_unit-3"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-3"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-3"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                spans = {
+                                  field = {
+                                    type = "process_tag"
+                                    value = "@{run}-value"
+                                  }
+                                  observation_field = {
+                                    keypath = ["@{run}-keypath"]
+                                    relation_type = "other"
+                                    scope = "label"
+                                  }
+                                  operator = {
+                                    type = "not_equals"
+                                    selection_type = "list"
+                                    selected_values = ["@{run}-selected_values"]
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-3"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "red"
+                        custom_unit = "@{run}-custom_unit-4"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-4"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-4"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                logs = {
+                                  field = "@{run}-field"
+                                  observation_field = {
+                                    keypath = ["@{run}-keypath"]
+                                    scope = "label"
+                                  }
+                                  operator = {
+                                    type = "equals"
+                                    selection_type = "all"
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-4"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "severity"
+                        custom_unit = "@{run}-custom_unit-5"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-5"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-5"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                logs = {
+                                  field = "@{run}-field"
+                                  observation_field = {
+                                    keypath = ["@{run}-keypath"]
+                                    scope = "label"
+                                  }
+                                  operator = {
+                                    type = "not_equals"
+                                    selection_type = "list"
+                                    selected_values = ["@{run}-selected_values"]
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-5"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-6"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-6"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-6"
+                        query = {
+                          spans = {
+                            aggregations = [
+                              {
+                                type = "metric"
+                                aggregation_type = "avg"
+                                field = "duration"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = {
+                                  type = "process_tag"
+                                  value = "@{run}-value"
+                                }
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  relation_type = "other"
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "not_equals"
+                                  selection_type = "list"
+                                  selected_values = ["@{run}-selected_values"]
+                                }
+                              },
+                            ]
+                            group_by = [
+                              {
+                                type = "metadata"
+                                value = "application_name"
+                              },
+                            ]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-6"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-6"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-7"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-7"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-7"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                metrics = {
+                                  label = "@{run}-label"
+                                  metric_name = "@{run}-metric_name"
+                                  operator = {
+                                    type = "equals"
+                                    selection_type = "all"
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-7"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-8"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-8"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-8"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                metrics = {
+                                  label = "@{run}-label"
+                                  metric_name = "@{run}-metric_name"
+                                  operator = {
+                                    type = "not_equals"
+                                    selection_type = "list"
+                                    selected_values = ["@{run}-selected_values"]
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-8"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-9"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-9"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-9"
+                        query = {
+                          data_prime = {
+                            query = "source logs | limit 1"
+                            filters = [
+                              {
+                                spans = {
+                                  field = {
+                                    type = "tag"
+                                    value = "@{run}-value"
+                                  }
+                                  observation_field = {
+                                    keypath = ["@{run}-keypath"]
+                                    relation_type = "other"
+                                    scope = "label"
+                                  }
+                                  operator = {
+                                    type = "equals"
+                                    selection_type = "all"
+                                  }
+                                }
+                              },
+                            ]
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-9"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-10"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-10"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-10"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-10"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-10"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-11"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-11"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-11"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "count_distinct"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-11"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-11"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-12"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-12"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-12"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "max"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-12"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-12"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
                       },
                     ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
+                    stacked_line = "relative"
+                    tooltip = {
+                      show_labels = true
+                      type = "single"
                     }
-                    visualization = {
-                      gauge = {
-                        allow_abbreviation = true
-                        arc_display = {
-                          threshold_arc = true
-                          value_arc = true
-                        }
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        custom_unit = "@{run}-custom_unit"
-                        decimal_precision = 1
-                        display_series_name = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        legend_by = "groups"
-                        max = 2
-                        min = 1
-                        show_inner_arc = true
-                        show_min_max = true
-                        show_outer_arc = true
-                        threshold_type = "absolute"
-                        thresholds = [
-                          {
-                            color = "@{run}-color"
-                            from = 1.5
-                            label = "@{run}-label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        value_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
+                    use_data_time_range = true
+                    x_axis_time_format = "auto"
                   }
                 }
                 description = "@{run}-description"
@@ -6174,181 +7048,34 @@ resource "coralogix_dashboard" "test_8" {
               {
                 width = 1
                 definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      hexagon_bins = {
-                        allow_abbreviation = true
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        custom_unit = "@{run}-custom_unit-2"
-                        decimal_precision = 1
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        legend_by = "groups"
-                        max = 2
-                        min = 1
-                        threshold_type = "absolute"
-                        thresholds = [
-                          {
-                            color = "@{run}-color"
-                            from = 1.5
-                            label = "@{run}-label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-2"
-                highlighted = true
-                title = "@{run}-title-2"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-3"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "microseconds"
-                        preset = "blue"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-3"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "hh_mm_mm_dd"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  bar_chart = {
-                    bar_value_display = "inside"
+                  pie_chart = {
                     color_scheme = "cold"
-                    colors_by = "group_by"
-                    custom_unit = "@{run}-custom_unit-4"
+                    custom_unit = "@{run}-custom_unit-2"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-4"
+                    group_name_template = "@{run}-group_name_template-2"
                     hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
                     query = {
                       logs = {
                         aggregation = {
                           type = "avg"
-                          field = "@{run}-field-4"
+                          field = "@{run}-field-2"
                         }
                         filters = [
                           {
@@ -6382,8 +7109,8 @@ resource "coralogix_dashboard" "test_8" {
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-4"
-                        stacked_group_name = "@{run}-stacked_group_name-4"
+                        lucene_query = "@{run}-lucene_query-2"
+                        stacked_group_name = "@{run}-stacked_group_name-2"
                         stacked_group_name_field = {
                           keypath = ["@{run}-keypath"]
                           scope = "label"
@@ -6396,650 +7123,18 @@ resource "coralogix_dashboard" "test_8" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
+                    show_legend = true
+                    show_total = true
                     stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-4"
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-2"
                     }
                     unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
                   }
                 }
-                description = "@{run}-description-4"
+                description = "@{run}-description-2"
                 highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        color_range = "red"
-                        custom_unit = "@{run}-custom_unit-5"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "milliseconds"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-5"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-5"
-                highlighted = true
-                title = "@{run}-title-5"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        color_range = "threshold"
-                        custom_unit = "@{run}-custom_unit-6"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "seconds"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-6"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-6"
-                highlighted = true
-                title = "@{run}-title-6"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        color_range = "blue_reversed"
-                        custom_unit = "@{run}-custom_unit-7"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "bytes_iec"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-7"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-7"
-                highlighted = true
-                title = "@{run}-title-7"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        color_range = "green_reversed"
-                        custom_unit = "@{run}-custom_unit-8"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "kibytes"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-8"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-8"
-                highlighted = true
-                title = "@{run}-title-8"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        color_range = "red_reversed"
-                        custom_unit = "@{run}-custom_unit-9"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "mibytes"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-9"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-9"
-                highlighted = true
-                title = "@{run}-title-9"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        color_range = "threshold_reversed"
-                        custom_unit = "@{run}-custom_unit-10"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "gibytes"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-10"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-10"
-                highlighted = true
-                title = "@{run}-title-10"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      stat_card = {
-                        allow_abbreviation = true
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_label_mapping = {
-                          color_by = "background"
-                          regex = {
-                            sections = [
-                              {
-                                color = "blue"
-                                map_to = "@{run}-map_to"
-                                value = "@{run}-value"
-                              },
-                              {
-                                color = "green"
-                                map_to = "@{run}-map_to-2"
-                                value = "@{run}-value-2"
-                              },
-                              {
-                                color = "red"
-                                map_to = "@{run}-map_to-3"
-                                value = "@{run}-value-3"
-                              },
-                              {
-                                color = "purple"
-                                map_to = "@{run}-map_to-4"
-                                value = "@{run}-value-4"
-                              },
-                              {
-                                color = "cyan"
-                                map_to = "@{run}-map_to-5"
-                                value = "@{run}-value-5"
-                              },
-                              {
-                                color = "magenta"
-                                map_to = "@{run}-map_to-6"
-                                value = "@{run}-value-6"
-                              },
-                              {
-                                color = "orange"
-                                map_to = "@{run}-map_to-7"
-                                value = "@{run}-value-7"
-                              },
-                              {
-                                color = "yellow"
-                                map_to = "@{run}-map_to-8"
-                                value = "@{run}-value-8"
-                              },
-                            ]
-                          }
-                        }
-                        custom_unit = "@{run}-custom_unit-11"
-                        decimal_precision = 1
-                        label = {
-                          mapped_values = true
-                          template_text = "@{run}-template_text-11"
-                          template_variables = [
-                            {
-                              mapped_values = true
-                            },
-                          ]
-                        }
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        legend_by = "groups"
-                        primary_value = {
-                          observation_field = {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          }
-                          template_text = "@{run}-template_text-11"
-                          template_variables = [
-                            {
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                            },
-                          ]
-                        }
-                        title = {
-                          mapped_values = true
-                          template_text = "@{run}-template_text-11"
-                          template_variables = [
-                            {
-                              mapped_values = true
-                            },
-                          ]
-                        }
-                        unit = "bytes"
-                        value_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-11"
-                highlighted = true
-                title = "@{run}-title-11"
+                title = "@{run}-title-2"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -7058,11 +7153,11 @@ resource "coralogix_dashboard" "test_8" {
                     bar_value_display = "both"
                     color_scheme = "green"
                     colors_by = "query"
-                    custom_unit = "@{run}-custom_unit-12"
+                    custom_unit = "@{run}-custom_unit-3"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-12"
+                    group_name_template = "@{run}-group_name_template-3"
                     hash_colors = true
                     legend = {
                       columns = ["avg"]
@@ -7095,9 +7190,9 @@ resource "coralogix_dashboard" "test_8" {
                           },
                         ]
                         group_names = ["@{run}-group_names"]
-                        promql_query = "@{run}-promql_query-12"
+                        promql_query = "@{run}-promql_query-3"
                         promql_query_type = "instant"
-                        stacked_group_name = "@{run}-stacked_group_name-12"
+                        stacked_group_name = "@{run}-stacked_group_name-3"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -7110,7 +7205,7 @@ resource "coralogix_dashboard" "test_8" {
                     sort_by = "name"
                     stack_definition = {
                       max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-12"
+                      stack_name_template = "@{run}-stack_name_template-3"
                     }
                     unit = "bytes"
                     xaxis = {
@@ -7127,9 +7222,9 @@ resource "coralogix_dashboard" "test_8" {
                     y_axis_min = 1
                   }
                 }
-                description = "@{run}-description-12"
+                description = "@{run}-description-3"
                 highlighted = true
-                title = "@{run}-title-12"
+                title = "@{run}-title-3"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -7280,30 +7375,20 @@ resource "coralogix_dashboard" "test_9" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "classic"
-                    colors_by = "category"
-                    custom_unit = "@{run}-custom_unit"
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
                     data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
+                    order_by = {
+                      field = "@{run}-field"
+                      order_direction = "asc"
                     }
-                    max_bars_per_chart = 1
                     query = {
                       spans = {
-                        aggregation = {
-                          type = "dimension"
-                          aggregation_type = "error_count"
-                          field = "trace_id"
-                        }
                         filters = [
                           {
                             field = {
@@ -7320,126 +7405,72 @@ resource "coralogix_dashboard" "test_9" {
                               selection_type = "all"
                             }
                           },
-                          {
-                            field = {
+                        ]
+                        grouping = {
+                          aggregations = [
+                            {
+                              aggregation = {
+                                type = "dimension"
+                                aggregation_type = "error_count"
+                                field = "trace_id"
+                              }
+                              is_visible = true
+                              name = "@{run}-name"
+                            },
+                            {
+                              aggregation = {
+                                type = "metric"
+                                aggregation_type = "avg"
+                                field = "duration"
+                              }
+                              is_visible = true
+                              name = "@{run}-name-2"
+                            },
+                            {
+                              aggregation = {
+                                type = "dimension"
+                                aggregation_type = "unique_count"
+                                field = "trace_id"
+                              }
+                              is_visible = true
+                              name = "@{run}-name-3"
+                            },
+                          ]
+                          group_by = [
+                            {
+                              type = "metadata"
+                              value = "application_name"
+                            },
+                            {
                               type = "process_tag"
                               value = "@{run}-value-2"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                          {
-                            field = {
+                            },
+                            {
                               type = "tag"
                               value = "@{run}-value-3"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
+                            },
+                            {
                               type = "metadata"
                               value = "operation_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
+                            },
+                            {
                               type = "metadata"
                               value = "service_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
+                            },
+                            {
                               type = "metadata"
                               value = "subsystem_name"
-                            }
-                            observation_field = {
+                            },
+                          ]
+                          group_bys = [
+                            {
                               keypath = ["@{run}-keypath"]
-                              relation_type = "other"
+                              relation_type = "root"
                               scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                          {
-                            type = "process_tag"
-                            value = "@{run}-value-2"
-                          },
-                          {
-                            type = "tag"
-                            value = "@{run}-value-3"
-                          },
-                          {
-                            type = "metadata"
-                            value = "operation_name"
-                          },
-                          {
-                            type = "metadata"
-                            value = "service_name"
-                          },
-                          {
-                            type = "metadata"
-                            value = "subsystem_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
+                            },
+                          ]
+                        }
                         lucene_query = "@{run}-lucene_query"
-                        stacked_group_name = {
-                          type = "metadata"
-                          value = "application_name"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -7448,21 +7479,737 @@ resource "coralogix_dashboard" "test_9" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template"
-                    }
-                    unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "value"
+                    results_per_page = 1
+                    row_style = "condensed"
                   }
                 }
                 description = "@{run}-description"
                 highlighted = true
                 title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      hexagon_bins = {
+                        allow_abbreviation = true
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        custom_unit = "@{run}-custom_unit-2"
+                        decimal_precision = 1
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        legend_by = "groups"
+                        max = 2
+                        min = 1
+                        threshold_type = "absolute"
+                        thresholds = [
+                          {
+                            color = "@{run}-color"
+                            from = 1.5
+                            label = "@{run}-label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-3"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "microseconds"
+                        preset = "blue"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-3"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        color_range = "red"
+                        custom_unit = "@{run}-custom_unit-4"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "milliseconds"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-4"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        color_range = "threshold"
+                        custom_unit = "@{run}-custom_unit-5"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "seconds"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-5"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        color_range = "blue_reversed"
+                        custom_unit = "@{run}-custom_unit-6"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "bytes_iec"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-6"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        color_range = "green_reversed"
+                        custom_unit = "@{run}-custom_unit-7"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "kibytes"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-7"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        color_range = "red_reversed"
+                        custom_unit = "@{run}-custom_unit-8"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "mibytes"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-8"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        color_range = "threshold_reversed"
+                        custom_unit = "@{run}-custom_unit-9"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "gibytes"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-9"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-10"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            field = "@{run}-field-2"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        logs_aggregation = {
+                          type = "avg"
+                          field = "@{run}-field-10"
+                        }
+                        lucene_query = "@{run}-lucene_query-10"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "microseconds"
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -7613,36 +8360,22 @@ resource "coralogix_dashboard" "test_10" {
               {
                 width = 1
                 definition = {
-                  pie_chart = {
-                    color_scheme = "classic"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "stack"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       spans = {
-                        aggregation = {
-                          type = "dimension"
-                          aggregation_type = "error_count"
-                          field = "trace_id"
-                        }
                         filters = [
                           {
                             field = {
@@ -7659,84 +8392,8 @@ resource "coralogix_dashboard" "test_10" {
                               selection_type = "all"
                             }
                           },
-                          {
-                            field = {
-                              type = "process_tag"
-                              value = "@{run}-value-2"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                          {
-                            field = {
-                              type = "tag"
-                              value = "@{run}-value-3"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "operation_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "service_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "subsystem_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
                         ]
-                        group_names = [
+                        group_by = [
                           {
                             type = "metadata"
                             value = "application_name"
@@ -7762,22 +8419,18 @@ resource "coralogix_dashboard" "test_10" {
                             value = "subsystem_name"
                           },
                         ]
-                        group_names_fields = [
+                        group_bys = [
                           {
                             keypath = ["@{run}-keypath"]
-                            relation_type = "other"
+                            relation_type = "root"
                             scope = "label"
                           },
                         ]
                         lucene_query = "@{run}-lucene_query"
-                        stacked_group_name = {
-                          type = "metadata"
-                          value = "application_name"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "error_count"
+                          field = "trace_id"
                         }
                         time_frame = {
                           absolute = {
@@ -7787,12 +8440,14 @@ resource "coralogix_dashboard" "test_10" {
                         }
                       }
                     }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
                   }
                 }
@@ -7813,15 +8468,268 @@ resource "coralogix_dashboard" "test_10" {
               {
                 width = 1
                 definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "negative"
-                    colors_by = "stack"
+                  horizontal_bar_chart = {
+                    color_scheme = "green"
+                    colors_by = "query"
                     custom_unit = "@{run}-custom_unit-2"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
+                    display_on_bar = true
                     group_name_template = "@{run}-group_name_template-2"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      metrics = {
+                        aggregation = "min"
+                        editor_mode = "builder"
+                        filters = [
+                          {
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            label = "@{run}-label-2"
+                            metric = "@{run}-metric-2"
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        promql_query = "@{run}-promql_query-2"
+                        promql_query_type = "instant"
+                        stacked_group_name = "@{run}-stacked_group_name-2"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-2"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-3"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            field = "@{run}-field-2"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        aggregation = {
+                          type = "avg"
+                          field = "@{run}-field-3"
+                        }
+                        lucene_query = "@{run}-lucene_query-3"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "green"
+                    custom_unit = "@{run}-custom_unit-4"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-4"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      metrics = {
+                        aggregation = "max"
+                        editor_mode = "builder"
+                        filters = [
+                          {
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            label = "@{run}-label-2"
+                            metric = "@{run}-metric-2"
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        promql_query = "@{run}-promql_query-4"
+                        promql_query_type = "instant"
+                        stacked_group_name = "@{run}-stacked_group_name-4"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-4"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "negative"
+                    colors_by = "stack"
+                    custom_unit = "@{run}-custom_unit-5"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-5"
                     hash_colors = true
                     legend = {
                       columns = ["avg"]
@@ -7851,78 +8759,9 @@ resource "coralogix_dashboard" "test_10" {
                               }
                             }
                           },
-                          {
-                            spans = {
-                              field = {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            logs = {
-                              field = "@{run}-field-3"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-4"
-                              metric_name = "@{run}-metric_name-4"
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                          {
-                            metrics = {
-                              label = "@{run}-label-5"
-                              metric_name = "@{run}-metric_name-5"
-                              operator = {
-                                type = "not_equals"
-                                selection_type = "list"
-                                selected_values = ["@{run}-selected_values"]
-                              }
-                            }
-                          },
-                          {
-                            spans = {
-                              field = {
-                                type = "tag"
-                                value = "@{run}-value-6"
-                              }
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
                         ]
                         group_names = ["@{run}-group_names"]
-                        stacked_group_name = "@{run}-stacked_group_name-2"
+                        stacked_group_name = "@{run}-stacked_group_name-5"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -7935,7 +8774,7 @@ resource "coralogix_dashboard" "test_10" {
                     sort_by = "name"
                     stack_definition = {
                       max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-2"
+                      stack_name_template = "@{run}-stack_name_template-5"
                     }
                     unit = "bytes"
                     xaxis = {
@@ -7950,243 +8789,6 @@ resource "coralogix_dashboard" "test_10" {
                     x_axis_time_format = "auto"
                     y_axis_max = 2
                     y_axis_min = 1
-                  }
-                }
-                description = "@{run}-description-2"
-                highlighted = true
-                title = "@{run}-title-2"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-3"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "bytes"
-                        preset = "green"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-3"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-4"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "kbytes"
-                        preset = "red"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-4"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-4"
-                highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-5"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "mbytes"
-                        preset = "threshold"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-5"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
                   }
                 }
                 description = "@{run}-description-5"
@@ -8206,66 +8808,130 @@ resource "coralogix_dashboard" "test_10" {
               {
                 width = 1
                 definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
+                  data_table = {
+                    columns = [
                       {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
+                        field = "@{run}-field"
+                        width = 1
                       },
                     ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-6"
+                      order_direction = "asc"
                     }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-6"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "gbytes"
-                        preset = "blue_reversed"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            field = "@{run}-field-2"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        grouping = {
+                          aggregations = [
+                            {
+                              aggregation = {
+                                type = "avg"
+                                field = "@{run}-field"
+                              }
+                              id = "@{run}-id"
+                              is_visible = true
+                              name = "@{run}-name"
+                            },
+                            {
+                              aggregation = {
+                                type = "count"
+                              }
+                              id = "@{run}-id-2"
+                              is_visible = true
+                              name = "@{run}-name-2"
+                            },
+                            {
+                              aggregation = {
+                                type = "count_distinct"
+                                field = "@{run}-field-3"
+                              }
+                              id = "@{run}-id-3"
+                              is_visible = true
+                              name = "@{run}-name-3"
+                            },
+                            {
+                              aggregation = {
+                                type = "max"
+                                field = "@{run}-field-4"
+                              }
+                              id = "@{run}-id-4"
+                              is_visible = true
+                              name = "@{run}-name-4"
+                            },
+                            {
+                              aggregation = {
+                                type = "min"
+                                field = "@{run}-field-5"
+                              }
+                              id = "@{run}-id-5"
+                              is_visible = true
+                              name = "@{run}-name-5"
+                            },
+                            {
+                              aggregation = {
+                                type = "percentile"
+                                field = "@{run}-field-6"
+                                percent = 1.5
+                              }
+                              id = "@{run}-id-6"
+                              is_visible = true
+                              name = "@{run}-name-6"
+                            },
+                            {
+                              aggregation = {
+                                type = "sum"
+                                field = "@{run}-field-7"
+                              }
+                              id = "@{run}-id-7"
+                              is_visible = true
+                              name = "@{run}-name-7"
+                            },
+                          ]
+                          group_by = ["@{run}-group_by"]
+                          group_bys = [
                             {
                               keypath = ["@{run}-keypath"]
                               scope = "label"
                             },
                           ]
-                          message_template = "@{run}-message_template-6"
                         }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        lucene_query = "@{run}-lucene_query-6"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
                         }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
                       }
                     }
+                    results_per_page = 1
+                    row_style = "json"
                   }
                 }
                 description = "@{run}-description-6"
@@ -8421,12 +9087,158 @@ const variant2Config = `resource "coralogix_dashboard" "test" {
               {
                 width = 1
                 definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      stat_card = {
+                        allow_abbreviation = true
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_label_mapping = {
+                          color_by = "background"
+                          regex = {
+                            sections = [
+                              {
+                                color = "blue"
+                                map_to = "@{run}-map_to"
+                                value = "@{run}-value"
+                              },
+                              {
+                                color = "green"
+                                map_to = "@{run}-map_to-2"
+                                value = "@{run}-value-2"
+                              },
+                              {
+                                color = "red"
+                                map_to = "@{run}-map_to-3"
+                                value = "@{run}-value-3"
+                              },
+                              {
+                                color = "purple"
+                                map_to = "@{run}-map_to-4"
+                                value = "@{run}-value-4"
+                              },
+                              {
+                                color = "cyan"
+                                map_to = "@{run}-map_to-5"
+                                value = "@{run}-value-5"
+                              },
+                              {
+                                color = "magenta"
+                                map_to = "@{run}-map_to-6"
+                                value = "@{run}-value-6"
+                              },
+                              {
+                                color = "orange"
+                                map_to = "@{run}-map_to-7"
+                                value = "@{run}-value-7"
+                              },
+                              {
+                                color = "yellow"
+                                map_to = "@{run}-map_to-8"
+                                value = "@{run}-value-8"
+                              },
+                            ]
+                          }
+                        }
+                        custom_unit = "@{run}-custom_unit"
+                        decimal_precision = 1
+                        label = {
+                          mapped_values = true
+                          template_text = "@{run}-template_text"
+                          template_variables = [
+                            {
+                              mapped_values = true
+                            },
+                          ]
+                        }
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        legend_by = "groups"
+                        primary_value = {
+                          observation_field = {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          }
+                          template_text = "@{run}-template_text"
+                          template_variables = [
+                            {
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                            },
+                          ]
+                        }
+                        title = {
+                          mapped_values = true
+                          template_text = "@{run}-template_text"
+                          template_variables = [
+                            {
+                              mapped_values = true
+                            },
+                          ]
+                        }
+                        unit = "bytes"
+                        value_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
                   gauge = {
                     arc_display = {
                       threshold_arc = true
                       value_arc = true
                     }
-                    custom_unit = "@{run}-custom_unit"
+                    custom_unit = "@{run}-custom_unit-2"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
@@ -8441,139 +9253,30 @@ const variant2Config = `resource "coralogix_dashboard" "test" {
                     max = 2
                     min = 1
                     query = {
-                      spans = {
+                      metrics = {
+                        aggregation = "last"
+                        editor_mode = "builder"
                         filters = [
                           {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
                             operator = {
                               type = "equals"
                               selection_type = "all"
                             }
                           },
                           {
-                            field = {
-                              type = "process_tag"
-                              value = "@{run}-value-2"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
+                            label = "@{run}-label-2"
+                            metric = "@{run}-metric-2"
                             operator = {
                               type = "not_equals"
                               selection_type = "list"
                               selected_values = ["@{run}-selected_values"]
                             }
                           },
-                          {
-                            field = {
-                              type = "tag"
-                              value = "@{run}-value-3"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "operation_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "service_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "subsystem_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
                         ]
-                        group_by = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                          {
-                            type = "process_tag"
-                            value = "@{run}-value-2"
-                          },
-                          {
-                            type = "tag"
-                            value = "@{run}-value-3"
-                          },
-                          {
-                            type = "metadata"
-                            value = "operation_name"
-                          },
-                          {
-                            type = "metadata"
-                            value = "service_name"
-                          },
-                          {
-                            type = "metadata"
-                            value = "subsystem_name"
-                          },
-                        ]
-                        group_bys = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query"
-                        spans_aggregation = {
-                          type = "dimension"
-                          aggregation_type = "error_count"
-                          field = "trace_id"
-                        }
+                        promql_query = "@{run}-promql_query-2"
+                        promql_query_type = "instant"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -8594,12 +9297,713 @@ const variant2Config = `resource "coralogix_dashboard" "test" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "percent"
+                    unit = "milliseconds"
                   }
                 }
-                description = "@{run}-description"
+                description = "@{run}-description-2"
                 highlighted = true
-                title = "@{run}-title"
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "negative"
+                    colors_by = "stack"
+                    custom_unit = "@{run}-custom_unit-3"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-3"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "process_tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-3"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-3"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "red"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-4"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-4"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "process_tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-4"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-4"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-5"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      metrics = {
+                        aggregation = "avg"
+                        editor_mode = "builder"
+                        filters = [
+                          {
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            label = "@{run}-label-2"
+                            metric = "@{run}-metric-2"
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        promql_query = "@{run}-promql_query-5"
+                        promql_query_type = "instant"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "negative"
+                    custom_unit = "@{run}-custom_unit-6"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-6"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "process_tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-6"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-6"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-7"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "process_tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "seconds"
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "severity"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-8"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-8"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-8"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-8"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-9"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      metrics = {
+                        editor_mode = "builder"
+                        filters = [
+                          {
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                          {
+                            label = "@{run}-label-2"
+                            metric = "@{run}-metric-2"
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        promql_query = "@{run}-promql_query-9"
+                        promql_query_type = "instant"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "list"
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-10"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "process_tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "red"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-11"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-11"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-11"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-11"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-11"
+                highlighted = true
+                title = "@{run}-title-11"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -8750,727 +10154,912 @@ resource "coralogix_dashboard" "test_2" {
               {
                 width = 1
                 definition = {
-                  line_chart = {
-                    connect_nulls = true
+                  horizontal_bar_chart = {
+                    color_scheme = "severity"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template"
+                    hash_colors = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    query_definitions = [
-                      {
-                        color_scheme = "classic"
-                        custom_unit = "@{run}-custom_unit"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name"
-                        query = {
-                          spans = {
-                            aggregations = [
-                              {
-                                type = "dimension"
-                                aggregation_type = "error_count"
-                                field = "trace_id"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "application_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = {
-                                  type = "process_tag"
-                                  value = "@{run}-value-2"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "not_equals"
-                                  selection_type = "list"
-                                  selected_values = ["@{run}-selected_values"]
-                                }
-                              },
-                              {
-                                field = {
-                                  type = "tag"
-                                  value = "@{run}-value-3"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "operation_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "service_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "subsystem_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = [
-                              {
-                                type = "metadata"
-                                value = "application_name"
-                              },
-                              {
-                                type = "process_tag"
-                                value = "@{run}-value-2"
-                              },
-                              {
-                                type = "tag"
-                                value = "@{run}-value-3"
-                              },
-                              {
-                                type = "metadata"
-                                value = "operation_name"
-                              },
-                              {
-                                type = "metadata"
-                                value = "service_name"
-                              },
-                              {
-                                type = "metadata"
-                                value = "subsystem_name"
-                              },
-                            ]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "cold"
-                        custom_unit = "@{run}-custom_unit-2"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-2"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-2"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "avg"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                field = "@{run}-field-2"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "not_equals"
-                                  selection_type = "list"
-                                  selected_values = ["@{run}-selected_values"]
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
                                 keypath = ["@{run}-keypath"]
                                 scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-2"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
                               }
                             }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
                           }
                         }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-2"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "green"
-                        custom_unit = "@{run}-custom_unit-3"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-3"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-3"
-                        query = {
-                          metrics = {
-                            editor_mode = "builder"
-                            filters = [
-                              {
-                                label = "@{run}-label"
-                                metric = "@{run}-metric"
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                              {
-                                label = "@{run}-label-2"
-                                metric = "@{run}-metric-2"
-                                operator = {
-                                  type = "not_equals"
-                                  selection_type = "list"
-                                  selected_values = ["@{run}-selected_values"]
-                                }
-                              },
-                            ]
-                            promql_query = "@{run}-promql_query-3"
-                            series_limit_type = "by_point_count"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-3"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "negative"
-                        custom_unit = "@{run}-custom_unit-4"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-4"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-4"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "count"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-4"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-4"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "red"
-                        custom_unit = "@{run}-custom_unit-5"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-5"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-5"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "count_distinct"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-5"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-5"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "severity"
-                        custom_unit = "@{run}-custom_unit-6"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-6"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-6"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "max"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-6"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-6"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "blue"
-                        custom_unit = "@{run}-custom_unit-7"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-7"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-7"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "min"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-7"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-7"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "blue"
-                        custom_unit = "@{run}-custom_unit-8"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-8"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-8"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "percentile"
-                                field = "@{run}-field"
-                                percent = 1.5
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-8"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-8"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                      {
-                        color_scheme = "blue"
-                        custom_unit = "@{run}-custom_unit-9"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id-9"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name-9"
-                        query = {
-                          logs = {
-                            aggregations = [
-                              {
-                                type = "sum"
-                                field = "@{run}-field"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = "@{run}-field"
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = ["@{run}-group_by"]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query-9"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template-9"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                    ]
-                    stacked_line = "relative"
-                    tooltip = {
-                      show_labels = true
-                      type = "single"
+                      }
                     }
-                    use_data_time_range = true
-                    x_axis_time_format = "auto"
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description"
                 highlighted = true
                 title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "red"
+                    custom_unit = "@{run}-custom_unit-2"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-2"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-2"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-2"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "severity"
+                    custom_unit = "@{run}-custom_unit-3"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-3"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-3"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-3"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-4"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "bytes"
+                        preset = "green"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-4"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-5"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "kbytes"
+                        preset = "red"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-5"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-6"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "mbytes"
+                        preset = "threshold"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-6"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-7"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "gbytes"
+                        preset = "blue_reversed"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-7"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-8"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-9"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "kbytes"
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      horizontal_bars = {
+                        allow_abbreviation = true
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-10"
+                        colors_by = "category"
+                        custom_unit = "@{run}-custom_unit-10"
+                        decimal_precision = 1
+                        display_on_bar = true
+                        group_name_template = "@{run}-group_name_template-10"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        max_slices_per_bar = 1
+                        scale_type = "linear"
+                        sort_by = "name"
+                        stack_name_template = "@{run}-stack_name_template-10"
+                        sub_category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        y_axis_max = 2
+                        y_axis_min = 1
+                        y_axis_view_by = "value"
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-11"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-11"
+                highlighted = true
+                title = "@{run}-title-11"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-12"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-12"
+                highlighted = true
+                title = "@{run}-title-12"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -9621,69 +11210,98 @@ resource "coralogix_dashboard" "test_3" {
               {
                 width = 1
                 definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
                     }
-                    visualization = {
-                      horizontal_bars = {
-                        allow_abbreviation = true
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme"
-                        colors_by = "category"
-                        custom_unit = "@{run}-custom_unit"
-                        decimal_precision = 1
-                        display_on_bar = true
-                        group_name_template = "@{run}-group_name_template"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
+                    max_bars_per_chart = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "metric"
+                          aggregation_type = "avg"
+                          field = "duration"
                         }
-                        max_bars_per_chart = 1
-                        max_slices_per_bar = 1
-                        scale_type = "linear"
-                        sort_by = "name"
-                        stack_name_template = "@{run}-stack_name_template"
-                        sub_category_fields = [
+                        filters = [
+                          {
+                            field = {
+                              type = "process_tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_names_fields = [
                           {
                             keypath = ["@{run}-keypath"]
+                            relation_type = "root"
                             scope = "label"
                           },
                         ]
-                        unit = "bytes"
-                        value_field = {
+                        lucene_query = "@{run}-lucene_query"
+                        stacked_group_name = {
+                          type = "process_tag"
+                          value = "@{run}-value"
+                        }
+                        stacked_group_name_field = {
                           keypath = ["@{run}-keypath"]
+                          relation_type = "root"
                           scope = "label"
                         }
-                        y_axis_max = 2
-                        y_axis_min = 1
-                        y_axis_view_by = "value"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
                       }
                     }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
                   }
                 }
                 description = "@{run}-description"
@@ -9716,165 +11334,28 @@ resource "coralogix_dashboard" "test_3" {
                       order_direction = "asc"
                     }
                     query = {
-                      spans = {
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "process_tag"
-                              value = "@{run}-value-2"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                          {
-                            field = {
-                              type = "tag"
-                              value = "@{run}-value-3"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "operation_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "service_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "subsystem_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
+                            spans = {
+                              field = {
+                                type = "process_tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
                             }
                           },
                         ]
-                        grouping = {
-                          aggregations = [
-                            {
-                              aggregation = {
-                                type = "dimension"
-                                aggregation_type = "error_count"
-                                field = "trace_id"
-                              }
-                              is_visible = true
-                              name = "@{run}-name"
-                            },
-                            {
-                              aggregation = {
-                                type = "metric"
-                                aggregation_type = "avg"
-                                field = "duration"
-                              }
-                              is_visible = true
-                              name = "@{run}-name-2"
-                            },
-                            {
-                              aggregation = {
-                                type = "dimension"
-                                aggregation_type = "unique_count"
-                                field = "trace_id"
-                              }
-                              is_visible = true
-                              name = "@{run}-name-3"
-                            },
-                          ]
-                          group_by = [
-                            {
-                              type = "metadata"
-                              value = "application_name"
-                            },
-                            {
-                              type = "process_tag"
-                              value = "@{run}-value-2"
-                            },
-                            {
-                              type = "tag"
-                              value = "@{run}-value-3"
-                            },
-                            {
-                              type = "metadata"
-                              value = "operation_name"
-                            },
-                            {
-                              type = "metadata"
-                              value = "service_name"
-                            },
-                            {
-                              type = "metadata"
-                              value = "subsystem_name"
-                            },
-                          ]
-                          group_bys = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            },
-                          ]
-                        }
-                        lucene_query = "@{run}-lucene_query-2"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -9986,6 +11467,756 @@ resource "coralogix_dashboard" "test_3" {
                   },
                 ]
               },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-4"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      spans = {
+                        filters = [
+                          {
+                            field = {
+                              type = "process_tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_bys = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-4"
+                        spans_aggregation = {
+                          type = "metric"
+                          aggregation_type = "avg"
+                          field = "duration"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "mbytes"
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-5"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-5"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "metric"
+                          aggregation_type = "avg"
+                          field = "duration"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "process_tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-5"
+                        stacked_group_name = {
+                          type = "process_tag"
+                          value = "@{run}-value-5"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-5"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "blue"
+                    custom_unit = "@{run}-custom_unit-6"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-6"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "metric"
+                          aggregation_type = "avg"
+                          field = "duration"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "process_tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-6"
+                        stacked_group_name = {
+                          type = "process_tag"
+                          value = "@{run}-value-6"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-6"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-7"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "bytes"
+                        preset = "green_reversed"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-7"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-8"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "bytes"
+                        preset = "red_reversed"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-8"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      heatmap = {
+                        allow_abbreviation = true
+                        color_axis_max = 1.5
+                        color_axis_min = 1.5
+                        custom_unit = "@{run}-custom_unit-9"
+                        decimal_precision = 1
+                        histogram_bucket_unit = "bytes"
+                        preset = "threshold_reversed"
+                        scale_type = "linear"
+                        show_numbers = true
+                        tooltip = {
+                          labels = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            },
+                          ]
+                          message_template = "@{run}-message_template-9"
+                        }
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        x_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        x_axis_time_format = "auto"
+                        y_axis_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-10"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      spans = {
+                        filters = [
+                          {
+                            field = {
+                              type = "process_tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "not_equals"
+                              selection_type = "list"
+                              selected_values = ["@{run}-selected_values"]
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_bys = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-10"
+                        aggregation = {
+                          type = "metric"
+                          aggregation_type = "avg"
+                          field = "duration"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-11"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "condensed"
+                  }
+                }
+                description = "@{run}-description-11"
+                highlighted = true
+                title = "@{run}-title-11"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-12"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            logs = {
+                              field = "@{run}-field"
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "condensed"
+                  }
+                }
+                description = "@{run}-description-12"
+                highlighted = true
+                title = "@{run}-title-12"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
             ]
           },
         ]
@@ -10077,872 +12308,6 @@ resource "coralogix_dashboard" "test_4" {
     },
   ]
   description = "@{run}-description-4"
-  auto_refresh = {
-    type = "off"
-  }
-  filters = [
-    {
-      collapsed = true
-      display_name = "@{run}-display_name"
-      enabled = true
-      scope = {
-        all_widgets = {}
-      }
-      source = {
-        logs = {
-          field = "@{run}-field"
-          observation_field = {
-            keypath = ["@{run}-keypath"]
-            scope = "label"
-          }
-          operator = {
-            type = "equals"
-            selection_type = "all"
-          }
-        }
-      }
-    },
-  ]
-  folder = {
-    id = coralogix_dashboards_folder.folder.id
-  }
-  layout = {
-    sections = [
-      {
-        options = {
-          collapsed = true
-          color = "blue"
-          description = "@{run}-description"
-          name = "@{run}-name"
-          repetitive_var = {
-            name = "@{run}-name"
-          }
-        }
-        rows = [
-          {
-            height = 1
-            widgets = [
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      spans = {
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "process_tag"
-                              value = "@{run}-value-2"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                          {
-                            field = {
-                              type = "tag"
-                              value = "@{run}-value-3"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "operation_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "service_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "subsystem_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                          {
-                            type = "process_tag"
-                            value = "@{run}-value-2"
-                          },
-                          {
-                            type = "tag"
-                            value = "@{run}-value-3"
-                          },
-                          {
-                            type = "metadata"
-                            value = "operation_name"
-                          },
-                          {
-                            type = "metadata"
-                            value = "service_name"
-                          },
-                          {
-                            type = "metadata"
-                            value = "subsystem_name"
-                          },
-                        ]
-                        group_bys = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query"
-                        aggregation = {
-                          type = "dimension"
-                          aggregation_type = "error_count"
-                          field = "trace_id"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description"
-                highlighted = true
-                title = "@{run}-title"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      table = {
-                        columns = [
-                          {
-                            field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                          },
-                        ]
-                        rules = [
-                          {
-                            description = "@{run}-description"
-                            id = "@{run}-id"
-                            name = "@{run}-name"
-                            properties = [
-                              {
-                                definition = {
-                                  alignment = "center"
-                                }
-                                id = "@{run}-id"
-                              },
-                            ]
-                            rule_scope = {
-                              field_type = "regex"
-                            }
-                          },
-                          {
-                            description = "@{run}-description-2"
-                            id = "@{run}-id-2"
-                            name = "@{run}-name-2"
-                            properties = [
-                              {
-                                definition = {
-                                  alignment = "center"
-                                }
-                                id = "@{run}-id"
-                              },
-                            ]
-                            rule_scope = {
-                              field_type = "union"
-                            }
-                          },
-                          {
-                            description = "@{run}-description-3"
-                            id = "@{run}-id-3"
-                            name = "@{run}-name-3"
-                            properties = [
-                              {
-                                definition = {
-                                  alignment = "center"
-                                }
-                                id = "@{run}-id"
-                              },
-                            ]
-                            rule_scope = {
-                              field_type = "enum"
-                            }
-                          },
-                        ]
-                        settings = {
-                          column_widths = [
-                            {
-                              column_name = "@{run}-column_name"
-                              width = 1
-                            },
-                          ]
-                          row_style = "json"
-                        }
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-2"
-                highlighted = true
-                title = "@{run}-title-2"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "cold"
-                    colors_by = "group_by"
-                    custom_unit = "@{run}-custom_unit-3"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template-3"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      logs = {
-                        aggregation = {
-                          type = "avg"
-                          field = "@{run}-field-3"
-                        }
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = "@{run}-field-2"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                        ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-3"
-                        stacked_group_name = "@{run}-stacked_group_name-3"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-3"
-                    }
-                    unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-4"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "bytes"
-                        preset = "green_reversed"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-4"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-4"
-                highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-5"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "bytes"
-                        preset = "red_reversed"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-5"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-5"
-                highlighted = true
-                title = "@{run}-title-5"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      heatmap = {
-                        allow_abbreviation = true
-                        color_axis_max = 1.5
-                        color_axis_min = 1.5
-                        custom_unit = "@{run}-custom_unit-6"
-                        decimal_precision = 1
-                        histogram_bucket_unit = "bytes"
-                        preset = "threshold_reversed"
-                        scale_type = "linear"
-                        show_numbers = true
-                        tooltip = {
-                          labels = [
-                            {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            },
-                          ]
-                          message_template = "@{run}-message_template-6"
-                        }
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        x_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        x_axis_time_format = "auto"
-                        y_axis_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-6"
-                highlighted = true
-                title = "@{run}-title-6"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  pie_chart = {
-                    color_scheme = "cold"
-                    custom_unit = "@{run}-custom_unit-7"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-7"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "inner"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
-                    query = {
-                      logs = {
-                        aggregation = {
-                          type = "avg"
-                          field = "@{run}-field-7"
-                        }
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = "@{run}-field-2"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                        ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-7"
-                        stacked_group_name = "@{run}-stacked_group_name-7"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template-7"
-                    }
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-7"
-                highlighted = true
-                title = "@{run}-title-7"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-            ]
-          },
-        ]
-      },
-    ]
-  }
-  name = "@{run}-name-4"
-  variables_v2 = [
-    {
-      description = "@{run}-description"
-      display_full_row = false
-      display_name = "@{run}-display_name"
-      display_type = "label_value"
-      name = "@{run}-name"
-      source = {
-        query = {
-          all_option = {
-            include_all = true
-            label = "@{run}-label"
-          }
-          dataprime_query = {
-            type = {
-              query_text = {
-                data_mode_type = "archive"
-                query = "source logs | limit 1"
-              }
-            }
-          }
-          refresh_strategy = "on_dashboard_load"
-          value_display_options = {
-            label_regex = "@{run}-label_regex"
-            value_regex = "@{run}-value_regex"
-          }
-          values_order_direction = "asc"
-        }
-      }
-      value = {
-        interval = {
-          label = "@{run}-label"
-          value = "@{run}-value"
-        }
-      }
-    },
-  ]
-}
-
-resource "coralogix_dashboard" "test_5" {
-  time_frame = {
-    absolute = {
-      start = "2030-01-01T00:00:00Z"
-      end = "2030-01-01T00:00:00Z"
-    }
-  }
-  annotations = [
-    {
-      color = "blue"
-      description = "@{run}-description"
-      enabled = true
-      name = "@{run}-name"
-      scope = {
-        all_widgets = {}
-      }
-      source = {
-        dataprime = {
-          data_mode_type = "archive"
-          label_fields = [
-            {
-              keypath = ["@{run}-keypath"]
-              scope = "label"
-            },
-          ]
-          message_template = "@{run}-message_template"
-          orientation = "horizontal"
-          query = "source logs | limit 1"
-          strategy = {
-            duration = {
-              duration_field = {
-                keypath = ["@{run}-keypath"]
-                scope = "label"
-              }
-              start_timestamp_field = {
-                keypath = ["@{run}-keypath"]
-                scope = "label"
-              }
-            }
-          }
-        }
-      }
-    },
-  ]
-  description = "@{run}-description-5"
   auto_refresh = {
     type = "off"
   }
@@ -11237,63 +12602,40 @@ resource "coralogix_dashboard" "test_5" {
               {
                 width = 1
                 definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
                     custom_unit = "@{run}-custom_unit-4"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_series_name = true
+                    group_name_template = "@{run}-group_name_template-4"
+                    hash_colors = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
+                    max_bars_per_chart = 1
                     query = {
-                      logs = {
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = "@{run}-field-2"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
                             }
                           },
                         ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        logs_aggregation = {
-                          type = "avg"
-                          field = "@{run}-field-4"
-                        }
-                        lucene_query = "@{run}-lucene_query-4"
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-4"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -11302,19 +12644,25 @@ resource "coralogix_dashboard" "test_5" {
                         }
                       }
                     }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "microseconds"
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-4"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
                   }
                 }
                 description = "@{run}-description-4"
@@ -11334,14 +12682,14 @@ resource "coralogix_dashboard" "test_5" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "green"
-                    colors_by = "query"
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
                     custom_unit = "@{run}-custom_unit-5"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_on_bar = true
                     group_name_template = "@{run}-group_name_template-5"
                     hash_colors = true
                     legend = {
@@ -11352,31 +12700,22 @@ resource "coralogix_dashboard" "test_5" {
                     }
                     max_bars_per_chart = 1
                     query = {
-                      metrics = {
-                        aggregation = "min"
-                        editor_mode = "builder"
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            label = "@{run}-label-2"
-                            metric = "@{run}-metric-2"
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
                             }
                           },
                         ]
                         group_names = ["@{run}-group_names"]
-                        promql_query = "@{run}-promql_query-5"
-                        promql_query_type = "instant"
                         stacked_group_name = "@{run}-stacked_group_name-5"
                         time_frame = {
                           absolute = {
@@ -11393,9 +12732,18 @@ resource "coralogix_dashboard" "test_5" {
                       stack_name_template = "@{run}-stack_name_template-5"
                     }
                     unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
                     y_axis_max = 2
                     y_axis_min = 1
-                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-5"
@@ -11670,11 +13018,16 @@ resource "coralogix_dashboard" "test_5" {
               {
                 width = 1
                 definition = {
-                  hexagon = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
                     custom_unit = "@{run}-custom_unit-9"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
+                    display_series_name = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
@@ -11685,43 +13038,20 @@ resource "coralogix_dashboard" "test_5" {
                     max = 2
                     min = 1
                     query = {
-                      logs = {
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = "@{run}-field-2"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
                             }
                           },
                         ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "avg"
-                          field = "@{run}-field-9"
-                        }
-                        lucene_query = "@{run}-lucene_query-9"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -11730,15 +13060,19 @@ resource "coralogix_dashboard" "test_5" {
                         }
                       }
                     }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
                     threshold_type = "absolute"
                     thresholds = [
                       {
                         color = "@{run}-color"
-                        from = 1
+                        from = 1.5
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "bytes"
+                    unit = "gbytes"
                   }
                 }
                 description = "@{run}-description-9"
@@ -11758,13 +13092,367 @@ resource "coralogix_dashboard" "test_5" {
               {
                 width = 1
                 definition = {
-                  pie_chart = {
-                    color_scheme = "green"
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
                     custom_unit = "@{run}-custom_unit-10"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-10"
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes_iec"
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-11"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-11"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-11"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-11"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-11"
+                highlighted = true
+                title = "@{run}-title-11"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-12"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-12"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-12"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-12"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-12"
+                highlighted = true
+                title = "@{run}-title-12"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+            ]
+          },
+        ]
+      },
+    ]
+  }
+  name = "@{run}-name-4"
+  variables_v2 = [
+    {
+      description = "@{run}-description"
+      display_full_row = false
+      display_name = "@{run}-display_name"
+      display_type = "label_value"
+      name = "@{run}-name"
+      source = {
+        query = {
+          all_option = {
+            include_all = true
+            label = "@{run}-label"
+          }
+          dataprime_query = {
+            type = {
+              query_text = {
+                data_mode_type = "archive"
+                query = "source logs | limit 1"
+              }
+            }
+          }
+          refresh_strategy = "on_dashboard_load"
+          value_display_options = {
+            label_regex = "@{run}-label_regex"
+            value_regex = "@{run}-value_regex"
+          }
+          values_order_direction = "asc"
+        }
+      }
+      value = {
+        interval = {
+          label = "@{run}-label"
+          value = "@{run}-value"
+        }
+      }
+    },
+  ]
+}
+
+resource "coralogix_dashboard" "test_5" {
+  time_frame = {
+    absolute = {
+      start = "2030-01-01T00:00:00Z"
+      end = "2030-01-01T00:00:00Z"
+    }
+  }
+  annotations = [
+    {
+      color = "blue"
+      description = "@{run}-description"
+      enabled = true
+      name = "@{run}-name"
+      scope = {
+        all_widgets = {}
+      }
+      source = {
+        dataprime = {
+          data_mode_type = "archive"
+          label_fields = [
+            {
+              keypath = ["@{run}-keypath"]
+              scope = "label"
+            },
+          ]
+          message_template = "@{run}-message_template"
+          orientation = "horizontal"
+          query = "source logs | limit 1"
+          strategy = {
+            duration = {
+              duration_field = {
+                keypath = ["@{run}-keypath"]
+                scope = "label"
+              }
+              start_timestamp_field = {
+                keypath = ["@{run}-keypath"]
+                scope = "label"
+              }
+            }
+          }
+        }
+      }
+    },
+  ]
+  description = "@{run}-description-5"
+  auto_refresh = {
+    type = "off"
+  }
+  filters = [
+    {
+      collapsed = true
+      display_name = "@{run}-display_name"
+      enabled = true
+      scope = {
+        all_widgets = {}
+      }
+      source = {
+        logs = {
+          field = "@{run}-field"
+          observation_field = {
+            keypath = ["@{run}-keypath"]
+            scope = "label"
+          }
+          operator = {
+            type = "equals"
+            selection_type = "all"
+          }
+        }
+      }
+    },
+  ]
+  folder = {
+    id = coralogix_dashboards_folder.folder.id
+  }
+  layout = {
+    sections = [
+      {
+        options = {
+          collapsed = true
+          color = "blue"
+          description = "@{run}-description"
+          name = "@{run}-name"
+          repetitive_var = {
+            name = "@{run}-name"
+          }
+        }
+        rows = [
+          {
+            height = 1
+            widgets = [
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "blue"
+                    custom_unit = "@{run}-custom_unit"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template"
                     hash_colors = true
                     label_definition = {
                       is_visible = true
@@ -11782,32 +13470,22 @@ resource "coralogix_dashboard" "test_5" {
                     max_slices_per_chart = 1
                     min_slice_percentage = 1
                     query = {
-                      metrics = {
-                        aggregation = "max"
-                        editor_mode = "builder"
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            label = "@{run}-label-2"
-                            metric = "@{run}-metric-2"
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
                             }
                           },
                         ]
                         group_names = ["@{run}-group_names"]
-                        promql_query = "@{run}-promql_query-10"
-                        promql_query_type = "instant"
-                        stacked_group_name = "@{run}-stacked_group_name-10"
+                        stacked_group_name = "@{run}-stacked_group_name"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -11820,14 +13498,895 @@ resource "coralogix_dashboard" "test_5" {
                     show_total = true
                     stack_definition = {
                       max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template-10"
+                      stack_name_template = "@{run}-stack_name_template"
                     }
                     unit = "bytes"
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "blue"
+                    custom_unit = "@{run}-custom_unit-2"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-2"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-2"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-2"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-3"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "condensed"
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-4"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "condensed"
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      pie_chart = {
+                        allow_abbreviation = true
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-5"
+                        custom_unit = "@{run}-custom_unit-5"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-5"
+                        hash_colors = true
+                        label_definition = {
+                          is_visible = true
+                          label_source = "stack"
+                          show_name = true
+                          show_percentage = true
+                          show_value = true
+                        }
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_slices_per_chart = 1
+                        max_slices_per_stack = 1
+                        min_slice_percentage = 1
+                        show_total = true
+                        stack_name_template = "@{run}-stack_name_template-5"
+                        sub_category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-6"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-7"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            metrics = {
+                              label = "@{run}-label"
+                              metric_name = "@{run}-metric_name"
+                              operator = {
+                                type = "not_equals"
+                                selection_type = "list"
+                                selected_values = ["@{run}-selected_values"]
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-8"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-8"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "unique_count"
+                          field = "trace_id"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-8"
+                        stacked_group_name = {
+                          type = "tag"
+                          value = "@{run}-value-8"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-8"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      stat = {
+                        allow_abbreviation = true
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        custom_unit = "@{run}-custom_unit-9"
+                        decimal_precision = 1
+                        display_series_name = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        legend_by = "groups"
+                        max = 2
+                        min = 1
+                        threshold_by = "background"
+                        threshold_type = "absolute"
+                        thresholds = [
+                          {
+                            color = "@{run}-color"
+                            from = 1.5
+                            label = "@{run}-label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        value_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-10"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "kibytes"
                   }
                 }
                 description = "@{run}-description-10"
                 highlighted = true
                 title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-11"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-11"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "unique_count"
+                          field = "trace_id"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-11"
+                        stacked_group_name = {
+                          type = "tag"
+                          value = "@{run}-value-11"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-11"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-11"
+                highlighted = true
+                title = "@{run}-title-11"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  pie_chart = {
+                    color_scheme = "blue"
+                    custom_unit = "@{run}-custom_unit-12"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-12"
+                    hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
+                    query = {
+                      spans = {
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "unique_count"
+                          field = "trace_id"
+                        }
+                        filters = [
+                          {
+                            field = {
+                              type = "tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-12"
+                        stacked_group_name = {
+                          type = "tag"
+                          value = "@{run}-value-12"
+                        }
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          relation_type = "root"
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_legend = true
+                    show_total = true
+                    stack_definition = {
+                      max_slices_per_stack = 1
+                      stack_name_template = "@{run}-stack_name_template-12"
+                    }
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-12"
+                highlighted = true
+                title = "@{run}-title-12"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -11991,23 +14550,16 @@ resource "coralogix_dashboard" "test_6" {
                       order_direction = "asc"
                     }
                     query = {
-                      logs = {
+                      spans = {
                         filters = [
                           {
-                            field = "@{run}-field"
+                            field = {
+                              type = "process_tag"
+                              value = "@{run}-value"
+                            }
                             observation_field = {
                               keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            field = "@{run}-field-2"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
                               scope = "label"
                             }
                             operator = {
@@ -12021,72 +14573,24 @@ resource "coralogix_dashboard" "test_6" {
                           aggregations = [
                             {
                               aggregation = {
-                                type = "avg"
-                                field = "@{run}-field"
+                                type = "dimension"
+                                aggregation_type = "error_count"
+                                field = "trace_id"
                               }
-                              id = "@{run}-id"
                               is_visible = true
                               name = "@{run}-name"
                             },
+                          ]
+                          group_by = [
                             {
-                              aggregation = {
-                                type = "count"
-                              }
-                              id = "@{run}-id-2"
-                              is_visible = true
-                              name = "@{run}-name-2"
-                            },
-                            {
-                              aggregation = {
-                                type = "count_distinct"
-                                field = "@{run}-field-3"
-                              }
-                              id = "@{run}-id-3"
-                              is_visible = true
-                              name = "@{run}-name-3"
-                            },
-                            {
-                              aggregation = {
-                                type = "max"
-                                field = "@{run}-field-4"
-                              }
-                              id = "@{run}-id-4"
-                              is_visible = true
-                              name = "@{run}-name-4"
-                            },
-                            {
-                              aggregation = {
-                                type = "min"
-                                field = "@{run}-field-5"
-                              }
-                              id = "@{run}-id-5"
-                              is_visible = true
-                              name = "@{run}-name-5"
-                            },
-                            {
-                              aggregation = {
-                                type = "percentile"
-                                field = "@{run}-field-6"
-                                percent = 1.5
-                              }
-                              id = "@{run}-id-6"
-                              is_visible = true
-                              name = "@{run}-name-6"
-                            },
-                            {
-                              aggregation = {
-                                type = "sum"
-                                field = "@{run}-field-7"
-                              }
-                              id = "@{run}-id-7"
-                              is_visible = true
-                              name = "@{run}-name-7"
+                              type = "metadata"
+                              value = "application_name"
                             },
                           ]
-                          group_by = ["@{run}-group_by"]
                           group_bys = [
                             {
                               keypath = ["@{run}-keypath"]
+                              relation_type = "root"
                               scope = "label"
                             },
                           ]
@@ -12101,7 +14605,7 @@ resource "coralogix_dashboard" "test_6" {
                       }
                     }
                     results_per_page = 1
-                    row_style = "list"
+                    row_style = "condensed"
                   }
                 }
                 description = "@{run}-description"
@@ -12121,71 +14625,98 @@ resource "coralogix_dashboard" "test_6" {
               {
                 width = 1
                 definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-2"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      metrics = {
-                        aggregation = "last"
-                        editor_mode = "builder"
-                        filters = [
-                          {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            label = "@{run}-label-2"
-                            metric = "@{run}-metric-2"
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                        ]
-                        promql_query = "@{run}-promql_query-2"
-                        promql_query_type = "instant"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
                           }
                         }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
                       },
                     ]
-                    unit = "milliseconds"
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      stat_card = {
+                        allow_abbreviation = true
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_label_mapping = {
+                          color_by = "row"
+                          value = {
+                            sections = [
+                              {
+                                color = "blue"
+                                map_to = "@{run}-map_to"
+                                value = "@{run}-value"
+                              },
+                            ]
+                          }
+                        }
+                        custom_unit = "@{run}-custom_unit-2"
+                        decimal_precision = 1
+                        label = {
+                          mapped_values = true
+                          template_text = "@{run}-template_text-2"
+                          template_variables = [
+                            {
+                              mapped_values = true
+                            },
+                          ]
+                        }
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        legend_by = "groups"
+                        primary_value = {
+                          observation_field = {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          }
+                          template_text = "@{run}-template_text-2"
+                          template_variables = [
+                            {
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              }
+                            },
+                          ]
+                        }
+                        title = {
+                          mapped_values = true
+                          template_text = "@{run}-template_text-2"
+                          template_variables = [
+                            {
+                              mapped_values = true
+                            },
+                          ]
+                        }
+                        unit = "bytes"
+                        value_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                      }
+                    }
                   }
                 }
                 description = "@{run}-description-2"
@@ -12205,662 +14736,12 @@ resource "coralogix_dashboard" "test_6" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "negative"
-                    colors_by = "stack"
-                    custom_unit = "@{run}-custom_unit-3"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template-3"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      spans = {
-                        aggregation = {
-                          type = "metric"
-                          aggregation_type = "avg"
-                          field = "duration"
-                        }
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-3"
-                        stacked_group_name = {
-                          type = "process_tag"
-                          value = "@{run}-value-3"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-3"
-                    }
-                    unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "red"
-                    colors_by = "aggregation"
-                    custom_unit = "@{run}-custom_unit-4"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-4"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      spans = {
-                        aggregation = {
-                          type = "metric"
-                          aggregation_type = "avg"
-                          field = "duration"
-                        }
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-4"
-                        stacked_group_name = {
-                          type = "process_tag"
-                          value = "@{run}-value-4"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-4"
-                    }
-                    unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                  }
-                }
-                description = "@{run}-description-4"
-                highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      pie_chart = {
-                        allow_abbreviation = true
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-5"
-                        custom_unit = "@{run}-custom_unit-5"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-5"
-                        hash_colors = true
-                        label_definition = {
-                          is_visible = true
-                          label_source = "stack"
-                          show_name = true
-                          show_percentage = true
-                          show_value = true
-                        }
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_slices_per_chart = 1
-                        max_slices_per_stack = 1
-                        min_slice_percentage = 1
-                        show_total = true
-                        stack_name_template = "@{run}-stack_name_template-5"
-                        sub_category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-5"
-                highlighted = true
-                title = "@{run}-title-5"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-6"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      metrics = {
-                        aggregation = "avg"
-                        editor_mode = "builder"
-                        filters = [
-                          {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            label = "@{run}-label-2"
-                            metric = "@{run}-metric-2"
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                        ]
-                        promql_query = "@{run}-promql_query-6"
-                        promql_query_type = "instant"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-6"
-                highlighted = true
-                title = "@{run}-title-6"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  pie_chart = {
-                    color_scheme = "negative"
-                    custom_unit = "@{run}-custom_unit-7"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-7"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "inner"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
-                    query = {
-                      spans = {
-                        aggregation = {
-                          type = "metric"
-                          aggregation_type = "avg"
-                          field = "duration"
-                        }
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-7"
-                        stacked_group_name = {
-                          type = "process_tag"
-                          value = "@{run}-value-7"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template-7"
-                    }
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-7"
-                highlighted = true
-                title = "@{run}-title-7"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "severity"
-                    colors_by = "aggregation"
-                    custom_unit = "@{run}-custom_unit-8"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-8"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      logs = {
-                        aggregation = {
-                          type = "count"
-                        }
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-8"
-                        stacked_group_name = "@{run}-stacked_group_name-8"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-8"
-                    }
-                    unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                  }
-                }
-                description = "@{run}-description-8"
-                highlighted = true
-                title = "@{run}-title-8"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      stat = {
-                        allow_abbreviation = true
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        custom_unit = "@{run}-custom_unit-9"
-                        decimal_precision = 1
-                        display_series_name = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        legend_by = "groups"
-                        max = 2
-                        min = 1
-                        threshold_by = "background"
-                        threshold_type = "absolute"
-                        thresholds = [
-                          {
-                            color = "@{run}-color"
-                            from = 1.5
-                            label = "@{run}-label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        value_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-9"
-                highlighted = true
-                title = "@{run}-title-9"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
                   gauge = {
                     arc_display = {
                       threshold_arc = true
                       value_arc = true
                     }
-                    custom_unit = "@{run}-custom_unit-10"
+                    custom_unit = "@{run}-custom_unit-3"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
@@ -12898,7 +14779,7 @@ resource "coralogix_dashboard" "test_6" {
                         logs_aggregation = {
                           type = "count"
                         }
-                        lucene_query = "@{run}-lucene_query-10"
+                        lucene_query = "@{run}-lucene_query-3"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -12919,12 +14800,12 @@ resource "coralogix_dashboard" "test_6" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "seconds"
+                    unit = "mibytes"
                   }
                 }
-                description = "@{run}-description-10"
+                description = "@{run}-description-3"
                 highlighted = true
-                title = "@{run}-title-10"
+                title = "@{run}-title-3"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -12944,7 +14825,7 @@ resource "coralogix_dashboard" "test_6" {
                       threshold_arc = true
                       value_arc = true
                     }
-                    custom_unit = "@{run}-custom_unit-11"
+                    custom_unit = "@{run}-custom_unit-4"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
@@ -12981,9 +14862,9 @@ resource "coralogix_dashboard" "test_6" {
                         ]
                         logs_aggregation = {
                           type = "count_distinct"
-                          field = "@{run}-field-11"
+                          field = "@{run}-field-4"
                         }
-                        lucene_query = "@{run}-lucene_query-11"
+                        lucene_query = "@{run}-lucene_query-4"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13004,7 +14885,585 @@ resource "coralogix_dashboard" "test_6" {
                         label = "@{run}-label"
                       },
                     ]
+                    unit = "gibytes"
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-5"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        logs_aggregation = {
+                          type = "max"
+                          field = "@{run}-field-5"
+                        }
+                        lucene_query = "@{run}-lucene_query-5"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "euro_cents"
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-6"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        logs_aggregation = {
+                          type = "min"
+                          field = "@{run}-field-6"
+                        }
+                        lucene_query = "@{run}-lucene_query-6"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "euro"
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-7"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        logs_aggregation = {
+                          type = "percentile"
+                          field = "@{run}-field-7"
+                          percent = 1.5
+                        }
+                        lucene_query = "@{run}-lucene_query-7"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "usd_cents"
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  gauge = {
+                    arc_display = {
+                      threshold_arc = true
+                      value_arc = true
+                    }
+                    custom_unit = "@{run}-custom_unit-8"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_series_name = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      logs = {
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        logs_aggregation = {
+                          type = "sum"
+                          field = "@{run}-field-8"
+                        }
+                        lucene_query = "@{run}-lucene_query-8"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    show_inner_arc = true
+                    show_min_max = true
+                    show_outer_arc = true
+                    threshold_by = "background"
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1.5
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "usd"
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-9"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-10"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-10"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        stacked_group_name = "@{run}-stacked_group_name-10"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-10"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      table = {
+                        columns = [
+                          {
+                            field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                          },
+                        ]
+                        rules = [
+                          {
+                            description = "@{run}-description"
+                            id = "@{run}-id"
+                            name = "@{run}-name"
+                            properties = [
+                              {
+                                definition = {
+                                  alignment = "center"
+                                }
+                                id = "@{run}-id"
+                              },
+                            ]
+                            rule_scope = {
+                              field_type = "enum"
+                            }
+                          },
+                        ]
+                        settings = {
+                          column_widths = [
+                            {
+                              column_name = "@{run}-column_name"
+                              width = 1
+                            },
+                          ]
+                          row_style = "condensed"
+                        }
+                      }
+                    }
                   }
                 }
                 description = "@{run}-description-11"
@@ -13044,31 +15503,21 @@ resource "coralogix_dashboard" "test_6" {
                     max = 2
                     min = 1
                     query = {
-                      logs = {
+                      metrics = {
+                        aggregation = "min"
+                        editor_mode = "builder"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
                             operator = {
                               type = "equals"
                               selection_type = "all"
                             }
                           },
                         ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        logs_aggregation = {
-                          type = "max"
-                          field = "@{run}-field-12"
-                        }
-                        lucene_query = "@{run}-lucene_query-12"
+                        promql_query = "@{run}-promql_query-12"
+                        promql_query_type = "instant"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13089,7 +15538,7 @@ resource "coralogix_dashboard" "test_6" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "kbytes"
+                    unit = "custom"
                   }
                 }
                 description = "@{run}-description-12"
@@ -13265,31 +15714,21 @@ resource "coralogix_dashboard" "test_7" {
                     max = 2
                     min = 1
                     query = {
-                      logs = {
+                      metrics = {
+                        aggregation = "max"
+                        editor_mode = "builder"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
                             operator = {
                               type = "equals"
                               selection_type = "all"
                             }
                           },
                         ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        logs_aggregation = {
-                          type = "min"
-                          field = "@{run}-field"
-                        }
-                        lucene_query = "@{run}-lucene_query"
+                        promql_query = "@{run}-promql_query"
+                        promql_query_type = "instant"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13310,7 +15749,7 @@ resource "coralogix_dashboard" "test_7" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "mbytes"
+                    unit = "percent01"
                   }
                 }
                 description = "@{run}-description"
@@ -13350,32 +15789,21 @@ resource "coralogix_dashboard" "test_7" {
                     max = 2
                     min = 1
                     query = {
-                      logs = {
+                      metrics = {
+                        aggregation = "avg"
+                        editor_mode = "builder"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
                             operator = {
                               type = "equals"
                               selection_type = "all"
                             }
                           },
                         ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        logs_aggregation = {
-                          type = "percentile"
-                          field = "@{run}-field-2"
-                          percent = 1.5
-                        }
-                        lucene_query = "@{run}-lucene_query-2"
+                        promql_query = "@{run}-promql_query-2"
+                        promql_query_type = "instant"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13396,7 +15824,7 @@ resource "coralogix_dashboard" "test_7" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "gbytes"
+                    unit = "percent100"
                   }
                 }
                 description = "@{run}-description-2"
@@ -13436,31 +15864,21 @@ resource "coralogix_dashboard" "test_7" {
                     max = 2
                     min = 1
                     query = {
-                      logs = {
+                      metrics = {
+                        aggregation = "sum"
+                        editor_mode = "builder"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
+                            label = "@{run}-label"
+                            metric = "@{run}-metric"
                             operator = {
                               type = "equals"
                               selection_type = "all"
                             }
                           },
                         ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        logs_aggregation = {
-                          type = "sum"
-                          field = "@{run}-field-3"
-                        }
-                        lucene_query = "@{run}-lucene_query-3"
+                        promql_query = "@{run}-promql_query-3"
+                        promql_query_type = "instant"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13481,7 +15899,7 @@ resource "coralogix_dashboard" "test_7" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "bytes_iec"
+                    unit = "nanoseconds"
                   }
                 }
                 description = "@{run}-description-3"
@@ -13501,28 +15919,22 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "red"
-                    colors_by = "aggregation"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit-4"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template-4"
-                    hash_colors = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       logs = {
-                        aggregation = {
-                          type = "count"
-                        }
                         filters = [
                           {
                             field = "@{run}-field"
@@ -13536,19 +15948,16 @@ resource "coralogix_dashboard" "test_7" {
                             }
                           },
                         ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
+                        group_by = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-4"
-                        stacked_group_name = "@{run}-stacked_group_name-4"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        aggregation = {
+                          type = "count"
                         }
+                        lucene_query = "@{run}-lucene_query-4"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13557,16 +15966,15 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-4"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-4"
@@ -13586,29 +15994,22 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "severity"
-                    colors_by = "aggregation"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit-5"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template-5"
-                    hash_colors = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       logs = {
-                        aggregation = {
-                          type = "count_distinct"
-                          field = "@{run}-field-5"
-                        }
                         filters = [
                           {
                             field = "@{run}-field"
@@ -13622,19 +16023,17 @@ resource "coralogix_dashboard" "test_7" {
                             }
                           },
                         ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
+                        group_by = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-5"
-                        stacked_group_name = "@{run}-stacked_group_name-5"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        aggregation = {
+                          type = "count_distinct"
+                          field = "@{run}-field-5"
                         }
+                        lucene_query = "@{run}-lucene_query-5"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13643,16 +16042,15 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-5"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-5"
@@ -13672,34 +16070,22 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  pie_chart = {
-                    color_scheme = "red"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit-6"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-6"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "inner"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       logs = {
-                        aggregation = {
-                          type = "count"
-                        }
                         filters = [
                           {
                             field = "@{run}-field"
@@ -13713,19 +16099,17 @@ resource "coralogix_dashboard" "test_7" {
                             }
                           },
                         ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
+                        group_by = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-6"
-                        stacked_group_name = "@{run}-stacked_group_name-6"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        aggregation = {
+                          type = "max"
+                          field = "@{run}-field-6"
                         }
+                        lucene_query = "@{run}-lucene_query-6"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13734,12 +16118,14 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template-6"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
                   }
                 }
@@ -13760,35 +16146,22 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  pie_chart = {
-                    color_scheme = "severity"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit-7"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-7"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "inner"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       logs = {
-                        aggregation = {
-                          type = "count_distinct"
-                          field = "@{run}-field-7"
-                        }
                         filters = [
                           {
                             field = "@{run}-field"
@@ -13802,19 +16175,17 @@ resource "coralogix_dashboard" "test_7" {
                             }
                           },
                         ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
+                        group_by = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-7"
-                        stacked_group_name = "@{run}-stacked_group_name-7"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        aggregation = {
+                          type = "min"
+                          field = "@{run}-field-7"
                         }
+                        lucene_query = "@{run}-lucene_query-7"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13823,12 +16194,14 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template-7"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
                   }
                 }
@@ -13849,29 +16222,22 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "blue"
-                    colors_by = "aggregation"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit-8"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-8"
-                    hash_colors = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       logs = {
-                        aggregation = {
-                          type = "count_distinct"
-                          field = "@{run}-field-8"
-                        }
                         filters = [
                           {
                             field = "@{run}-field"
@@ -13885,19 +16251,18 @@ resource "coralogix_dashboard" "test_7" {
                             }
                           },
                         ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
+                        group_by = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-8"
-                        stacked_group_name = "@{run}-stacked_group_name-8"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        aggregation = {
+                          type = "percentile"
+                          field = "@{run}-field-8"
+                          percent = 1.5
                         }
+                        lucene_query = "@{run}-lucene_query-8"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -13906,25 +16271,15 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-8"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
                   }
                 }
                 description = "@{run}-description-8"
@@ -13944,29 +16299,22 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "blue"
-                    colors_by = "aggregation"
+                  hexagon = {
                     custom_unit = "@{run}-custom_unit-9"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-9"
-                    hash_colors = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
                     query = {
                       logs = {
-                        aggregation = {
-                          type = "max"
-                          field = "@{run}-field-9"
-                        }
                         filters = [
                           {
                             field = "@{run}-field"
@@ -13980,19 +16328,17 @@ resource "coralogix_dashboard" "test_7" {
                             }
                           },
                         ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
+                        group_by = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        lucene_query = "@{run}-lucene_query-9"
-                        stacked_group_name = "@{run}-stacked_group_name-9"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
+                        aggregation = {
+                          type = "sum"
+                          field = "@{run}-field-9"
                         }
+                        lucene_query = "@{run}-lucene_query-9"
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -14001,25 +16347,15 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-9"
-                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
                     unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
                   }
                 }
                 description = "@{run}-description-9"
@@ -14039,14 +16375,14 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
+                  horizontal_bar_chart = {
                     color_scheme = "blue"
                     colors_by = "aggregation"
                     custom_unit = "@{run}-custom_unit-10"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
+                    display_on_bar = true
                     group_name_template = "@{run}-group_name_template-10"
                     hash_colors = true
                     legend = {
@@ -14057,37 +16393,29 @@ resource "coralogix_dashboard" "test_7" {
                     }
                     max_bars_per_chart = 1
                     query = {
-                      logs = {
-                        aggregation = {
-                          type = "min"
-                          field = "@{run}-field-10"
-                        }
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
+                            spans = {
+                              field = {
+                                type = "tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
                             }
                           },
                         ]
                         group_names = ["@{run}-group_names"]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-10"
                         stacked_group_name = "@{run}-stacked_group_name-10"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -14103,18 +16431,9 @@ resource "coralogix_dashboard" "test_7" {
                       stack_name_template = "@{run}-stack_name_template-10"
                     }
                     unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
                     y_axis_max = 2
                     y_axis_min = 1
+                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-10"
@@ -14134,56 +16453,53 @@ resource "coralogix_dashboard" "test_7" {
               {
                 width = 1
                 definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
+                  pie_chart = {
                     color_scheme = "blue"
-                    colors_by = "aggregation"
                     custom_unit = "@{run}-custom_unit-11"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
                     group_name_template = "@{run}-group_name_template-11"
                     hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
                     query = {
-                      logs = {
-                        aggregation = {
-                          type = "percentile"
-                          field = "@{run}-field-11"
-                          percent = 1.5
-                        }
+                      data_prime = {
+                        query = "source logs | limit 1"
                         filters = [
                           {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
+                            spans = {
+                              field = {
+                                type = "tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
                             }
                           },
                         ]
                         group_names = ["@{run}-group_names"]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-11"
                         stacked_group_name = "@{run}-stacked_group_name-11"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -14192,25 +16508,13 @@ resource "coralogix_dashboard" "test_7" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
+                    show_legend = true
+                    show_total = true
                     stack_definition = {
-                      max_slices_per_bar = 1
+                      max_slices_per_stack = 1
                       stack_name_template = "@{run}-stack_name_template-11"
                     }
                     unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
                   }
                 }
                 description = "@{run}-description-11"
@@ -14250,8 +16554,7 @@ resource "coralogix_dashboard" "test_7" {
                     query = {
                       logs = {
                         aggregation = {
-                          type = "sum"
-                          field = "@{run}-field-12"
+                          type = "count"
                         }
                         filters = [
                           {
@@ -14461,6 +16764,545 @@ resource "coralogix_dashboard" "test_8" {
               {
                 width = 1
                 definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "count_distinct"
+                          field = "@{run}-field"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query"
+                        stacked_group_name = "@{run}-stacked_group_name"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-2"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-2"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "max"
+                          field = "@{run}-field-2"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-2"
+                        stacked_group_name = "@{run}-stacked_group_name-2"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-2"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-3"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-3"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "min"
+                          field = "@{run}-field-3"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-3"
+                        stacked_group_name = "@{run}-stacked_group_name-3"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-3"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-4"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-4"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "percentile"
+                          field = "@{run}-field-4"
+                          percent = 1.5
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-4"
+                        stacked_group_name = "@{run}-stacked_group_name-4"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-4"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  bar_chart = {
+                    bar_value_display = "both"
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-5"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    group_name_template = "@{run}-group_name_template-5"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "sum"
+                          field = "@{run}-field-5"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-5"
+                        stacked_group_name = "@{run}-stacked_group_name-5"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-5"
+                    }
+                    unit = "bytes"
+                    xaxis = {
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 1
+                          minimum_interval = "60s"
+                        }
+                        use_advanced_limit = true
+                      }
+                    }
+                    x_axis_time_format = "auto"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-6"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 1"
+                        filters = [
+                          {
+                            spans = {
+                              field = {
+                                type = "tag"
+                                value = "@{run}-value"
+                              }
+                              observation_field = {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "other"
+                                scope = "label"
+                              }
+                              operator = {
+                                type = "equals"
+                                selection_type = "all"
+                              }
+                            }
+                          },
+                        ]
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "condensed"
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
                   dynamic = {
                     interpretation = "categorical_analysis_horizontal_bars"
                     query_definitions = [
@@ -14482,82 +17324,295 @@ resource "coralogix_dashboard" "test_8" {
                       }
                     }
                     visualization = {
-                      stat_card = {
+                      vertical_bars = {
                         allow_abbreviation = true
+                        bar_value_display = "both"
                         category_fields = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
-                        color_label_mapping = {
-                          color_by = "row"
-                          value = {
-                            sections = [
-                              {
-                                color = "blue"
-                                map_to = "@{run}-map_to"
-                                value = "@{run}-value"
-                              },
-                            ]
-                          }
-                        }
-                        custom_unit = "@{run}-custom_unit"
+                        color_scheme = "@{run}-color_scheme-7"
+                        colors_by = "category"
+                        custom_unit = "@{run}-custom_unit-7"
                         decimal_precision = 1
-                        label = {
-                          mapped_values = true
-                          template_text = "@{run}-template_text"
-                          template_variables = [
-                            {
-                              mapped_values = true
-                            },
-                          ]
-                        }
+                        group_name_template = "@{run}-group_name_template-7"
+                        hash_colors = true
                         legend = {
                           columns = ["avg"]
                           group_by_query = true
                           is_visible = true
                           placement = "auto"
                         }
-                        legend_by = "groups"
-                        primary_value = {
-                          observation_field = {
+                        max_bars_per_chart = 1
+                        max_slices_per_bar = 1
+                        scale_type = "linear"
+                        sort_by = "name"
+                        stack_name_template = "@{run}-stack_name_template-7"
+                        sub_category_fields = [
+                          {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
-                          }
-                          template_text = "@{run}-template_text"
-                          template_variables = [
-                            {
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                            },
-                          ]
-                        }
-                        title = {
-                          mapped_values = true
-                          template_text = "@{run}-template_text"
-                          template_variables = [
-                            {
-                              mapped_values = true
-                            },
-                          ]
-                        }
+                          },
+                        ]
                         unit = "bytes"
-                        value_fields = [
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
                           {
                             keypath = ["@{run}-keypath"]
                             scope = "label"
                           },
                         ]
+                        color_scheme = "@{run}-color_scheme-8"
+                        colors_by = "group_by"
+                        custom_unit = "@{run}-custom_unit-8"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-8"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        max_slices_per_bar = 1
+                        scale_type = "linear"
+                        sort_by = "name"
+                        stack_name_template = "@{run}-stack_name_template-8"
+                        sub_category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        y_axis_max = 2
+                        y_axis_min = 1
                       }
                     }
                   }
                 }
-                description = "@{run}-description"
+                description = "@{run}-description-8"
                 highlighted = true
-                title = "@{run}-title"
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-9"
+                        colors_by = "query"
+                        custom_unit = "@{run}-custom_unit-9"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-9"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        max_slices_per_bar = 1
+                        scale_type = "linear"
+                        sort_by = "name"
+                        stack_name_template = "@{run}-stack_name_template-9"
+                        sub_category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-10"
+                        colors_by = "stack"
+                        custom_unit = "@{run}-custom_unit-10"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-10"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        max_slices_per_bar = 1
+                        scale_type = "linear"
+                        sort_by = "name"
+                        stack_name_template = "@{run}-stack_name_template-10"
+                        sub_category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        unit = "bytes"
+                        value_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -14577,7 +17632,7 @@ resource "coralogix_dashboard" "test_8" {
                       threshold_arc = true
                       value_arc = true
                     }
-                    custom_unit = "@{run}-custom_unit-2"
+                    custom_unit = "@{run}-custom_unit-11"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
@@ -14592,21 +17647,43 @@ resource "coralogix_dashboard" "test_8" {
                     max = 2
                     min = 1
                     query = {
-                      metrics = {
-                        aggregation = "min"
-                        editor_mode = "builder"
+                      spans = {
                         filters = [
                           {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
+                            field = {
+                              type = "tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
                             operator = {
                               type = "equals"
                               selection_type = "all"
                             }
                           },
                         ]
-                        promql_query = "@{run}-promql_query-2"
-                        promql_query_type = "instant"
+                        group_by = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_bys = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-11"
+                        spans_aggregation = {
+                          type = "dimension"
+                          aggregation_type = "unique_count"
+                          field = "trace_id"
+                        }
                         time_frame = {
                           absolute = {
                             start = "2030-01-01T00:00:00Z"
@@ -14627,12 +17704,12 @@ resource "coralogix_dashboard" "test_8" {
                         label = "@{run}-label"
                       },
                     ]
-                    unit = "kibytes"
+                    unit = "datetime_iso"
                   }
                 }
-                description = "@{run}-description-2"
+                description = "@{run}-description-11"
                 highlighted = true
-                title = "@{run}-title-2"
+                title = "@{run}-title-11"
                 custom_actions = [
                   {
                     data_source = "dataprime"
@@ -14647,166 +17724,11 @@ resource "coralogix_dashboard" "test_8" {
               {
                 width = 1
                 definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-3"
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-12"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      metrics = {
-                        aggregation = "max"
-                        editor_mode = "builder"
-                        filters = [
-                          {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        promql_query = "@{run}-promql_query-3"
-                        promql_query_type = "instant"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "mibytes"
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-4"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      metrics = {
-                        aggregation = "avg"
-                        editor_mode = "builder"
-                        filters = [
-                          {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        promql_query = "@{run}-promql_query-4"
-                        promql_query_type = "instant"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "gibytes"
-                  }
-                }
-                description = "@{run}-description-4"
-                highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-5"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
@@ -14830,7 +17752,7 @@ resource "coralogix_dashboard" "test_8" {
                             }
                           },
                         ]
-                        promql_query = "@{run}-promql_query-5"
+                        promql_query = "@{run}-promql_query-12"
                         promql_query_type = "instant"
                         time_frame = {
                           absolute = {
@@ -14840,85 +17762,6 @@ resource "coralogix_dashboard" "test_8" {
                         }
                       }
                     }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "euro_cents"
-                  }
-                }
-                description = "@{run}-description-5"
-                highlighted = true
-                title = "@{run}-title-5"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-6"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "count"
-                        }
-                        lucene_query = "@{run}-lucene_query-6"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
                     threshold_type = "absolute"
                     thresholds = [
                       {
@@ -14928,473 +17771,6 @@ resource "coralogix_dashboard" "test_8" {
                       },
                     ]
                     unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-6"
-                highlighted = true
-                title = "@{run}-title-6"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-7"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "count_distinct"
-                          field = "@{run}-field-7"
-                        }
-                        lucene_query = "@{run}-lucene_query-7"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-7"
-                highlighted = true
-                title = "@{run}-title-7"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-8"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "max"
-                          field = "@{run}-field-8"
-                        }
-                        lucene_query = "@{run}-lucene_query-8"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-8"
-                highlighted = true
-                title = "@{run}-title-8"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-9"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "min"
-                          field = "@{run}-field-9"
-                        }
-                        lucene_query = "@{run}-lucene_query-9"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-9"
-                highlighted = true
-                title = "@{run}-title-9"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-10"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "percentile"
-                          field = "@{run}-field-10"
-                          percent = 1.5
-                        }
-                        lucene_query = "@{run}-lucene_query-10"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-10"
-                highlighted = true
-                title = "@{run}-title-10"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-11"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        aggregation = {
-                          type = "sum"
-                          field = "@{run}-field-11"
-                        }
-                        lucene_query = "@{run}-lucene_query-11"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-11"
-                highlighted = true
-                title = "@{run}-title-11"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "blue"
-                    colors_by = "aggregation"
-                    custom_unit = "@{run}-custom_unit-12"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template-12"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      logs = {
-                        aggregation = {
-                          type = "max"
-                          field = "@{run}-field-12"
-                        }
-                        filters = [
-                          {
-                            field = "@{run}-field"
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = ["@{run}-group_names"]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-12"
-                        stacked_group_name = "@{run}-stacked_group_name-12"
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-12"
-                    }
-                    unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-12"
@@ -15550,6 +17926,1391 @@ resource "coralogix_dashboard" "test_9" {
               {
                 width = 1
                 definition = {
+                  line_chart = {
+                    connect_nulls = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    query_definitions = [
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "min"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-2"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-2"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-2"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "percentile"
+                                field = "@{run}-field"
+                                percent = 1.5
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-2"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-2"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-3"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-3"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-3"
+                        query = {
+                          logs = {
+                            aggregations = [
+                              {
+                                type = "sum"
+                                field = "@{run}-field"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = "@{run}-field"
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = ["@{run}-group_by"]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-3"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-3"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                      {
+                        color_scheme = "blue"
+                        custom_unit = "@{run}-custom_unit-4"
+                        data_mode_type = "archive"
+                        decimal = 1
+                        decimal_precision = true
+                        hash_colors = true
+                        id = "@{run}-id-4"
+                        interval_resolution = {
+                          auto = {
+                            maximum_data_points = 1
+                            minimum_interval = "0s"
+                          }
+                          use_advanced_limit = true
+                        }
+                        is_visible = true
+                        name = "@{run}-name-4"
+                        query = {
+                          spans = {
+                            aggregations = [
+                              {
+                                type = "dimension"
+                                aggregation_type = "unique_count"
+                                field = "trace_id"
+                              },
+                            ]
+                            filters = [
+                              {
+                                field = {
+                                  type = "tag"
+                                  value = "@{run}-value"
+                                }
+                                observation_field = {
+                                  keypath = ["@{run}-keypath"]
+                                  relation_type = "other"
+                                  scope = "label"
+                                }
+                                operator = {
+                                  type = "equals"
+                                  selection_type = "all"
+                                }
+                              },
+                            ]
+                            group_by = [
+                              {
+                                type = "metadata"
+                                value = "application_name"
+                              },
+                            ]
+                            group_bys = [
+                              {
+                                keypath = ["@{run}-keypath"]
+                                relation_type = "root"
+                                scope = "label"
+                              },
+                            ]
+                            lucene_query = "@{run}-lucene_query-4"
+                            time_frame = {
+                              absolute = {
+                                start = "2030-01-01T00:00:00Z"
+                                end = "2030-01-01T00:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                        resolution = {
+                          buckets_presented = 1
+                          interval = "seconds:60"
+                        }
+                        scale_type = "linear"
+                        series_count_limit = 1
+                        series_name_template = "@{run}-series_name_template-4"
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      },
+                    ]
+                    stacked_line = "absolute"
+                    tooltip = {
+                      show_labels = true
+                      type = "all"
+                    }
+                    use_data_time_range = true
+                    x_axis_time_format = "auto"
+                  }
+                }
+                description = "@{run}-description"
+                highlighted = true
+                title = "@{run}-title"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  data_table = {
+                    columns = [
+                      {
+                        field = "@{run}-field"
+                        width = 1
+                      },
+                    ]
+                    data_mode_type = "archive"
+                    order_by = {
+                      field = "@{run}-field-2"
+                      order_direction = "asc"
+                    }
+                    query = {
+                      spans = {
+                        filters = [
+                          {
+                            field = {
+                              type = "tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        grouping = {
+                          aggregations = [
+                            {
+                              aggregation = {
+                                type = "dimension"
+                                aggregation_type = "error_count"
+                                field = "trace_id"
+                              }
+                              is_visible = true
+                              name = "@{run}-name"
+                            },
+                          ]
+                          group_by = [
+                            {
+                              type = "metadata"
+                              value = "application_name"
+                            },
+                          ]
+                          group_bys = [
+                            {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "root"
+                              scope = "label"
+                            },
+                          ]
+                        }
+                        lucene_query = "@{run}-lucene_query-2"
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    results_per_page = 1
+                    row_style = "condensed"
+                  }
+                }
+                description = "@{run}-description-2"
+                highlighted = true
+                title = "@{run}-title-2"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars_multi = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-3"
+                        colors_by = "category"
+                        custom_unit = "@{run}-custom_unit-3"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-3"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        query_field_settings = [
+                          {
+                            query_id = "@{run}-query_id"
+                            value_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                          },
+                        ]
+                        scale_type = "linear"
+                        sort_order = {
+                          order_direction = "asc"
+                          strategy = {
+                            category = true
+                            strategy_type = "@{run}-strategy_type-3"
+                          }
+                        }
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-3"
+                highlighted = true
+                title = "@{run}-title-3"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars_multi = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-4"
+                        colors_by = "group_by"
+                        custom_unit = "@{run}-custom_unit-4"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-4"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        query_field_settings = [
+                          {
+                            query_id = "@{run}-query_id"
+                            value_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                          },
+                        ]
+                        scale_type = "linear"
+                        sort_order = {
+                          order_direction = "asc"
+                          strategy = {
+                            category = true
+                            strategy_type = "@{run}-strategy_type-4"
+                          }
+                        }
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-4"
+                highlighted = true
+                title = "@{run}-title-4"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars_multi = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-5"
+                        colors_by = "query"
+                        custom_unit = "@{run}-custom_unit-5"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-5"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        query_field_settings = [
+                          {
+                            query_id = "@{run}-query_id"
+                            value_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                          },
+                        ]
+                        scale_type = "linear"
+                        sort_order = {
+                          order_direction = "asc"
+                          strategy = {
+                            category = true
+                            strategy_type = "@{run}-strategy_type-5"
+                          }
+                        }
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-5"
+                highlighted = true
+                title = "@{run}-title-5"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  dynamic = {
+                    interpretation = "categorical_analysis_horizontal_bars"
+                    query_definitions = [
+                      {
+                        id = "@{run}-id"
+                        name = "@{run}-name"
+                        query = {
+                          data_prime = {
+                            data_mode_type = "archive"
+                            query = "source logs | limit 1"
+                          }
+                        }
+                      },
+                    ]
+                    time_frame = {
+                      absolute = {
+                        start = "2030-01-01T00:00:00Z"
+                        end = "2030-01-01T00:00:00Z"
+                      }
+                    }
+                    visualization = {
+                      vertical_bars_multi = {
+                        allow_abbreviation = true
+                        bar_value_display = "both"
+                        category_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        color_scheme = "@{run}-color_scheme-6"
+                        colors_by = "stack"
+                        custom_unit = "@{run}-custom_unit-6"
+                        decimal_precision = 1
+                        group_name_template = "@{run}-group_name_template-6"
+                        hash_colors = true
+                        legend = {
+                          columns = ["avg"]
+                          group_by_query = true
+                          is_visible = true
+                          placement = "auto"
+                        }
+                        max_bars_per_chart = 1
+                        query_field_settings = [
+                          {
+                            query_id = "@{run}-query_id"
+                            value_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                          },
+                        ]
+                        scale_type = "linear"
+                        sort_order = {
+                          order_direction = "asc"
+                          strategy = {
+                            category = true
+                            strategy_type = "@{run}-strategy_type-6"
+                          }
+                        }
+                        unit = "bytes"
+                        y_axis_max = 2
+                        y_axis_min = 1
+                      }
+                    }
+                  }
+                }
+                description = "@{run}-description-6"
+                highlighted = true
+                title = "@{run}-title-6"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  hexagon = {
+                    custom_unit = "@{run}-custom_unit-7"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    legend_by = "groups"
+                    max = 2
+                    min = 1
+                    query = {
+                      spans = {
+                        filters = [
+                          {
+                            field = {
+                              type = "tag"
+                              value = "@{run}-value"
+                            }
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              relation_type = "other"
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_by = [
+                          {
+                            type = "metadata"
+                            value = "application_name"
+                          },
+                        ]
+                        group_bys = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            relation_type = "root"
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-7"
+                        aggregation = {
+                          type = "dimension"
+                          aggregation_type = "unique_count"
+                          field = "trace_id"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    threshold_type = "absolute"
+                    thresholds = [
+                      {
+                        color = "@{run}-color"
+                        from = 1
+                        label = "@{run}-label"
+                      },
+                    ]
+                    unit = "bytes"
+                  }
+                }
+                description = "@{run}-description-7"
+                highlighted = true
+                title = "@{run}-title-7"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-8"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-8"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "count"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-8"
+                        stacked_group_name = "@{run}-stacked_group_name-8"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-8"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-8"
+                highlighted = true
+                title = "@{run}-title-8"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-9"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-9"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "count_distinct"
+                          field = "@{run}-field-9"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-9"
+                        stacked_group_name = "@{run}-stacked_group_name-9"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-9"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-9"
+                highlighted = true
+                title = "@{run}-title-9"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-10"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-10"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "max"
+                          field = "@{run}-field-10"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-10"
+                        stacked_group_name = "@{run}-stacked_group_name-10"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-10"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-10"
+                highlighted = true
+                title = "@{run}-title-10"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-11"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-11"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "min"
+                          field = "@{run}-field-11"
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-11"
+                        stacked_group_name = "@{run}-stacked_group_name-11"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-11"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-11"
+                highlighted = true
+                title = "@{run}-title-11"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+              {
+                width = 1
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme = "blue"
+                    colors_by = "aggregation"
+                    custom_unit = "@{run}-custom_unit-12"
+                    data_mode_type = "archive"
+                    decimal = 1
+                    decimal_precision = true
+                    display_on_bar = true
+                    group_name_template = "@{run}-group_name_template-12"
+                    hash_colors = true
+                    legend = {
+                      columns = ["avg"]
+                      group_by_query = true
+                      is_visible = true
+                      placement = "auto"
+                    }
+                    max_bars_per_chart = 1
+                    query = {
+                      logs = {
+                        aggregation = {
+                          type = "percentile"
+                          field = "@{run}-field-12"
+                          percent = 1.5
+                        }
+                        filters = [
+                          {
+                            field = "@{run}-field"
+                            observation_field = {
+                              keypath = ["@{run}-keypath"]
+                              scope = "label"
+                            }
+                            operator = {
+                              type = "equals"
+                              selection_type = "all"
+                            }
+                          },
+                        ]
+                        group_names = ["@{run}-group_names"]
+                        group_names_fields = [
+                          {
+                            keypath = ["@{run}-keypath"]
+                            scope = "label"
+                          },
+                        ]
+                        lucene_query = "@{run}-lucene_query-12"
+                        stacked_group_name = "@{run}-stacked_group_name-12"
+                        stacked_group_name_field = {
+                          keypath = ["@{run}-keypath"]
+                          scope = "label"
+                        }
+                        time_frame = {
+                          absolute = {
+                            start = "2030-01-01T00:00:00Z"
+                            end = "2030-01-01T00:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                    scale_type = "linear"
+                    sort_by = "name"
+                    stack_definition = {
+                      max_slices_per_bar = 1
+                      stack_name_template = "@{run}-stack_name_template-12"
+                    }
+                    unit = "bytes"
+                    y_axis_max = 2
+                    y_axis_min = 1
+                    y_axis_view_by = "category"
+                  }
+                }
+                description = "@{run}-description-12"
+                highlighted = true
+                title = "@{run}-title-12"
+                custom_actions = [
+                  {
+                    data_source = "dataprime"
+                    url = "@{run}-url"
+                    id = "@{run}-id"
+                    name = "@{run}-name"
+                    query_id = "@{run}-query_id"
+                    should_open_in_new_window = true
+                  },
+                ]
+              },
+            ]
+          },
+        ]
+      },
+    ]
+  }
+  name = "@{run}-name-9"
+  variables_v2 = [
+    {
+      description = "@{run}-description"
+      display_full_row = false
+      display_name = "@{run}-display_name"
+      display_type = "label_value"
+      name = "@{run}-name"
+      source = {
+        query = {
+          all_option = {
+            include_all = true
+            label = "@{run}-label"
+          }
+          dataprime_query = {
+            type = {
+              query_text = {
+                data_mode_type = "archive"
+                query = "source logs | limit 1"
+              }
+            }
+          }
+          refresh_strategy = "on_dashboard_load"
+          value_display_options = {
+            label_regex = "@{run}-label_regex"
+            value_regex = "@{run}-value_regex"
+          }
+          values_order_direction = "asc"
+        }
+      }
+      value = {
+        interval = {
+          label = "@{run}-label"
+          value = "@{run}-value"
+        }
+      }
+    },
+  ]
+}
+
+resource "coralogix_dashboard" "test_10" {
+  time_frame = {
+    absolute = {
+      start = "2030-01-01T00:00:00Z"
+      end = "2030-01-01T00:00:00Z"
+    }
+  }
+  annotations = [
+    {
+      color = "blue"
+      description = "@{run}-description"
+      enabled = true
+      name = "@{run}-name"
+      scope = {
+        all_widgets = {}
+      }
+      source = {
+        dataprime = {
+          data_mode_type = "archive"
+          label_fields = [
+            {
+              keypath = ["@{run}-keypath"]
+              scope = "label"
+            },
+          ]
+          message_template = "@{run}-message_template"
+          orientation = "horizontal"
+          query = "source logs | limit 1"
+          strategy = {
+            duration = {
+              duration_field = {
+                keypath = ["@{run}-keypath"]
+                scope = "label"
+              }
+              start_timestamp_field = {
+                keypath = ["@{run}-keypath"]
+                scope = "label"
+              }
+            }
+          }
+        }
+      }
+    },
+  ]
+  description = "@{run}-description-10"
+  auto_refresh = {
+    type = "off"
+  }
+  filters = [
+    {
+      collapsed = true
+      display_name = "@{run}-display_name"
+      enabled = true
+      scope = {
+        all_widgets = {}
+      }
+      source = {
+        logs = {
+          field = "@{run}-field"
+          observation_field = {
+            keypath = ["@{run}-keypath"]
+            scope = "label"
+          }
+          operator = {
+            type = "equals"
+            selection_type = "all"
+          }
+        }
+      }
+    },
+  ]
+  folder = {
+    id = coralogix_dashboards_folder.folder.id
+  }
+  layout = {
+    sections = [
+      {
+        options = {
+          collapsed = true
+          color = "blue"
+          description = "@{run}-description"
+          name = "@{run}-name"
+          repetitive_var = {
+            name = "@{run}-name"
+          }
+        }
+        rows = [
+          {
+            height = 1
+            widgets = [
+              {
+                width = 1
+                definition = {
                   horizontal_bar_chart = {
                     color_scheme = "blue"
                     colors_by = "aggregation"
@@ -15570,7 +19331,7 @@ resource "coralogix_dashboard" "test_9" {
                     query = {
                       logs = {
                         aggregation = {
-                          type = "min"
+                          type = "sum"
                           field = "@{run}-field"
                         }
                         filters = [
@@ -15636,29 +19397,33 @@ resource "coralogix_dashboard" "test_9" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
+                  pie_chart = {
                     color_scheme = "blue"
-                    colors_by = "aggregation"
                     custom_unit = "@{run}-custom_unit-2"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_on_bar = true
                     group_name_template = "@{run}-group_name_template-2"
                     hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
                     query = {
                       logs = {
                         aggregation = {
-                          type = "percentile"
-                          field = "@{run}-field-2"
-                          percent = 1.5
+                          type = "count"
                         }
                         filters = [
                           {
@@ -15694,16 +19459,13 @@ resource "coralogix_dashboard" "test_9" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
+                    show_legend = true
+                    show_total = true
                     stack_definition = {
-                      max_slices_per_bar = 1
+                      max_slices_per_stack = 1
                       stack_name_template = "@{run}-stack_name_template-2"
                     }
                     unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-2"
@@ -15723,27 +19485,33 @@ resource "coralogix_dashboard" "test_9" {
               {
                 width = 1
                 definition = {
-                  horizontal_bar_chart = {
+                  pie_chart = {
                     color_scheme = "blue"
-                    colors_by = "aggregation"
                     custom_unit = "@{run}-custom_unit-3"
                     data_mode_type = "archive"
                     decimal = 1
                     decimal_precision = true
-                    display_on_bar = true
                     group_name_template = "@{run}-group_name_template-3"
                     hash_colors = true
+                    label_definition = {
+                      is_visible = true
+                      label_source = "inner"
+                      show_name = true
+                      show_percentage = true
+                      show_value = true
+                    }
                     legend = {
                       columns = ["avg"]
                       group_by_query = true
                       is_visible = true
                       placement = "auto"
                     }
-                    max_bars_per_chart = 1
+                    max_slices_per_chart = 1
+                    min_slice_percentage = 1
                     query = {
                       logs = {
                         aggregation = {
-                          type = "sum"
+                          type = "count_distinct"
                           field = "@{run}-field-3"
                         }
                         filters = [
@@ -15780,16 +19548,13 @@ resource "coralogix_dashboard" "test_9" {
                         }
                       }
                     }
-                    scale_type = "linear"
-                    sort_by = "name"
+                    show_legend = true
+                    show_total = true
                     stack_definition = {
-                      max_slices_per_bar = 1
+                      max_slices_per_stack = 1
                       stack_name_template = "@{run}-stack_name_template-3"
                     }
                     unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
                   }
                 }
                 description = "@{run}-description-3"
@@ -16152,2104 +19917,6 @@ resource "coralogix_dashboard" "test_9" {
                 description = "@{run}-description-7"
                 highlighted = true
                 title = "@{run}-title-7"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "blue"
-                    colors_by = "aggregation"
-                    custom_unit = "@{run}-custom_unit-8"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-8"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      metrics = {
-                        aggregation = "sum"
-                        editor_mode = "builder"
-                        filters = [
-                          {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = ["@{run}-group_names"]
-                        promql_query = "@{run}-promql_query-8"
-                        promql_query_type = "instant"
-                        stacked_group_name = "@{run}-stacked_group_name-8"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-8"
-                    }
-                    unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                  }
-                }
-                description = "@{run}-description-8"
-                highlighted = true
-                title = "@{run}-title-8"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  data_table = {
-                    columns = [
-                      {
-                        field = "@{run}-field"
-                        width = 1
-                      },
-                    ]
-                    data_mode_type = "archive"
-                    order_by = {
-                      field = "@{run}-field-9"
-                      order_direction = "asc"
-                    }
-                    query = {
-                      metrics = {
-                        editor_mode = "builder"
-                        filters = [
-                          {
-                            label = "@{run}-label"
-                            metric = "@{run}-metric"
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                          {
-                            label = "@{run}-label-2"
-                            metric = "@{run}-metric-2"
-                            operator = {
-                              type = "not_equals"
-                              selection_type = "list"
-                              selected_values = ["@{run}-selected_values"]
-                            }
-                          },
-                        ]
-                        promql_query = "@{run}-promql_query-9"
-                        promql_query_type = "instant"
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    results_per_page = 1
-                    row_style = "condensed"
-                  }
-                }
-                description = "@{run}-description-9"
-                highlighted = true
-                title = "@{run}-title-9"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-10"
-                        colors_by = "category"
-                        custom_unit = "@{run}-custom_unit-10"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-10"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        max_slices_per_bar = 1
-                        scale_type = "linear"
-                        sort_by = "name"
-                        stack_name_template = "@{run}-stack_name_template-10"
-                        sub_category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-10"
-                highlighted = true
-                title = "@{run}-title-10"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-11"
-                        colors_by = "group_by"
-                        custom_unit = "@{run}-custom_unit-11"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-11"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        max_slices_per_bar = 1
-                        scale_type = "linear"
-                        sort_by = "name"
-                        stack_name_template = "@{run}-stack_name_template-11"
-                        sub_category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-11"
-                highlighted = true
-                title = "@{run}-title-11"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-12"
-                        colors_by = "query"
-                        custom_unit = "@{run}-custom_unit-12"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-12"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        max_slices_per_bar = 1
-                        scale_type = "linear"
-                        sort_by = "name"
-                        stack_name_template = "@{run}-stack_name_template-12"
-                        sub_category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-12"
-                highlighted = true
-                title = "@{run}-title-12"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-            ]
-          },
-        ]
-      },
-    ]
-  }
-  name = "@{run}-name-9"
-  variables_v2 = [
-    {
-      description = "@{run}-description"
-      display_full_row = false
-      display_name = "@{run}-display_name"
-      display_type = "label_value"
-      name = "@{run}-name"
-      source = {
-        query = {
-          all_option = {
-            include_all = true
-            label = "@{run}-label"
-          }
-          dataprime_query = {
-            type = {
-              query_text = {
-                data_mode_type = "archive"
-                query = "source logs | limit 1"
-              }
-            }
-          }
-          refresh_strategy = "on_dashboard_load"
-          value_display_options = {
-            label_regex = "@{run}-label_regex"
-            value_regex = "@{run}-value_regex"
-          }
-          values_order_direction = "asc"
-        }
-      }
-      value = {
-        interval = {
-          label = "@{run}-label"
-          value = "@{run}-value"
-        }
-      }
-    },
-  ]
-}
-
-resource "coralogix_dashboard" "test_10" {
-  time_frame = {
-    absolute = {
-      start = "2030-01-01T00:00:00Z"
-      end = "2030-01-01T00:00:00Z"
-    }
-  }
-  annotations = [
-    {
-      color = "blue"
-      description = "@{run}-description"
-      enabled = true
-      name = "@{run}-name"
-      scope = {
-        all_widgets = {}
-      }
-      source = {
-        dataprime = {
-          data_mode_type = "archive"
-          label_fields = [
-            {
-              keypath = ["@{run}-keypath"]
-              scope = "label"
-            },
-          ]
-          message_template = "@{run}-message_template"
-          orientation = "horizontal"
-          query = "source logs | limit 1"
-          strategy = {
-            duration = {
-              duration_field = {
-                keypath = ["@{run}-keypath"]
-                scope = "label"
-              }
-              start_timestamp_field = {
-                keypath = ["@{run}-keypath"]
-                scope = "label"
-              }
-            }
-          }
-        }
-      }
-    },
-  ]
-  description = "@{run}-description-10"
-  auto_refresh = {
-    type = "off"
-  }
-  filters = [
-    {
-      collapsed = true
-      display_name = "@{run}-display_name"
-      enabled = true
-      scope = {
-        all_widgets = {}
-      }
-      source = {
-        logs = {
-          field = "@{run}-field"
-          observation_field = {
-            keypath = ["@{run}-keypath"]
-            scope = "label"
-          }
-          operator = {
-            type = "equals"
-            selection_type = "all"
-          }
-        }
-      }
-    },
-  ]
-  folder = {
-    id = coralogix_dashboards_folder.folder.id
-  }
-  layout = {
-    sections = [
-      {
-        options = {
-          collapsed = true
-          color = "blue"
-          description = "@{run}-description"
-          name = "@{run}-name"
-          repetitive_var = {
-            name = "@{run}-name"
-          }
-        }
-        rows = [
-          {
-            height = 1
-            widgets = [
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme"
-                        colors_by = "stack"
-                        custom_unit = "@{run}-custom_unit"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        max_slices_per_bar = 1
-                        scale_type = "linear"
-                        sort_by = "name"
-                        stack_name_template = "@{run}-stack_name_template"
-                        sub_category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        unit = "bytes"
-                        value_field = {
-                          keypath = ["@{run}-keypath"]
-                          scope = "label"
-                        }
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description"
-                highlighted = true
-                title = "@{run}-title"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-2"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      spans = {
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_bys = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-2"
-                        spans_aggregation = {
-                          type = "metric"
-                          aggregation_type = "avg"
-                          field = "duration"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "euro"
-                  }
-                }
-                description = "@{run}-description-2"
-                highlighted = true
-                title = "@{run}-title-2"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  bar_chart = {
-                    bar_value_display = "both"
-                    color_scheme = "blue"
-                    colors_by = "aggregation"
-                    custom_unit = "@{run}-custom_unit-3"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-3"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      spans = {
-                        aggregation = {
-                          type = "dimension"
-                          aggregation_type = "unique_count"
-                          field = "trace_id"
-                        }
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-3"
-                        stacked_group_name = {
-                          type = "tag"
-                          value = "@{run}-value-3"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-3"
-                    }
-                    unit = "bytes"
-                    xaxis = {
-                      time_buckets = {
-                        auto = {
-                          maximum_data_points = 1
-                          minimum_interval = "60s"
-                        }
-                        use_advanced_limit = true
-                      }
-                    }
-                    x_axis_time_format = "auto"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars_multi = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-4"
-                        colors_by = "category"
-                        custom_unit = "@{run}-custom_unit-4"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-4"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        query_field_settings = [
-                          {
-                            query_id = "@{run}-query_id"
-                            value_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                          },
-                        ]
-                        scale_type = "linear"
-                        sort_order = {
-                          order_direction = "asc"
-                          strategy = {
-                            category = true
-                            strategy_type = "@{run}-strategy_type-4"
-                          }
-                        }
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-4"
-                highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars_multi = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-5"
-                        colors_by = "group_by"
-                        custom_unit = "@{run}-custom_unit-5"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-5"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        query_field_settings = [
-                          {
-                            query_id = "@{run}-query_id"
-                            value_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                          },
-                        ]
-                        scale_type = "linear"
-                        sort_order = {
-                          order_direction = "asc"
-                          strategy = {
-                            category = true
-                            strategy_type = "@{run}-strategy_type-5"
-                          }
-                        }
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-5"
-                highlighted = true
-                title = "@{run}-title-5"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars_multi = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-6"
-                        colors_by = "query"
-                        custom_unit = "@{run}-custom_unit-6"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-6"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        query_field_settings = [
-                          {
-                            query_id = "@{run}-query_id"
-                            value_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                          },
-                        ]
-                        scale_type = "linear"
-                        sort_order = {
-                          order_direction = "asc"
-                          strategy = {
-                            category = true
-                            strategy_type = "@{run}-strategy_type-6"
-                          }
-                        }
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-6"
-                highlighted = true
-                title = "@{run}-title-6"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  dynamic = {
-                    interpretation = "categorical_analysis_horizontal_bars"
-                    query_definitions = [
-                      {
-                        id = "@{run}-id"
-                        name = "@{run}-name"
-                        query = {
-                          data_prime = {
-                            data_mode_type = "archive"
-                            query = "source logs | limit 1"
-                          }
-                        }
-                      },
-                    ]
-                    time_frame = {
-                      absolute = {
-                        start = "2030-01-01T00:00:00Z"
-                        end = "2030-01-01T00:00:00Z"
-                      }
-                    }
-                    visualization = {
-                      vertical_bars_multi = {
-                        allow_abbreviation = true
-                        bar_value_display = "both"
-                        category_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            scope = "label"
-                          },
-                        ]
-                        color_scheme = "@{run}-color_scheme-7"
-                        colors_by = "stack"
-                        custom_unit = "@{run}-custom_unit-7"
-                        decimal_precision = 1
-                        group_name_template = "@{run}-group_name_template-7"
-                        hash_colors = true
-                        legend = {
-                          columns = ["avg"]
-                          group_by_query = true
-                          is_visible = true
-                          placement = "auto"
-                        }
-                        max_bars_per_chart = 1
-                        query_field_settings = [
-                          {
-                            query_id = "@{run}-query_id"
-                            value_field = {
-                              keypath = ["@{run}-keypath"]
-                              scope = "label"
-                            }
-                          },
-                        ]
-                        scale_type = "linear"
-                        sort_order = {
-                          order_direction = "asc"
-                          strategy = {
-                            category = true
-                            strategy_type = "@{run}-strategy_type-7"
-                          }
-                        }
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      }
-                    }
-                  }
-                }
-                description = "@{run}-description-7"
-                highlighted = true
-                title = "@{run}-title-7"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-8"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "usd_cents"
-                  }
-                }
-                description = "@{run}-description-8"
-                highlighted = true
-                title = "@{run}-title-8"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-9"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "usd"
-                  }
-                }
-                description = "@{run}-description-9"
-                highlighted = true
-                title = "@{run}-title-9"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-10"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "custom"
-                  }
-                }
-                description = "@{run}-description-10"
-                highlighted = true
-                title = "@{run}-title-10"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-11"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "percent01"
-                  }
-                }
-                description = "@{run}-description-11"
-                highlighted = true
-                title = "@{run}-title-11"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-12"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "percent100"
-                  }
-                }
-                description = "@{run}-description-12"
-                highlighted = true
-                title = "@{run}-title-12"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-            ]
-          },
-          {
-            height = 1
-            widgets = [
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "nanoseconds"
-                  }
-                }
-                description = "@{run}-description"
-                highlighted = true
-                title = "@{run}-title"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  gauge = {
-                    arc_display = {
-                      threshold_arc = true
-                      value_arc = true
-                    }
-                    custom_unit = "@{run}-custom_unit-2"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_series_name = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      data_prime = {
-                        query = "source logs | limit 1"
-                        filters = [
-                          {
-                            logs = {
-                              field = "@{run}-field"
-                              observation_field = {
-                                keypath = ["@{run}-keypath"]
-                                scope = "label"
-                              }
-                              operator = {
-                                type = "equals"
-                                selection_type = "all"
-                              }
-                            }
-                          },
-                        ]
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_inner_arc = true
-                    show_min_max = true
-                    show_outer_arc = true
-                    threshold_by = "background"
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1.5
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "datetime_iso"
-                  }
-                }
-                description = "@{run}-description-2"
-                highlighted = true
-                title = "@{run}-title-2"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  hexagon = {
-                    custom_unit = "@{run}-custom_unit-3"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    legend_by = "groups"
-                    max = 2
-                    min = 1
-                    query = {
-                      spans = {
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_by = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_bys = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-3"
-                        aggregation = {
-                          type = "metric"
-                          aggregation_type = "avg"
-                          field = "duration"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    threshold_type = "absolute"
-                    thresholds = [
-                      {
-                        color = "@{run}-color"
-                        from = 1
-                        label = "@{run}-label"
-                      },
-                    ]
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-3"
-                highlighted = true
-                title = "@{run}-title-3"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  horizontal_bar_chart = {
-                    color_scheme = "blue"
-                    colors_by = "aggregation"
-                    custom_unit = "@{run}-custom_unit-4"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    display_on_bar = true
-                    group_name_template = "@{run}-group_name_template-4"
-                    hash_colors = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_bars_per_chart = 1
-                    query = {
-                      spans = {
-                        aggregation = {
-                          type = "dimension"
-                          aggregation_type = "unique_count"
-                          field = "trace_id"
-                        }
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-4"
-                        stacked_group_name = {
-                          type = "tag"
-                          value = "@{run}-value-4"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    scale_type = "linear"
-                    sort_by = "name"
-                    stack_definition = {
-                      max_slices_per_bar = 1
-                      stack_name_template = "@{run}-stack_name_template-4"
-                    }
-                    unit = "bytes"
-                    y_axis_max = 2
-                    y_axis_min = 1
-                    y_axis_view_by = "category"
-                  }
-                }
-                description = "@{run}-description-4"
-                highlighted = true
-                title = "@{run}-title-4"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  line_chart = {
-                    connect_nulls = true
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    query_definitions = [
-                      {
-                        color_scheme = "blue"
-                        custom_unit = "@{run}-custom_unit"
-                        data_mode_type = "archive"
-                        decimal = 1
-                        decimal_precision = true
-                        hash_colors = true
-                        id = "@{run}-id"
-                        interval_resolution = {
-                          auto = {
-                            maximum_data_points = 1
-                            minimum_interval = "0s"
-                          }
-                          use_advanced_limit = true
-                        }
-                        is_visible = true
-                        name = "@{run}-name"
-                        query = {
-                          spans = {
-                            aggregations = [
-                              {
-                                type = "metric"
-                                aggregation_type = "avg"
-                                field = "duration"
-                              },
-                            ]
-                            filters = [
-                              {
-                                field = {
-                                  type = "metadata"
-                                  value = "application_name"
-                                }
-                                observation_field = {
-                                  keypath = ["@{run}-keypath"]
-                                  relation_type = "other"
-                                  scope = "label"
-                                }
-                                operator = {
-                                  type = "equals"
-                                  selection_type = "all"
-                                }
-                              },
-                            ]
-                            group_by = [
-                              {
-                                type = "metadata"
-                                value = "application_name"
-                              },
-                            ]
-                            group_bys = [
-                              {
-                                keypath = ["@{run}-keypath"]
-                                relation_type = "other"
-                                scope = "label"
-                              },
-                            ]
-                            lucene_query = "@{run}-lucene_query"
-                            time_frame = {
-                              absolute = {
-                                start = "2030-01-01T00:00:00Z"
-                                end = "2030-01-01T00:00:00Z"
-                              }
-                            }
-                          }
-                        }
-                        resolution = {
-                          buckets_presented = 1
-                          interval = "seconds:60"
-                        }
-                        scale_type = "linear"
-                        series_count_limit = 1
-                        series_name_template = "@{run}-series_name_template"
-                        unit = "bytes"
-                        y_axis_max = 2
-                        y_axis_min = 1
-                      },
-                    ]
-                    stacked_line = "absolute"
-                    tooltip = {
-                      show_labels = true
-                      type = "all"
-                    }
-                    use_data_time_range = true
-                    x_axis_time_format = "auto"
-                  }
-                }
-                description = "@{run}-description-5"
-                highlighted = true
-                title = "@{run}-title-5"
-                custom_actions = [
-                  {
-                    data_source = "dataprime"
-                    url = "@{run}-url"
-                    id = "@{run}-id"
-                    name = "@{run}-name"
-                    query_id = "@{run}-query_id"
-                    should_open_in_new_window = true
-                  },
-                ]
-              },
-              {
-                width = 1
-                definition = {
-                  pie_chart = {
-                    color_scheme = "blue"
-                    custom_unit = "@{run}-custom_unit-6"
-                    data_mode_type = "archive"
-                    decimal = 1
-                    decimal_precision = true
-                    group_name_template = "@{run}-group_name_template-6"
-                    hash_colors = true
-                    label_definition = {
-                      is_visible = true
-                      label_source = "inner"
-                      show_name = true
-                      show_percentage = true
-                      show_value = true
-                    }
-                    legend = {
-                      columns = ["avg"]
-                      group_by_query = true
-                      is_visible = true
-                      placement = "auto"
-                    }
-                    max_slices_per_chart = 1
-                    min_slice_percentage = 1
-                    query = {
-                      spans = {
-                        aggregation = {
-                          type = "dimension"
-                          aggregation_type = "unique_count"
-                          field = "trace_id"
-                        }
-                        filters = [
-                          {
-                            field = {
-                              type = "metadata"
-                              value = "application_name"
-                            }
-                            observation_field = {
-                              keypath = ["@{run}-keypath"]
-                              relation_type = "other"
-                              scope = "label"
-                            }
-                            operator = {
-                              type = "equals"
-                              selection_type = "all"
-                            }
-                          },
-                        ]
-                        group_names = [
-                          {
-                            type = "metadata"
-                            value = "application_name"
-                          },
-                        ]
-                        group_names_fields = [
-                          {
-                            keypath = ["@{run}-keypath"]
-                            relation_type = "other"
-                            scope = "label"
-                          },
-                        ]
-                        lucene_query = "@{run}-lucene_query-6"
-                        stacked_group_name = {
-                          type = "tag"
-                          value = "@{run}-value-6"
-                        }
-                        stacked_group_name_field = {
-                          keypath = ["@{run}-keypath"]
-                          relation_type = "other"
-                          scope = "label"
-                        }
-                        time_frame = {
-                          absolute = {
-                            start = "2030-01-01T00:00:00Z"
-                            end = "2030-01-01T00:00:00Z"
-                          }
-                        }
-                      }
-                    }
-                    show_legend = true
-                    show_total = true
-                    stack_definition = {
-                      max_slices_per_stack = 1
-                      stack_name_template = "@{run}-stack_name_template-6"
-                    }
-                    unit = "bytes"
-                  }
-                }
-                description = "@{run}-description-6"
-                highlighted = true
-                title = "@{run}-title-6"
                 custom_actions = [
                   {
                     data_source = "dataprime"

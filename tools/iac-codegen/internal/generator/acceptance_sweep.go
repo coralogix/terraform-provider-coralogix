@@ -31,7 +31,13 @@ const maxSweepSteps = 500
 // the API does.
 func choices(a *tfAttr) []enumOption {
 	if len(a.EnumChoices) != 0 {
-		return a.EnumChoices
+		// An attribute can accept fewer values than its enum: the validator of a released
+		// attribute states them. A value that the validator refuses is no value to set.
+		accepted := enumValues(a)
+		if len(accepted) == 0 {
+			return a.EnumChoices
+		}
+		return slices.DeleteFunc(slices.Clone(a.EnumChoices), func(o enumOption) bool { return !slices.Contains(accepted, o.TF) })
 	}
 	var out []enumOption
 	for _, v := range enumValues(a) {

@@ -323,3 +323,33 @@ func TestSweepSetsTheValuesOfADroppedElementLater(t *testing.T) {
 		t.Errorf("no config sets %d modes, and the sweep took them as set: %v", len(missing), missing)
 	}
 }
+
+// An attribute can accept fewer values than its enum. The sweep sets only the values that the
+// validator of the attribute accepts.
+func TestSweepSetsOnlyTheValuesThatTheValidatorAccepts(t *testing.T) {
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "direction", Kind: "String", Optional: true, EnumSchema: "Direction", Validators: []string{`stringvalidator.OneOf("asc", "desc")`},
+			EnumChoices: []enumOption{{"DIR_ASC", "asc"}, {"DIR_DESC", "desc"}, {"DIR_NONE", "none"}}},
+	}}
+	s := testSynth(t, "")
+	s.cov = map[string]bool{}
+	full, _, err := s.attrs(res.Attributes, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps, err := s.sweepSteps(res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := full
+	for _, step := range steps {
+		all += "\n" + step.Config
+	}
+	if strings.Contains(all, `"none"`) {
+		t.Errorf("a config sets none, and the validator refuses it:\n%s", all)
+	}
+	if !strings.Contains(all, `direction = "desc"`) {
+		t.Errorf("no config sets desc:\n%s", all)
+	}
+}
