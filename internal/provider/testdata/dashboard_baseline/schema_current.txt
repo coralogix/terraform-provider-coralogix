@@ -132,8 +132,8 @@ annotations[].source.event_recurrence.strategy.instant.start_time_hour  Int64Att
 annotations[].source.logs  SingleNestedAttribute optional
     markdown: "Logs source."
 annotations[].source.logs.data_mode_type  StringAttribute optional computed
-    default: stringdefault.staticStringDefault value defaults to unspecified
-    markdown: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"]."
+    markdown: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
     validator: stringvalidator.oneOfValidator value must be one of: ["archive" "unspecified"]
 annotations[].source.logs.label_fields  ListNestedAttribute optional
     markdown: "The label fields."
@@ -276,8 +276,8 @@ annotations[].source.metrics.strategy.start_time  SingleNestedAttribute optional
 annotations[].source.spans  SingleNestedAttribute optional
     markdown: "Spans source."
 annotations[].source.spans.data_mode_type  StringAttribute optional computed
-    default: stringdefault.staticStringDefault value defaults to unspecified
-    markdown: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"]."
+    markdown: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
     validator: stringvalidator.oneOfValidator value must be one of: ["archive" "unspecified"]
 annotations[].source.spans.label_fields  ListNestedAttribute optional
     markdown: "The label fields."

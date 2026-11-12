@@ -103,7 +103,7 @@ annotations.source.event_recurrence.strategy.instant.start_time_hour  tftypes.Nu
 annotations.source.logs  nested SINGLE computed
     description: Logs source.
 annotations.source.logs.data_mode_type  tftypes.String computed
-    description: Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "unspecified"].
+    description: Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.
 annotations.source.logs.label_fields  nested LIST computed
     description: The label fields.
 annotations.source.logs.label_fields.keypath  tftypes.List[tftypes.String] computed
@@ -213,7 +213,7 @@ annotations.source.metrics.strategy.start_time  nested SINGLE computed
 annotations.source.spans  nested SINGLE computed
     description: Spans source.
 annotations.source.spans.data_mode_type  tftypes.String computed
-    description: Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "unspecified"].
+    description: Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.
 annotations.source.spans.label_fields  nested LIST computed
     description: The label fields.
 annotations.source.spans.label_fields.keypath  tftypes.List[tftypes.String] computed

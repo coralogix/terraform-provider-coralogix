@@ -1569,7 +1569,7 @@ Required:
 
 Optional:
 
-- `data_mode_type` (String) Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "unspecified"].
+- `data_mode_type` (String) Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.
 - `label_fields` (Attributes List) The label fields. (see [below for nested schema](#nestedatt--annotations--source--logs--label_fields))
 - `lucene_query` (String) Lucene query.
 - `message_template` (String) The message template.
@@ -1777,7 +1777,7 @@ Required:
 
 Optional:
 
-- `data_mode_type` (String) Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "unspecified"].
+- `data_mode_type` (String) Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.
 - `label_fields` (Attributes List) The label fields. (see [below for nested schema](#nestedatt--annotations--source--spans--label_fields))
 - `lucene_query` (String) Lucene query.
 - `message_template` (String) The message template.

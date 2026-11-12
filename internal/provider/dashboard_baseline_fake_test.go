@@ -248,6 +248,13 @@ func (f *dashboardFake) forget(id string) {
 	delete(f.policies, id)
 }
 
+// edit changes the dashboard that the API holds, as if it was changed outside Terraform.
+func (f *dashboardFake) edit(id string, change func(dashboard map[string]any)) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	change(f.dashboards[id])
+}
+
 // stored returns a copy of the dashboard as the API holds it.
 func (f *dashboardFake) stored(id string) map[string]any {
 	f.mu.Lock()

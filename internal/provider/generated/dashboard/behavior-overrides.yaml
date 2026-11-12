@@ -1574,7 +1574,7 @@ types:
       timeFrame: {requireOne: true}
   ListValue: {fields: {values: {required: true}}}
   LogsQuery.Aggregation: {fields: {aggregation: {required: true}, id: {computed: true, useNonNullStateForUnknown: true}, isVisible: {computed: true, default: true}}}
-  LogsSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, default: unspecified, validators: [{enum: true}], enumAs: annotation}}}
+  LogsSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, useNonNullStateForUnknown: true, validators: [{enum: true}], enumAs: annotation, markdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."}}}
   LogsSource.Strategy.Duration: {fields: {durationField: {required: true}, startTimestampField: {required: true}}}
   LogsSource.Strategy.Instant: {fields: {timestampField: {required: true}}}
   LogsSource.Strategy.Range: {fields: {endTimestampField: {required: true}, startTimestampField: {required: true}}}
@@ -1687,7 +1687,7 @@ types:
         validators:
         - {enum: true}
   SpansFilter: {fields: {operator: {required: true}}}
-  SpansSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, default: unspecified, validators: [{enum: true}], enumAs: annotation}}}
+  SpansSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, useNonNullStateForUnknown: true, validators: [{enum: true}], enumAs: annotation, markdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."}}}
   SpansSource.Strategy.Duration: {fields: {durationField: {required: true}, startTimestampField: {required: true}}}
   SpansSource.Strategy.Instant: {fields: {timestampField: {required: true}}}
   SpansSource.Strategy.Range: {fields: {endTimestampField: {required: true}, startTimestampField: {required: true}}}

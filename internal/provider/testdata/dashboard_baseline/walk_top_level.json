@@ -96,7 +96,6 @@
             },
             "source": {
               "logs": {
-                "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
                 "labelFields": [
                   {
                     "keypath": [
@@ -195,7 +194,6 @@
             },
             "source": {
               "spans": {
-                "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
                 "labelFields": [
                   {
                     "keypath": [

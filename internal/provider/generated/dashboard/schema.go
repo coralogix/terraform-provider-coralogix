@@ -396,11 +396,13 @@ func Schema() schema.Schema {
 										"data_mode_type": schema.StringAttribute{
 											Optional: true,
 											Computed: true,
-											Default:  stringdefault.StaticString("unspecified"),
 											Validators: []validator.String{
 												stringvalidator.OneOf("archive", "unspecified"),
 											},
-											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"].",
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseNonNullStateForUnknown(),
+											},
+											MarkdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.",
 										},
 										"label_fields": schema.ListNestedAttribute{
 											Optional: true,
@@ -754,11 +756,13 @@ func Schema() schema.Schema {
 										"data_mode_type": schema.StringAttribute{
 											Optional: true,
 											Computed: true,
-											Default:  stringdefault.StaticString("unspecified"),
 											Validators: []validator.String{
 												stringvalidator.OneOf("archive", "unspecified"),
 											},
-											MarkdownDescription: "Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: [\"archive\" \"unspecified\"].",
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseNonNullStateForUnknown(),
+											},
+											MarkdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.",
 										},
 										"label_fields": schema.ListNestedAttribute{
 											Optional: true,

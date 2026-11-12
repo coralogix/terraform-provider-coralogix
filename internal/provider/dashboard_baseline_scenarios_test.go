@@ -135,6 +135,31 @@ var dashboardMoreScenarios = map[string]func(*grHarness){
 		s = h.RefreshPlan("refresh and plan after removing them", s)
 		h.Destroy("destroy", s)
 	},
+	// data_mode_type of a logs annotation is new. A dashboard that was changed outside Terraform to read
+	// the archive keeps it when the configuration does not name the attribute, as it did before the
+	// attribute existed. Setting unspecified resets it.
+	"annotation-data-mode": func(h *grHarness) {
+		annotation := func(mode any) j {
+			logs := j{"strategy": j{"instant": j{"timestamp_field": j{"keypath": []any{"timestamp"}, "scope": "metadata"}}}}
+			if mode != nil {
+				logs["data_mode_type"] = mode
+			}
+			return j{"name": "logs annotation", "source": j{"logs": logs}}
+		}
+		cfg := dashboardWith(dashboardConfig(), j{"annotations": []any{annotation(nil)}})
+		s := h.Apply("create with a logs annotation", h.null(), cfg)
+		h.dashboards().edit(idOf(s), func(dashboard map[string]any) {
+			annotations := dashboard["annotations"].([]any)
+			annotations[0].(map[string]any)["source"].(map[string]any)["logs"].(map[string]any)["dataModeType"] = "DATA_MODE_TYPE_ARCHIVE"
+		})
+		s = h.RefreshPlan("refresh and plan after the API switched the annotation to archive", s)
+		cfg = dashboardWith(cfg, j{"name": "renamed"})
+		s = h.Apply("update an unrelated attribute", s, cfg)
+		cfg = dashboardWith(cfg, j{"annotations": []any{annotation("unspecified")}})
+		s = h.Apply("reset the data mode to unspecified", s, cfg)
+		s = h.RefreshPlan("refresh and plan after the reset", s)
+		h.Destroy("destroy", s)
+	},
 	"variables-v2": func(h *grHarness) {
 		variable := func(value string) j {
 			return j{"name": "environment", "display_name": "Environment",
