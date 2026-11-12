@@ -46,8 +46,9 @@ make generate >&2
 # The protocol baseline tests of internal/provider compare the schemas and requests of the generated
 # resources and data sources with golden files, so a schema change also changes those files. The
 # pull request shows their diff for review. A failing test that is not a golden comparison still
-# stops the regeneration.
-UPDATE_GOLDEN=1 go test ./internal/provider -count=1 >&2
+# stops the regeneration. The pull request build splits these tests into several jobs, but here they
+# run in one process and take longer than the default limit of 10 minutes.
+UPDATE_GOLDEN=1 go test ./internal/provider -count=1 -timeout=45m >&2
 
 # changelog_entries adds the entries of one doc kind (resources or data-sources) of a resource and
 # counts them in entries. It is not called in a command substitution: there, set -e would not stop
