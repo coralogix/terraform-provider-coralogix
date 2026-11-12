@@ -2547,7 +2547,7 @@ resource "coralogix_dashboard" "test_3" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             spans = {
@@ -2718,7 +2718,7 @@ resource "coralogix_dashboard" "test_3" {
                         name = "@{run}-name"
                         query = {
                           data_prime = {
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                             filters = [
                               {
                                 spans = {
@@ -2831,7 +2831,7 @@ resource "coralogix_dashboard" "test_3" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -3066,7 +3066,7 @@ resource "coralogix_dashboard" "test_4" {
                     min_slice_percentage = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             spans = {
@@ -3219,7 +3219,7 @@ resource "coralogix_dashboard" "test_4" {
                     }
                     query = {
                       data_prime = {
-                        query = "@{run}-query-2"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             spans = {
@@ -3367,7 +3367,7 @@ resource "coralogix_dashboard" "test_4" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-3"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             spans = {
@@ -3758,7 +3758,7 @@ resource "coralogix_dashboard" "test_5" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query-3"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4097,7 +4097,7 @@ resource "coralogix_dashboard" "test_6" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4568,7 +4568,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4649,7 +4649,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4731,7 +4731,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4816,7 +4816,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4899,7 +4899,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -4983,7 +4983,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5072,7 +5072,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5153,7 +5153,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5439,7 +5439,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5523,7 +5523,7 @@ resource "coralogix_dashboard" "test_7" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5741,7 +5741,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5829,7 +5829,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -5903,7 +5903,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6099,7 +6099,7 @@ resource "coralogix_dashboard" "test_8" {
                     max_bars_per_chart = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-5"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             spans = {
@@ -6250,7 +6250,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6329,7 +6329,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6408,7 +6408,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6487,7 +6487,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6566,7 +6566,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6645,7 +6645,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -6950,7 +6950,7 @@ resource "coralogix_dashboard" "test_9" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -8090,7 +8090,7 @@ const variant2Config = `resource "coralogix_dashboard" "test" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -8191,7 +8191,7 @@ const variant2Config = `resource "coralogix_dashboard" "test" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval-2"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -8372,7 +8372,7 @@ resource "coralogix_dashboard" "test_2" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -8451,7 +8451,7 @@ resource "coralogix_dashboard" "test_2" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -8530,7 +8530,7 @@ resource "coralogix_dashboard" "test_2" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -8609,7 +8609,7 @@ resource "coralogix_dashboard" "test_2" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -8889,7 +8889,7 @@ resource "coralogix_dashboard" "test_2" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -9291,7 +9291,7 @@ resource "coralogix_dashboard" "test_3" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -9474,7 +9474,7 @@ resource "coralogix_dashboard" "test_3" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -9553,7 +9553,7 @@ resource "coralogix_dashboard" "test_3" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -9632,7 +9632,7 @@ resource "coralogix_dashboard" "test_3" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -9812,7 +9812,7 @@ resource "coralogix_dashboard" "test_3" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -9894,7 +9894,7 @@ resource "coralogix_dashboard" "test_3" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -10112,7 +10112,7 @@ resource "coralogix_dashboard" "test_4" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -10372,7 +10372,7 @@ resource "coralogix_dashboard" "test_4" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -10457,7 +10457,7 @@ resource "coralogix_dashboard" "test_4" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -10542,7 +10542,7 @@ resource "coralogix_dashboard" "test_4" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -10942,7 +10942,7 @@ resource "coralogix_dashboard" "test_4" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -11457,7 +11457,7 @@ resource "coralogix_dashboard" "test_5" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -11812,7 +11812,7 @@ resource "coralogix_dashboard" "test_5" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -14882,7 +14882,7 @@ resource "coralogix_dashboard" "test_8" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -14910,7 +14910,7 @@ resource "coralogix_dashboard" "test_8" {
                         name = "@{run}-name-2"
                         query = {
                           data_prime = {
-                            query = "@{run}-query-2"
+                            query = "source logs | limit 1"
                             filters = [
                               {
                                 logs = {
@@ -14936,7 +14936,7 @@ resource "coralogix_dashboard" "test_8" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval-2"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -14964,7 +14964,7 @@ resource "coralogix_dashboard" "test_8" {
                         name = "@{run}-name-3"
                         query = {
                           data_prime = {
-                            query = "@{run}-query-3"
+                            query = "source logs | limit 1"
                             filters = [
                               {
                                 logs = {
@@ -14990,7 +14990,7 @@ resource "coralogix_dashboard" "test_8" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval-3"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -15018,7 +15018,7 @@ resource "coralogix_dashboard" "test_8" {
                         name = "@{run}-name-4"
                         query = {
                           data_prime = {
-                            query = "@{run}-query-4"
+                            query = "source logs | limit 1"
                             filters = [
                               {
                                 logs = {
@@ -15044,7 +15044,7 @@ resource "coralogix_dashboard" "test_8" {
                         }
                         resolution = {
                           buckets_presented = 1
-                          interval = "@{run}-interval-4"
+                          interval = "seconds:60"
                         }
                         scale_type = "linear"
                         series_count_limit = 1
@@ -15527,7 +15527,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -15608,7 +15608,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -15689,7 +15689,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -15770,7 +15770,7 @@ resource "coralogix_dashboard" "test_8" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -16194,7 +16194,7 @@ resource "coralogix_dashboard" "test_9" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -16278,7 +16278,7 @@ resource "coralogix_dashboard" "test_9" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -16362,7 +16362,7 @@ resource "coralogix_dashboard" "test_9" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -16446,7 +16446,7 @@ resource "coralogix_dashboard" "test_9" {
                         query = {
                           data_prime = {
                             data_mode_type = "archive"
-                            query = "@{run}-query"
+                            query = "source logs | limit 1"
                           }
                         }
                       },
@@ -16542,7 +16542,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-7"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
@@ -16619,7 +16619,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-8"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
@@ -16696,7 +16696,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-9"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
@@ -16773,7 +16773,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-10"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
@@ -16850,7 +16850,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-11"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
@@ -16927,7 +16927,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query-12"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
@@ -17009,7 +17009,7 @@ resource "coralogix_dashboard" "test_9" {
                     min = 1
                     query = {
                       data_prime = {
-                        query = "@{run}-query"
+                        query = "source logs | limit 1"
                         filters = [
                           {
                             logs = {
