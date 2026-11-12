@@ -91,9 +91,8 @@ data "coralogix_ip_access" "without_id" {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             checkIpAccessGeneratedLiveDestroy(base, apiKey),
+		PreCheck:     func() { testAccPreCheck(t) },
+		CheckDestroy: checkIpAccessGeneratedLiveDestroy(base, apiKey),
 		Steps: []resource.TestStep{
 			{
 				Config: resourceConfig(firstRange, false),
@@ -120,7 +119,8 @@ data "coralogix_ip_access" "without_id" {
 				),
 			},
 			{
-				Config: resourceConfig(firstRange, false),
+				Config:                   resourceConfig(firstRange, false),
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(ipAccessGeneratedResourceAddress, "id"),
 					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "enable_coralogix_customer_support_access", "disabled"),
@@ -131,7 +131,8 @@ data "coralogix_ip_access" "without_id" {
 				),
 			},
 			{
-				Config: resourceConfig(updatedRange, false),
+				Config:                   resourceConfig(updatedRange, false),
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.#", "1"),
 					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.0.ip_range", updatedRange),
@@ -139,7 +140,8 @@ data "coralogix_ip_access" "without_id" {
 				),
 			},
 			{
-				Config: resourceConfig(updatedRange, true),
+				Config:                   resourceConfig(updatedRange, true),
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrPair("data.coralogix_ip_access.by_id", "id", ipAccessGeneratedResourceAddress, "id"),
 					resource.TestCheckResourceAttr("data.coralogix_ip_access.by_id", "ip_access.#", "1"),
@@ -147,9 +149,10 @@ data "coralogix_ip_access" "without_id" {
 				),
 			},
 			{
-				ResourceName:      ipAccessGeneratedResourceAddress,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ResourceName:             ipAccessGeneratedResourceAddress,
+				ImportState:              true,
+				ImportStateVerify:        true,
 			},
 		},
 	})
