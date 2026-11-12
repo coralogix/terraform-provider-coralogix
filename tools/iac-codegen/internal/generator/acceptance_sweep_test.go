@@ -353,3 +353,137 @@ func TestSweepSetsOnlyTheValuesThatTheValidatorAccepts(t *testing.T) {
 		t.Errorf("no config sets desc:\n%s", all)
 	}
 }
+
+func sweepAll(t *testing.T, res *tfResource) (string, error) {
+	t.Helper()
+	s := testSynth(t, "")
+	s.cov = map[string]bool{}
+	full, _, err := s.attrs(res.Attributes, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps, err := s.sweepSteps(res)
+	all := full
+	for _, step := range steps {
+		all += "\n" + step.Config
+	}
+	return all, err
+}
+
+// A branch with an enum value left outranked a branch with only arms below it, so the sweep took the
+// first branch again and again, and ended before it set the arms of the other. The arms below a
+// branch count as much as an arm at the branch.
+func TestSweepReachesTheArmsBelowABranch(t *testing.T) {
+	const top, inner = "one,two", "a,b"
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "one", Kind: "SingleNested", Optional: true, OneOfGroup: top, Component: "Top", Property: "one", Attributes: []*tfAttr{
+			{Name: "mode", Kind: "String", Optional: true, EnumSchema: "Mode", EnumChoices: []enumOption{{"M_X", "x"}, {"M_Y", "y"}}},
+		}},
+		{Name: "two", Kind: "SingleNested", Optional: true, OneOfGroup: top, Component: "Top", Property: "two", Attributes: []*tfAttr{
+			{Name: "a", Kind: "SingleNested", Optional: true, OneOfGroup: inner, Component: "Inner", Property: "a", Attributes: []*tfAttr{{Name: "size", Kind: "Int64", Optional: true}}},
+			{Name: "b", Kind: "SingleNested", Optional: true, OneOfGroup: inner, Component: "Inner", Property: "b", Attributes: []*tfAttr{{Name: "size", Kind: "Int64", Optional: true}}},
+		}},
+	}}
+	all, err := sweepAll(t, res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"two = {", "a = {", "b = {", `mode = "y"`} {
+		if !strings.Contains(all, want) {
+			t.Errorf("no config sets %s:\n%s", want, all)
+		}
+	}
+}
+
+// An arm that a required arm keeps out of its group cannot be set. It must not count as a gain, else
+// its branch outranks the others for good and they are never set.
+func TestSweepIgnoresArmsThatARequiredArmKeepsOut(t *testing.T) {
+	const top, inner = "query,static", "name,value"
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: []*tfAttr{
+		{Name: "title", Kind: "String", Required: true},
+		{Name: "query", Kind: "SingleNested", Optional: true, OneOfGroup: top, Component: "Top", Property: "query", Attributes: []*tfAttr{
+			{Name: "name", Kind: "SingleNested", Optional: true, OneOfGroup: inner, Component: "Inner", Property: "name", Attributes: []*tfAttr{{Name: "x", Kind: "Int64", Optional: true}}},
+			{Name: "value", Kind: "SingleNested", Required: true, OneOfGroup: inner, Component: "Inner", Property: "value", Attributes: []*tfAttr{{Name: "y", Kind: "Int64", Optional: true}}},
+		}},
+		{Name: "static", Kind: "SingleNested", Optional: true, OneOfGroup: top, Component: "Top", Property: "static", Attributes: []*tfAttr{{Name: "z", Kind: "Int64", Optional: true}}},
+	}}
+	all, err := sweepAll(t, res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(all, "static = {") {
+		t.Errorf("no config sets static:\n%s", all)
+	}
+	if strings.Contains(all, "name = {") {
+		t.Errorf("a config sets name, and the required arm value owns the group:\n%s", all)
+	}
+}
+
+// A list or set of enum strings of a new resource keeps the validator in ElemValidators. The sweep
+// sets each value of it, one value in each copy.
+func TestSweepSetsEveryValueOfAListOfEnums(t *testing.T) {
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "tags", Kind: "List", ElementType: "types.StringType", Optional: true, ElemValidators: []string{`stringvalidator.OneOf("a", "b", "c")`}},
+	}}
+	all, err := sweepAll(t, res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`tags = ["a"]`, `tags = ["b"]`, `tags = ["c"]`} {
+		if !strings.Contains(all, want) {
+			t.Errorf("no config sets %s:\n%s", want, all)
+		}
+	}
+}
+
+// When the sweep ends, an arm or an enum value that no config set and that no skip names is an error.
+func TestSweepFailsWhenAValueStaysOut(t *testing.T) {
+	res := sweepResource()
+	s := testSynth(t, "")
+	s.cov = map[string]bool{}
+	if err := s.leftOut(res.Attributes); err == nil || !strings.Contains(err.Error(), `"seconds"`) {
+		t.Fatalf("got %v, want an error that names the value seconds", err)
+	}
+	s = testSynth(t, "skipValues:\n  Unit:\n    values: [UNIT_BYTES, UNIT_SECONDS, UNIT_PERCENT]\n    reason: test\n  Slice:\n    values: [SLICE_SMALL, SLICE_BIG]\n    reason: test\n  State:\n    values: [STATE_ONE, STATE_TWO]\n    reason: test\nskipChoices:\n  Chart:\n    choices: [line, pie, gauge]\n    reason: test\n")
+	s.cov = map[string]bool{}
+	if err := s.leftOut(res.Attributes); err != nil {
+		t.Fatalf("got %v, want no error when the file skips all", err)
+	}
+}
+
+// stepCopies limits the copies of a step, and gives each step a subtest of its own: it applies the
+// full config and then the step. Without the key, one subtest holds all steps.
+func TestGeneratedSweepSplitsStepsWithStepCopies(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	generate := func(acceptanceText string) string {
+		t.Helper()
+		dir := t.TempDir()
+		options := Options{Resource: "Thing", OutputDir: filepath.Join(dir, "thing"), AcceptancePath: filepath.Join(dir, "acceptance.yaml")}
+		if err := os.WriteFile(options.AcceptancePath, []byte(acceptanceText), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := generateFromInput(options, input, sdkDir); err != nil {
+			t.Fatal(err)
+		}
+		text, err := os.ReadFile(filepath.Join(options.OutputDir, "acceptance_test.go"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(text)
+	}
+	whole := generate("resource: Thing\n")
+	if !strings.Contains(whole, `t.Run("values-and-choices",`) || strings.Contains(whole, "values-and-choices-1") {
+		t.Fatalf("without stepCopies, one subtest holds all steps:\n%s", whole)
+	}
+	split := generate("resource: Thing\nstepCopies: 1\n")
+	for _, want := range []string{`t.Run("values-and-choices-1",`, `t.Run("values-and-choices-2",`, "{Config: config(run, fullConfig), Check: fullChecks(run)},\n\t\t\t\t{Config: config(run, variant1Config)},"} {
+		if !strings.Contains(split, want) {
+			t.Errorf("with stepCopies, the test lacks %s:\n%s", want, split)
+		}
+	}
+	if strings.Contains(split, `t.Run("values-and-choices",`) {
+		t.Error("with stepCopies, no subtest holds all steps")
+	}
+}

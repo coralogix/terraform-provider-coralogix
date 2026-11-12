@@ -77,9 +77,21 @@ env:
   DASHBOARD_SHARD_PARITY_FIELDS: &dashboard_shard_parity_fields '^TestAccCoralogixResourceDashboard(LineChart|BarChart|Gauge|PieChart)ParityFields$'
   DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS: &dashboard_shard_actions_sections_and_annotations '^TestAccCoralogixResourceDashboard(WidgetCustomActions|SectionOptionBranches|AccessPolicyAddedLater|MetricAnnotationOrientation|AnnotationScope|DataprimeAnnotation|EventRecurrenceAnnotation)$'
   DASHBOARD_SHARD_VARIABLES_V2: &dashboard_shard_variables_v2 '^TestAccCoralogixResourceDashboardVariablesV2'
-  # The generated dashboard test sends every widget kind and every enum value, in copies of the resource. It takes
-  # about 8 minutes, so it has its own shard. Its upgrade test stays in the generated-upgrade shard.
+  # The generated dashboard test sends every widget kind and every enum value, in copies of the resource. The
+  # API is slow to make a dashboard, so the test has a subtest for each step of the sweep, and each
+  # step runs in a job of its own, so that a job takes about 5 minutes. The generator splits the steps
+  # (stepCopies in the acceptance file of the dashboard). The catch-all job skips the parent test. The
+  # last shard takes any step after the ninth: the coverage check fails when a step runs nowhere.
   DASHBOARD_SHARD_GENERATED: &dashboard_shard_generated '^TestAccCoralogixResourceDashboardGenerated$'
+  DASHBOARD_SHARD_GENERATED_LIFECYCLE: &dashboard_shard_generated_lifecycle '^TestAccCoralogixResourceDashboardGenerated$/^(full|minimal)-lifecycle$'
+  DASHBOARD_SHARD_GENERATED_STEP_1: &dashboard_shard_generated_step_1 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-1$'
+  DASHBOARD_SHARD_GENERATED_STEP_2: &dashboard_shard_generated_step_2 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-2$'
+  DASHBOARD_SHARD_GENERATED_STEP_3: &dashboard_shard_generated_step_3 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-3$'
+  DASHBOARD_SHARD_GENERATED_STEP_4: &dashboard_shard_generated_step_4 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-4$'
+  DASHBOARD_SHARD_GENERATED_STEP_5: &dashboard_shard_generated_step_5 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-5$'
+  DASHBOARD_SHARD_GENERATED_STEP_6: &dashboard_shard_generated_step_6 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-6$'
+  DASHBOARD_SHARD_GENERATED_STEP_7: &dashboard_shard_generated_step_7 '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-7$'
+  DASHBOARD_SHARD_GENERATED_STEP_MORE: &dashboard_shard_generated_step_more '^TestAccCoralogixResourceDashboardGenerated$/^values-and-choices-([89]|[1-9][0-9]+)$'
   # Together these two match what the old alerts-and-integrations shard matched. A test that
   # matches both, such as TestAccCoralogixAlertWebhooksNotifyOnMandatory, is an alert test: the
   # notification-center shard skips the alerts pattern.
@@ -350,8 +362,24 @@ jobs:
             pattern: *dashboard_shard_actions_sections_and_annotations
           - shard: variables-v2
             pattern: *dashboard_shard_variables_v2
-          - shard: generated
-            pattern: *dashboard_shard_generated
+          - shard: generated-lifecycle
+            pattern: *dashboard_shard_generated_lifecycle
+          - shard: generated-step-1
+            pattern: *dashboard_shard_generated_step_1
+          - shard: generated-step-2
+            pattern: *dashboard_shard_generated_step_2
+          - shard: generated-step-3
+            pattern: *dashboard_shard_generated_step_3
+          - shard: generated-step-4
+            pattern: *dashboard_shard_generated_step_4
+          - shard: generated-step-5
+            pattern: *dashboard_shard_generated_step_5
+          - shard: generated-step-6
+            pattern: *dashboard_shard_generated_step_6
+          - shard: generated-step-7
+            pattern: *dashboard_shard_generated_step_7
+          - shard: generated-step-more
+            pattern: *dashboard_shard_generated_step_more
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

@@ -160,3 +160,8 @@ maxElements:
   layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].query.spans.aggregations: 1
   layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations: 1
   layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations: 1
+
+# A dashboard takes the API long to make, and the time of the values-and-choices subtest grows with the
+# number of dashboards. Three copies in a step, and a subtest for each step, let CI run the steps in
+# jobs of their own (see the generated shards of acceptance-tests.yml).
+stepCopies: 3

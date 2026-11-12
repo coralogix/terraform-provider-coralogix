@@ -450,7 +450,9 @@ const variant1Config = `resource "coralogix_alerts_scheduler" "test" {
     recurring = {
       dynamic = {
         frequency = {
-          daily = {}
+          weekly = {
+            days = ["Friday"]
+          }
         }
         repeat_every = 1
         termination_date = "2031-01-01T00:00:00.000"
@@ -485,14 +487,21 @@ resource "coralogix_alerts_scheduler" "test_2" {
   ]
   name = "@{run}-scheduler"
   schedule = {
-    one_time = {
-      time_frame = {
-        duration = {
-          for_over = 1
-          frequency = "minutes"
+    recurring = {
+      dynamic = {
+        frequency = {
+          daily = {}
         }
-        start_time = "2030-01-01T00:00:00.000"
-        time_zone = "UTC+0"
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "minutes"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
       }
     }
     operation = "mute"
@@ -519,14 +528,308 @@ resource "coralogix_alerts_scheduler" "test_3" {
   ]
   name = "@{run}-scheduler"
   schedule = {
-    one_time = {
-      time_frame = {
-        duration = {
-          for_over = 1
-          frequency = "hours"
+    recurring = {
+      dynamic = {
+        frequency = {
+          monthly = {
+            days = [1]
+          }
         }
-        start_time = "2030-01-01T00:00:00.000"
-        time_zone = "UTC+0"
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "hours"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_4" {
+  description = "@{run}-description-4"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      always_active = true
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_5" {
+  description = "@{run}-description-5"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Monday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "days"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_6" {
+  description = "@{run}-description-6"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Saturday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "days"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_7" {
+  description = "@{run}-description-7"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Sunday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "days"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_8" {
+  description = "@{run}-description-8"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Thursday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "days"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_9" {
+  description = "@{run}-description-9"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Tuesday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "days"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_10" {
+  description = "@{run}-description-10"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Wednesday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "days"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
       }
     }
     operation = "mute"

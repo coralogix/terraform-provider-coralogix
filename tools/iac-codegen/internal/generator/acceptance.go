@@ -61,6 +61,8 @@ type acceptanceData struct {
 	// Variants are the configs after the full config in the values-and-choices subtest: each sets
 	// the enum values and the oneOf arms that no earlier config set. Empty: no subtest.
 	Variants []*accStep
+	// SplitSteps: each variant is a subtest of its own, values-and-choices-N.
+	SplitSteps bool
 	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
 	UpgradeMinimal *accStep
 	// UpgradeFull is the full config without the attributes that the released provider does not
@@ -228,6 +230,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		return nil, err
 	}
 	out.Variants = variants
+	out.SplitSteps = file.StepCopies > 0
 	out.Minimal.Absent = s.absent(res.Attributes)
 	defaults, kept := s.removed(res.Attributes, out.Full.Checks)
 	out.Minimal.Checks = append(out.Minimal.Checks, defaults...)
@@ -1262,7 +1265,13 @@ const oneOfCall = "stringvalidator.OneOf("
 // value "unspecified" when others exist.
 func enumValues(a *tfAttr) []string {
 	var values []string
-	for _, v := range a.Validators {
+	validators := a.Validators
+	if a.Kind == "List" || a.Kind == "Set" {
+		// The validator of the elements sits in ElemValidators, and the schema wraps it with
+		// ValueStringsAre at the collection.
+		validators = append(slices.Clone(validators), a.ElemValidators...)
+	}
+	for _, v := range validators {
 		if !strings.HasPrefix(v, oneOfCall) && !strings.HasPrefix(v, "stringvalidator.Any("+oneOfCall) {
 			continue
 		}

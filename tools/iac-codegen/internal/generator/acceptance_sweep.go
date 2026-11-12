@@ -127,10 +127,21 @@ func (s *accSynth) gain(a *tfAttr, key string) int {
 	if a.Kind == "ListNested" || a.Kind == "SetNested" {
 		below = key + "[]"
 	}
+	taken := s.requiredArms(a.Attributes, below, accFull, false)
 	for _, c := range a.Attributes {
-		g += s.gain(c, joinPath(below, c.Name))
+		childKey := joinPath(below, c.Name)
+		g += s.gain(c, childKey)
+		if !taken[c.OneOfGroup] && s.armToSweep(c, childKey) && !s.cov[armCoverKey(c)] {
+			g += sweepArmWeight // an arm below that no config has set outweighs the enum values
+		}
 	}
 	return g
+}
+
+// armToSweep reports whether the sweep sets the attribute as an arm of a oneOf group: it is an arm
+// that the config includes, that the file and the resource leave in, and that the test can make.
+func (s *accSynth) armToSweep(a *tfAttr, key string) bool {
+	return a.OneOfGroup != "" && !a.Required && s.include(a, key, accFull, false) && !s.skippedArm(a) && !refused(a) && s.canMake(a, key, accFull)
 }
 
 // armPicks chooses the arm of each oneOf group of the attributes for a step of the sweep. A group
@@ -142,9 +153,10 @@ func (s *accSynth) armPicks(attrs []*tfAttr, key string, mode accMode, top bool)
 	}
 	picks := map[string]*tfAttr{}
 	best := map[string]int{}
+	taken := s.requiredArms(attrs, key, mode, top)
 	for _, a := range attrs {
 		attrKey := joinPath(key, a.Name)
-		if a.OneOfGroup == "" || a.Required || !s.include(a, attrKey, mode, top) || s.skippedArm(a) || refused(a) || !s.canMake(a, attrKey, mode) {
+		if a.OneOfGroup == "" || a.Required || taken[a.OneOfGroup] || !s.include(a, attrKey, mode, top) || s.skippedArm(a) || refused(a) || !s.canMake(a, attrKey, mode) {
 			continue
 		}
 		g := s.gain(a, attrKey)
@@ -188,6 +200,9 @@ const maxStepCopies = 10
 // of the copy.
 func (s *accSynth) sweepCopies(res *tfResource) (string, error) {
 	limit := maxStepCopies
+	if s.file.StepCopies > 0 {
+		limit = min(limit, s.file.StepCopies)
+	}
 	if res.CRUD.Singleton {
 		limit = 1
 	}
@@ -228,7 +243,10 @@ func (s *accSynth) sweepSteps(res *tfResource) ([]*accStep, error) {
 			return nil, err
 		}
 		if len(s.cov) == before {
-			return steps, s.unmadeArms()
+			if err := s.unmadeArms(); err != nil {
+				return steps, err
+			}
+			return steps, s.leftOut(res.Attributes)
 		}
 		steps = append(steps, &accStep{N: len(steps) + 1, Config: config})
 	}
@@ -308,6 +326,71 @@ func (s *accSynth) unmadeArms() error {
 		return nil
 	}
 	return fmt.Errorf("acceptance test: the values-and-choices subtest cannot make a value for %d oneOf arms. For each, add the arm to skipChoices in %s with a reason, or set the values that it needs in values:\n%s", len(lines), acceptance.FileName, strings.Join(lines, "\n"))
+}
+
+// leftOut fails when the sweep ended and an arm or an enum value that the API accepts is still in no
+// config. A value that the file fixes in values, skips in skipValues or skipChoices, or leaves out
+// with skip is the choice of the file. Anything else is a hole: a new arm or value would be in no
+// test, and nobody would see it.
+func (s *accSynth) leftOut(attrs []*tfAttr) error {
+	lines := s.leftOutBelow(attrs, "")
+	if len(lines) == 0 {
+		return nil
+	}
+	slices.Sort(lines)
+	lines = slices.Compact(lines)
+	const shown = 40
+	more := ""
+	if len(lines) > shown {
+		more = fmt.Sprintf("\n  and %d more", len(lines)-shown)
+		lines = lines[:shown]
+	}
+	return fmt.Errorf("acceptance test: the values-and-choices subtest sets none of %d arms or values that the API accepts. For each, add it to skipChoices or skipValues in %s with a reason, or change the file so that the sweep reaches it:\n%s%s", len(lines), acceptance.FileName, strings.Join(lines, "\n"), more)
+}
+
+// leftOutBelow describes what the sweep did not set in the attributes and below them.
+func (s *accSynth) leftOutBelow(attrs []*tfAttr, key string) []string {
+	var lines []string
+	taken := s.requiredArms(attrs, key, accFull, false)
+	for _, a := range attrs {
+		attrKey := joinPath(key, a.Name)
+		if _, fixed := s.file.Values[attrKey]; fixed || !s.include(a, attrKey, accFull, false) {
+			continue // the file writes the value and what is below it, or the config leaves it out
+		}
+		if s.outOfSweep(a, attrKey, taken) {
+			continue // the sweep never sets this arm, so nothing below it is left out
+		}
+		lines = append(lines, s.leftOutHere(a, attrKey)...)
+		below := attrKey
+		if a.Kind == "ListNested" || a.Kind == "SetNested" {
+			below = attrKey + "[]"
+		}
+		lines = append(lines, s.leftOutBelow(a.Attributes, below)...)
+	}
+	return lines
+}
+
+// outOfSweep reports whether the sweep never sets the arm: a required arm owns its group, or the file
+// skips the arm, or the resource refuses it, or the test cannot make it.
+func (s *accSynth) outOfSweep(a *tfAttr, attrKey string, taken map[string]bool) bool {
+	return a.OneOfGroup != "" && !a.Required && (taken[a.OneOfGroup] || s.skippedArm(a) || refused(a) || !s.canMake(a, attrKey, accFull))
+}
+
+// leftOutHere describes the arm and the enum values of one attribute that the sweep did not set.
+func (s *accSynth) leftOutHere(a *tfAttr, attrKey string) []string {
+	var lines []string
+	if a.OneOfGroup != "" && !a.Required && !s.cov[armCoverKey(a)] {
+		lines = append(lines, fmt.Sprintf("  the oneOf arm %s (component %s, arm %s)", attrKey, a.Component, a.Property))
+	}
+	if len(choices(a)) != 0 && slices.Contains([]string{"String", "List", "Set"}, a.Kind) {
+		id := enumID(a, attrKey)
+		for _, o := range choices(a) {
+			if !s.cov[enumCoverKey(id, o.TF)] && !s.skippedValue(a, o) {
+				lines = append(lines, fmt.Sprintf("  the value %q of %s", o.TF, attrKey))
+			}
+		}
+	}
+	return lines
 }
 
 func splitArmKey(id string) (kind, component, property string) {

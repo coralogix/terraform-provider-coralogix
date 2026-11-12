@@ -88,6 +88,12 @@ type File struct {
 	// contract, as in the enums section of behavior-overrides.yaml. A value that the enum does not
 	// have is an error, so the list cannot go stale.
 	SkipValues map[string]SkipValues `yaml:"skipValues"`
+	// StepCopies is the most copies of the resource that one step of the values-and-choices subtest
+	// holds. Setting it also gives each step a subtest of its own, values-and-choices-N, that applies
+	// the full config and then the step, so that CI can run the steps in jobs of their own. Use it
+	// for a resource whose steps take too long together, such as a dashboard: its time grows with
+	// the number of copies, because the API is slow to make one.
+	StepCopies int `yaml:"stepCopies"`
 	// MaxElements maps the path of a list or set of objects, as in values, to the most elements that
 	// the values-and-choices subtest puts in it. Use it for a list that the API limits without
 	// saying so in the contract (exactly one rule), or whose elements must differ in a value that the
@@ -332,6 +338,9 @@ func (f *File) checkSkipLists() error {
 		if err := checkSkip("skipValues."+name, "values", e.Values, e.Reason); err != nil {
 			return err
 		}
+	}
+	if f.StepCopies < 0 {
+		return fmt.Errorf("stepCopies: at least 1, got %d", f.StepCopies)
 	}
 	for _, path := range sortedKeys(f.MaxElements) {
 		if f.MaxElements[path] < 1 {

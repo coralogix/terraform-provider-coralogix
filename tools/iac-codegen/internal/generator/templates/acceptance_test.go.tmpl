@@ -277,6 +277,24 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
 	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
 	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+{{- if .SplitSteps}}
+	//
+	// This resource splits the steps: each is a subtest that applies the full config and then the
+	// step, and CI runs them in jobs of their own.
+{{- range $v := .Variants}}
+	t.Run("values-and-choices-{{$v.N}}", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { {{$.PreCheck "fullConfig"}} },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant{{$v.N}}Config)},
+			},
+		})
+	})
+{{- end}}
+{{- else}}
 	t.Run("values-and-choices", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
@@ -290,6 +308,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 			},
 		})
 	})
+{{- end}}
 {{- end}}
 }
 
