@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 func generateMethodThing(t *testing.T) string {
@@ -129,5 +131,25 @@ func TestUpdateByPOSTIsNoReplace(t *testing.T) {
 	}
 	if strings.Contains(string(resource), "mask string") || strings.Contains(string(resource), ".UpdateMask(") {
 		t.Error("resource.go sends an update mask, but an Update by POST has none")
+	}
+}
+
+// An object that the package compares, such as the item of a set, compares a list or set of strings
+// with equality: caseInsensitive without the case, so the prior item pairs with an API item that has
+// an element in another case.
+func TestSameCheckIgnoresTheCaseOfCaseInsensitiveStrings(t *testing.T) {
+	list := &convField{Conv: convStrings, Collection: "List", SDK: "Names", Equality: overrides.EqualityCaseInsensitive}
+	got, err := sameCheck(list)
+	if err != nil || got != "slices.EqualFunc(a.Names, b.Names, strings.EqualFold)" {
+		t.Errorf("list = %q (%v), want a comparison with strings.EqualFold", got, err)
+	}
+	set := &convField{Conv: convStrings, Collection: "Set", SDK: "Names", Equality: overrides.EqualityCaseInsensitive}
+	got, err = sameCheck(set)
+	if err != nil || got != "sameUnordered(a.Names, b.Names, sameFoldedString)" {
+		t.Errorf("set = %q (%v), want an unordered comparison in any case", got, err)
+	}
+	plain := &convField{Conv: convStrings, Collection: "List", SDK: "Names"}
+	if got, _ = sameCheck(plain); got != "slices.Equal(a.Names, b.Names)" {
+		t.Errorf("plain list = %q, want the exact comparison", got)
 	}
 }

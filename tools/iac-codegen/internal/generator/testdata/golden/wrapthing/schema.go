@@ -228,6 +228,11 @@ func Schema() schema.Schema {
 							Computed:            true,
 							MarkdownDescription: "",
 						},
+						"aliases": schema.SetAttribute{
+							Optional:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "",
+						},
 					},
 				},
 				MarkdownDescription: "",

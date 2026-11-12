@@ -665,6 +665,7 @@ func expandWrapMark(ctx context.Context, p path.Path, m *WrapMarkModel, diags *d
 		out.Link = wrapLinkRefAtWrapMarkLink(inner)
 	}
 	out.Title = expandString(m.Title)
+	out.Aliases = expandStringsSet[string](ctx, p.AtName("aliases"), m.Aliases, diags)
 	return out
 }
 
@@ -683,6 +684,16 @@ func flattenWrapMark(ctx context.Context, p path.Path, v *wrap_things_service.Wr
 		out.Link = types.StringPointerValue(inner)
 	}
 	out.Title = types.StringPointerValue(v.Title)
+	// The API can return an element in another case, so the spelling of the plan or the state stays.
+	var priorElements []attr.Value
+	if prior != nil {
+		priorElements = prior.Aliases.Elements()
+	}
+	out.Aliases = flattenStringsSet(ctx, keepPriorElementCase(priorElements, v.Aliases), diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Aliases) == 0 {
+		out.Aliases = types.SetNull(types.StringType)
+	}
 	out.CreatedAt = flattenTime(v.CreatedAt)
 	return out
 }
@@ -694,6 +705,7 @@ func sameWrapMark(a, b *wrap_things_service.WrapMark) bool {
 		pointerValue(a.Ratio) == pointerValue(b.Ratio) &&
 		pointerValue(unwrapLinkRefAtWrapMarkLink(a.Link)) == pointerValue(unwrapLinkRefAtWrapMarkLink(b.Link)) &&
 		pointerValue(a.Title) == pointerValue(b.Title) &&
+		sameUnordered(a.Aliases, b.Aliases, sameFoldedString) &&
 		pointerValue(a.CreatedAt) == pointerValue(b.CreatedAt)
 }
 
@@ -703,6 +715,7 @@ func wrapMarkAttrTypes() map[string]attr.Type {
 		"ratio":      types.NumberType,
 		"link":       types.StringType,
 		"title":      types.StringType,
+		"aliases":    types.SetType{ElemType: types.StringType},
 		"created_at": types.StringType,
 	}
 }
@@ -1463,6 +1476,12 @@ func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func
 	return out
 }
 
+// sameFoldedString reports whether two strings are equal when the case is ignored. A set with
+// equality: caseInsensitive compares its elements with it.
+func sameFoldedString(a, b *string) bool {
+	return strings.EqualFold(*a, *b)
+}
+
 // pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
 func pointerValue[T any](p *T) T {
 	var zero T
@@ -1519,6 +1538,46 @@ func flattenTime(v *time.Time) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(v.Format(time.RFC3339Nano))
+}
+
+// keepPriorElementCase returns the API elements, each in the spelling of the prior element that
+// differs from it only in case. An element without a prior twin keeps the API spelling. A prior
+// element serves one API element: an exact match first, then the first unused twin, so that two
+// elements that differ only in case keep their own spellings.
+func keepPriorElementCase(prior []attr.Value, api []string) []string {
+	if api == nil {
+		return nil
+	}
+	var spellings []string
+	for _, element := range prior {
+		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
+			spellings = append(spellings, s.ValueString())
+		}
+	}
+	used := make([]bool, len(spellings))
+	out := make([]string, len(api))
+	done := make([]bool, len(api))
+	for i, element := range api {
+		out[i] = element
+		for j, spelled := range spellings {
+			if !used[j] && spelled == element {
+				used[j], done[i] = true, true
+				break
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if !used[j] && strings.EqualFold(spelled, element) {
+				used[j], out[i] = true, spelled
+				break
+			}
+		}
+	}
+	return out
 }
 
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {

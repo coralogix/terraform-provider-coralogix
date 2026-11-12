@@ -1250,6 +1250,14 @@ func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func
 	return out
 }
 {{- end}}
+{{- if .Conv.UsesFoldedSame}}
+
+// sameFoldedString reports whether two strings are equal when the case is ignored. A set with
+// equality: caseInsensitive compares its elements with it.
+func sameFoldedString(a, b *string) bool {
+	return strings.EqualFold(*a, *b)
+}
+{{- end}}
 {{- if .Conv.UsesPriorVia}}
 
 // keepOrderVia is keepOrder for a list whose response items the request does not send. It

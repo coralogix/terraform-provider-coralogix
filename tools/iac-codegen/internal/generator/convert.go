@@ -650,6 +650,22 @@ func (obj *convObject) PositionField() *convField {
 	return nil
 }
 
+// UsesFoldedSame reports whether the comparison of two items of a set compares a set of strings in
+// any case (equality: caseInsensitive on a set inside an object that the package compares).
+func (d *convData) UsesFoldedSame() bool {
+	for _, obj := range d.Objects {
+		if !obj.Same {
+			continue
+		}
+		for _, f := range obj.Fields {
+			if f.Conv == convStrings && f.Collection == "Set" && f.Equality == overrides.EqualityCaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UsesElementCase reports whether a field keeps the spelling of the prior elements of a list or
 // set of strings (equality: caseInsensitive).
 func (d *convData) UsesElementCase() bool {
@@ -3366,6 +3382,14 @@ func sameCheck(f *convField) (string, error) {
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
 	case convStrings, convScalars, convNamedInts, convInts32AsInt64:
+		if f.Conv == convStrings && f.Equality == overrides.EqualityCaseInsensitive {
+			// The API can return an element in another case, so two items with the same elements in
+			// any case are the same item. A set has no order.
+			if f.Collection == "Set" {
+				return "sameUnordered(" + a + ", " + b + ", sameFoldedString)", nil
+			}
+			return "slices.EqualFunc(" + a + ", " + b + ", strings.EqualFold)", nil
+		}
 		if f.Collection == "Set" {
 			break
 		}

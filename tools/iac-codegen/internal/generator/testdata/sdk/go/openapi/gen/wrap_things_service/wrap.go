@@ -37,6 +37,8 @@ type WrapMark struct {
 	Ratio *float64
 	Link  *LinkRef
 	Title *string
+	// Aliases are names that the API can return in another case.
+	Aliases []string
 	// CreatedAt is set by the server: the component is shared by the requests and the response.
 	CreatedAt *time.Time
 }
