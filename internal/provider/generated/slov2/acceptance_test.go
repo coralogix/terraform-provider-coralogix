@@ -541,7 +541,7 @@ resource "coralogix_slo_v2" "test_2" {
       grouping_keys = ["http_method"]
       latency_config = {
         quantile = {
-          percentile = 1.5
+          percentile = 0.9
         }
         threshold = 1.5
         time_window = "5_minutes"
