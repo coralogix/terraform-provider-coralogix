@@ -1387,23 +1387,41 @@ func flattenTimesSet(ctx context.Context, v []time.Time, diags *diag.Diagnostics
 
 {{if .Conv.UsesElementCase -}}
 // keepPriorElementCase returns the API elements, each in the spelling of the prior element that
-// differs from it only in case. An element without a prior twin keeps the API spelling.
+// differs from it only in case. An element without a prior twin keeps the API spelling. A prior
+// element serves one API element: an exact match first, then the first unused twin, so that two
+// elements that differ only in case keep their own spellings.
 func keepPriorElementCase(prior []attr.Value, api []string) []string {
 	if api == nil {
 		return nil
 	}
-	byFold := make(map[string]string, len(prior))
+	var spellings []string
 	for _, element := range prior {
 		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
-			byFold[strings.ToLower(s.ValueString())] = s.ValueString()
+			spellings = append(spellings, s.ValueString())
 		}
 	}
+	used := make([]bool, len(spellings))
 	out := make([]string, len(api))
+	done := make([]bool, len(api))
 	for i, element := range api {
-		if spelled, ok := byFold[strings.ToLower(element)]; ok {
-			element = spelled
-		}
 		out[i] = element
+		for j, spelled := range spellings {
+			if !used[j] && spelled == element {
+				used[j], done[i] = true, true
+				break
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if !used[j] && strings.EqualFold(spelled, element) {
+				used[j], out[i] = true, spelled
+				break
+			}
+		}
 	}
 	return out
 }

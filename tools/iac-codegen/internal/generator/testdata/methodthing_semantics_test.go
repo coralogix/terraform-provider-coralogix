@@ -129,3 +129,26 @@ func TestUpdateSendsTheNewNamesAndTheWrapper(t *testing.T) {
 		t.Errorf("update permissions = %+v, want the two permissions in their wrapper", body.NewPermissions)
 	}
 }
+
+// Two permissions that differ only in case keep their own spellings when the API keeps both: a
+// prior spelling serves one API element, an exact match first.
+func TestReadKeepsTwoSpellingsThatDifferOnlyInCase(t *testing.T) {
+	ctx := context.Background()
+	method_things_service.Created = nil
+	method_things_service.Stored = method_things_service.MethodThing{
+		ThingId: method_things_service.CreatedID, Name: "t", Description: "d", ParentId: 7, ParentName: "Standard",
+		Permissions: []string{"A:READ", "a:read", "b:write"},
+	}
+	r, schemaResp, root := methodSchema(t)
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: thingValue(root, tftypes.NewValue(tftypes.String, nil), "t", "a:read", "A:READ", "b:write")},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: thingValue(root, tftypes.NewValue(tftypes.String, tftypes.UnknownValue), "t", "a:read", "A:READ", "b:write")},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if got := permissionsOf(t, ctx, resp.State); !slices.Equal(got, []string{"A:READ", "a:read", "b:write"}) {
+		t.Errorf("state permissions = %v, want both spellings of a:read", got)
+	}
+}
