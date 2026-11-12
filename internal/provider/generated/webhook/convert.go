@@ -180,7 +180,7 @@ func flatten(ctx context.Context, v *outgoing_webhooks_service.OutgoingWebhook) 
 		diags.AddError("Missing resource", "The API response has no OutgoingWebhook.")
 		return nil, diags
 	}
-	if v.IbmEventNotifications != nil {
+	if v.IbmEventNotifications != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Error flattening webhook", "Unknown webhook type: IBM Event Notifications")
 		return nil, diags
 	}
@@ -988,4 +988,17 @@ func flattenEnumMap[T ~string](ctx context.Context, p path.Path, v map[string]T,
 		invalidEnumElement(p.AtMapKey(key), items[key], zero, diags)
 	}
 	return flattenMap(ctx, types.StringType, items, diags)
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
 }

@@ -22,7 +22,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"dpxl_expression\")] | Attribute \"policies[0].severities\" cannot be specified when \"policies[0].dpxl_expression\" is specified"
+      "error: Invalid Attribute Combination [AttributeName(\"policies\").ElementKeyInt(0)] | These attributes cannot be configured together: `dpxl_expression` and `severities`."
     ],
     "state": null
   },
@@ -43,7 +43,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"dpxl_expression\")] | Attribute \"policies[0].applications\" cannot be specified when \"policies[0].dpxl_expression\" is specified"
+      "error: Invalid Attribute Combination [AttributeName(\"policies\").ElementKeyInt(0)] | These attributes cannot be configured together: `dpxl_expression` and `applications`."
     ],
     "state": null
   },

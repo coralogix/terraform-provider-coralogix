@@ -321,13 +321,15 @@ func Schema() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"environment": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_keys", "static_values"}, Required: true}}},
+						},
 						Attributes: map[string]schema.Attribute{
 							"label_keys": schema.ListAttribute{
 								Optional:    true,
 								ElementType: types.StringType,
 								Validators: []validator.List{
 									listvalidator.SizeAtLeast(1),
-									listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("static_values")),
 								},
 								MarkdownDescription: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.",
 							},
@@ -341,7 +343,6 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.List{
 									listvalidator.SizeAtLeast(1),
-									listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("label_keys")),
 								},
 								MarkdownDescription: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.",
 							},
@@ -352,6 +353,7 @@ func Schema() schema.Schema {
 						Optional: true,
 						Validators: []validator.Object{
 							objectvalidator.AtLeastOneOf(path.MatchRelative().AtParent().AtName("environment"), path.MatchRelative().AtParent().AtName("team")),
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_keys", "static_values"}, Required: true}}},
 						},
 						Attributes: map[string]schema.Attribute{
 							"label_keys": schema.ListAttribute{
@@ -359,7 +361,6 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.List{
 									listvalidator.SizeAtLeast(1),
-									listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("static_values")),
 								},
 								MarkdownDescription: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.",
 							},
@@ -373,7 +374,6 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.List{
 									listvalidator.SizeAtLeast(1),
-									listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("label_keys")),
 								},
 								MarkdownDescription: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.",
 							},
@@ -382,13 +382,15 @@ func Schema() schema.Schema {
 					},
 					"team": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"label_keys", "static_values"}, Required: true}}},
+						},
 						Attributes: map[string]schema.Attribute{
 							"label_keys": schema.ListAttribute{
 								Optional:    true,
 								ElementType: types.StringType,
 								Validators: []validator.List{
 									listvalidator.SizeAtLeast(1),
-									listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("static_values")),
 								},
 								MarkdownDescription: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.",
 							},
@@ -402,7 +404,6 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.List{
 									listvalidator.SizeAtLeast(1),
-									listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("label_keys")),
 								},
 								MarkdownDescription: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.",
 							},
