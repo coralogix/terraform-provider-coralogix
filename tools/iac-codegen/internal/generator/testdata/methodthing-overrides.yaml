@@ -18,6 +18,10 @@ api:
   idProperty: thingId
   createResponseOnlyIDProperty: id
 
+# The Update by POST has no update mask. It sends every field, and the server updates each field
+# that the body has. No optional attribute can be removed: each one is required.
+updateMask: omit
+
 unwrap: [MethodThingPermissions]
 
 types:

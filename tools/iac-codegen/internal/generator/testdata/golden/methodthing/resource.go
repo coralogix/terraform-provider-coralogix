@@ -173,16 +173,17 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	resp.Diagnostics.Append(r.setState(ctx, v, req.State, &resp.State)...)
 }
 
-// Update sends every Update field: a PUT replaces the resource. When no
-// Update field changed, it sends no request and reads the resource instead
-// (D14).
+// Update sends only the Update fields that changed. When none changed, it
+// sends no request and reads the resource instead (D14).
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	body, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
+	// The released API call sends no updateMask. The server updates every
+	// field present in the body.
+	body, _, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

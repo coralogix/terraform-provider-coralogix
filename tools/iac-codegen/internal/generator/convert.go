@@ -795,6 +795,11 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 	// Without a mask the Update body holds a derived value, and the server updates it.
 	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
+	if r.UpdateMethod == "POST" && !omit {
+		// The model records that the Update has no mask; which fields to send is the decision of
+		// this tool, and the file states it.
+		return nil, fmt.Errorf("%s: an Update by POST has no update mask: state updateMask: omit, so that Update sends every field and the server updates each field present in the body (a removed optional attribute cannot be cleared)", r.Update.OperationID)
+	}
 	if !omit {
 		if err := replaceOnlyLines(b.file); err != nil {
 			return nil, err

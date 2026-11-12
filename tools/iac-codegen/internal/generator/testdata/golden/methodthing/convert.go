@@ -59,7 +59,7 @@ func expandCreate(ctx context.Context, m *MethodThingModel) (*method_things_serv
 }
 
 // expandUpdate returns the Update request body with every Update field. A
-// null value is not sent, and the server clears it (a full replace).
+// null value is not sent. updateRequest returns the update mask separately.
 func expandUpdate(ctx context.Context, m *MethodThingModel) (*method_things_service.UpdateMethodThingRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandUpdateMethodThingRequest(ctx, path.Empty(), m, &diags)
