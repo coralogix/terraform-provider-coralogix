@@ -292,6 +292,7 @@ func TestAccCoralogixResourceAlertsSchedulerGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config)},
+				{Config: config(run, variant2Config)},
 			},
 		})
 	})
@@ -331,6 +332,7 @@ func TestConfigsValidateAlertsSchedulerGenerated(t *testing.T) {
 		"updated":  offline.Replace(updatedConfig),
 		"minimal":  offline.Replace(minimalConfig),
 		"variant1": offline.Replace(variant1Config),
+		"variant2": offline.Replace(variant2Config),
 	})
 }
 
@@ -497,7 +499,7 @@ resource "coralogix_alerts_scheduler" "test_2" {
         time_frame = {
           duration = {
             for_over = 1
-            frequency = "minutes"
+            frequency = "hours"
           }
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"
@@ -598,23 +600,14 @@ resource "coralogix_alerts_scheduler" "test_5" {
   ]
   name = "@{run}-scheduler"
   schedule = {
-    recurring = {
-      dynamic = {
-        frequency = {
-          weekly = {
-            days = ["Monday"]
-          }
+    one_time = {
+      time_frame = {
+        duration = {
+          for_over = 1
+          frequency = "minutes"
         }
-        repeat_every = 1
-        termination_date = "2031-01-01T00:00:00.000"
-        time_frame = {
-          duration = {
-            for_over = 1
-            frequency = "days"
-          }
-          start_time = "2030-01-01T00:00:00.000"
-          time_zone = "UTC"
-        }
+        start_time = "2030-01-01T00:00:00.000"
+        time_zone = "UTC+0"
       }
     }
     operation = "mute"
@@ -641,23 +634,14 @@ resource "coralogix_alerts_scheduler" "test_6" {
   ]
   name = "@{run}-scheduler"
   schedule = {
-    recurring = {
-      dynamic = {
-        frequency = {
-          weekly = {
-            days = ["Saturday"]
-          }
+    one_time = {
+      time_frame = {
+        duration = {
+          for_over = 1
+          frequency = "hours"
         }
-        repeat_every = 1
-        termination_date = "2031-01-01T00:00:00.000"
-        time_frame = {
-          duration = {
-            for_over = 1
-            frequency = "days"
-          }
-          start_time = "2030-01-01T00:00:00.000"
-          time_zone = "UTC"
-        }
+        start_time = "2030-01-01T00:00:00.000"
+        time_zone = "UTC+0"
       }
     }
     operation = "mute"
@@ -688,7 +672,7 @@ resource "coralogix_alerts_scheduler" "test_7" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Sunday"]
+            days = ["Monday"]
           }
         }
         repeat_every = 1
@@ -696,7 +680,7 @@ resource "coralogix_alerts_scheduler" "test_7" {
         time_frame = {
           duration = {
             for_over = 1
-            frequency = "days"
+            frequency = "hours"
           }
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"
@@ -731,7 +715,7 @@ resource "coralogix_alerts_scheduler" "test_8" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Thursday"]
+            days = ["Saturday"]
           }
         }
         repeat_every = 1
@@ -739,7 +723,7 @@ resource "coralogix_alerts_scheduler" "test_8" {
         time_frame = {
           duration = {
             for_over = 1
-            frequency = "days"
+            frequency = "hours"
           }
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"
@@ -774,7 +758,7 @@ resource "coralogix_alerts_scheduler" "test_9" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Tuesday"]
+            days = ["Sunday"]
           }
         }
         repeat_every = 1
@@ -782,7 +766,7 @@ resource "coralogix_alerts_scheduler" "test_9" {
         time_frame = {
           duration = {
             for_over = 1
-            frequency = "days"
+            frequency = "hours"
           }
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"
@@ -817,6 +801,92 @@ resource "coralogix_alerts_scheduler" "test_10" {
       dynamic = {
         frequency = {
           weekly = {
+            days = ["Thursday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "hours"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}`
+
+const variant2Config = `resource "coralogix_alerts_scheduler" "test" {
+  description = "@{run}-description"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
+            days = ["Tuesday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "hours"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_2" {
+  description = "@{run}-description-2"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
             days = ["Wednesday"]
           }
         }
@@ -825,7 +895,7 @@ resource "coralogix_alerts_scheduler" "test_10" {
         time_frame = {
           duration = {
             for_over = 1
-            frequency = "days"
+            frequency = "hours"
           }
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"

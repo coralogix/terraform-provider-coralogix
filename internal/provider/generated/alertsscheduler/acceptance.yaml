@@ -11,6 +11,10 @@ values:
   schedule.one_time.time_frame.end_time: '"2030-01-02T00:00:00.000"'
   schedule.recurring.dynamic.termination_date: '"2031-01-01T00:00:00.000"'
   schedule.recurring.dynamic.time_frame.start_time: '"2030-01-01T00:00:00.000"'
+  # The API answers 500 to the delete of a recurring schedule with a duration in days. It accepts
+  # the create, the update, and the delete of a duration in minutes or hours, and of a one-time
+  # schedule in days. The one-time schedule still sets every duration frequency.
+  schedule.recurring.dynamic.time_frame.duration.frequency: '"hours"'
   # The time zone is a fixed list of text values, so a new value needs no config of its own. The
   # API answered 500 to an update of a recurring schedule to UTC-6 and accepted the other values.
   schedule.recurring.dynamic.time_frame.time_zone: '"UTC"'
