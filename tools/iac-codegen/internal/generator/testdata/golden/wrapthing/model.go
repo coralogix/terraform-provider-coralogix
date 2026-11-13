@@ -70,6 +70,7 @@ type WrapMarkModel struct {
 	Link      types.String `tfsdk:"link"`
 	Title     types.String `tfsdk:"title"`
 	CreatedAt types.String `tfsdk:"created_at"`
+	Aliases   types.Set    `tfsdk:"aliases"`
 }
 
 type WrapThingHomeModel struct {

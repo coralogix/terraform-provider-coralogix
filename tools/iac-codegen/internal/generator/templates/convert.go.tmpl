@@ -1250,6 +1250,14 @@ func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func
 	return out
 }
 {{- end}}
+{{- if .Conv.UsesFoldedSame}}
+
+// sameFoldedString reports whether two strings are equal when the case is ignored. A set with
+// equality: caseInsensitive compares its elements with it.
+func sameFoldedString(a, b *string) bool {
+	return strings.EqualFold(*a, *b)
+}
+{{- end}}
 {{- if .Conv.UsesPriorVia}}
 
 // keepOrderVia is keepOrder for a list whose response items the request does not send. It
@@ -1433,6 +1441,60 @@ func flattenTimesSet(ctx context.Context, v []time.Time, diags *diag.Diagnostics
 }
 {{- end}}
 
+{{if .Conv.UsesElementCase -}}
+// keepPriorElementCase returns the API elements, each in the spelling of the prior element that
+// differs from it only in case. An element without a prior twin keeps the API spelling. A prior
+// element serves one API element. In a list (ordered), the prior element at the same index serves
+// the API element at that index when the two match in any case, so twins that differ only in case
+// keep their spellings at their places. Then, in a list or a set, an exact match goes first, and
+// then the first unused twin, so that elements that differ only in case keep their own spellings.
+func keepPriorElementCase(prior []attr.Value, api []string, ordered bool) []string {
+	if api == nil {
+		return nil
+	}
+	spellings := make([]string, len(prior))
+	known := make([]bool, len(prior))
+	for j, element := range prior {
+		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
+			spellings[j], known[j] = s.ValueString(), true
+		}
+	}
+	used := make([]bool, len(prior))
+	out := slices.Clone(api)
+	done := make([]bool, len(api))
+	if ordered {
+		for i, element := range api {
+			if i < len(prior) && known[i] && strings.EqualFold(spellings[i], element) {
+				out[i], used[i], done[i] = spellings[i], true, true
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if known[j] && !used[j] && spelled == element {
+				used[j], done[i] = true, true
+				break
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if known[j] && !used[j] && strings.EqualFold(spelled, element) {
+				used[j], out[i] = true, spelled
+				break
+			}
+		}
+	}
+	return out
+}
+
+{{end -}}
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
 		return types.SetNull(types.StringType)
@@ -2699,6 +2761,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else if .Projection}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Projection.Func}}({{.Src}}), diags)
+	{{- else if eq .Equality "caseInsensitive"}}
+	// The API can return an element in another case, so the spelling of the plan or the state stays.
+	var priorElements []attr.Value
+	if prior != nil {
+		priorElements = prior.{{.Model}}.Elements()
+	}
+	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, keepPriorElementCase(priorElements, {{.Src}}, {{eq .Collection "List"}}), diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)
 	{{- end}}

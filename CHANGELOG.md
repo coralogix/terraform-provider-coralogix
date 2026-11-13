@@ -9,6 +9,7 @@
 - FEAT: Each generated acceptance test file has a `TestConfigsValidate<Name>Generated` test that needs no tenant and no API key. It checks that every config of the file passes the validators of the schema. A `maxElements` key in `acceptance.yaml` limits the elements of a list in the `values-and-choices` subtest, and the subtest sets only the fields that the type of a `typedArms` object names.
 - FIX: The `values-and-choices` subtest sets every enum value of a field that only one arm of a `typedArms` object has, such as `aggregation_type` of a spans metric. Before, it set the first value only. It also fails when such a value is in no config.
 - FEAT: A field that the API contract marks `deprecated: true` gets a deprecation warning in the schema without a `deprecation` line. A `deprecation` line wins. A Required attribute gets no warning.
+- FEAT: Support a released API whose Create is a PUT and whose Update is a POST (`api.methods`; an Update by POST has no update mask and needs `updateMask: omit`), a Create response that holds only an integer id, a `oneOf` of the Create request that a `skip` line reduces to one arm, and `equality: caseInsensitive` on a list or set of strings.
 
 #### provider
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`

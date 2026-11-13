@@ -288,6 +288,8 @@ components:
         link: {$ref: '#/components/schemas/LinkRef'}
         title: {type: string, x-coralogix-presence: true}
         createdAt: {type: string, format: date-time, x-coralogix-presence: true}
+        # The API keeps the case that it was given or folds it, so a prior mark pairs with an API mark in any case.
+        aliases: {type: array, items: {type: string}}
     # A folder path: the segments, held in an object, which Terraform shows as one text "Team/Sub".
     FolderPath:
       type: object

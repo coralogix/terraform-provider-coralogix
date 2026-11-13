@@ -98,7 +98,9 @@ type File struct {
 	// requestBasedMetricSli field of the API.
 	Groups map[string]Group `yaml:"groups"`
 	// UpdateMask: "omit" sends no updateMask in the Update body (api.updateMaskInBody), as a
-	// released resource that never sent one did. The server then updates every field present in
+	// released resource that never sent one did. An Update that has no mask (api.methods.update:
+	// POST) needs this line: the model records that there is no mask, and this line states which
+	// fields the tool sends. The server then updates every field present in
 	// the body, so removing an optional attribute from the configuration cannot clear it. The key
 	// also states that the server replaces the whole value of each field in the body, nested
 	// objects included: a removed nested attribute is cleared. A server that merged nested
@@ -115,6 +117,11 @@ const UpdateMaskOmit = "omit"
 // API is the api section of the file: the API keys of the iac module.
 type API struct {
 	iacoverrides.API `yaml:",inline"`
+}
+
+// updateByPOST reports whether api.methods.update is POST: an Update that has no update mask.
+func (a API) updateByPOST() bool {
+	return a.Methods != nil && a.Methods.Update == "POST"
 }
 
 // OperationNone is the api.operations.delete value of an API that cannot remove the resource.
@@ -976,6 +983,8 @@ type Field struct {
 	Validators []Validator `yaml:"validators"`
 	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
+	// "caseInsensitive" is for a list or set of strings: it keeps the spelling of the prior element
+	// when the API returns the element in another case.
 	Equality string `yaml:"equality"`
 	// RequiresReplace: a change of this top-level field replaces the resource, although Update
 	// accepts it, as the released resource did. A PATCH Update does not send the field. A PUT
@@ -1127,6 +1136,9 @@ func (c *Carry) check() error {
 const (
 	EqualityYAML = "yaml"
 	EqualityJSON = "json"
+	// EqualityCaseInsensitive is for a list or set of strings that the API returns in another case
+	// than the configuration wrote.
+	EqualityCaseInsensitive = "caseInsensitive"
 )
 
 // Validator is one released validator. Exactly one key is set.
@@ -1401,8 +1413,8 @@ func (f *File) check() error {
 	if f.UpdateMask != "" && f.UpdateMask != UpdateMaskOmit {
 		return fmt.Errorf("updateMask is %q, want %q", f.UpdateMask, UpdateMaskOmit)
 	}
-	if f.UpdateMask != "" && !f.API.UpdateMaskInBody {
-		return errors.New("updateMask: omit needs api.updateMaskInBody: only a body mask can be left out")
+	if f.UpdateMask != "" && !f.API.UpdateMaskInBody && !f.API.updateByPOST() {
+		return errors.New("updateMask: omit needs api.updateMaskInBody (only a body mask can be left out) or api.methods.update: POST (an Update that has no mask)")
 	}
 	if s := f.SingletonID; s != nil && (s.Fixed == "") == !s.FromAPI {
 		return errors.New("singletonID needs exactly one of fixed (the released fixed id) or fromAPI: true (the id that the server sets)")
@@ -2135,8 +2147,8 @@ func (l Field) checkConflicts() error {
 			return errors.New("requestValueBy maps a field name to an API value")
 		}
 	}
-	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
-		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON && l.Equality != EqualityCaseInsensitive {
+		return fmt.Errorf("equality is %q, want %q, %q, or %q", l.Equality, EqualityYAML, EqualityJSON, EqualityCaseInsensitive)
 	}
 	return nil
 }

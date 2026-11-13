@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1005,7 +1006,7 @@ func TestSetItemsKeepThePriorNumberWhateverTheOrder(t *testing.T) {
 		return v
 	}
 	prior := fullModel()
-	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.1")}, WrapMarkModel{Label: types.StringValue("b"), Ratio: exact("0.3")})
+	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.1"), Aliases: types.SetNull(types.StringType)}, WrapMarkModel{Label: types.StringValue("b"), Ratio: exact("0.3"), Aliases: types.SetNull(types.StringType)})
 	resp := fullResponse()
 	a, b, one, three := "a", "b", 0.1, 0.3
 	// The API returns the items in another order.
@@ -1030,7 +1031,7 @@ func TestSetItemsKeepThePriorNumberWhateverTheOrder(t *testing.T) {
 		t.Fatalf("import marks = %v (%v)", marks, diags)
 	}
 	// A prior item with another value is not paired: the API value wins.
-	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.5")})
+	prior.Marks = set(WrapMarkModel{Label: types.StringValue("a"), Ratio: exact("0.5"), Aliases: types.SetNull(types.StringType)})
 	got, _ = flatten(ctx, resp, prior)
 	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() {
 		t.Fatal(diags)
@@ -1042,6 +1043,73 @@ func TestSetItemsKeepThePriorNumberWhateverTheOrder(t *testing.T) {
 	}
 }
 
+// The aliases of a mark are a set of strings with equality: caseInsensitive, and the marks are a set of
+// objects. Pairing a prior mark with an API mark compares the aliases without the case, so the mark
+// pairs when the API answers an alias in another case, and the plan keeps the spelling of the
+// configuration and the configured number.
+func TestSetItemsPairWhenAnAliasComesBackInAnotherCase(t *testing.T) {
+	ctx := context.Background()
+	exact := func(text string) types.Number {
+		f, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return types.NumberValue(f)
+	}
+	aliases := func(values ...string) types.Set {
+		v, diags := types.SetValueFrom(ctx, types.StringType, values)
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		return v
+	}
+	markType := types.ObjectType{AttrTypes: wrapMarkAttrTypes()}
+	set := func(marks ...WrapMarkModel) types.Set {
+		v, diags := types.SetValueFrom(ctx, markType, marks)
+		if diags.HasError() {
+			t.Fatal(diags)
+		}
+		return v
+	}
+	prior := fullModel()
+	prior.Marks = set(WrapMarkModel{
+		Label: types.StringValue("a"), Ratio: exact("0.1"),
+		Aliases: aliases("alpha:read", "beta:write"),
+	})
+	resp := fullResponse()
+	a, one := "a", 0.1
+	// The API answers the aliases in another case and another order.
+	resp.Marks = []wrap_things_service.WrapMark{{Label: &a, Ratio: &one, Aliases: []string{"BETA:WRITE", "ALPHA:READ"}}}
+	got, diags := flatten(ctx, resp, prior)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var marks []WrapMarkModel
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() || len(marks) != 1 {
+		t.Fatalf("marks = %v (%v)", marks, diags)
+	}
+	if !marks[0].Ratio.Equal(exact("0.1")) {
+		t.Errorf("ratio = %v, want the configured 0.1: the mark was not paired with its prior mark", marks[0].Ratio)
+	}
+	var spelled []string
+	if diags := marks[0].Aliases.ElementsAs(ctx, &spelled, false); diags.HasError() {
+		t.Fatal(diags)
+	}
+	slices.Sort(spelled)
+	if !slices.Equal(spelled, []string{"alpha:read", "beta:write"}) {
+		t.Errorf("aliases = %v, want the spelling of the configuration", spelled)
+	}
+	// An alias that the prior mark does not have is another mark: the API spelling stays.
+	resp.Marks[0].Aliases = []string{"GAMMA:READ"}
+	got, _ = flatten(ctx, resp, prior)
+	if diags := got.Marks.ElementsAs(ctx, &marks, false); diags.HasError() || len(marks) != 1 {
+		t.Fatalf("marks = %v (%v)", marks, diags)
+	}
+	if marks[0].Ratio.Equal(exact("0.1")) {
+		t.Error("a mark with another alias was paired")
+	}
+}
+
 // A place line that skips a field gives the place a copy of the component without it, so a wrapper with
 // two properties collapses at that place: the link of a mark is its target, a string. The hint is not
 // sent, and it is not read.
@@ -1049,7 +1117,7 @@ func TestPlaceThatSkipsAFieldUnwrapsTheComponent(t *testing.T) {
 	ctx := context.Background()
 	model := fullModel()
 	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
-		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringValue("there"), "title": types.StringNull(), "created_at": types.StringNull()}),
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringValue("there"), "title": types.StringNull(), "created_at": types.StringNull(), "aliases": types.SetNull(types.StringType)}),
 	})
 	body, diags := expandCreate(ctx, model)
 	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].Link == nil || *body.Marks[0].Link.Target != "there" || body.Marks[0].Link.Hint != nil {
@@ -1114,7 +1182,7 @@ func TestResponseOnlyTimeInASharedComponentIsNotSent(t *testing.T) {
 	ctx := context.Background()
 	model := fullModel()
 	model.Marks = types.SetValueMust(types.ObjectType{AttrTypes: wrapMarkAttrTypes()}, []attr.Value{
-		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringNull(), "title": types.StringNull(), "created_at": types.StringUnknown()}),
+		types.ObjectValueMust(wrapMarkAttrTypes(), map[string]attr.Value{"label": types.StringValue("a"), "ratio": types.NumberNull(), "link": types.StringNull(), "title": types.StringNull(), "created_at": types.StringUnknown(), "aliases": types.SetNull(types.StringType)}),
 	})
 	body, diags := expandCreate(ctx, model)
 	if diags.HasError() || len(body.Marks) != 1 || body.Marks[0].CreatedAt != nil {

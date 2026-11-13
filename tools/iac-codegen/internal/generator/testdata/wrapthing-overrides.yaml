@@ -76,6 +76,9 @@ types:
       title: {computed: true, defaultFromSibling: label}
       # The server sets the time, and the requests share the component: a response-only time is not sent.
       createdAt: {readOnly: true}
+      # The aliases are a set of strings that the API can return in another case. The set is in an item of a
+      # set, so pairing the prior mark with the API mark must ignore the case of the aliases too.
+      aliases: {collection: set, equality: caseInsensitive}
   FolderPath:
     fields:
       segments: {join: "/"}

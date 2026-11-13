@@ -852,7 +852,7 @@ func applyModifiers(a *tfAttr, l overrides.Field) error {
 		}
 		a.Modifiers = append(a.Modifiers, fmt.Sprintf("siblingDefaultModifier{Sibling: %q}", l.DefaultFromSibling))
 	}
-	if l.Equality != "" {
+	if l.Equality != "" && l.Equality != overrides.EqualityCaseInsensitive {
 		if a.ValueKind != "String" {
 			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)
 		}

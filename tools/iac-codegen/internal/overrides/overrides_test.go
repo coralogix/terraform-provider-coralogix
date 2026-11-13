@@ -766,6 +766,14 @@ func TestUpdateMaskOmit(t *testing.T) {
 	if _, err := parseFilled([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
 		t.Fatal(err)
 	}
+	// An Update by POST has no mask: it states the same line.
+	if _, err := Parse([]byte(head + "api:\n  methods: {update: POST}\nupdateMask: omit\n")); err != nil {
+		t.Fatal(err)
+	}
+	// A Create by PUT has no bearing on the Update mask.
+	if _, err := Parse([]byte(head + "api:\n  methods: {create: PUT}\nupdateMask: omit\n")); err == nil || !strings.Contains(err.Error(), "needs api.updateMaskInBody") {
+		t.Fatalf("err = %v, want an error that asks for a body mask or an Update by POST", err)
+	}
 }
 
 func TestEnumAliasesAreChecked(t *testing.T) {

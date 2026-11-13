@@ -650,6 +650,39 @@ func (obj *convObject) PositionField() *convField {
 	return nil
 }
 
+// UsesFoldedSame reports whether the comparison of two items of a set compares a set of strings in
+// any case (equality: caseInsensitive on a set inside an object that the package compares).
+func (d *convData) UsesFoldedSame() bool {
+	for _, obj := range d.Objects {
+		if !obj.Same {
+			continue
+		}
+		for _, f := range obj.Fields {
+			if f.Conv == convStrings && f.Collection == "Set" && f.Equality == overrides.EqualityCaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesElementCase reports whether a field keeps the spelling of the prior elements of a list or
+// set of strings (equality: caseInsensitive).
+func (d *convData) UsesElementCase() bool {
+	objects := d.Objects
+	if d.Resource != nil {
+		objects = append(slices.Clone(objects), d.Resource)
+	}
+	for _, obj := range objects {
+		for _, f := range obj.Fields {
+			if f.Equality == overrides.EqualityCaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UsesCaseInsensitive reports whether a field is an enum that reads in any case.
 func (d *convData) UsesCaseInsensitive() bool {
 	for _, obj := range d.Objects {
@@ -912,6 +945,11 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 	// Without a mask the Update body holds a derived value, and the server updates it.
 	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
+	if r.UpdateMethod == "POST" && !omit {
+		// The model records that the Update has no mask; which fields to send is the decision of
+		// this tool, and the file states it.
+		return nil, fmt.Errorf("%s: an Update by POST has no update mask: state updateMask: omit, so that Update sends every field and the server updates each field present in the body (a removed optional attribute cannot be cleared)", r.Update.OperationID)
+	}
 	if !omit {
 		if err := replaceOnlyLines(b.file); err != nil {
 			return nil, err
@@ -1908,7 +1946,10 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		}
 		cf.Duration = format
 	}
-	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
+	// A caseInsensitive line acts on the read, and the field of an Update body is only expanded, so
+	// a wrapper that only Update holds does not meet it.
+	updateOnly := cf.Equality == overrides.EqualityCaseInsensitive && strings.HasPrefix(refPath, "update.body.")
+	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "" && !updateOnly) {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
 	if err := b.applyValueNames(cf, component, name); err != nil {
@@ -3176,7 +3217,13 @@ func markPrior(d *convData) error {
 func markPriorFields(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Equality != "" {
+			if f.Equality == overrides.EqualityCaseInsensitive {
+				// The elements of a list or set of strings keep the spelling of the prior elements.
+				if f.Conv != convStrings || f.Enum || f.Projection != nil || f.EnumMap != nil {
+					return fmt.Errorf("%s.%s: equality caseInsensitive needs a list or set of plain strings", obj.Model, f.TFName)
+				}
+				obj.NeedsPrior = true
+			} else if f.Equality != "" {
 				if f.Conv != convString {
 					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
 				}
@@ -3335,6 +3382,14 @@ func sameCheck(f *convField) (string, error) {
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
 	case convStrings, convScalars, convNamedInts, convInts32AsInt64:
+		if f.Conv == convStrings && f.Equality == overrides.EqualityCaseInsensitive {
+			// The API can return an element in another case, so two items with the same elements in
+			// any case are the same item. A set has no order.
+			if f.Collection == "Set" {
+				return "sameUnordered(" + a + ", " + b + ", sameFoldedString)", nil
+			}
+			return "slices.EqualFunc(" + a + ", " + b + ", strings.EqualFold)", nil
+		}
 		if f.Collection == "Set" {
 			break
 		}
@@ -3431,7 +3486,8 @@ func (d *convData) UsesEquality(kind ...string) bool {
 func (d *convData) UsesFieldEquality(kind ...string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Equality != "" && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
+			// A caseInsensitive line is a flatten step, with no document comparison or ModifyPlan.
+			if f.Equality != "" && f.Equality != overrides.EqualityCaseInsensitive && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
 				return true
 			}
 		}
