@@ -29,13 +29,14 @@ func typedObject(first string, rules map[string][]typedRule, checked map[string]
 		Checked:  checked,
 		Rules:    rules,
 	}}
-	// The type sorts after the fields that it names.
-	return []*tfAttr{
+	fields := []*tfAttr{
 		{Name: "field", Kind: "String", Optional: true, TypedArm: true},
 		{Name: "items", Kind: "String", Optional: true, TypedArm: true},
 		{Name: "observation", Kind: "String", Optional: true, TypedArm: true},
-		kind,
 	}
+	kind.Typed.Attrs = fields
+	// The type sorts after the fields that it names.
+	return append(fields, kind)
 }
 
 // A config that sets every field of a typedArms object breaks the rule of its type: with the type
