@@ -5,15 +5,14 @@ package alert
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -41,12 +40,12 @@ func Schema() schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"type_definition": schema.SingleNestedAttribute{
 				Required: true,
+				Validators: []validator.Object{
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"analytics_immediate", "analytics_threshold", "flow", "logs_anomaly", "logs_immediate", "logs_new_value", "logs_ratio_threshold", "logs_threshold", "logs_time_relative_threshold", "logs_unique_count", "metric_anomaly", "metric_threshold", "slo_threshold", "tracing_immediate", "tracing_threshold"}, Required: true}}},
+				},
 				Attributes: map[string]schema.Attribute{
 					"analytics_immediate": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"dataprime_query": schema.SingleNestedAttribute{
 								Required: true,
@@ -68,6 +67,10 @@ func Schema() schema.Schema {
 									int32validator.AtLeast(0),
 								},
 								MarkdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.",
+							},
+							"evaluation_period_minutes": schema.Int32Attribute{
+								Optional:            true,
+								MarkdownDescription: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.",
 							},
 							"no_data_policy": schema.SingleNestedAttribute{
 								Optional: true,
@@ -110,9 +113,6 @@ func Schema() schema.Schema {
 					},
 					"analytics_threshold": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"dataprime_query": schema.SingleNestedAttribute{
 								Required: true,
@@ -134,6 +134,10 @@ func Schema() schema.Schema {
 									int32validator.AtLeast(0),
 								},
 								MarkdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.",
+							},
+							"evaluation_period_minutes": schema.Int32Attribute{
+								Optional:            true,
+								MarkdownDescription: "How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). Must not exceed timeframeMinutes.",
 							},
 							"no_data_policy": schema.SingleNestedAttribute{
 								Optional: true,
@@ -225,9 +229,6 @@ func Schema() schema.Schema {
 					},
 					"flow": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"enforce_suppression": schema.BoolAttribute{
 								Optional:            true,
@@ -301,9 +302,6 @@ func Schema() schema.Schema {
 					},
 					"logs_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"percentage_of_deviation": schema.Float32Attribute{
 								Optional:            true,
@@ -446,9 +444,6 @@ func Schema() schema.Schema {
 					},
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"logs_filter": schema.SingleNestedAttribute{
 								Optional: true,
@@ -544,9 +539,6 @@ func Schema() schema.Schema {
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"logs_filter": schema.SingleNestedAttribute{
 								Optional: true,
@@ -670,9 +662,6 @@ func Schema() schema.Schema {
 					},
 					"logs_ratio_threshold": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"denominator": schema.SingleNestedAttribute{
 								Optional: true,
@@ -957,9 +946,6 @@ func Schema() schema.Schema {
 					},
 					"logs_threshold": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"custom_evaluation_delay": schema.Int32Attribute{
 								Optional: true,
@@ -1162,9 +1148,6 @@ func Schema() schema.Schema {
 					},
 					"logs_time_relative_threshold": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"custom_evaluation_delay": schema.Int32Attribute{
 								Optional: true,
@@ -1348,9 +1331,6 @@ func Schema() schema.Schema {
 					},
 					"logs_unique_count": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"logs_filter": schema.SingleNestedAttribute{
 								Optional: true,
@@ -1482,9 +1462,6 @@ func Schema() schema.Schema {
 					},
 					"metric_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"percentage_of_deviation": schema.Float32Attribute{
 								Optional:            true,
@@ -1555,9 +1532,6 @@ func Schema() schema.Schema {
 					},
 					"metric_threshold": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"custom_evaluation_delay": schema.Int32Attribute{
 								Optional: true,
@@ -1578,19 +1552,16 @@ func Schema() schema.Schema {
 							},
 							"missing_values": schema.SingleNestedAttribute{
 								Required: true,
+								Validators: []validator.Object{
+									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"min_non_null_values_pct", "replace_with_zero"}, Required: true}}},
+								},
 								Attributes: map[string]schema.Attribute{
 									"min_non_null_values_pct": schema.Int64Attribute{
-										Optional: true,
-										Validators: []validator.Int64{
-											int64validator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("replace_with_zero")),
-										},
+										Optional:            true,
 										MarkdownDescription: "If set, specifies the minimum percentage of non-null values required for the alert to be triggered",
 									},
 									"replace_with_zero": schema.BoolAttribute{
-										Optional: true,
-										Validators: []validator.Bool{
-											boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("min_non_null_values_pct")),
-										},
+										Optional:            true,
 										MarkdownDescription: "If set to true, missing values will be replaced with zero",
 									},
 								},
@@ -1706,20 +1677,17 @@ func Schema() schema.Schema {
 					"slo_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"burn_rate", "error_budget"}, Required: true}}},
 						},
 						Attributes: map[string]schema.Attribute{
 							"burn_rate": schema.SingleNestedAttribute{
 								Optional: true,
 								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("error_budget")),
+									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"dual", "single"}, Required: true}}},
 								},
 								Attributes: map[string]schema.Attribute{
 									"dual": schema.SingleNestedAttribute{
 										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("single")),
-										},
 										Attributes: map[string]schema.Attribute{
 											"time_duration": schema.SingleNestedAttribute{
 												Required: true,
@@ -1775,9 +1743,6 @@ func Schema() schema.Schema {
 									},
 									"single": schema.SingleNestedAttribute{
 										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("dual")),
-										},
 										Attributes: map[string]schema.Attribute{
 											"time_duration": schema.SingleNestedAttribute{
 												Required: true,
@@ -1804,9 +1769,6 @@ func Schema() schema.Schema {
 							},
 							"error_budget": schema.SingleNestedAttribute{
 								Optional: true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("burn_rate")),
-								},
 								Attributes: map[string]schema.Attribute{
 									"rules": schema.ListNestedAttribute{
 										Required: true,
@@ -1858,9 +1820,6 @@ func Schema() schema.Schema {
 					},
 					"tracing_immediate": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("tracing_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"notification_payload_filter": schema.SetAttribute{
 								Optional:            true,
@@ -2008,9 +1967,6 @@ func Schema() schema.Schema {
 					},
 					"tracing_threshold": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("logs_immediate"), path.MatchRelative().AtParent().AtName("tracing_immediate"), path.MatchRelative().AtParent().AtName("logs_threshold"), path.MatchRelative().AtParent().AtName("logs_ratio_threshold"), path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"), path.MatchRelative().AtParent().AtName("metric_threshold"), path.MatchRelative().AtParent().AtName("flow"), path.MatchRelative().AtParent().AtName("logs_anomaly"), path.MatchRelative().AtParent().AtName("metric_anomaly"), path.MatchRelative().AtParent().AtName("logs_new_value"), path.MatchRelative().AtParent().AtName("logs_unique_count"), path.MatchRelative().AtParent().AtName("slo_threshold"), path.MatchRelative().AtParent().AtName("analytics_immediate"), path.MatchRelative().AtParent().AtName("analytics_threshold")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"notification_payload_filter": schema.SetAttribute{
 								Optional:            true,
@@ -2508,18 +2464,12 @@ func Schema() schema.Schema {
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"integration_id": schema.StringAttribute{
-									Optional: true,
-									Validators: []validator.String{
-										stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("recipients")),
-									},
+									Optional:            true,
 									MarkdownDescription: "The integration ID for the notification",
 								},
 								"recipients": schema.SetAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("integration_id")),
-									},
+									Optional:            true,
+									ElementType:         types.StringType,
 									MarkdownDescription: "The recipients for the notification.",
 								},
 								"retriggering_period": schema.SingleNestedAttribute{
@@ -2544,6 +2494,9 @@ func Schema() schema.Schema {
 									},
 									MarkdownDescription: "Notify on. Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]. When omitted (along with retriggering_period), Advanced Notification is disabled.",
 								},
+							},
+							Validators: []validator.Object{
+								oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"integration_id", "recipients"}, Required: false}}},
 							},
 							PlanModifiers: []planmodifier.Object{
 								objectplanmodifier.UseStateForUnknown(),
@@ -2789,5 +2742,84 @@ func (setItemStateModifier) PlanModifyObject(ctx context.Context, req planmodifi
 	}
 	if object, ok := kept.(types.Object); ok {
 		resp.PlanValue = object
+	}
+}
+
+// oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its
+// attributes, so its cost does not depend on the rest of the configuration. A validator on each arm
+// that names its siblings by a path expression walks the whole configuration for every sibling.
+type oneOfArmsValidator struct {
+	Groups    []oneOfArmGroup
+	Conflicts []oneOfArmConflict
+}
+
+// oneOfArmGroup is the arms of one oneOf. At most one of them can be set, and exactly one when the
+// group is Required.
+type oneOfArmGroup struct {
+	Arms     []string
+	Required bool
+}
+
+// oneOfArmConflict is two sets of attributes: an attribute of Left cannot be set with an attribute
+// of Right.
+type oneOfArmConflict struct {
+	Left, Right []string
+}
+
+func (v oneOfArmsValidator) Description(context.Context) string {
+	return "At most one arm of each one-of group can be set, and exactly one when the group needs an arm."
+}
+
+func (v oneOfArmsValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+// armsSet returns the names of the arms that are set: not null, and known. unknown is true when an
+// arm is unknown, because it can still become set or stay null.
+func armsSet(attributes map[string]attr.Value, names []string) (set []string, unknown bool) {
+	for _, name := range names {
+		value, ok := attributes[name]
+		switch {
+		case !ok || value.IsNull():
+		case value.IsUnknown():
+			unknown = true
+		default:
+			set = append(set, name)
+		}
+	}
+	return set, unknown
+}
+
+// validate reports two arms that are set. With none set, it reports it for a group that needs one,
+// when every arm is known. An unknown arm is checked when it is known.
+func (g oneOfArmGroup) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	set, unknown := armsSet(attributes, g.Arms)
+	switch {
+	case len(set) > 1:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("Only one of these attributes can be configured: `%s`.", strings.Join(set, "`, `")))
+	case len(set) == 0 && g.Required && !unknown:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", "No attribute was configured in this one-of group. Configure exactly one value.")
+	}
+}
+
+// validate reports an attribute of each side that are both set.
+func (c oneOfArmConflict) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	left, _ := armsSet(attributes, c.Left)
+	right, _ := armsSet(attributes, c.Right)
+	if len(left) > 0 && len(right) > 0 {
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("These attributes cannot be configured together: `%s` and `%s`.", left[0], right[0]))
+	}
+}
+
+func (v oneOfArmsValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attributes := req.ConfigValue.Attributes()
+	for _, group := range v.Groups {
+		group.validate(req.Path, attributes, resp)
+	}
+	for _, conflict := range v.Conflicts {
+		conflict.validate(req.Path, attributes, resp)
 	}
 }

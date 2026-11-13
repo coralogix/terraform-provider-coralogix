@@ -2,6 +2,7 @@ package typedthing
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -165,11 +166,10 @@ func TestReadGivesTheTypeAndTheMergedFields(t *testing.T) {
 	}
 }
 
-// The check on the type attribute rejects a field that the chosen arm does not have, and a value
-// that the enum arm does not accept. It accepts a tag value that is no enum value.
-func TestTypeValidatorChecksTheArm(t *testing.T) {
-	_, schemaResp, root := thingSchema(t)
-	validate := func(attribute string, item map[string]tftypes.Value, aggregation map[string]tftypes.Value) bool {
+// armValidator returns a function that runs the type check of the aggregation, or of the first item of
+// the fields, on a config, and tells whether it accepts it.
+func armValidator(t *testing.T, schemaResp frameworkresource.SchemaResponse, root tftypes.Object) func(string, map[string]tftypes.Value, map[string]tftypes.Value) bool {
+	return func(attribute string, item map[string]tftypes.Value, aggregation map[string]tftypes.Value) bool {
 		t.Helper()
 		set := map[string]tftypes.Value{"name": str("a")}
 		var typeAttr schema.StringAttribute
@@ -191,6 +191,32 @@ func TestTypeValidatorChecksTheArm(t *testing.T) {
 		}
 		return !resp.Diagnostics.HasError()
 	}
+}
+
+// An arm can have two checked fields: mode and rounding are both shared with the percentile, which
+// takes any text, so each is checked only when the type names the average.
+func TestTypeValidatorChecksTwoFieldsOfOneArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	validate := armValidator(t, schemaResp, root)
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("fast"), "rounding": str("up")}) {
+		t.Fatal("fast and up are valid for avg")
+	}
+	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("fast"), "rounding": str("sideways")}) {
+		t.Fatal("sideways is no rounding of avg")
+	}
+	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("slow"), "rounding": str("up")}) {
+		t.Fatal("slow is no mode of avg, also when the rounding is valid")
+	}
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "field": str("f"), "rounding": str("sideways")}) {
+		t.Fatal("the rounding of percentile is free text")
+	}
+}
+
+// The check on the type attribute rejects a field that the chosen arm does not have, and a value
+// that the enum arm does not accept. It accepts a tag value that is no enum value.
+func TestTypeValidatorChecksTheArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	validate := armValidator(t, schemaResp, root)
 	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "field": str("f")}) {
 		t.Fatal("avg with a field is valid")
 	}
@@ -220,7 +246,7 @@ func TestTypeValidatorChecksTheArm(t *testing.T) {
 	if validate("aggregation", nil, map[string]tftypes.Value{"type": str("avg"), "mode": str("slow")}) {
 		t.Fatal("slow is no mode of avg")
 	}
-	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "mode": str("slow")}) {
+	if !validate("aggregation", nil, map[string]tftypes.Value{"type": str("percentile"), "field": str("f"), "mode": str("slow")}) {
 		t.Fatal("the mode of percentile is free text")
 	}
 	// A scalar arm is chosen by its value, so the type alone selects no arm.
@@ -556,6 +582,282 @@ func TestImportReadsEmptyDefaultsOfInactiveArms(t *testing.T) {
 		}
 		if !attrs["selected_values"].Equal(stringList()) {
 			t.Fatalf("%s selected_values = %v, want the empty default []", name, attrs["selected_values"])
+		}
+	}
+}
+
+// Two arms call a field by different API names (averageUnit, percentileUnit), and Terraform shows
+// it as one attribute, unit. Each arm sends its own API field, and the read puts it back.
+func TestFieldsOfTwoArmsWithOneNameShareTheAttribute(t *testing.T) {
+	root := thingRoot(t)
+	for _, c := range []struct {
+		kind string
+		sent func() *string
+	}{
+		{"avg", func() *string { return typed_things_service.Created[0].Aggregation.Average.AverageUnit }},
+		{"percentile", func() *string { return typed_things_service.Created[0].Aggregation.Percentile.PercentileUnit }},
+	} {
+		t.Run(c.kind, func(t *testing.T) {
+			aggregation := map[string]tftypes.Value{"type": str(c.kind), "unit": str("ms")}
+			resp, _, _ := create(t, aggregation)
+			if got := c.sent(); got == nil || *got != "ms" {
+				t.Fatalf("sent unit = %v, want ms", got)
+			}
+			var state map[string]tftypes.Value
+			if err := resp.State.Raw.As(&state); err != nil {
+				t.Fatal(err)
+			}
+			// The second plan: what the read gives is what the configuration said.
+			if want := objectValue(aggregationType(root), aggregation); !state["aggregation"].Equal(want) {
+				t.Fatalf("aggregation = %v, want %v", state["aggregation"], want)
+			}
+			// A configured empty text stays: the prior value reaches the arm.
+			resp, _, _ = create(t, map[string]tftypes.Value{"type": str(c.kind), "unit": str("")})
+			if err := resp.State.Raw.As(&state); err != nil {
+				t.Fatal(err)
+			}
+			if want := objectValue(aggregationType(root), map[string]tftypes.Value{"type": str(c.kind), "unit": str("")}); !state["aggregation"].Equal(want) {
+				t.Fatalf("aggregation = %v, want %v", state["aggregation"], want)
+			}
+		})
+	}
+}
+
+// An import reads with only the id: each arm gives its unit, and the other arm's field stays null.
+func TestImportReadsTheSharedUnitOfEachArm(t *testing.T) {
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	unit := "ms"
+	for kind, aggregation := range map[string]*typed_things_service.TypedAggregation{
+		"avg":        {Average: &typed_things_service.TypedAverage{AverageUnit: &unit}},
+		"percentile": {Percentile: &typed_things_service.TypedPercentile{PercentileUnit: &unit}},
+	} {
+		id := "thing-1"
+		typed_things_service.Stored = typed_things_service.TypedThing{Id: &id, Aggregation: aggregation}
+		r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+		resp := &frameworkresource.ReadResponse{State: state}
+		r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatal(resp.Diagnostics)
+		}
+		var values map[string]tftypes.Value
+		if err := resp.State.Raw.As(&values); err != nil {
+			t.Fatal(err)
+		}
+		var attrs map[string]tftypes.Value
+		if err := values["aggregation"].As(&attrs); err != nil {
+			t.Fatal(err)
+		}
+		if !attrs["type"].Equal(str(kind)) || !attrs["unit"].Equal(str(unit)) {
+			t.Fatalf("%s: type = %v, unit = %v, want %s and %s", kind, attrs["type"], attrs["unit"], kind, unit)
+		}
+	}
+}
+
+// A oneOf of an arm without fields and an arm with a list is shown as that list: [] is the arm
+// without fields, values are the list arm, and null sends neither.
+func TestOneOfShownAsTheListOfItsListArm(t *testing.T) {
+	for name, test := range map[string]struct {
+		values  tftypes.Value
+		wantAll bool
+		wantVal []string // nil: no list arm
+	}{
+		"empty list is all": {stringList(), true, nil},
+		"values are a list": {stringList("a", "b"), false, []string{"a", "b"}},
+		"null sends none":   {tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, nil), false, nil},
+	} {
+		typed_things_service.Created = nil
+		createWith(t, map[string]tftypes.Value{"picked_values": test.values}, nil)
+		pick := typed_things_service.Created[0].Pick
+		switch {
+		case !test.wantAll && test.wantVal == nil:
+			if pick != nil {
+				t.Errorf("%s: sent pick %+v, want none", name, pick)
+			}
+		case pick == nil || (pick.All != nil) != test.wantAll || (pick.List != nil) != (test.wantVal != nil):
+			t.Errorf("%s: sent pick %+v, want all %v and values %v", name, pick, test.wantAll, test.wantVal)
+		case test.wantVal != nil && !slices.Equal(pick.List.Values, test.wantVal):
+			t.Errorf("%s: sent values %v, want %v", name, pick.List.Values, test.wantVal)
+		}
+	}
+}
+
+// The read puts the arm back as the list: all is [], the list arm is its values, and no arm is null.
+// An import has only the id, so the same read must give the state that the plan has.
+func TestOneOfShownAsAListReadsBack(t *testing.T) {
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	for name, test := range map[string]struct {
+		pick *typed_things_service.TypedPick
+		want tftypes.Value
+	}{
+		"all":    {&typed_things_service.TypedPick{All: map[string]interface{}{}}, stringList()},
+		"list":   {&typed_things_service.TypedPick{List: &typed_things_service.TypedPickList{Values: []string{"x", "y"}}}, stringList("x", "y")},
+		"empty":  {&typed_things_service.TypedPick{List: &typed_things_service.TypedPickList{}}, stringList()},
+		"no arm": {&typed_things_service.TypedPick{}, tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, nil)},
+	} {
+		id := "thing-1"
+		typed_things_service.Stored = typed_things_service.TypedThing{Id: &id, Pick: test.pick}
+		r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+		resp := &frameworkresource.ReadResponse{State: state}
+		r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("%s: %v", name, resp.Diagnostics)
+		}
+		var values map[string]tftypes.Value
+		if err := resp.State.Raw.As(&values); err != nil {
+			t.Fatal(err)
+		}
+		if got := values["picked_values"]; !got.Equal(test.want) {
+			t.Errorf("%s: picked_values = %v, want %v", name, got, test.want)
+		}
+	}
+}
+
+// A validators line on the field of one arm is a rule of that arm: it runs only when the type names
+// the arm. The percentile needs exactly one of field and unit. The average shares the field and
+// the unit, and has no such rule.
+func TestValidatorsLineOfAnArmFieldRunsOnlyForThatArm(t *testing.T) {
+	_, schemaResp, root := thingSchema(t)
+	typeAttr := schemaResp.Schema.Attributes["aggregation"].(schema.SingleNestedAttribute).Attributes["type"].(schema.StringAttribute)
+	at := path.Root("aggregation").AtName("type")
+	valid := func(aggregation map[string]tftypes.Value) bool {
+		t.Helper()
+		config := tfsdk.Config{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{
+			"name": str("a"), "aggregation": objectValue(aggregationType(root), aggregation),
+		})}
+		resp := &validator.StringResponse{}
+		for _, v := range typeAttr.Validators {
+			v.ValidateString(context.Background(), validator.StringRequest{Path: at, PathExpression: at.Expression(), Config: config, ConfigValue: types.StringValue(*stringOf(aggregation["type"]))}, resp)
+		}
+		return !resp.Diagnostics.HasError()
+	}
+	unknown := tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+	for name, test := range map[string]struct {
+		aggregation map[string]tftypes.Value
+		valid       bool
+	}{
+		"percentile with a field":      {map[string]tftypes.Value{"type": str("percentile"), "field": str("f")}, true},
+		"percentile with a unit":       {map[string]tftypes.Value{"type": str("percentile"), "unit": str("ms")}, true},
+		"percentile with both":         {map[string]tftypes.Value{"type": str("percentile"), "field": str("f"), "unit": str("ms")}, false},
+		"percentile with neither":      {map[string]tftypes.Value{"type": str("percentile")}, false},
+		"percentile, field unknown":    {map[string]tftypes.Value{"type": str("percentile"), "field": unknown, "unit": str("ms")}, true},
+		"avg with both has no rule":    {map[string]tftypes.Value{"type": str("avg"), "field": str("f"), "unit": str("ms")}, true},
+		"avg with neither has no rule": {map[string]tftypes.Value{"type": str("avg")}, true},
+	} {
+		if got := valid(test.aggregation); got != test.valid {
+			t.Errorf("%s: valid = %v, want %v", name, got, test.valid)
+		}
+	}
+}
+
+func spanValue(root tftypes.Object, set map[string]tftypes.Value) tftypes.Value {
+	return objectValue(root.AttributeTypes["span_value"], set)
+}
+
+// readStored reads the thing that the fake service holds, as an import does: the state has only
+// the id.
+func readStored(t *testing.T, stored typed_things_service.TypedThing) (*frameworkresource.ReadResponse, map[string]tftypes.Value) {
+	t.Helper()
+	ctx := context.Background()
+	root := thingRoot(t)
+	_, schemaResp, _ := thingSchema(t)
+	id := "thing-1"
+	stored.Id = &id
+	typed_things_service.Stored = stored
+	r := &Resource{client: &typed_things_service.TypedThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: objectValue(root, map[string]tftypes.Value{"id": str(id)})}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	var values map[string]tftypes.Value
+	if !resp.Diagnostics.HasError() {
+		if err := resp.State.Raw.As(&values); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return resp, values
+}
+
+// The span value shows the arms of its span field as its own attributes: {type, value}, with no
+// value object between. Each arm is sent in the object that holds the span field, by Create and by
+// Update, and a span value that the configuration leaves out sends no object.
+func TestInlinedTypedObjectSendsItsArmInsideTheObject(t *testing.T) {
+	root := thingRoot(t)
+	for kind, test := range map[string]struct {
+		value string
+		check func(*typed_things_service.TypedSpanField) bool
+	}{
+		"metadata": {"service_name", func(f *typed_things_service.TypedSpanField) bool {
+			return f.MetadataField != nil && *f.MetadataField == typed_things_service.TYPEDMETADATAFIELD_METADATA_FIELD_SERVICE_NAME && f.TagField == nil && f.ProcessTagField == nil
+		}},
+		"tag": {"env", func(f *typed_things_service.TypedSpanField) bool {
+			return f.TagField != nil && *f.TagField == "env" && f.MetadataField == nil && f.ProcessTagField == nil
+		}},
+		"process_tag": {"pid", func(f *typed_things_service.TypedSpanField) bool {
+			return f.ProcessTagField != nil && *f.ProcessTagField == "pid" && f.MetadataField == nil && f.TagField == nil
+		}},
+	} {
+		value := spanValue(root, map[string]tftypes.Value{"type": str(kind), "value": str(test.value)})
+		resp, _, config := createWith(t, map[string]tftypes.Value{"span_value": value}, nil)
+		sent := typed_things_service.Created[0].SpanValue
+		if sent == nil || sent.Value == nil || !test.check(sent.Value) {
+			t.Fatalf("%s: sent %+v, want only that arm in the object", kind, sent)
+		}
+		// The state is the plan: the next plan has no change.
+		var state, want map[string]tftypes.Value
+		if err := resp.State.Raw.As(&state); err != nil {
+			t.Fatal(err)
+		}
+		if err := config.As(&want); err != nil {
+			t.Fatal(err)
+		}
+		if !state["span_value"].Equal(want["span_value"]) {
+			t.Fatalf("%s: state span_value = %v, want %v", kind, state["span_value"], want["span_value"])
+		}
+	}
+	createWith(t, nil, nil)
+	if got := typed_things_service.Created[0].SpanValue; got != nil {
+		t.Fatalf("a span value left out sent %+v, want none", got)
+	}
+}
+
+// An import reads the span value from the object that holds the span field: each arm gives its type
+// and its value, and the next plan has no change.
+func TestImportReadsAnInlinedTypedObject(t *testing.T) {
+	service, env := typed_things_service.TYPEDMETADATAFIELD_METADATA_FIELD_SERVICE_NAME, "env"
+	for kind, test := range map[string]struct {
+		field *typed_things_service.TypedSpanField
+		value string
+	}{
+		"metadata": {&typed_things_service.TypedSpanField{MetadataField: &service}, "service_name"},
+		"tag":      {&typed_things_service.TypedSpanField{TagField: &env}, "env"},
+	} {
+		resp, values := readStored(t, typed_things_service.TypedThing{SpanValue: &typed_things_service.TypedSpanValue{Value: test.field}})
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("%s: %v", kind, resp.Diagnostics)
+		}
+		want := spanValue(thingRoot(t), map[string]tftypes.Value{"type": str(kind), "value": str(test.value)})
+		if !values["span_value"].Equal(want) {
+			t.Fatalf("%s: span_value = %v, want %v", kind, values["span_value"], want)
+		}
+	}
+	// No object at all reads as null.
+	if _, values := readStored(t, typed_things_service.TypedThing{}); !values["span_value"].IsNull() {
+		t.Fatalf("span_value = %v, want null", values["span_value"])
+	}
+}
+
+// A response that has the object but no arm in it is an error, not a panic: the type has nothing
+// to name. The same for a response whose object holds no span field at all.
+func TestInlinedTypedObjectWithoutAnArmIsAnError(t *testing.T) {
+	for name, value := range map[string]*typed_things_service.TypedSpanField{"empty span field": {}, "no span field": nil} {
+		resp, _ := readStored(t, typed_things_service.TypedThing{SpanValue: &typed_things_service.TypedSpanValue{Value: value}})
+		if !resp.Diagnostics.HasError() {
+			t.Fatalf("%s: no error, want one that says the response has no arm", name)
 		}
 	}
 }

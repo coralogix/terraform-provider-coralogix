@@ -129,3 +129,48 @@ func TestUpdateSendsTheNewNamesAndTheWrapper(t *testing.T) {
 		t.Errorf("update permissions = %+v, want the two permissions in their wrapper", body.NewPermissions)
 	}
 }
+
+// Two permissions that differ only in case keep their own spellings when the API keeps both: a
+// prior spelling serves one API element, an exact match first.
+func TestReadKeepsTwoSpellingsThatDifferOnlyInCase(t *testing.T) {
+	ctx := context.Background()
+	method_things_service.Created = nil
+	method_things_service.Stored = method_things_service.MethodThing{
+		ThingId: method_things_service.CreatedID, Name: "t", Description: "d", ParentId: 7, ParentName: "Standard",
+		Permissions: []string{"A:READ", "a:read", "b:write"},
+	}
+	r, schemaResp, root := methodSchema(t)
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: thingValue(root, tftypes.NewValue(tftypes.String, nil), "t", "a:read", "A:READ", "b:write")},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: thingValue(root, tftypes.NewValue(tftypes.String, tftypes.UnknownValue), "t", "a:read", "A:READ", "b:write")},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if got := permissionsOf(t, ctx, resp.State); !slices.Equal(got, []string{"A:READ", "a:read", "b:write"}) {
+		t.Errorf("state permissions = %v, want both spellings of a:read", got)
+	}
+}
+
+// A list keeps the order, so the prior element at an index keeps its spelling at that index when it
+// matches the API element in any case, whatever other twin the list has. A set matches by value.
+func TestKeepPriorElementCaseOfAList(t *testing.T) {
+	prior := []attr.Value{types.StringValue("a:read"), types.StringValue("A:READ"), types.StringNull(), types.StringValue("b:write")}
+	for _, c := range []struct {
+		name    string
+		api     []string
+		ordered bool
+		want    []string
+	}{
+		{"list twins keep their places", []string{"A:READ", "A:READ"}, true, []string{"a:read", "A:READ"}},
+		{"list with a null prior element", []string{"A:READ", "A:READ", "C:READ", "B:WRITE"}, true, []string{"a:read", "A:READ", "C:READ", "b:write"}},
+		{"list that moved an element", []string{"B:WRITE", "A:READ"}, true, []string{"b:write", "A:READ"}},
+		{"set twins keep their spellings", []string{"A:READ", "a:read"}, false, []string{"A:READ", "a:read"}},
+		{"set matches by value", []string{"B:WRITE", "A:READ"}, false, []string{"b:write", "A:READ"}},
+	} {
+		if got := keepPriorElementCase(prior, c.api, c.ordered); !slices.Equal(got, c.want) {
+			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+		}
+	}
+}

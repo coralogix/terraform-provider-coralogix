@@ -15,6 +15,12 @@ values:
   notification_group.webhooks_settings[].retriggering_period.minutes: "10"
   notification_group.webhooks_settings[].recipients: '["@{run}@example.com"]'
 
+  # The API accepts whole minutes only.
+  type_definition.logs_threshold.no_data_policy.auto_retire_seconds: "60"
+  type_definition.metric_threshold.no_data_policy.auto_retire_seconds: "60"
+  # A whole number: the API stores this threshold as a whole number.
+  type_definition.tracing_threshold.rules[].condition.span_amount: "1"
+
 updatedValues:
   incidents_settings.retriggering_period.minutes: "20"
   notification_group.webhooks_settings[].retriggering_period.minutes: "20"
@@ -32,12 +38,39 @@ skip:
   # An immediate alert has no group by.
   - group_by
   - notification_group.group_by_keys
+  # The API wants group-by keys for a maximum of unique values per key, and for undetected values
+  # management it wants a rule that compares with less than.
+  - type_definition.logs_unique_count.max_unique_count_per_group_by_key
+  - type_definition.logs_ratio_threshold.undetected_values_management
+  - type_definition.logs_threshold.undetected_values_management
+  - type_definition.logs_time_relative_threshold.undetected_values_management
+  - type_definition.metric_threshold.undetected_values_management
+  # Any value of it needs group_by, which these tests skip.
+  - type_definition.logs_ratio_threshold.group_by_for
   # These need connectors, presets, data sets, or routers of the tenant.
   - case_settings.destinations
   - data_sources
   - notification_group.destinations
   - notification_group.router
   - notification_group.webhooks_settings[].integration_id
+
+# The API takes one rule for some types, and gives each rule of the others its own priority. The
+# values-and-choices subtest puts one rule in a resource, and covers the other values in copies.
+maxElements:
+  type_definition.logs_new_value.rules: 1
+  type_definition.logs_ratio_threshold.rules: 1
+  type_definition.logs_threshold.rules: 1
+  type_definition.logs_time_relative_threshold.rules: 1
+  type_definition.logs_unique_count.rules: 1
+  type_definition.metric_anomaly.rules: 1
+  type_definition.metric_threshold.rules: 1
+  type_definition.tracing_threshold.rules: 1
+
+# The SLO alert needs an SLO of the tenant (the API answers 500 "Failed Getting SLO definition").
+skipChoices:
+  AlertDef:
+    choices: [sloThreshold]
+    reason: The alert needs an SLO of the tenant.
 
 upgradeFrom: "3.24.0"
 

@@ -285,9 +285,8 @@ func flattenEvalConfig(ctx context.Context, p path.Path, v *eval_things_service.
 	if v == nil {
 		return nil
 	}
-	if v.Legacy != nil {
+	if v.Legacy != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Unsupported config", "The legacy config is not supported.")
-		return &EvalConfigModel{}
 	}
 	out := &EvalConfigModel{}
 	out.Topics = flattenTopicsEvalConfig(ctx, p.AtName("topics"), v.Topics, diags)
@@ -577,4 +576,17 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
 }

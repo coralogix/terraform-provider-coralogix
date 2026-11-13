@@ -3,6 +3,7 @@ package wrap_things_service
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 type WrapPriority string
@@ -24,6 +25,22 @@ type PriorityValue struct {
 // Threshold requires its value, so the SDK holds it as a value, not a pointer.
 type Threshold struct {
 	Value float64
+}
+
+type LinkRef struct {
+	Target *string
+	Hint   *string
+}
+
+type WrapMark struct {
+	Label *string
+	Ratio *float64
+	Link  *LinkRef
+	Title *string
+	// Aliases are names that the API can return in another case.
+	Aliases []string
+	// CreatedAt is set by the server: the component is shared by the requests and the response.
+	CreatedAt *time.Time
 }
 
 type UUID struct {
@@ -57,6 +74,7 @@ type WindowValue string
 const (
 	WINDOWVALUE_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED WindowValue = "WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"
 	WINDOWVALUE_WINDOW_VALUE_MINUTES_5                WindowValue = "WINDOW_VALUE_MINUTES_5"
+	WINDOWVALUE_WINDOW_VALUE_DAYS_7                   WindowValue = "WINDOW_VALUE_DAYS_7"
 	WINDOWVALUE_WINDOW_VALUE_HOURS_2                  WindowValue = "WINDOW_VALUE_HOURS_2"
 )
 
@@ -68,6 +86,32 @@ type Window struct {
 
 type Label struct {
 	Value *string
+}
+
+type FolderPath struct {
+	Segments []string
+}
+
+// WrapPanel requires its id, so the SDK holds it as a value.
+type WrapPanel struct {
+	Id      UUID
+	Title   *string
+	Retired *string
+	Legacy  *bool
+	Level   *WindowValue
+	Size    *WindowValue
+}
+
+// WrapNote requires its id and its panel id, so the SDK holds them as values.
+type WrapNote struct {
+	Id      string
+	Text    *string
+	PanelId UUID
+	Detail  *NoteDetail
+}
+
+type NoteDetail struct {
+	Url *string
 }
 
 // WrapThing requires query, so the SDK holds it as a value, not a pointer.
@@ -84,7 +128,15 @@ type WrapThing struct {
 	Tags       *Tags
 	Window     *Window
 	MainLabel  *Label
+	Span       *string
+	Step       *string
 	ExtraLabel *Label
+	Panels     []WrapPanel
+	Notes      []WrapNote
+	FolderPath *FolderPath
+	Marks      []WrapMark
+	HomeId     *UUID
+	HomePath   *FolderPath
 	Offset     *string
 }
 
@@ -100,7 +152,15 @@ type CreateWrapThingRequest struct {
 	Tags       *Tags
 	Window     *Window
 	MainLabel  *Label
+	Span       *string
+	Step       *string
 	ExtraLabel *Label
+	Panels     []WrapPanel
+	Notes      []WrapNote
+	FolderPath *FolderPath
+	Marks      []WrapMark
+	HomeId     *UUID
+	HomePath   *FolderPath
 	Offset     *string
 }
 
@@ -116,7 +176,15 @@ type ReplaceWrapThingRequest struct {
 	Tags       *Tags
 	Window     *Window
 	MainLabel  *Label
+	Span       *string
+	Step       *string
 	ExtraLabel *Label
+	Panels     []WrapPanel
+	Notes      []WrapNote
+	FolderPath *FolderPath
+	Marks      []WrapMark
+	HomeId     *UUID
+	HomePath   *FolderPath
 	Offset     *string
 }
 

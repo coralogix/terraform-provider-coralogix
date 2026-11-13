@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"sort"
 	"strconv"
 	"time"
@@ -31,6 +32,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "description", serverDefault: false},
 	{attr: "kind", serverDefault: false},
+	{attr: "items", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -101,9 +103,11 @@ var computedAttrs = map[string]bool{
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"name":             true,
-	"kind":             true,
-	"kind.arm_a.value": true,
+	"name":               true,
+	"kind":               true,
+	"kind.arm_a.value":   true,
+	"items.name":         true,
+	"items.second.label": true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -245,11 +249,53 @@ func emptyValue(at string, v attr.Value) bool {
 	return false
 }
 
+// distributedReminders holds the Reminders list of one request or one response. The list is no
+// attribute of the resource: each item of it is an attribute of the object that it names. Expand
+// collects the items of every object, and flatten gives each object the items that name it.
+type distributedReminders struct {
+	items []union_wrap_things_service.UnionReminder
+}
+
+type distributedRemindersKey struct{}
+
+// withDistributedReminders returns ctx with a new collector that holds items.
+func withDistributedReminders(ctx context.Context, items []union_wrap_things_service.UnionReminder) (context.Context, *distributedReminders) {
+	d := &distributedReminders{items: items}
+	return context.WithValue(ctx, distributedRemindersKey{}, d), d
+}
+
+// distributedRemindersOf returns the collector of ctx, or nil when ctx has none.
+func distributedRemindersOf(ctx context.Context) *distributedReminders {
+	d, _ := ctx.Value(distributedRemindersKey{}).(*distributedReminders)
+	return d
+}
+
+// distributedRemindersShown reports whether a response shows the item: it has a value at definition.link.
+// Flatten drops the other items, so expand refuses them, or the write would lose them on the read.
+func distributedRemindersShown(a union_wrap_things_service.UnionReminder) bool {
+	return a.Definition != nil && a.Definition.Link != nil
+}
+
+// of returns the items that name the object with the id, in the order of the list.
+func (d *distributedReminders) of(id string) []union_wrap_things_service.UnionReminder {
+	var out []union_wrap_things_service.UnionReminder
+	for _, a := range d.items {
+		if !distributedRemindersShown(a) {
+			continue
+		}
+		if got := &a.ItemName; got != nil && *got == id {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func expandCreateUnionWrapThingRequest(ctx context.Context, p path.Path, m *UnionWrapThingModel, diags *diag.Diagnostics) *union_wrap_things_service.CreateUnionWrapThingRequest {
 	if m == nil {
 		return nil
 	}
 	out := &union_wrap_things_service.CreateUnionWrapThingRequest{}
+	ctx, collectedReminders := withDistributedReminders(ctx, nil)
 	out.Thing = &union_wrap_things_service.Thing{} // an inlined object: its fields are top-level attributes
 	out.Thing.Name = valueOf(expandString(m.Name))
 	out.Thing.Description = expandString(m.Description)
@@ -265,6 +311,13 @@ func expandCreateUnionWrapThingRequest(ctx context.Context, p path.Path, m *Unio
 		out.Thing.Variant = &fixed
 	}
 	expandCreateUnionWrapThingRequestKind(ctx, p.AtName("kind"), m.Kind, out, diags)
+	if items := expandElements[UnionItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+		out.Thing.Items = make([]union_wrap_things_service.UnionItem, 0, len(items))
+		for i := range items {
+			out.Thing.Items = append(out.Thing.Items, *expandUnionItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+		}
+	}
+	out.Thing.Reminders = collectedReminders.items
 	return out
 }
 
@@ -332,11 +385,426 @@ func flattenArmC(ctx context.Context, p path.Path, v *union_wrap_things_service.
 	return out
 }
 
+func expandUnionItem(ctx context.Context, p path.Path, m *UnionItemModel, diags *diag.Diagnostics) *union_wrap_things_service.UnionItem {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.UnionItem{}
+	out.Extra = &union_wrap_things_service.ItemExtra{} // an inlined object: its fields are top-level attributes
+	out.Value = &union_wrap_things_service.Labelled{}  // an inlined object: its fields are top-level attributes
+	out.Name = valueOf(expandString(m.Name))
+	out.Extra.Note = expandString(m.Note)
+	out.Value.Value = expandString(m.Value)
+	out.Value.Label = expandString(m.Label)
+	out.Options = expandItemOptions(ctx, p.AtName("options"), m.Options, diags)
+	out.First = expandTagAtUnionItemFirst(ctx, p.AtName("first"), m.First, diags)
+	out.Second = expandTagAtUnionItemSecond(ctx, p.AtName("second"), m.Second, diags)
+	out.Choice = expandPickAtUnionItemChoice(ctx, p.AtName("choice"), m.Choice, diags)
+	if items := expandElements[PickModel](ctx, p.AtName("choices"), m.Choices, diags); items != nil {
+		out.Choices = make([]union_wrap_things_service.Pick, 0, len(items))
+		for i := range items {
+			out.Choices = append(out.Choices, *expandPick(ctx, p.AtName("choices").AtListIndex(i), &items[i], diags))
+		}
+	}
+	out.Action = expandItemAction(ctx, p.AtName("action"), m.Action, diags)
+	out.Behavior = expandActionDefinition(ctx, p.AtName("behavior"), m.Behavior, diags)
+	if items := expandElements[UnionReminderModel](ctx, p.AtName("reminders"), m.Reminders, diags); len(items) != 0 {
+		if collected := distributedRemindersOf(ctx); collected != nil {
+			// The items name this object by its id, as the request holds it.
+			id := &out.Name
+			if id == nil || *id == "" {
+				diags.AddAttributeError(p.AtName("reminders"), "Missing id", "The items name their object by its id, so the object needs an id.")
+			} else {
+				for i := range items {
+					item := expandUnionReminder(ctx, p.AtName("reminders").AtListIndex(i), &items[i], diags)
+					if !distributedRemindersShown(*item) {
+						diags.AddAttributeError(p.AtName("reminders").AtListIndex(i), "Item would not be read back", "A response shows only the items that have a value at definition.link, so this item would be missing after the write. Set that value.")
+						continue
+					}
+					item.ItemName = valueOf(id)
+					collected.items = append(collected.items, *item)
+				}
+			}
+		}
+	}
+	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
+		out.Value = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	if out.Extra != nil && modelNull(m.Note) {
+		out.Extra = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenUnionItem(ctx context.Context, p path.Path, v *union_wrap_things_service.UnionItem, diags *diag.Diagnostics) *UnionItemModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Extra == nil {
+		v.Extra = &union_wrap_things_service.ItemExtra{}
+	}
+	if v.Value == nil {
+		v.Value = &union_wrap_things_service.Labelled{}
+	}
+	out := &UnionItemModel{}
+	out.Name = types.StringPointerValue(&v.Name)
+	out.Note = types.StringPointerValue(v.Extra.Note)
+	out.Value = types.StringPointerValue(v.Value.Value)
+	out.Label = types.StringPointerValue(v.Value.Label)
+	out.Options = flattenItemOptions(ctx, p.AtName("options"), v.Options, diags)
+	out.First = flattenTagAtUnionItemFirst(ctx, p.AtName("first"), v.First, diags)
+	out.Second = flattenTagAtUnionItemSecond(ctx, p.AtName("second"), v.Second, diags)
+	out.Choice = flattenPickAtUnionItemChoice(ctx, p.AtName("choice"), v.Choice, diags)
+	out.Choices = types.ListNull(types.ObjectType{AttrTypes: pickAttrTypes()})
+	if v.Choices != nil {
+		items := make([]PickModel, 0, len(v.Choices))
+		for i := range v.Choices {
+			items = append(items, *flattenPick(ctx, p.AtName("choices").AtListIndex(i), &v.Choices[i], diags))
+		}
+		out.Choices = flattenList(ctx, types.ObjectType{AttrTypes: pickAttrTypes()}, items, diags)
+	}
+	out.Action = flattenItemAction(ctx, p.AtName("action"), v.Action, diags)
+	out.Behavior = flattenActionDefinition(ctx, p.AtName("behavior"), v.Behavior, diags)
+	out.Reminders = types.ListNull(types.ObjectType{AttrTypes: unionReminderAttrTypes()})
+	if collected := distributedRemindersOf(ctx); collected != nil {
+		if id := &v.Name; id != nil {
+			if matched := collected.of(*id); len(matched) != 0 {
+				items := make([]UnionReminderModel, 0, len(matched))
+				for i := range matched {
+					items = append(items, *flattenUnionReminder(ctx, p.AtName("reminders").AtListIndex(i), &matched[i], diags))
+				}
+				out.Reminders = flattenList(ctx, types.ObjectType{AttrTypes: unionReminderAttrTypes()}, items, diags)
+			}
+		}
+	}
+	return out
+}
+
+func unionItemAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name":      types.StringType,
+		"note":      types.StringType,
+		"value":     types.StringType,
+		"label":     types.StringType,
+		"options":   types.ObjectType{AttrTypes: itemOptionsAttrTypes()},
+		"first":     types.ObjectType{AttrTypes: tagAtUnionItemFirstAttrTypes()},
+		"second":    types.ObjectType{AttrTypes: tagAtUnionItemSecondAttrTypes()},
+		"choice":    types.ObjectType{AttrTypes: pickAtUnionItemChoiceAttrTypes()},
+		"choices":   types.ListType{ElemType: types.ObjectType{AttrTypes: pickAttrTypes()}},
+		"action":    types.ObjectType{AttrTypes: itemActionAttrTypes()},
+		"behavior":  types.ObjectType{AttrTypes: actionDefinitionAttrTypes()},
+		"reminders": types.ListType{ElemType: types.ObjectType{AttrTypes: unionReminderAttrTypes()}},
+	}
+}
+
+func expandItemOptions(ctx context.Context, p path.Path, m *ItemOptionsModel, diags *diag.Diagnostics) *union_wrap_things_service.ItemOptions {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.ItemOptions{}
+	out.Custom = &union_wrap_things_service.CustomOptions{} // an inlined object: its fields are top-level attributes
+	out.Custom.Title = expandString(m.Title)
+	out.Custom.Collapsed = expandBool(m.Collapsed)
+	if m.Internal != nil {
+		out.Internal = map[string]interface{}{}
+	}
+	if out.Custom != nil && modelNull(m.Title) && modelNull(m.Collapsed) {
+		out.Custom = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenItemOptions(ctx context.Context, p path.Path, v *union_wrap_things_service.ItemOptions, diags *diag.Diagnostics) *ItemOptionsModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Custom == nil {
+		v.Custom = &union_wrap_things_service.CustomOptions{}
+	}
+	out := &ItemOptionsModel{}
+	out.Title = types.StringPointerValue(v.Custom.Title)
+	out.Collapsed = types.BoolPointerValue(v.Custom.Collapsed)
+	if v.Internal != nil {
+		out.Internal = &InternalOptionsModel{}
+	}
+	return out
+}
+
+func itemOptionsAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"title":     types.StringType,
+		"collapsed": types.BoolType,
+		"internal":  types.ObjectType{AttrTypes: map[string]attr.Type{}},
+	}
+}
+
+func expandTagAtUnionItemFirst(ctx context.Context, p path.Path, m *TagAtUnionItemFirstModel, diags *diag.Diagnostics) *union_wrap_things_service.Tag {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Tag{}
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenTagAtUnionItemFirst(ctx context.Context, p path.Path, v *union_wrap_things_service.Tag, diags *diag.Diagnostics) *TagAtUnionItemFirstModel {
+	if v == nil {
+		return nil
+	}
+	out := &TagAtUnionItemFirstModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+func tagAtUnionItemFirstAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"title": types.StringType,
+	}
+}
+
+func expandTagAtUnionItemSecond(ctx context.Context, p path.Path, m *TagAtUnionItemSecondModel, diags *diag.Diagnostics) *union_wrap_things_service.Tag {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Tag{}
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenTagAtUnionItemSecond(ctx context.Context, p path.Path, v *union_wrap_things_service.Tag, diags *diag.Diagnostics) *TagAtUnionItemSecondModel {
+	if v == nil {
+		return nil
+	}
+	out := &TagAtUnionItemSecondModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+func tagAtUnionItemSecondAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label": types.StringType,
+	}
+}
+
+func expandPickAtUnionItemChoice(ctx context.Context, p path.Path, m *PickAtUnionItemChoiceModel, diags *diag.Diagnostics) *union_wrap_things_service.Pick {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Pick{}
+	out.Value = &union_wrap_things_service.Labelled{} // an inlined object: its fields are top-level attributes
+	out.Value.Value = expandString(m.Value)
+	out.Value.Label = expandString(m.Label)
+	out.Note = expandString(m.Note)
+	if out.Value != nil && modelNull(m.Value) && modelNull(m.Label) {
+		out.Value = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenPickAtUnionItemChoice(ctx context.Context, p path.Path, v *union_wrap_things_service.Pick, diags *diag.Diagnostics) *PickAtUnionItemChoiceModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Value == nil {
+		v.Value = &union_wrap_things_service.Labelled{}
+	}
+	out := &PickAtUnionItemChoiceModel{}
+	out.Value = types.StringPointerValue(v.Value.Value)
+	out.Label = types.StringPointerValue(v.Value.Label)
+	out.Note = types.StringPointerValue(v.Note)
+	return out
+}
+
+func pickAtUnionItemChoiceAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value":  types.StringType,
+		"label":  types.StringType,
+		"remark": types.StringType,
+	}
+}
+
+func expandPick(ctx context.Context, p path.Path, m *PickModel, diags *diag.Diagnostics) *union_wrap_things_service.Pick {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Pick{}
+	out.Value = expandLabelled(ctx, p.AtName("value"), m.Value, diags)
+	out.Note = expandString(m.Note)
+	return out
+}
+
+func flattenPick(ctx context.Context, p path.Path, v *union_wrap_things_service.Pick, diags *diag.Diagnostics) *PickModel {
+	if v == nil {
+		return nil
+	}
+	out := &PickModel{}
+	out.Value = flattenLabelled(ctx, p.AtName("value"), v.Value, diags)
+	out.Note = types.StringPointerValue(v.Note)
+	return out
+}
+
+func pickAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value": types.ObjectType{AttrTypes: labelledAttrTypes()},
+		"note":  types.StringType,
+	}
+}
+
+func expandLabelled(ctx context.Context, p path.Path, m *LabelledModel, diags *diag.Diagnostics) *union_wrap_things_service.Labelled {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.Labelled{}
+	out.Value = expandString(m.Value)
+	out.Label = expandString(m.Label)
+	return out
+}
+
+func flattenLabelled(ctx context.Context, p path.Path, v *union_wrap_things_service.Labelled, diags *diag.Diagnostics) *LabelledModel {
+	if v == nil {
+		return nil
+	}
+	out := &LabelledModel{}
+	out.Value = types.StringPointerValue(v.Value)
+	out.Label = types.StringPointerValue(v.Label)
+	return out
+}
+
+func labelledAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value": types.StringType,
+		"label": types.StringType,
+	}
+}
+
+func expandItemAction(ctx context.Context, p path.Path, m *ItemActionModel, diags *diag.Diagnostics) *union_wrap_things_service.ItemAction {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.ItemAction{}
+	out.Definition = &union_wrap_things_service.ActionDefinition{} // an inlined object: its fields are top-level attributes
+	out.Definition.Link = &union_wrap_things_service.ActionLink{}  // an inlined object: its fields are top-level attributes
+	out.Label = expandString(m.Label)
+	out.Definition.Link.Url = expandString(m.Url)
+	if out.Definition != nil && modelNull(m.Url) {
+		out.Definition = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenItemAction(ctx context.Context, p path.Path, v *union_wrap_things_service.ItemAction, diags *diag.Diagnostics) *ItemActionModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Definition == nil {
+		v.Definition = &union_wrap_things_service.ActionDefinition{}
+	}
+	if v.Definition.Link == nil {
+		v.Definition.Link = &union_wrap_things_service.ActionLink{}
+	}
+	out := &ItemActionModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Url = types.StringPointerValue(v.Definition.Link.Url)
+	return out
+}
+
+func itemActionAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label": types.StringType,
+		"url":   types.StringType,
+	}
+}
+
+func expandActionDefinition(ctx context.Context, p path.Path, m *ActionDefinitionModel, diags *diag.Diagnostics) *union_wrap_things_service.ActionDefinition {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.ActionDefinition{}
+	out.Link = &union_wrap_things_service.ActionLink{} // an inlined object: its fields are top-level attributes
+	out.Link.Url = expandString(m.Url)
+	return out
+}
+
+func flattenActionDefinition(ctx context.Context, p path.Path, v *union_wrap_things_service.ActionDefinition, diags *diag.Diagnostics) *ActionDefinitionModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Link == nil {
+		v.Link = &union_wrap_things_service.ActionLink{}
+	}
+	out := &ActionDefinitionModel{}
+	out.Url = types.StringPointerValue(v.Link.Url)
+	return out
+}
+
+func actionDefinitionAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"url": types.StringType,
+	}
+}
+
+func expandUnionReminder(ctx context.Context, p path.Path, m *UnionReminderModel, diags *diag.Diagnostics) *union_wrap_things_service.UnionReminder {
+	if m == nil {
+		return nil
+	}
+	out := &union_wrap_things_service.UnionReminder{}
+	out.Definition = &union_wrap_things_service.ActionDefinition{} // an inlined object: its fields are top-level attributes
+	out.Definition.Link = &union_wrap_things_service.ActionLink{}  // an inlined object: its fields are top-level attributes
+	out.Label = expandString(m.Label)
+	out.Definition.Link.Url = expandString(m.Url)
+	if out.Definition != nil && modelNull(m.Url) {
+		out.Definition = nil // an optional object that the configuration sets no attribute of is left out
+	}
+	return out
+}
+
+func flattenUnionReminder(ctx context.Context, p path.Path, v *union_wrap_things_service.UnionReminder, diags *diag.Diagnostics) *UnionReminderModel {
+	if v == nil {
+		return nil
+	}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+	if v.Definition == nil {
+		v.Definition = &union_wrap_things_service.ActionDefinition{}
+	}
+	if v.Definition.Link == nil {
+		v.Definition.Link = &union_wrap_things_service.ActionLink{}
+	}
+	out := &UnionReminderModel{}
+	out.Label = types.StringPointerValue(v.Label)
+	out.Url = types.StringPointerValue(v.Definition.Link.Url)
+	return out
+}
+
+func unionReminderAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"label": types.StringType,
+		"url":   types.StringType,
+	}
+}
+
 func expandReplaceUnionWrapThingRequest(ctx context.Context, p path.Path, m *UnionWrapThingModel, diags *diag.Diagnostics) *union_wrap_things_service.ReplaceUnionWrapThingRequest {
 	if m == nil {
 		return nil
 	}
 	out := &union_wrap_things_service.ReplaceUnionWrapThingRequest{}
+	ctx, collectedReminders := withDistributedReminders(ctx, nil)
 	out.Thing = &union_wrap_things_service.Thing{} // an inlined object: its fields are top-level attributes
 	out.Thing.Name = valueOf(expandString(m.Name))
 	out.Thing.Description = expandString(m.Description)
@@ -352,6 +820,13 @@ func expandReplaceUnionWrapThingRequest(ctx context.Context, p path.Path, m *Uni
 		out.Thing.Variant = &fixed
 	}
 	expandReplaceUnionWrapThingRequestKind(ctx, p.AtName("kind"), m.Kind, out, diags)
+	if items := expandElements[UnionItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+		out.Thing.Items = make([]union_wrap_things_service.UnionItem, 0, len(items))
+		for i := range items {
+			out.Thing.Items = append(out.Thing.Items, *expandUnionItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+		}
+	}
+	out.Thing.Reminders = collectedReminders.items
 	return out
 }
 
@@ -375,11 +850,20 @@ func flattenUnionWrapThing(ctx context.Context, p path.Path, v *union_wrap_thing
 	if v.Thing == nil {
 		v.Thing = &union_wrap_things_service.Thing{}
 	}
+	ctx, _ = withDistributedReminders(ctx, v.Thing.Reminders)
 	out := &UnionWrapThingModel{}
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(&v.Thing.Name)
 	out.Description = types.StringPointerValue(v.Thing.Description)
 	out.Kind = flattenUnionWrapThingKind(ctx, p.AtName("kind"), v, diags)
+	out.Items = types.ListNull(types.ObjectType{AttrTypes: unionItemAttrTypes()})
+	if v.Thing.Items != nil {
+		items := make([]UnionItemModel, 0, len(v.Thing.Items))
+		for i := range v.Thing.Items {
+			items = append(items, *flattenUnionItem(ctx, p.AtName("items").AtListIndex(i), &v.Thing.Items[i], diags))
+		}
+		out.Items = flattenList(ctx, types.ObjectType{AttrTypes: unionItemAttrTypes()}, items, diags)
+	}
 	return out
 }
 
@@ -502,6 +986,19 @@ func expandBool(v types.Bool) *bool {
 	}
 	b := v.ValueBool()
 	return &b
+}
+
+// modelNull reports whether the configuration leaves a model field out: a null value, or a nil
+// object, list, or map.
+func modelNull(v any) bool {
+	if a, ok := v.(attr.Value); ok {
+		return a.IsNull()
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return rv.IsNil()
+	}
+	return false
 }
 
 func expandFloat64(v types.Float64) *float64 {

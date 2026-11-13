@@ -26,7 +26,7 @@ const terraformInt64SafeDecimalDigits int64 = 18
 func terraformContractIssues(doc *v3.Document, component string, ids model.OperationIDs, p model.Policy, file *overrides.File) issue.Report {
 	report := omittedMaskIssues(model.ValidateWithPolicy(doc, component, ids, p), file)
 	if t, _ := model.SurveyWithPolicy(doc, component, p); t != nil {
-		report = append(report, terraformNameCollisions(p, "components.schemas."+component, t)...)
+		report = append(report, terraformNameCollisions(p, "components.schemas."+component, t, file)...)
 		report = append(report, uint64RangeIssues(p, component, t)...)
 	}
 	return report.Normalize()
@@ -58,14 +58,17 @@ func resolveResource(doc *v3.Document, selection string) (string, issue.Report) 
 	}
 }
 
-// terraformNameCollisions reports the fields of an object that have the same Terraform name.
-func terraformNameCollisions(p model.Policy, location string, t *model.Type) issue.Report {
+// terraformNameCollisions reports the fields of an object that have the same Terraform name. file
+// holds the groups of the resource: a field that a group holds is an attribute of the group, so it
+// has its name in the group and not in the object that holds the group. file is nil for a nested
+// object, because only the fields of the resource are put in groups.
+func terraformNameCollisions(p model.Policy, location string, t *model.Type, file *overrides.File) issue.Report {
 	var report issue.Report
 	if t == nil {
 		return nil
 	}
 	if t.Kind == model.List || t.Kind == model.Set || t.Kind == model.Map {
-		return terraformNameCollisions(p, location+"[]", t.Elem)
+		return terraformNameCollisions(p, location+"[]", t.Elem, nil)
 	}
 	if t.Kind != model.Object && t.Kind != model.OneOf {
 		return nil
@@ -75,13 +78,15 @@ func terraformNameCollisions(p model.Policy, location string, t *model.Type) iss
 		if lists(p.Skip, t.Schema, field.Name) || lists(p.FixedRequest, t.Schema, field.Name) {
 			continue // a skipped field or a fixed request value has no Terraform attribute
 		}
+		// The key has the group of the field, so two groups can both have an id.
 		terraformName := terraformName(p, t.Schema, field.Name)
-		if previous, ok := terraformNames[terraformName]; ok && previous != field.Name {
+		key := strings.Join(file.GroupPath(field.Name), ".") + "\x00" + terraformName
+		if previous, ok := terraformNames[key]; ok && previous != field.Name {
 			report = append(report, issue.Issue{Code: "TERRAFORM_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both normalize to %q.", previous, field.Name, terraformName), Remediation: "Rename a source API field, or give one a name line, so every Terraform name is unique."})
 		} else {
-			terraformNames[terraformName] = field.Name
+			terraformNames[key] = field.Name
 		}
-		report = append(report, terraformNameCollisions(p, location+"."+field.Name, field.Type)...)
+		report = append(report, terraformNameCollisions(p, location+"."+field.Name, field.Type, nil)...)
 	}
 	return report
 }

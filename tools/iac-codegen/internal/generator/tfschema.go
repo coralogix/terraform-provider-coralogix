@@ -92,6 +92,14 @@ type tfAttr struct {
 	// CustomType is the Terraform type of a scalar attribute that is not the plain type of its
 	// kind, for example rfc3339Type, or "".
 	CustomType string
+	// SiblingRules are the exactlyOneOf and conflictsWith lines of the attribute that name only its
+	// siblings in an object. The oneOfArmsValidator of the parent object checks them, so the cost does
+	// not grow with the number of objects (see addArmValidators).
+	SiblingRules []siblingRule
+	// UpSteps are the path steps that each object level above the attribute takes, the nearest last:
+	// 1 for a single object, and 2 for an item of a list, set, or map (the element and the name of
+	// the collection). A "../" in a validator target goes up one level, so it removes that many steps.
+	UpSteps []int
 	// ElemValidators are the validators of one element of a collection of plain values, the
 	// arguments of its Value<Kind>sAre validator. The acceptance test makes an element that passes.
 	ElemValidators []string
@@ -104,11 +112,22 @@ type tfAttr struct {
 	// them (enumValuesInDescription), so the list is never read back from the text of a validator.
 	// A validator that is no longer in Validators contributes nothing.
 	EnumValueSets map[string][]string
+	// EnumChoices are the values of the enum mapping that a user can set, in the order of the
+	// contract: the API value and the Terraform value of each. The acceptance test reads them, so
+	// an attribute without an enum validator is covered too. It is nil for an enum of a new
+	// resource, whose validator states the values.
+	EnumChoices []enumOption
 	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
 	// The acceptance test sets one arm of each group.
 	OneOfGroup string
-	// OneOfRequired says that the group needs one arm (ExactlyOneOf), so every config sets one.
+	// OneOfRequired says that the group needs one arm, so every config sets one.
 	OneOfRequired bool
+	// ArmConflicts are the attribute names of the arms that stay beside the inlined arm that this
+	// field came from (inline line): the field cannot be set with any of them. The conflict is checked by
+	// the validator on the parent object, as the oneOf groups are.
+	ArmConflicts []string
+	// ItemValidators are the validators of the object of each item of a list, set, or map of objects.
+	ItemValidators []string
 	// RootArm: the attribute is an arm of a top-level oneOf, which a resource validator checks.
 	RootArm bool
 	// KeyedObject: the attribute is the object of a keyedBy line, with an attribute per value of
@@ -149,6 +168,16 @@ type tfAttr struct {
 	// FoldEnum is the enum component of the oneOf that the attribute shows as one string
 	// (asString), "" for any other attribute.
 	FoldEnum string
+	// FoldArms are the Terraform values of a oneOf of arms without fields that the attribute shows
+	// as one string (asString): the name of the arm that is set.
+	FoldArms []string
+	// TypedArm: the attribute is a field that a typedArms object merged from its arms. The
+	// validators lines of an arm field run only when the type names the arm, so the attribute
+	// itself takes none of them.
+	TypedArm bool
+	// Typed: the attribute is the type of a typedArms object. It holds what each arm has, so that a
+	// generated config sets only the fields of the arm that the type names.
+	Typed *typedInfo
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
@@ -160,6 +189,9 @@ type tfAttr struct {
 	// read-only, as an id that a write sends back to name an item of an overwrite resource.
 	ServerSetInRequest bool
 }
+
+// enumOption is one accepted value of an enum: the API value and the Terraform value.
+type enumOption struct{ API, TF string }
 
 // tfModel is one Go struct of the Terraform model.
 type tfModel struct {
@@ -187,7 +219,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r, file), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
@@ -212,7 +244,10 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if err := b.rootOneOfs(out, r, file, groups); err != nil {
 		return nil, err
 	}
-	if err := groups.check(out.Attributes); err != nil {
+	if err := groups.check(r, out.Attributes); err != nil {
+		return nil, err
+	}
+	if err := b.checkPlacesUsed(); err != nil {
 		return nil, err
 	}
 	if err := b.checkNestedGroupsUsed(); err != nil {
@@ -246,6 +281,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			}
 		}
 	}
+	addArmValidators(out.Attributes)
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
@@ -343,7 +379,7 @@ func (r *tfResource) HasTypedArms() bool {
 // UsesAttr reports whether a static default of an attribute is an empty list or set, whose Go
 // expression names attr.Value. The typedArmValidator also names it.
 func (r *tfResource) UsesAttr() bool {
-	if r.HasTypedArms() {
+	if r.HasTypedArms() || r.HasArmValidators() {
 		return true
 	}
 	var uses func(attrs []*tfAttr) bool
@@ -408,8 +444,8 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singleton
 
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
-func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, group string) (*tfAttr, error) {
-	a, err := b.attribute(rootPath(group, terraformName(r.Policy, r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, groups []string) (*tfAttr, error) {
+	a, err := b.attribute(rootPath(groups, terraformName(r.Policy, r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +486,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		}
 	case f.Behavior == model.Immutable || clientSetID:
 		// The path holds the group, as the server paths of the request do.
-		b.requiresReplace(a, rootPath(group, a.Name).dotted())
+		b.requiresReplace(a, rootPath(groups, a.Name).dotted())
 	}
 	return a, nil
 }
@@ -478,9 +514,16 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 		}
 	}
 	collect(out.Attributes)
-	var walk func(attrs []*tfAttr) error
-	walk = func(attrs []*tfAttr) error {
+	var walk func(attrs []*tfAttr, above [][]*tfAttr, steps []int) error
+	walk = func(attrs []*tfAttr, above [][]*tfAttr, steps []int) error {
 		for _, a := range attrs {
+			a.UpSteps = steps
+			if enum, mapped := file.Enums[a.EnumSchema]; mapped && a.EnumSchema != "" && (a.ValueKind == "String" || a.ValueKind == "List" || a.ValueKind == "Set") {
+				a.EnumChoices = nil
+				for _, v := range enum.Values {
+					a.EnumChoices = append(a.EnumChoices, enumOption{API: v, TF: enum.TFValue(v)})
+				}
+			}
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
@@ -514,7 +557,10 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
 					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
 				}
-				if err := checkSiblingTargets(a, attrs, line.Validators); err != nil {
+				if a.TypedArm {
+					line.Validators = nil
+				}
+				if err := checkSiblingTargets(a, attrs, above, line.Validators); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
 				if err := applyField(a, line, file); err != nil {
@@ -535,13 +581,13 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
 			}
-			if err := walk(a.Attributes); err != nil {
+			if err := walk(a.Attributes, append(slices.Clone(above), attrs), append(slices.Clone(steps), levelSteps(a))); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	if err := walk(out.Attributes); err != nil {
+	if err := walk(out.Attributes, nil, nil); err != nil {
 		return err
 	}
 	// Field lines run after markComputed, so they can put validators and document
@@ -578,7 +624,7 @@ func addEnumValues(attrs []*tfAttr, enabled bool) {
 // list or set of one). Every validator must pass, so with more than one, such as an inferred one
 // and an enumExceptZero line, the accepted values are the ones that all of them accept.
 func enumValidatorValues(a *tfAttr) ([]string, bool) {
-	if a.EnumSchema == "" && a.FoldEnum == "" {
+	if a.EnumSchema == "" && a.FoldEnum == "" && len(a.FoldArms) == 0 {
 		return nil, false
 	}
 	var values []string
@@ -666,7 +712,7 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 // applyValidators adds the validators of a line to the attribute. A oneOf that shows as one string
 // (asString) gets one validator made from the enum and the pattern of the line.
 func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
-	if l.AsString && a.FoldEnum == "" {
+	if l.AsString && a.FoldEnum == "" && len(a.FoldArms) == 0 {
 		return errors.New("asString needs a field that holds a oneOf")
 	}
 	enumOnly := false
@@ -674,6 +720,10 @@ func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		if l.AsString && v.Enum {
 			// The validator of a oneOf that shows as one string is made below.
 			enumOnly = true
+			continue
+		}
+		if rule, ok := siblingRuleOf(a, v); ok {
+			a.SiblingRules = append(a.SiblingRules, rule)
 			continue
 		}
 		expr, err := validatorExpr(a, v, file)
@@ -691,10 +741,26 @@ func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
 		}
 	}
+	if l.AsString && len(a.FoldArms) != 0 {
+		// The names of the arms are the only values: there is no free text arm.
+		oneOf := "stringvalidator.OneOf(" + strings.Join(quoteAll(a.FoldArms), ", ") + ")"
+		a.Validators = append(a.Validators, oneOf)
+		a.recordEnumValues(oneOf, slices.Clone(a.FoldArms))
+		return nil
+	}
 	if l.AsString {
 		return foldStringValidators(a, file, enumOnly)
 	}
 	return nil
+}
+
+// quoteAll quotes each text as a Go string literal.
+func quoteAll(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		out = append(out, strconv.Quote(v))
+	}
+	return out
 }
 
 // serverSetInRequest makes an item field of an overwrite resource computed-only when the write
@@ -738,6 +804,13 @@ func applyMode(a *tfAttr, l overrides.Field) error {
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
+	if l.ClientID != "" {
+		// The client makes the id, so the user may leave it out although the request requires it.
+		if a.Kind != "String" {
+			return fmt.Errorf("clientID: uuid needs a string attribute, not %s", a.Kind)
+		}
+		a.Required, a.Optional = false, true
+	}
 	if l.SchemaOptional {
 		if !a.Required {
 			return errors.New("schemaOptional needs a field that the API request requires")
@@ -772,6 +845,12 @@ func applyModifiers(a *tfAttr, l overrides.Field) error {
 	if l.UseNonNullStateForUnknown {
 		// A null state value stays unknown, so the server can fill it in. A known one stays.
 		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseNonNullStateForUnknown()")
+	}
+	if l.DefaultFromSibling != "" {
+		if a.ValueKind != "String" || !a.Computed {
+			return fmt.Errorf("defaultFromSibling needs a computed string attribute, not %s", a.ValueKind)
+		}
+		a.Modifiers = append(a.Modifiers, fmt.Sprintf("siblingDefaultModifier{Sibling: %q}", l.DefaultFromSibling))
 	}
 	if l.Equality != "" && l.Equality != overrides.EqualityCaseInsensitive {
 		if a.ValueKind != "String" {
@@ -912,13 +991,17 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 	case len(v.Between) == 2 && slices.Contains([]string{"Float32", "Float64", "Int32", "Int64"}, a.ValueKind):
 		return betweenExpr(a, v.Between)
 	case len(v.ExactlyOneOf) != 0:
-		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
+		return pkg + ".ExactlyOneOf(" + siblingPaths(a.UpSteps, v.ExactlyOneOf) + ")", nil
 	case len(v.AtLeastOneOf) != 0:
-		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
+		return pkg + ".AtLeastOneOf(" + siblingPaths(a.UpSteps, v.AtLeastOneOf) + ")", nil
 	case len(v.AlsoRequires) != 0:
-		return pkg + ".AlsoRequires(" + siblingPaths(v.AlsoRequires) + ")", nil
+		return pkg + ".AlsoRequires(" + siblingPaths(a.UpSteps, v.AlsoRequires) + ")", nil
 	case len(v.ConflictsWith) != 0:
-		return pkg + ".ConflictsWith(" + siblingPaths(v.ConflictsWith) + ")", nil
+		return pkg + ".ConflictsWith(" + siblingPaths(a.UpSteps, v.ConflictsWith) + ")", nil
+	case v.Unsupported != "" && a.ValueKind == "Bool":
+		return fmt.Sprintf("%s{Message: %q}", unsupportedBoolValidatorName, v.Unsupported), nil
+	case v.Equals != nil && a.ValueKind == "Bool":
+		return fmt.Sprintf("boolvalidator.Equals(%t)", *v.Equals), nil
 	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
 		if err := checkIntegerBound(a.ValueKind, "atLeast", *v.AtLeast); err != nil {
 			return "", err
@@ -1109,12 +1192,12 @@ func serverDefaultValue(t *model.Type, value string) (string, error) {
 	}
 }
 
-// addGroupValidators adds a validator to each arm of the oneOf groups of an
-// object: ExactlyOneOf, or ConflictsWith when no arm is allowed, with the
-// other arms. On the arm, Terraform runs it only when the object is set. A
-// resource validator would also run when the object is null, and then
-// "exactly one" fails.
-func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup, name func(string) string) {
+// markOneOfArms marks each arm of the oneOf groups of an object, so that the validator on the parent
+// object can check the group: exactly one arm, or at most one when no arm is allowed. The check
+// is on the parent and reads its attributes. A validator on each arm that names its siblings by a
+// path expression walks the whole configuration for every sibling, which made the plan of a
+// dashboard with many widgets slow.
+func markOneOfArms(attrs []*tfAttr, groups []model.OneOfGroup, name func(string) string) {
 	byName := map[string]*tfAttr{}
 	for _, a := range attrs {
 		byName[a.Name] = a
@@ -1122,16 +1205,6 @@ func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup, name func(st
 	for _, g := range groups {
 		for _, arm := range g.Arms {
 			a := byName[name(arm)]
-			var others []string
-			for _, o := range g.Arms {
-				if o != arm {
-					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name(o)))
-				}
-			}
-			pkg := strings.ToLower(a.ValueKind) + "validator"
-			validator := groupValidator(pkg, g, false) + "(" + strings.Join(others, ", ") + ")"
-			a.Validators = append(a.Validators, validator)
-			a.GroupValidators = append(a.GroupValidators, validator)
 			a.OneOfGroup = strings.Join(g.Arms, ",")
 			a.OneOfRequired = !g.AllowNone
 		}
@@ -1175,6 +1248,7 @@ type tfBuilder struct {
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
 	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+	places       map[string]bool   // the places of types.<Type>.at lines that the builder found
 	itemModified map[string]bool   // components whose items carry types.<Type>.useStateForUnknown
 	// carried are the siblings that a carrySiblings arm holds, with the component whose lines they
 	// take. flags are the fold flags that an arm holds.
@@ -1192,17 +1266,11 @@ func (b *tfBuilder) claimModel(name, owner string) error {
 	return nil
 }
 
-// requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
-// allows none, and the released resource required one.
+// requireOneArm makes the group of a oneOf that allows no arm need one arm. The contract allows
+// none, and the released resource required one.
 func requireOneArm(a *tfAttr) {
 	for _, child := range a.Attributes {
 		child.OneOfRequired = true
-		for i, v := range child.Validators {
-			child.Validators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
-		}
-		for i, v := range child.GroupValidators {
-			child.GroupValidators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
-		}
 	}
 }
 
@@ -1288,6 +1356,25 @@ func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model
 	return a, nil
 }
 
+// enumKeyFor returns the key of the enums entry of a field: the contract enum, or its variant when
+// the line of the field has enumAs.
+func enumKeyFor(file *overrides.File, component, property, schema string) string {
+	if file == nil || schema == "" {
+		return schema
+	}
+	if variant := file.Types[component].Fields[property].EnumAs; variant != "" {
+		return schema + "@" + variant
+	}
+	return schema
+}
+
+func durationOf(file *overrides.File, component, name string) string {
+	if file == nil {
+		return ""
+	}
+	return file.Types[component].Fields[name].DurationFormat
+}
+
 // splitOf is the separator of the split line of field name of component: the API holds the values
 // of a Terraform set of strings joined by it. "" when the field has none.
 func splitOf(file *overrides.File, component, name string) string {
@@ -1309,16 +1396,33 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
 		a.Uint64 = t.Kind == model.Integer && t.WireString && (t.Format == "uint64" || t.Format == "int64")
 		if t.Kind == model.Enum {
-			a.EnumSchema = t.Schema
+			a.EnumSchema = enumKeyFor(b.file, a.Component, a.Property, t.Schema)
 		}
 		if sentTime(t, computed) {
 			a.CustomType = rfc3339Type
 			a.Validators = append(a.Validators, utcValidator)
 		}
 	case model.Set, model.List, model.Map:
+		if sep := joinOf(b.file, a.Component, a.Property, t); sep != "" {
+			if t.Kind != model.List || t.Elem == nil || t.Elem.Kind != model.String || isTime(t.Elem) {
+				return fmt.Errorf("%s.%s: join needs a list of plain strings", a.Component, a.Property)
+			}
+			a.Kind, a.ValueKind = "String", "String"
+			return nil
+		}
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
+		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
+			return b.asListAttribute(a, p, t)
+		}
 		if asString(b.file, a.Component, a.Property) {
+			if arms := emptyArms(t); arms != nil {
+				a.Kind, a.ValueKind = "String", "String"
+				for _, arm := range arms {
+					a.FoldArms = append(a.FoldArms, terraformName(b.policy, t.Schema, arm.Name))
+				}
+				return nil
+			}
 			enum, _, err := stringArms(t)
 			if err != nil {
 				return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
@@ -1392,8 +1496,13 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 // contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
 // String keeps an integer as decimal text.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
-	if l.TerraformType == "" {
+	switch l.TerraformType {
+	case "":
 		return nil
+	case "Float64":
+		return applyFloat64Type(a)
+	case "Number":
+		return applyNumberType(a)
 	}
 	if l.TerraformType == "String" {
 		// The released attribute is the decimal text of an integer, such as the id or a team id. An
@@ -1445,6 +1554,60 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	return nil
 }
 
+// applyFloat64Type keeps the released Float64 type of a float32 attribute. The validators and the plan
+// modifiers follow the type.
+func applyFloat64Type(a *tfAttr) error {
+	if a.Kind != "Float32" {
+		return fmt.Errorf("terraformType Float64 needs a float32 attribute, not a %s", a.Kind)
+	}
+	retype := strings.NewReplacer("float32validator.", "float64validator.", "float32planmodifier.", "float64planmodifier.")
+	for _, list := range []*[]string{&a.Validators, &a.GroupValidators, &a.Modifiers} {
+		for i, v := range *list {
+			(*list)[i] = retype.Replace(v)
+		}
+	}
+	a.Kind, a.ValueKind = "Float64", "Float64"
+	return nil
+}
+
+// applyNumberType keeps the released Number type of an int32 or a double attribute. A validator over
+// the value (AtLeast, Between, ...) has no Number counterpart, so only a validator over other
+// attributes stays.
+func applyNumberType(a *tfAttr) error {
+	if a.Kind != "Int32" && a.Kind != "Float64" {
+		return fmt.Errorf("terraformType Number needs an int32 or a double attribute, not a %s", a.Kind)
+	}
+	valueKind := strings.ToLower(a.Kind)
+	for _, list := range []*[]string{&a.Validators, &a.GroupValidators} {
+		for i, v := range *list {
+			rest, ok := strings.CutPrefix(v, valueKind+"validator.")
+			if !ok {
+				continue
+			}
+			if !crossAttributeValidator(rest) {
+				return fmt.Errorf("terraformType Number cannot keep the validator %s of the contract: remove the limit with validators.inferred: false", v)
+			}
+			(*list)[i] = "numbervalidator." + rest
+		}
+	}
+	for i, m := range a.Modifiers {
+		a.Modifiers[i] = strings.Replace(m, valueKind+"planmodifier.", "numberplanmodifier.", 1)
+	}
+	a.Kind, a.ValueKind = "Number", "Number"
+	return nil
+}
+
+// crossAttributeValidator reports whether the call of a validator, such as ConflictsWith(...), is
+// over other attributes. It has the same arguments for every type.
+func crossAttributeValidator(call string) bool {
+	for _, name := range []string{"ConflictsWith(", "ExactlyOneOf(", "AlsoRequires(", "AtLeastOneOf("} {
+		if strings.HasPrefix(call, name) {
+			return true
+		}
+	}
+	return false
+}
+
 // applyValueNames makes a list or set of integers a list or set of the names of its values. Only
 // the names are valid, so the line also brings their OneOf validator.
 func applyValueNames(a *tfAttr, l overrides.Field) error {
@@ -1477,7 +1640,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
-	if line := b.file.TypedArmsOf(t.Schema); line != nil {
+	if line := b.file.TypedArmsOf(t.Schema); line != nil && !line.AsList {
 		if t.Kind != model.OneOf && t.Kind != model.Object {
 			return nil, fmt.Errorf("%s: typedArms needs a oneOf or an object, not a %s", t.Schema, t.Kind)
 		}
@@ -1488,6 +1651,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
+	if err := checkPlaceFields(b.file, t); err != nil {
+		return nil, err
+	}
 	groups := newNestedGroups(b, t.Schema, slices.Contains(p, anySetItem))
 	for _, f := range t.Fields {
 		if fold, ok := b.flags[f]; ok {
@@ -1505,15 +1671,24 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			continue
 		}
 		group := groups.of(f.Name)
-		child := append(append(attrPath{}, p...), terraformName(b.policy, component, f.Name))
+		tfName := terraformName(b.policy, component, f.Name)
+		if placed, ok := placeFieldName(b.file, t, f.Name); ok {
+			tfName = placed // the component has another name for the field at this place
+		}
+		ftype := placedType(b.file, f.Type, component+"."+f.Name)
+		if ftype != f.Type {
+			b.markPlace(component + "." + f.Name)
+		}
+		child := append(append(attrPath{}, p...), tfName)
 		if group != "" {
-			child = append(append(attrPath{}, p...), group, terraformName(b.policy, component, f.Name))
+			child = append(append(attrPath{}, p...), group, tfName)
 		}
 		only := b.sent.responseOnly(component, f)
-		a, err := b.attribute(child, component, f.Name, f.Description, f.Type, nestedAttrs(f), only)
+		a, err := b.attribute(child, component, f.Name, f.Description, ftype, nestedAttrs(f), only)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		a.Name = tfName
 		if f.Attrs.Computed && !a.Required {
 			// A computed line, or an attribute of a keyedBy object, which the API can fill.
 			a.Computed = true
@@ -1528,7 +1703,8 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if err := b.nestedServerDefault(a, child, component, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(component, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
+		field := b.modelField(component, f.Name, ftype, f.Behavior, only, f.Attrs.Computed)
+		field.TFName = tfName
 		if group != "" {
 			if err := groups.add(group, f, a, field); err != nil {
 				return nil, err
@@ -1546,6 +1722,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		attrs = append(attrs, a)
 		fields = append(fields, field)
 	}
+	distributed, distributedFields, err := b.distributedAttributes(p, t)
+	if err != nil {
+		return nil, err
+	}
 	oneOfs := t.Groups
 	if t.Kind == model.OneOf {
 		group := model.OneOfGroup{AllowNone: t.AllowNone}
@@ -1560,6 +1740,8 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if err := groups.check(attrs); err != nil {
 		return nil, err
 	}
+	b.keptArmConflicts(t, attrs)
+	attrs, fields = append(attrs, distributed...), append(fields, distributedFields...)
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -1577,6 +1759,31 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 	}
 	return attrs, nil
+}
+
+// keptArmConflicts makes the fields of an inlined oneOf arm conflict with the arms that stay beside
+// them in the object t. The arms exclude each other in the API, and an inline line moved one arm's
+// fields up. The check is a group check: it states the structure of the request, not a limit. The
+// validator on the parent object makes it.
+func (b *tfBuilder) keptArmConflicts(t *model.Type, attrs []*tfAttr) {
+	for _, a := range attrs {
+		parent := b.file.NestedParent(t.Schema, a.Property)
+		if parent == nil || parent.Kept == "" {
+			continue
+		}
+		var names []string
+		for _, kept := range parent.KeptArms() {
+			for _, k := range attrs {
+				if k.Property == kept {
+					names = append(names, k.Name)
+				}
+			}
+		}
+		if len(names) == 0 {
+			continue
+		}
+		a.ArmConflicts = names
+	}
 }
 
 // carryField returns the field of t whose line has carrySiblings, or nil.
@@ -1647,10 +1854,7 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(armComponent, arm.Name, arm.Type, model.Normal, false, false))
 	}
-	addGroupValidators(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
-	if !group.AllowNone {
-		oneExactlyOneOf(attrs)
-	}
+	markOneOfArms(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -1709,24 +1913,6 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 	}
 	a.Attributes = nested
 	return a, nil
-}
-
-// oneExactlyOneOf replaces the group validators of the arms with one ExactlyOneOf on the first arm
-// that names every arm, as the released resource had: a rule without an arm, or with two, gets one
-// error, not one per arm.
-func oneExactlyOneOf(attrs []*tfAttr) {
-	if len(attrs) == 0 {
-		return
-	}
-	var all []string
-	for _, a := range attrs {
-		all = append(all, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", a.Name))
-		a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return slices.Contains(a.GroupValidators, v) })
-		a.GroupValidators = nil
-	}
-	v := "objectvalidator.ExactlyOneOf(" + strings.Join(all, ", ") + ")"
-	attrs[0].Validators = append(attrs[0].Validators, v)
-	attrs[0].GroupValidators = []string{v}
 }
 
 // checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, a
@@ -2095,10 +2281,15 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		goType = "types.Set"
 	case model.List:
 		goType = "types.List"
+		if joinOf(b.file, component, name, t) != "" {
+			goType = "types.String" // a list of strings that Terraform shows as one string
+		}
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if shown := b.scalarOneOf(component, name); shown != "" {
+		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
+			goType = "types.List"
+		} else if shown := b.scalarOneOf(component, name); shown != "" {
 			goType = shown
 		} else if behavior == model.Computed || computed {
 			goType = "types.Object"
@@ -2106,8 +2297,15 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 			goType = "*" + typeModelName(t)
 		}
 	}
-	if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
-		goType = "types.String"
+	if b.file != nil {
+		switch b.file.Types[component].Fields[name].TerraformType {
+		case "String":
+			goType = "types.String"
+		case "Float64":
+			goType = "types.Float64"
+		case "Number":
+			goType = "types.Number"
+		}
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: terraformName(b.policy, component, name)}
 }
@@ -2195,11 +2393,17 @@ func responseOnly(behavior model.Behavior) bool {
 // "Component.field".
 type sentSet map[string]bool
 
-// sentFields returns the component fields that a request sends in some place of r.
-func sentFields(r *model.Resource) sentSet {
+// sentFields returns the component fields that a request sends in some place of r. A list that a
+// distributeTo line moved out of the resource is sent as before.
+func sentFields(r *model.Resource, file *overrides.File) sentSet {
 	sent := sentSet{}
 	for _, f := range r.Fields {
 		sent.add(f.Type)
+	}
+	if file != nil {
+		for _, d := range file.Distributed {
+			sent.add(d.Field.Type)
+		}
 	}
 	return sent
 }
@@ -2287,12 +2491,9 @@ func tfName(property string) string {
 }
 
 // rootPath is the attribute path of a top-level attribute with the Terraform name name: below
-// its group, when a behavior-overrides group holds it.
-func rootPath(group, name string) attrPath {
-	if group == "" {
-		return attrPath{"root", name}
-	}
-	return attrPath{"root", group, name}
+// its groups, when behavior-overrides groups hold it.
+func rootPath(groups []string, name string) attrPath {
+	return append(append(attrPath{"root"}, groups...), name)
 }
 
 // tfGroups builds the groups of the behavior-overrides file: required objects that hold
@@ -2304,20 +2505,57 @@ type tfGroups struct {
 	models   map[string]*tfModel
 }
 
-// add puts the attribute and the model field of a top-level field in its group. It reports
-// whether the group is new.
-func (g *tfGroups) add(group string, a *tfAttr, field tfModelField) bool {
-	attr, found := g.attrs[group]
-	if !found {
-		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true,
-			Description: g.file.Groups[group].MarkdownDescription}
-		g.attrs[group] = attr
-		g.models[group] = &tfModel{Name: groupModelName(g.resource, group)}
+// addToRootGroup puts the attribute and the model field of a top-level field in its group, or in the
+// group inside it. A group is made on its first field: the outer group goes into the resource, and a group
+// inside it into its outer group.
+func (b *tfBuilder) addToRootGroup(out *tfResource, root *tfModel, g *tfGroups, path []string, a *tfAttr, field tfModelField) error {
+	outer := path[0]
+	line := g.file.Groups[outer]
+	if g.attrs[outer] == nil {
+		attr := &tfAttr{Name: outer, Kind: "SingleNested", ValueKind: "Object", Required: !line.Optional, Optional: line.Optional,
+			Computed: line.Computed, Description: line.MarkdownDescription}
+		if line.UseStateForUnknown {
+			attr.Modifiers = []string{"objectplanmodifier.UseStateForUnknown()"}
+		}
+		g.attrs[outer] = attr
+		g.models[outer] = &tfModel{Name: groupModelName(g.resource, outer)}
+		if err := b.claimModel(g.models[outer].Name, "groups."+outer); err != nil {
+			return err
+		}
+		out.Attributes = append(out.Attributes, attr)
+		goType := "*" + g.models[outer].Name
+		if line.Computed {
+			// The plan of an omitted computed object is unknown, which a pointer cannot hold.
+			goType = "types.Object"
+		}
+		root.Fields = append(root.Fields, tfModelField{Name: camelize(outer), Type: goType, TFName: outer})
+		b.models = append(b.models, g.models[outer])
 	}
-	attr.Attributes = append(attr.Attributes, a)
-	g.models[group].Fields = append(g.models[group].Fields, field)
-	return !found
+	if len(path) == 1 {
+		g.attrs[outer].Attributes = append(g.attrs[outer].Attributes, a)
+		g.models[outer].Fields = append(g.models[outer].Fields, field)
+		return nil
+	}
+	key := innerKey(path[0], path[1])
+	if g.attrs[key] == nil {
+		inner := line.Groups[path[1]]
+		attr := &tfAttr{Name: path[1], Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: inner.MarkdownDescription}
+		g.attrs[key] = attr
+		g.models[key] = &tfModel{Name: groupModelName(g.resource, outer+"_"+path[1])}
+		if err := b.claimModel(g.models[key].Name, "groups."+outer+".groups."+path[1]); err != nil {
+			return err
+		}
+		g.attrs[outer].Attributes = append(g.attrs[outer].Attributes, attr)
+		g.models[outer].Fields = append(g.models[outer].Fields, tfModelField{Name: camelize(path[1]), Type: "*" + g.models[key].Name, TFName: path[1]})
+		b.models = append(b.models, g.models[key])
+	}
+	g.attrs[key].Attributes = append(g.attrs[key].Attributes, a)
+	g.models[key].Fields = append(g.models[key].Fields, field)
+	return nil
 }
+
+// innerKey is the key of a group inside a group in the maps of the groups.
+func innerKey(outer, inner string) string { return outer + "." + inner }
 
 // oneOf returns the group that holds every arm of the top-level oneOf g, or "" when no group
 // holds an arm. A group cannot hold some of the arms only.
@@ -2331,24 +2569,120 @@ func (g *tfGroups) oneOf(o model.OneOfGroup) (string, error) {
 	return group, nil
 }
 
-// check reports a group field that is no top-level field of the resource, and a group whose
-// Terraform or Go name is also the name of another top-level attribute.
-func (g *tfGroups) check(root []*tfAttr) error {
+// check reports a group field that is no top-level field of the resource, a group whose Terraform
+// or Go name is also the name of another top-level attribute, and a group inside a group that is
+// not the one arm of a oneOf. It then shows each group with a typedArms line as its type attribute.
+func (g *tfGroups) check(r *model.Resource, root []*tfAttr) error {
 	for _, name := range g.file.GroupNames() {
+		line := g.file.Groups[name]
 		for _, a := range root {
 			if a != g.attrs[name] && (a.Name == name || camelize(a.Name) == camelize(name)) {
 				return fmt.Errorf("groups.%s: the name is also the top-level attribute %s", name, a.Name)
 			}
 		}
-		if g.file.Groups[name].RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
+		for _, field := range line.Fields {
+			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("groups.%s: %s is no top-level field of %s that Terraform shows", name, field, g.resource)
+			}
+		}
+		if err := g.checkInner(r, name); err != nil {
+			return err
+		}
+		if line.RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
 			// Flatten checks that the response has one of the fields of the group, so every
 			// field must be an arm of the same oneOf.
 			return fmt.Errorf("groups.%s: requireOne needs the arms of one oneOf of the resource, and no other field", name)
 		}
-		for _, field := range g.file.Groups[name].Fields {
-			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
-				return fmt.Errorf("groups.%s: %s is no top-level field of %s that Terraform shows", name, field, g.resource)
+	}
+	return g.typedArms(r)
+}
+
+// typedArms replaces the attributes of each group with a typedArms line by its type attribute. The
+// group holds every arm of one oneOf of the resource, and each arm is an object without fields, so
+// the type names the arm and nothing else is left to show. A default makes the type optional and
+// computed.
+func (g *tfGroups) typedArms(r *model.Resource) error {
+	for _, name := range g.file.GroupNames() {
+		line := g.file.Groups[name].TypedArms
+		if line == nil {
+			continue
+		}
+		arms, err := typedGroupArms(r, name, g.file.Groups[name])
+		if err != nil {
+			return err
+		}
+		values, err := typedValues(&model.Type{Schema: r.Name}, line, arms, func(arm string) string { return terraformName(r.Policy, r.Name, arm) })
+		if err != nil {
+			return fmt.Errorf("groups.%s: %w", name, err)
+		}
+		quoted := make([]string, 0, len(arms))
+		for _, arm := range arms {
+			quoted = append(quoted, fmt.Sprintf("%q", values[arm.Name]))
+		}
+		typeName := line.TypeField()
+		oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+		a := &tfAttr{Name: typeName, Kind: "String", ValueKind: "String", Required: true, Property: typeName,
+			Validators: []string{oneOf}, GroupValidators: []string{oneOf},
+			Description: "Which arm of the oneOf the object holds. One of " + strings.Join(quoted, ", ") + "."}
+		if line.Default != "" {
+			if !slices.Contains(slices.Collect(maps.Values(values)), line.Default) {
+				return fmt.Errorf("groups.%s: typedArms.default %q is no value of the type: %s", name, line.Default, strings.Join(quoted, ", "))
 			}
+			a.Required, a.Optional, a.Computed = false, true, true
+			a.Default = fmt.Sprintf("stringdefault.StaticString(%q)", line.Default)
+			a.Description += fmt.Sprintf(" The default is %q.", line.Default)
+		}
+		g.attrs[name].Attributes = []*tfAttr{a}
+		g.models[name].Fields = []tfModelField{{Name: camelize(typeName), Type: "types.String", TFName: typeName}}
+	}
+	return nil
+}
+
+// typedGroupArms returns the arms of the oneOf that the group holds, for a typedArms line: the group
+// must hold every arm of one oneOf of the resource and no other field, and each arm is an object
+// without fields.
+func typedGroupArms(r *model.Resource, name string, line overrides.Group) ([]*model.Field, error) {
+	for _, o := range r.Groups {
+		if !slices.Contains(line.Fields, o.Arms[0]) {
+			continue
+		}
+		if len(o.Arms) != len(line.Fields) || slices.ContainsFunc(line.Fields, func(f string) bool { return !slices.Contains(o.Arms, f) }) {
+			break
+		}
+		var arms []*model.Field
+		for _, arm := range o.Arms {
+			i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == arm })
+			if i < 0 || !emptyObject(r.Fields[i].Type) {
+				return nil, fmt.Errorf("groups.%s: typedArms needs arms that are objects without fields, and %s is not one", name, arm)
+			}
+			arms = append(arms, &model.Field{Name: arm, Type: r.Fields[i].Type})
+		}
+		return arms, nil
+	}
+	return nil, fmt.Errorf("groups.%s: typedArms needs the arms of one oneOf of the resource, and no other field", name)
+}
+
+// checkInner checks the groups inside the group name. A group inside a group stands for one arm of a
+// oneOf whose other arms are fields of the outer group, so it is optional, and it holds that arm only.
+func (g *tfGroups) checkInner(r *model.Resource, name string) error {
+	for _, inner := range sortedGroupNames(g.file.Groups[name].Groups) {
+		line := g.file.Groups[name].Groups[inner]
+		at := "groups." + name + ".groups." + inner
+		for _, a := range g.attrs[name].attrsOrNil() {
+			if a != g.attrs[innerKey(name, inner)] && (a.Name == inner || camelize(a.Name) == camelize(inner)) {
+				return fmt.Errorf("%s: the name is also the attribute %s of %s", at, a.Name, name)
+			}
+		}
+		for _, field := range line.Fields {
+			if !slices.ContainsFunc(g.attrs[innerKey(name, inner)].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("%s: %s is no top-level field of %s that Terraform shows", at, field, g.resource)
+			}
+			if len(line.Fields) != 1 || !slices.ContainsFunc(r.Groups, func(o model.OneOfGroup) bool { return slices.Contains(o.Arms, field) }) {
+				return fmt.Errorf("%s: a group inside a group holds one arm of a oneOf and no other field", at)
+			}
+		}
+		if !line.Optional {
+			return fmt.Errorf("%s: the group holds an arm of a oneOf, so the other arms can be set instead: add optional: true", at)
 		}
 	}
 	return nil
@@ -2439,22 +2773,60 @@ func numberLiteral(kind string, v float64) string {
 // checkSiblingTargets rejects an exactlyOneOf or atLeastOneOf name that is not another attribute
 // of the same object. The validator renders the name into a path, so a typo would still compile
 // and fail only when a configuration reaches it.
-func checkSiblingTargets(a *tfAttr, siblings []*tfAttr, validators []overrides.Validator) error {
+// A name with "../" in front names an attribute of an object further up: above lists the attributes
+// of each level above the siblings, the nearest last.
+func checkSiblingTargets(a *tfAttr, siblings []*tfAttr, above [][]*tfAttr, validators []overrides.Validator) error {
 	for _, v := range validators {
-		for _, name := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf, v.AlsoRequires, v.ConflictsWith) {
-			found := name != a.Name && slices.ContainsFunc(siblings, func(s *tfAttr) bool { return s.Name == name })
+		for _, target := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf, v.AlsoRequires, v.ConflictsWith) {
+			ups, name := splitTarget(target)
+			level := siblings
+			if ups > 0 {
+				if ups > len(above) {
+					return fmt.Errorf("validator target %q goes up %d levels, and the attribute has only %d above its object", target, ups, len(above))
+				}
+				level = above[len(above)-ups]
+			}
+			found := (ups > 0 || name != a.Name) && slices.ContainsFunc(level, func(s *tfAttr) bool { return s.Name == name })
 			if !found {
-				return fmt.Errorf("validator target %q is not another attribute of the same object", name)
+				return fmt.Errorf("validator target %q is not another attribute of the same object", target)
 			}
 		}
 	}
 	return nil
 }
 
-func siblingPaths(names []string) string {
-	paths := make([]string, 0, len(names))
-	for _, name := range names {
-		paths = append(paths, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name))
+// splitTarget splits a validator target into the levels that it goes up and the attribute name.
+func splitTarget(target string) (ups int, name string) {
+	name = target
+	for strings.HasPrefix(name, "../") {
+		ups++
+		name = strings.TrimPrefix(name, "../")
+	}
+	return ups, name
+}
+
+// levelSteps is the number of path steps that the object held by a goes up: its name for a single
+// object, and its name and the element for each item of a list, set, or map of objects.
+func levelSteps(a *tfAttr) int {
+	switch a.Kind {
+	case "ListNested", "SetNested", "MapNested":
+		return 2
+	}
+	return 1
+}
+
+// siblingPaths are the path expressions of the targets of a validator. A sibling is one AtParent
+// away, and each "../" goes up one object level: steps holds the path steps of each level above
+// the attribute, the nearest last (tfAttr.UpSteps), because an item of a list is two steps.
+func siblingPaths(steps []int, targets []string) string {
+	paths := make([]string, 0, len(targets))
+	for _, target := range targets {
+		ups, name := splitTarget(target)
+		parents := 1
+		for i := 0; i < ups && i < len(steps); i++ {
+			parents += steps[len(steps)-1-i]
+		}
+		paths = append(paths, fmt.Sprintf("path.MatchRelative()%s.AtName(%q)", strings.Repeat(".AtParent()", parents), name))
 	}
 	return strings.Join(paths, ", ")
 }
@@ -2472,11 +2844,15 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			}
 			continue
 		}
-		group := file.GroupOf(f.Name)
+		path := file.GroupPath(f.Name)
+		group := ""
+		if len(path) != 0 {
+			group = path[0]
+		}
 		if err := checkGroupField(r, f, group); err != nil {
 			return err
 		}
-		a, err := b.resourceAttribute(out, r, f, group)
+		a, err := b.rootFieldAttribute(out, r, f, path)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -2486,16 +2862,31 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			root.Fields = append(root.Fields, field)
 			continue
 		}
-		if groups.add(group, a, field) {
-			if err := b.claimModel(groups.models[group].Name, "groups."+group); err != nil {
-				return err
-			}
-			out.Attributes = append(out.Attributes, groups.attrs[group])
-			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
-			b.models = append(b.models, groups.models[group])
+		if err := b.addToRootGroup(out, root, groups, path, a, field); err != nil {
+			return err
 		}
 	}
 	return checkSplitNames(out, root, r, file)
+}
+
+// rootFieldAttribute builds the attribute of a top-level field in its groups. A group with a typedArms
+// line shows its arms as a type attribute, so the model struct of an arm that nothing else shows is
+// not needed.
+func (b *tfBuilder) rootFieldAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, path []string) (*tfAttr, error) {
+	typedArm := len(path) != 0 && b.file.Groups[path[0]].TypedArms != nil && emptyObject(f.Type)
+	owned := typedArm && !b.seen[typeModelName(f.Type)]
+	a, err := b.resourceAttribute(out, r, f, path)
+	if err == nil && owned {
+		b.dropModel(typeModelName(f.Type))
+	}
+	return a, err
+}
+
+// dropModel removes the model struct with the name, which the builder made and nothing shows.
+func (b *tfBuilder) dropModel(name string) {
+	delete(b.seen, name)
+	delete(b.owners, name)
+	b.models = slices.DeleteFunc(b.models, func(m *tfModel) bool { return m.Name == name })
 }
 
 // checkSplitNames rejects a split arm with the Terraform or Go name of another top-level attribute,
@@ -2544,6 +2935,69 @@ func (b *tfBuilder) scalarOneOf(component, name string) string {
 // asString reports whether the field has an asString line.
 func asString(file *overrides.File, component, field string) bool {
 	return file != nil && file.Types[component].Fields[field].AsString
+}
+
+// listArms returns the arm without fields and the arm with one list of strings of a oneOf that
+// typedArms.asList shows as that list.
+func listArms(t *model.Type) (all, list *model.Field, err error) {
+	if t.Kind != model.OneOf || len(t.Fields) != 2 || len(t.Wrappers) != 0 {
+		return nil, nil, errors.New("typedArms.asList needs a oneOf with two arms: an object without fields and an object with one list")
+	}
+	for _, arm := range t.Fields {
+		switch {
+		case emptyObject(arm.Type) && all == nil:
+			all = arm
+		case arm.Type.Kind == model.Object && len(arm.Type.Fields) == 1 && arm.Type.Fields[0].Type.Kind == model.List && list == nil:
+			list = arm
+		}
+	}
+	if all == nil || list == nil {
+		return nil, nil, errors.New("typedArms.asList needs a oneOf with two arms: an object without fields and an object with one list; skip the other fields of the list arm")
+	}
+	return all, list, nil
+}
+
+// asListAttribute makes a the list of strings of a oneOf that typedArms.asList shows as that list.
+// The type of the list comes from the list arm. The model struct of that arm is not needed.
+func (b *tfBuilder) asListAttribute(a *tfAttr, p attrPath, t *model.Type) error {
+	_, list, err := listArms(t)
+	if err != nil {
+		return fmt.Errorf("%s: %w", t.Schema, err)
+	}
+	owned := !b.seen[typeModelName(list.Type)]
+	inner, err := b.objectAttributes(p, list.Type)
+	if err != nil {
+		return err
+	}
+	if owned {
+		// Nothing else shows the list arm as an object, so its model struct would be unused.
+		b.dropModel(typeModelName(list.Type))
+	}
+	if len(inner) != 1 || inner[0].Kind != "List" || inner[0].ElementType != "types.StringType" {
+		return fmt.Errorf("%s: typedArms.asList needs a list arm with one list of strings", t.Schema)
+	}
+	a.Kind, a.ValueKind, a.ElementType = "List", "List", inner[0].ElementType
+	// [] selects the arm without fields, and expand never sends the list arm an empty list, so a
+	// minimum size of the list arm is no limit of the shown list. Its other limits stay.
+	a.Validators = append(a.Validators, slices.DeleteFunc(slices.Clone(inner[0].Validators), func(v string) bool {
+		return strings.HasPrefix(v, "listvalidator.SizeAtLeast(")
+	})...)
+	a.ElemValidators = inner[0].ElemValidators
+	return nil
+}
+
+// emptyArms returns the arms of a oneOf whose arms are all objects without fields, which asString
+// shows as one string that names the arm that is set, or nil.
+func emptyArms(t *model.Type) []*model.Field {
+	if t.Kind != model.OneOf || len(t.Fields) == 0 || len(t.Wrappers) != 0 {
+		return nil
+	}
+	for _, arm := range t.Fields {
+		if !emptyObject(arm.Type) {
+			return nil
+		}
+	}
+	return t.Fields
 }
 
 // stringArms returns the enum arm and the string arm of a oneOf that asString shows as one
@@ -2637,7 +3091,7 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 		}
 		armType := &model.Type{Kind: t.Kind, Elem: arm.Type}
 		name := terraformName(b.policy, component, arm.Name)
-		a, err := b.attribute(rootPath("", name), component, arm.Name, arm.Description, armType, model.Attrs{}, false)
+		a, err := b.attribute(rootPath(nil, name), component, arm.Name, arm.Description, armType, model.Attrs{}, false)
 		if err != nil {
 			return err
 		}
@@ -2667,8 +3121,17 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		if group, err := groups.oneOf(g); err != nil {
 			return err
 		} else if group != "" {
-			// The arms are in one group, which is an object: they check each other inside it.
-			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return terraformName(r.Policy, r.Name, arm) })
+			if file.Groups[group].TypedArms != nil {
+				continue // the type attribute is the one arm
+			}
+			// The arms are in one group, which is an object: they check each other inside it. An arm
+			// in a group inside the group is checked as that group, the object that stands for it.
+			markOneOfArms(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string {
+				if inner := file.Groups[group].InnerOf(arm); inner != "" {
+					return inner
+				}
+				return terraformName(r.Policy, r.Name, arm)
+			})
 			if file.Groups[group].RequireOne {
 				requireOneArm(groups.attrs[group])
 			}
@@ -2677,7 +3140,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		var arms []string
 		for _, arm := range g.Arms {
 			name := terraformName(r.Policy, r.Name, arm)
-			arms = append(arms, rootPath(file.GroupOf(arm), name).expr())
+			arms = append(arms, rootPath(file.GroupPath(arm), name).expr())
 			if file.Types[r.Name].Fields[arm].RequireOne {
 				// The released resource required one arm although the contract allows none.
 				g.AllowNone = false
@@ -2831,18 +3294,52 @@ func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup)
 	name := func(arm string) string { return terraformName(g.b.policy, g.component, arm) }
 	for _, o := range oneOfs {
 		group := g.of(o.Arms[0])
+		split := false
 		for _, arm := range o.Arms[1:] {
-			if g.of(arm) != group {
-				return fmt.Errorf("types.%s.groups: the oneOf arms %s must all be in one group, or in none", g.component, strings.Join(o.Arms, ", "))
-			}
+			split = split || g.of(arm) != group
 		}
-		if group == "" {
-			addGroupValidators(attrs, []model.OneOfGroup{o}, name)
+		if split {
+			// The arms are in different places: each group holds one arm of the oneOf, as the
+			// object that stands for the arm. The arms then check each other at the level of the
+			// component, where the group objects are attributes.
+			if err := g.checkSingleArmGroups(o); err != nil {
+				return err
+			}
+			markOneOfArms(attrs, []model.OneOfGroup{o}, func(arm string) string {
+				if in := g.of(arm); in != "" {
+					return in
+				}
+				return name(arm)
+			})
 			continue
 		}
-		addGroupValidators(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
+		if group == "" {
+			markOneOfArms(attrs, []model.OneOfGroup{o}, name)
+			continue
+		}
+		markOneOfArms(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
 		if g.lines[group].RequireOne {
 			requireOneArm(g.attrs[group])
+		}
+	}
+	return nil
+}
+
+// checkSingleArmGroups checks the groups of a oneOf whose arms are in different places: a group
+// holds one arm of the oneOf and no other field, and it is optional, because the other arms are
+// not in it. The group object stands for the arm.
+func (g *nestedGroups) checkSingleArmGroups(o model.OneOfGroup) error {
+	for _, arm := range o.Arms {
+		group := g.of(arm)
+		if group == "" {
+			continue
+		}
+		line := g.lines[group]
+		if len(line.Fields) != 1 {
+			return fmt.Errorf("types.%s.groups.%s: the oneOf arms %s are in different places, so a group holds one arm and no other field", g.component, group, strings.Join(o.Arms, ", "))
+		}
+		if !line.Optional {
+			return fmt.Errorf("types.%s.groups.%s: the group holds the arm %s of a oneOf, so the other arms can be set instead: add optional: true", g.component, group, arm)
 		}
 	}
 	return nil

@@ -10,6 +10,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=ConfigurationGroup OUT=configurationgroup
 //go:generate make -C ../.. codegen RESOURCE=Connector OUT=connector
 //go:generate make -C ../.. codegen RESOURCE=DashboardFolder OUT=dashboardsfolder
+//go:generate make -C ../.. codegen RESOURCE=Dashboard OUT=dashboard
 //go:generate make -C ../.. codegen RESOURCE=DeployedIntegrationInformation OUT=integration
 //go:generate make -C ../.. codegen RESOURCE=E2M OUT=events2metric
 //go:generate make -C ../.. codegen RESOURCE=GlobalRouter OUT=globalrouter

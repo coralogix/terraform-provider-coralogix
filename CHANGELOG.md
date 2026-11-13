@@ -1,11 +1,40 @@
 # Unreleased
 
-#### provider
-- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
-
 #### tools/iac-codegen
-- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
+- FEAT: A one-of group, a `typedArms` object, and a sibling `exactlyOneOf` or `conflictsWith` line are checked by one validator of the parent object. A validator on each arm walked the whole configuration for each sibling, so plan time grew with the number of objects.
+- FEAT: Keys `keepPriorArm` (group), `unsupportedArms` for a plain field with the hook `AllowUnsupported`, `unsupportedIfEmpty`, `durationFormat`, `enumAs`, the validator `unsupported`, `readNullAs` for an enum, a top-level `readEmptyAs`, place lines with every field key, `defaultFromSibling`, string extra attributes with a default inside list items, and `validators` on a `distributeTo` line.
+- FEAT: A new value of an enum in the API contract is accepted without a line in `behavior-overrides.yaml`. The accepted values are the contract values without the zero value and without `rejected`, so the `values` key is gone. A new value takes the style of the `names` entries of its enum, or the generator stops with `ENUM_NAME_UNDECIDED` and asks for a `names` entry.
+- FEAT: Each generated acceptance test has a `values-and-choices` subtest. It sends every enum value and every `oneOf` arm to the API, in few steps with copies of the resource and several list elements. `skipValues` and `skipChoices` in `acceptance.yaml` leave out what the tenant refuses, each with a reason.
+- FEAT: Each generated acceptance test file has a `TestFailurePaths<Name>Generated` test that needs no tenant. A local server answers every request with an error, and the test checks create, read, update, and delete of the resource: no state after a failed create, a resource that the API says is gone leaves the state on read, and every other failure is an error.
+- FEAT: Each generated acceptance test file has a `TestConfigsValidate<Name>Generated` test that needs no tenant and no API key. It checks that every config of the file passes the validators of the schema. A `maxElements` key in `acceptance.yaml` limits the elements of a list in the `values-and-choices` subtest, and the subtest sets only the fields that the type of a `typedArms` object names.
+- FIX: The `values-and-choices` subtest sets every enum value of a field that only one arm of a `typedArms` object has, such as `aggregation_type` of a spans metric. Before, it set the first value only. It also fails when such a value is in no config.
+- FEAT: A field that the API contract marks `deprecated: true` gets a deprecation warning in the schema without a `deprecation` line. A `deprecation` line wins. A Required attribute gets no warning.
 - FEAT: Support a released API whose Create is a PUT and whose Update is a POST (`api.methods`; an Update by POST has no update mask and needs `updateMask: omit`), a Create response that holds only an integer id, a `oneOf` of the Create request that a `skip` line reduces to one arm, and `equality: caseInsensitive` on a list or set of strings.
+
+#### provider
+- FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
+
+#### resource/coralogix_alert
+- FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
+
+#### resource/coralogix_dashboard
+- FEAT: Show a deprecation warning for attributes that the API deprecates: `highlighted` of a widget, `show_inner_arc` and `show_outer_arc` of a gauge, `value_field` of the gauge of a dynamic widget, `resolution` of a line chart query definition, and `value` of a spans field value in a variable query.
+- CHORE: The resource is generated from the API contract. The schema, the import, the state versions 1 to 3, and the requests are the same, except as listed below. A plan of a dashboard that 3.25.0 created from the same configuration is empty.
+- FIX: Plan and validate time of a dashboard is not slower than in 3.25.0. The generated one-of checks run once for each object.
+- FIX: A 404 for a missing API route is an error. Before, a refresh removed the dashboard from state.
+- FIX: A state upgrade of a dashboard that the API no longer has fails with an error that names `terraform state rm`. Before, it warned and wrote no state.
+- FIX: Removing a widget or a section from the configuration no longer ends with an inconsistent result.
+- CHORE: API errors read `Unable to create dashboard`, `Unable to update dashboard`, and so on. A missing dashboard on refresh reads `Resource disappeared during read`.
+- CHORE: An invalid combination of arms, such as `definition` with `reference` on a widget, reports `Invalid Attribute Combination` on the object that holds them.
+- CHORE: A `not_equals` operator with an empty `selected_values` is accepted at plan and fails at apply, in the provider, with `The selection_type "all" is not one of list`. Before, it failed at plan.
+- CHORE: These invalid configs fail at apply, with the text of the API, instead of at plan: `highlighted = true` on a widget that has only a `reference`, `display_full_row = true` on a variable that is not a textbox, and a `value_display_options` without `value_regex` or `label_regex`.
+- FIX: A dashboard that `content_json` manages reads even when the typed schema cannot show a value in it, such as a dashboard without a time frame or a legend column that the schema does not accept. Before, the typed read ran first and failed.
+- CHORE: A failed read after a create leaves the new dashboard in state as tainted. Before, the provider deleted it. The next apply replaces it.
+- FEAT: New optional attributes: `query_id` of a custom action, `description` of a legacy variable, `data_mode_type` of a logs and a spans annotation, `interval_resolution` of a metrics annotation, `observation_field` of a spans filter, `group_by` and `group_bys` of a table grouping, `all_region_config` and `ibm_region_config` of a geomap, `field_name` of a logs and a spans variable query, and the deprecated `single_string` and `single_numeric` defaults of a textbox variable.
+- FEAT: The resource has a generated acceptance test.
+
+#### data-source/coralogix_dashboard
+- CHORE: The data source is generated with the resource and has the same attributes.
 
 #### resource/coralogix_custom_role
 - CHORE: The resource and its data source are generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the roles that 3.24.0 created from the same configuration shows no change. The data source reads a role by name with the list and then with Get, where it used the list only; both calls need the same permission, `team-roles:ReadConfig`.
@@ -15,6 +44,14 @@
 - FIX: Importing an id that is not a number fails with `Invalid import ID`. Before, the import succeeded with an empty state.
 - FIX: The data source shows the permissions that the role owns for a lookup by name, as it does for a lookup by id. Before, a lookup by name showed them together with the permissions of the parent role.
 - FIX: The data source accepts `name = ""` and finds the role with the empty name, which the API allows. Before, it failed with `id or name must be provided`.
+
+# Release 3.25.0
+
+#### provider
+- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
+
+#### tools/iac-codegen
+- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
 
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
@@ -82,9 +119,11 @@
 - FIX: The webhook `retriggering_period` that the configuration leaves out comes from the state webhook with the same `integration_id` or `recipients`. Before, it came from the webhook at the same position in the set, which gave a webhook the period of its neighbour.
 - FIX: Removing `description` from the configuration clears it on the alert. The API keeps a stored description that an update omits, so an update now sends `description: ""` when the configuration has none, and an empty description reads back as null (a configured `description = ""` stays). Before, the apply failed with `Provider produced inconsistent result after apply` and the alert kept the old text.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0 (also for a schedule with a UTC offset).
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview). It sets how often the alert is evaluated. When it is omitted, the API uses the smaller of 10 and `timeframe_minutes`, and the state keeps it null. The API checks the range and that the value does not exceed `timeframe_minutes`.
 
 #### data-source/coralogix_alert
 - CHORE: The data source is generated with the resource. It reads an alert by `id` with the schema of the resource, shows `access_policy` for a key that may read it, and fails with `coralogix_alert not found` for an id that does not exist.
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview), the same attribute as on the resource.
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.

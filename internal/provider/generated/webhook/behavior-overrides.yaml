@@ -460,30 +460,14 @@ types:
         required: true
 enums:
   MethodType:
-    values:
-    - GET
-    - POST
-    - PUT
     rejected:
     - UNKNOWN
   AttachmentType:
-    values:
-    - EMPTY
-    - METRIC_SNAPSHOT
-    - LOGS
   DigestType:
-    values:
-    - ERROR_AND_CRITICAL_LOGS
-    - FLOW_ANOMALIES
-    - SPIKE_ANOMALIES
-    - DATA_USAGE
     rejected:
     - UNKNOWN
   EndpointType:
     verbatim: true
-    values:
-    - ENDPOINT_TYPE_DEFAULT_OR_PUBLIC
-    - ENDPOINT_TYPE_PRIVATE
 dataSource:
   lookup:
   - id

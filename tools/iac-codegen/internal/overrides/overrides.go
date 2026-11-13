@@ -22,6 +22,9 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+// DeprecationText is the warning of an attribute that the contract marks deprecated.
+const DeprecationText = "The Coralogix API deprecates this attribute. A future version may remove it."
+
 // FileName is the name of the file. It sits in the output directory of the resource.
 const FileName = "behavior-overrides.yaml"
 
@@ -37,6 +40,12 @@ type File struct {
 	// value that no plan modifier of one attribute can state: one that reads another attribute, or
 	// that changes values inside the items of a set.
 	ModifyPlan bool `yaml:"modifyPlan"`
+	// ReadEmptyAs: "null" reads an empty list or set of objects or strings as null in every object of the
+	// resource, as a released resource did for the repeated fields of its API: the API cannot tell an
+	// empty list from a missing one, and a configuration that leaves the attribute out must plan no
+	// change for a dashboard whose list the API returns as []. A configured empty list keeps its form
+	// through the prior value, as for a readEmptyAs line. A line of a field can still set readNullAs.
+	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// GetHooks gives a released resource two hooks around its Get call: Get replaces the call, to
 	// add a query parameter or to retry it, and AfterGet receives the whole Get response, with the
 	// values that sit next to the resource. The data source runs them too. A singleton has no
@@ -71,6 +80,12 @@ type File struct {
 	// Inlined is what the generator derives from the upsert and inline lines. It is not a key of
 	// the file.
 	Inlined *Inlined `yaml:"-"`
+	// PlaceClones is what the generator derives from the at lines that inline a field: the copies of
+	// components that the places hold. It is not a key of the file.
+	PlaceClones []*PlaceClone `yaml:"-"`
+	// Distributed is what the generator derives from the distributeTo lines: the lists that the
+	// resource no longer holds. It is not a key of the file.
+	Distributed []*Distribution `yaml:"-"`
 	// TypeName is the released resource type name without the provider prefix, for example
 	// "slo_v2" for coralogix_slo_v2. "" names the resource after its OpenAPI component.
 	TypeName string `yaml:"typeName"`
@@ -151,6 +166,35 @@ type Parent struct {
 	// Arm: the object is an arm of a oneOf group of the resource response, and the file skips the
 	// other arms. When Get returns no such object, the resource does not exist.
 	Arm bool
+	// Kept are the API properties of the other arms of that oneOf group, joined by a comma, which
+	// stay beside the fields of the inlined arm (a nested component only). The fields of the arm
+	// conflict with them. A string, so that a Parent stays comparable.
+	Kept string
+	// Same: a field of the object has the name of the object (a nested component only), so the
+	// reference of the object needs a path of its own.
+	Same bool
+	// Always: the object is an arm of a oneOf group whose other arms the file skips, and the line
+	// says that the API always has it (a nested component only). A request always sends it, even
+	// when the configuration sets none of its fields.
+	Always bool
+}
+
+// ObjectPath is the SDK reference path of the object that holds the moved fields, next to the field
+// at path. A field of the object that has the name of the object takes the plain path, so the
+// object gets another one.
+func (p Parent) ObjectPath(path string) string {
+	if p.Same {
+		return path + "#object"
+	}
+	return path
+}
+
+// KeptArms are the API properties of the arms that stay beside the inlined arm.
+func (p Parent) KeptArms() []string {
+	if p.Kept == "" {
+		return nil
+	}
+	return strings.Split(p.Kept, ",")
 }
 
 // Upserts reports whether the resource is a singleton that one call sets: api.operations with
@@ -204,6 +248,76 @@ func (f *File) NestedParent(schema, field string) *Parent {
 	}
 	return &parent
 }
+
+// CarrySkips gives a component that received a field from an inlined object the skip line of the
+// object's component: a field that an inline line of a nested component moved out of an object is
+// skipped when the line of the object's component skips it, and the receiving component has no
+// line for it. A line of the receiving component takes precedence.
+func (f *File) CarrySkips() {
+	if f == nil || f.Inlined == nil {
+		return
+	}
+	for _, schema := range sortedKeys(f.Inlined.Nested) {
+		for _, field := range sortedKeys(f.Inlined.Nested[schema]) {
+			if _, ok := f.Types[schema].Fields[field]; ok || !f.skippedInObject(schema, field) {
+				continue
+			}
+			t := f.Types[schema]
+			if t.Fields == nil {
+				t.Fields = map[string]Field{}
+			}
+			t.Fields[field] = Field{Field: iacoverrides.Field{Skip: true}}
+			f.Types[schema] = t
+		}
+	}
+}
+
+// skippedInObject reports whether the line of a component on the chain of objects that hold field
+// for schema skips it.
+func (f *File) skippedInObject(schema, field string) bool {
+	for _, parent := range f.NestedParents(schema, field) {
+		if f.Types[parent.Schema].Fields[field].Skip {
+			return true
+		}
+	}
+	return false
+}
+
+// NestedObject returns the object whose API property is name, when an inline line of the component
+// schema moved fields out of it, or nil. The object is no field of the component any more.
+func (f *File) NestedObject(schema, name string) *Parent {
+	if f == nil || f.Inlined == nil {
+		return nil
+	}
+	parents := f.Inlined.Nested[schema]
+	for _, field := range sortedKeys(parents) {
+		if parents[field].Field == name {
+			parent := parents[field]
+			return &parent
+		}
+	}
+	return nil
+}
+
+// NestedParents returns the objects that hold field of the component schema, the outer one first.
+// An inline line of a component whose object has an inline line of its own for the same field makes
+// a chain: the moved field is inside the object of the first line, which holds it inside the object
+// of the second.
+func (f *File) NestedParents(schema, field string) []Parent {
+	var out []Parent
+	for len(out) < maxInlineDepth {
+		parent := f.NestedParent(schema, field)
+		if parent == nil {
+			break
+		}
+		out = append(out, *parent)
+		schema = parent.Schema
+	}
+	return out
+}
+
+// maxInlineDepth bounds a chain of inline lines, so that a component that holds itself ends it.
+const maxInlineDepth = 8
 
 // ParentOf returns the object that holds field in root ("create", "update", or "get"), or nil.
 func (f *File) ParentOf(root, field string) *Parent {
@@ -259,6 +373,17 @@ type Group struct {
 	// UseStateForUnknown, with computed, keeps the state value of the object when the
 	// configuration leaves it out.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// Groups, in a group of the resource, are groups inside the group: each holds one arm of a
+	// oneOf whose other arms are fields of the group itself.
+	Groups map[string]Group `yaml:"groups"`
+	// TypedArms, in a group of the resource, shows the group, which holds every arm of a oneOf
+	// of objects without fields, as one object: a type attribute that names the arm.
+	TypedArms *TypedArms `yaml:"typedArms"`
+	// KeepPriorArm keeps the arm that the user wrote. The API can answer another arm than the one
+	// that the plan or the state has (it answers a folder path with a folder id). When the prior
+	// value has a field that the response lacks, and the response has a field that the prior value
+	// lacks, flatten keeps the prior value. With no prior value (an import), the response is used.
+	KeepPriorArm bool `yaml:"keepPriorArm"`
 }
 
 // check checks the keys of a group that change its mode.
@@ -268,25 +393,61 @@ func (g Group) check() error {
 		return errors.New("computed needs optional: true: a required object cannot be computed")
 	case g.UseStateForUnknown && !g.Computed:
 		return errors.New("useStateForUnknown needs computed: true: only a computed object is unknown in a plan")
-	case g.Optional && g.RequireOne:
-		return errors.New("requireOne needs an object that the user sets, so it cannot be optional")
+	case g.KeepPriorArm && (g.Computed || g.TypedArms != nil):
+		return errors.New("keepPriorArm does not go with computed or typedArms: the prior value of those groups is not read")
+	case g.KeepPriorArm && len(g.Fields)+len(g.Groups) < 2:
+		return errors.New("keepPriorArm needs two or more fields: it keeps the arm that the API does not answer")
+	}
+	return nil
+}
+
+// checkInner checks a group inside a group of the resource: it holds the one arm of a oneOf,
+// so the keys that give a group a mode of its own do not apply.
+func (g Group) checkInner() error {
+	switch {
+	case g.Computed || g.UseStateForUnknown || g.RequireOne || len(g.Groups) != 0 || g.TypedArms != nil || g.KeepPriorArm:
+		return errors.New("a group inside a group takes fields, optional, and markdownDescription only")
 	}
 	return nil
 }
 
 var tfNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
-// GroupOf returns the group that holds the top-level field, or "".
+// GroupOf returns the group that holds the top-level field, or "". A field of a group inside a
+// group is held by the outer group too.
 func (f *File) GroupOf(field string) string {
 	if f == nil {
 		return ""
 	}
-	for name, g := range f.Groups {
-		if slices.Contains(g.Fields, field) {
+	for _, name := range sortedKeys(f.Groups) {
+		g := f.Groups[name]
+		if slices.Contains(g.Fields, field) || g.InnerOf(field) != "" {
 			return name
 		}
 	}
 	return ""
+}
+
+// InnerOf returns the group inside the group that holds the field, or "".
+func (g Group) InnerOf(field string) string {
+	for _, name := range sortedKeys(g.Groups) {
+		if slices.Contains(g.Groups[name].Fields, field) {
+			return name
+		}
+	}
+	return ""
+}
+
+// GroupPath returns the names of the groups that hold the top-level field, outer first, or nil.
+func (f *File) GroupPath(field string) []string {
+	group := f.GroupOf(field)
+	if group == "" {
+		return nil
+	}
+	if inner := f.Groups[group].InnerOf(field); inner != "" {
+		return []string{group, inner}
+	}
+	return []string{group}
 }
 
 // GroupNames returns the group names in order.
@@ -305,13 +466,76 @@ func (f *File) checkGroups() error {
 		return err
 	}
 	for _, name := range sortedKeys(f.Groups) {
-		if g := f.Groups[name]; g.Optional || g.Computed || g.UseStateForUnknown {
-			return fmt.Errorf("groups.%s: optional, computed, and useStateForUnknown are keys of types.<Type>.groups, not of a group of the resource", name)
+		g := f.Groups[name]
+		if err := g.checkTypedArms(); err != nil {
+			return fmt.Errorf("groups.%s: %w", name, err)
+		}
+		if err := checkInnerGroups("groups."+name, g); err != nil {
+			return err
 		}
 	}
 	for _, name := range sortedKeys(f.Types) {
 		if err := checkGroupMap("types."+name+".groups", f.Types[name].Groups); err != nil {
 			return err
+		}
+		for _, group := range sortedKeys(f.Types[name].Groups) {
+			g := f.Types[name].Groups[group]
+			if len(g.Groups) != 0 || g.TypedArms != nil {
+				return fmt.Errorf("types.%s.groups.%s: groups and typedArms are keys of a group of the resource", name, group)
+			}
+			if g.KeepPriorArm {
+				return fmt.Errorf("types.%s.groups.%s: keepPriorArm is a key of a group of the resource", name, group)
+			}
+		}
+	}
+	return nil
+}
+
+// checkTypedArms checks the typedArms line of a type. A default is a key of the line of a group.
+func (t Type) checkTypedArms() error {
+	if t.TypedArms == nil {
+		return nil
+	}
+	if t.TypedArms.Default != "" {
+		return errors.New("typedArms: default is a key of the typedArms line of a group of the resource")
+	}
+	return t.TypedArms.check()
+}
+
+// checkTypedArms checks the typedArms line of a group of the resource. The group shows the arms as
+// a type attribute, so the keys that need a value or fields in an arm, and the keys that stand for
+// the arms as attributes, do not apply.
+func (g Group) checkTypedArms() error {
+	line := g.TypedArms
+	if line == nil {
+		return nil
+	}
+	switch {
+	case line.Infer || line.AsList || line.Value != "":
+		return errors.New("typedArms of a group takes field, names, and default only")
+	case g.RequireOne:
+		return errors.New("typedArms and requireOne cannot both be set: the type attribute is the one arm")
+	case len(g.Groups) != 0:
+		return errors.New("typedArms and groups cannot both be set: the group holds every arm")
+	}
+	return line.check()
+}
+
+// checkInnerGroups checks the groups inside the group at prefix: Terraform names, keys, and that no
+// field is in the group and in a group inside it, or in two of them.
+func checkInnerGroups(prefix string, g Group) error {
+	if err := checkGroupMap(prefix+".groups", g.Groups); err != nil {
+		return err
+	}
+	for _, name := range sortedKeys(g.Groups) {
+		inner := g.Groups[name]
+		if err := inner.checkInner(); err != nil {
+			return fmt.Errorf("%s.groups.%s: %w", prefix, name, err)
+		}
+		for _, field := range inner.Fields {
+			if slices.Contains(g.Fields, field) {
+				return fmt.Errorf("%s.groups.%s: field %s is also in %s", prefix, name, field, prefix)
+			}
 		}
 	}
 	return nil
@@ -416,12 +640,65 @@ type Type struct {
 	// or set that holds this component, for a released schema that has it there. A modifier on
 	// the item, unlike one on an attribute inside it, is not an attribute of the item.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// At states lines for the places of this component, for a component that the API uses in
+	// several places and that Terraform shows differently by place: with another name for a field,
+	// or with an object field inlined. The key is the API path of the holder: the component that
+	// holds this one, a dot, and its field, such as `Filter.Source.metrics`.
+	At map[string]Place `yaml:"at"`
+}
+
+// Place holds the field lines of a component at one place. A line is a field line: it can rename a
+// field, inline it, or set any other key of a field line (required, terraformType, validators, ...)
+// for this place only. A key that a line sets replaces the same key of the line of the field of the
+// component.
+type Place struct {
+	Fields map[string]PlaceField `yaml:"fields"`
+}
+
+// PlaceField is a line of a field at a place. It has the keys of a field line.
+type PlaceField = Field
+
+// PlaceClone is a component at a place where an at line inlines a field. The generator gives the
+// place a copy of the component, so that the inline line does not reach the other places. It is not
+// a key of the file.
+type PlaceClone struct {
+	Component string // the component that the at line is on
+	Holder    string // the API path of the field that holds it: Holder.field
+	Name      string // the name of the copy
+	Fields    map[string]PlaceField
+}
+
+// PlaceCloneOf returns the place that the copy of a component with this name is for, or nil.
+func (f *File) PlaceCloneOf(name string) *PlaceClone {
+	if f == nil {
+		return nil
+	}
+	for _, c := range f.PlaceClones {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
+}
+
+// IsPlaceClone reports whether name is the name of the copy of a component at a place.
+func (f *File) IsPlaceClone(name string) bool { return f.PlaceCloneOf(name) != nil }
+
+// NeedsCopy reports whether the place needs a copy of its component: a line inlines a field, or
+// sets a key other than the name. A line with a name only changes the model struct of the place.
+func (p Place) NeedsCopy() bool {
+	for _, f := range p.Fields {
+		if f.Inline || len(f.keys()) > 1 || len(f.keys()) == 1 && f.Name == "" {
+			return true
+		}
+	}
+	return false
 }
 
 // isEmpty reports whether the type line sets nothing.
 func (t Type) isEmpty() bool {
 	return t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
-		t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && !t.UseStateForUnknown && t.TypedArms == nil
+		t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && !t.UseStateForUnknown && t.TypedArms == nil && len(t.At) == 0
 }
 
 // TypedArms shows a oneOf object as one object. A required string attribute (Field) names the arm.
@@ -442,10 +719,24 @@ type TypedArms struct {
 	// list counts as set when it is not empty), and else the arm without fields. For a oneOf of
 	// `all` (no fields) and `list` (values), no values mean `all`, and some values mean `list`.
 	Infer bool `yaml:"infer"`
+	// AsList shows a oneOf of an arm without fields and an arm with one list of strings as that
+	// list: no values are the arm without fields, and some values are the list arm. No other key
+	// goes with it, because there is no object, no type, and no merged field.
+	AsList bool `yaml:"asList"`
+	// Default is the value of the type attribute when the configuration leaves it out, for a
+	// released attribute whose type is Optional and Computed with a default. It is a key of the
+	// typedArms line of a group only.
+	Default string `yaml:"default"`
 }
 
 // check checks the names of a typedArms line and that no two arms have one value.
 func (t *TypedArms) check() error {
+	if t.AsList && (t.Field != "" || t.Value != "" || len(t.Names) != 0 || t.Infer || t.Default != "") {
+		return errors.New("typedArms.asList shows the oneOf as a list, so it takes no field, value, names, infer, or default")
+	}
+	if t.Default != "" && t.Infer {
+		return errors.New("typedArms.default and typedArms.infer both choose the arm of an omitted type: set one")
+	}
 	for _, name := range []struct{ key, value string }{{"field", t.Field}, {"value", t.Value}} {
 		if name.value != "" && !tfNamePattern.MatchString(name.value) {
 			return fmt.Errorf("typedArms.%s %q must be lower case letters, digits, and _", name.key, name.value)
@@ -597,7 +888,8 @@ type Field struct {
 	// Name is the Terraform attribute name of the field, when the released resource does not
 	// use the name derived from the JSON name (applications for applicationnameFilters).
 	Name string `yaml:"name"`
-	// Deprecation is the released deprecation message.
+	// Deprecation is the released deprecation message. A field that the contract marks deprecated
+	// gets DeprecationText without a line, so a line that says the same is stale.
 	Deprecation string `yaml:"deprecation"`
 	// Sensitive marks the Terraform attribute sensitive, as the released attribute was: Terraform
 	// hides its value in plans and output. It is a Terraform fact that the contract does not state.
@@ -606,6 +898,24 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// Join shows a list of strings that the API holds as one string with the elements joined by the
+	// separator: `join: "/"` makes the list ["Team", "Sub"] the text "Team/Sub". Expand splits the
+	// text at every separator, with no trimming, and flatten joins the elements.
+	Join string `yaml:"join"`
+	// ClientID: uuid makes a string the id that the client makes. The attribute is Optional and
+	// Computed with UseNonNullStateForUnknown, so a new value plans unknown and an existing one keeps
+	// its state. Expand sends a UUID that it makes for a value that is unknown, and the value that
+	// the configuration or the state has otherwise.
+	ClientID string `yaml:"clientID"`
+	// DistributeTo, on a top-level list of objects, shows the items of the list inside the items of
+	// another component, as a released resource showed the custom actions of a widget, which the
+	// API keeps in one list of the dashboard. The list is not an attribute of the resource.
+	DistributeTo *Distribute `yaml:"distributeTo"`
+	// DefaultFromSibling plans the value of a sibling attribute (its Terraform name) for a computed
+	// string that the configuration leaves out, as a released label that was the value when omitted.
+	// A sibling that is unknown makes the plan unknown, and a sibling that is null leaves it unknown
+	// too. It needs computed: true.
+	DefaultFromSibling string `yaml:"defaultFromSibling"`
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
@@ -615,7 +925,8 @@ type Field struct {
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
-	// ReadNullAs: "empty" reads a missing string as "", and a missing list or set of objects as an
+	// ReadNullAs: a Terraform value reads a missing enum as that value, as a released resource did for an
+	// enum that the API fills in. "empty" reads a missing string as "", and a missing list or set of objects as an
 	// empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
 	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
@@ -650,6 +961,11 @@ type Field struct {
 	// request omits the field. Removing the value from the configuration then clears it. It needs
 	// readEmptyAs: "null", so that the stored "" reads back as null.
 	SendNullAsEmpty bool `yaml:"sendNullAsEmpty"`
+	// UnsupportedIfEmpty makes a read fail when the response holds no value of the object field,
+	// or an object whose fields are all unset: the typed schema cannot show it, and a state that
+	// shows nothing would hide the data that the API holds. The resource reports the summary and the
+	// detail. The AllowUnsupported hook turns the check off, as for unsupportedArms.
+	UnsupportedIfEmpty *UnsupportedText `yaml:"unsupportedIfEmpty"`
 	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
 	// resource required one arm even though the contract allows none.
 	RequireOne bool `yaml:"requireOne"`
@@ -681,6 +997,97 @@ type Field struct {
 	// Split shows a string that the API holds as values joined by this separator, "a,b", as a set
 	// of strings, as the released resource did. Expand joins the values; flatten splits the text.
 	Split string `yaml:"split"`
+	// DurationFormat keeps the released text of a duration that the API holds as a protobuf JSON
+	// duration, such as 900s. protoText shows it as seconds:900 (minutes:15 is also accepted),
+	// goDuration as the Go text 15m0s. Expand converts the text to the API value; flatten converts
+	// it back. The field must be a plain string.
+	DurationFormat string `yaml:"durationFormat"`
+	// EnumAs picks another spelling of the enum of the field: the entry "<Enum>@<EnumAs>" of the enums
+	// section. A released resource spelled the same API enum in two ways in two places (the zero value
+	// "high" in one block, "unspecified" in another), and one enums entry has one spelling.
+	EnumAs string `yaml:"enumAs"`
+}
+
+// Distribute is a distributeTo line. Each item of the list names the component item that it
+// belongs to: by.listField is the field of the list item that holds the id, and by.itemField is
+// the field of the component that holds the same id. The component gets an attribute as, a list
+// of the list items that name it. Expand collects the items of every component into the list,
+// with the id of the component, and flatten groups the items of the response by that id.
+type Distribute struct {
+	// Item is the component whose items get the attribute.
+	Item string `yaml:"item"`
+	// As is the Terraform name of the attribute that the items of Item get.
+	As string `yaml:"as"`
+	// By says which fields hold the id: the item of the list names its component by ListField,
+	// and the component has the id in ItemField. Both are strings.
+	By DistributeBy `yaml:"by"`
+	// Keep is a dotted path of API names in a list item, such as definition.customAction. Flatten
+	// shows only the items whose value at the path is set, and leaves the other items out.
+	Keep string `yaml:"keep"`
+}
+
+// DistributeBy names the fields that hold the id of a distributeTo line.
+type DistributeBy struct {
+	ListField string `yaml:"listField"`
+	ItemField string `yaml:"itemField"`
+}
+
+// Distribution is a distributeTo line with the model that the generator took out of the resource:
+// the list and the field of its items that names the component. The renderer reads them from the
+// file, because the resource no longer has them.
+type Distribution struct {
+	Line Distribute
+	// Field is the top-level list.
+	Field *model.ResourceField
+	// Hidden is the field of the list items that By.ListField names. The generated code sets it and
+	// reads it, so it is no attribute.
+	Hidden *model.Field
+}
+
+// check reports a distributeTo line that lacks a key, or names a bad one.
+func (d *Distribute) check() error {
+	if d.Item == "" || d.As == "" || d.By.ListField == "" || d.By.ItemField == "" {
+		return errors.New("distributeTo needs item, as, and by with listField and itemField")
+	}
+	if !validAttrName.MatchString(d.As) {
+		return fmt.Errorf("distributeTo.as %q is not a Terraform attribute name: lower case letters, digits, and _", d.As)
+	}
+	if d.Keep == "" {
+		return nil
+	}
+	for _, step := range strings.Split(d.Keep, ".") {
+		if step == "" {
+			return fmt.Errorf("distributeTo.keep %q is a dotted path of API names", d.Keep)
+		}
+	}
+	return nil
+}
+
+// DistributedFields returns the top-level fields that distributeTo lines name, in order.
+func (f *File) DistributedFields(resource string) []string {
+	if f == nil {
+		return nil
+	}
+	var out []string
+	for _, name := range sortedKeys(f.Types[resource].Fields) {
+		if f.Types[resource].Fields[name].DistributeTo != nil {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// DistributionOf returns the distribution of the top-level field, or nil.
+func (f *File) DistributionOf(field string) *Distribution {
+	if f == nil {
+		return nil
+	}
+	for _, d := range f.Distributed {
+		if d.Field.Name == field {
+			return d
+		}
+	}
+	return nil
 }
 
 // Carry is a carrySiblings line.
@@ -752,12 +1159,16 @@ type Validator struct {
 	EnumExceptZero bool `yaml:"enumExceptZero"`
 	// Between is a released numeric Between validator: the minimum and the maximum.
 	Between []float64 `yaml:"between"`
-	// ExactlyOneOf and AtLeastOneOf name sibling attributes, by their Terraform names, for a
-	// released ExactlyOneOf or AtLeastOneOf validator.
+	// ExactlyOneOf, AtLeastOneOf, AlsoRequires, and ConflictsWith name attributes, by their
+	// Terraform names: a sibling of the attribute, or with a leading "../" for each level up, an
+	// attribute of the object that holds the parent ("../title").
 	ExactlyOneOf  []string `yaml:"exactlyOneOf"`
 	AtLeastOneOf  []string `yaml:"atLeastOneOf"`
 	AlsoRequires  []string `yaml:"alsoRequires"`
 	ConflictsWith []string `yaml:"conflictsWith"`
+	// Equals is a released boolvalidator.Equals of a bool: the only value that a configuration may
+	// hold. The released marker bool rejects false at plan, where asBool alone rejects it at apply.
+	Equals *bool `yaml:"equals"`
 	// AtLeast is a released AtLeast validator of a number.
 	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
@@ -765,6 +1176,9 @@ type Validator struct {
 	// KeysAre is a released mapvalidator.KeysAre(stringvalidator.RegexMatches) of a map: each key
 	// must match the pattern.
 	KeysAre *RegexMatches `yaml:"keysAre"`
+	// Unsupported rejects any configured value of a bool with this message, for an attribute that the
+	// API never accepts at this place, as a released validator did.
+	Unsupported string `yaml:"unsupported"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -779,8 +1193,14 @@ func (e Enum) RejectedTFValue(v string) string {
 	if e.ReadRejected == ReadRejectedLower {
 		return strings.ToLower(v)
 	}
+	if e.ReadRejectedAs != "" {
+		return e.ReadRejectedAs
+	}
 	return v
 }
+
+// ReadsRejected reports whether a rejected value reads back, by readRejected or by readRejectedAs.
+func (e Enum) ReadsRejected() bool { return e.ReadRejected.On() || e.ReadRejectedAs != "" }
 
 // checkUnsupported checks the unsupported arm keys: the three keys are set together, no arm is
 // listed twice, and no unsupported arm has a field line, because the arm is not in the schema.
@@ -802,8 +1222,12 @@ func (t Type) checkUnsupported() error {
 	return nil
 }
 
-// TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
-// without trimPrefix, in lower case unless the line is verbatim.
+// UnsupportedText is the error that a read reports for a value that the typed schema cannot show.
+type UnsupportedText struct {
+	Summary string `yaml:"summary"`
+	Detail  string `yaml:"detail"`
+}
+
 // checkAliases checks that each alias is an accepted Terraform value and has another accepted value
 // as its target. The zero value is no target: the plan would replace a value with the API's
 // unspecified one.
@@ -833,8 +1257,14 @@ func (e Enum) checkAliases(name string) error {
 	return nil
 }
 
+// TFValue is the Terraform value of the API value v of the enum: its names entry, the name that
+// the style of the names entries gives a new value (styled), or the value without trimPrefix, in
+// lower case unless the line is verbatim.
 func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
+		return tf
+	}
+	if tf, ok := e.Styled[v]; ok {
 		return tf
 	}
 	return e.defaultTFValue(v)
@@ -857,9 +1287,16 @@ type Enum struct {
 	// ZeroNull: the released resource reads the zero value as null and does not accept it, as a new
 	// resource does. It excludes Zero.
 	ZeroNull bool `yaml:"zeroNull"`
-	// Values are the enum values that the resource accepts. The Terraform value is the
-	// lower case of the API value, unless Verbatim is set.
-	Values []string `yaml:"values"`
+	// Values are the enum values that the resource accepts: the values of the contract, without
+	// the zero value and without Rejected, in the order of the contract. The generator fills
+	// them (FillEnum), so a value that the API adds is accepted at once. The Terraform value is
+	// the lower case of the API value, unless Verbatim is set or the names entries have a style.
+	Values []string `yaml:"-"`
+	// RemovedValues only catches a values key of an older file, which Parse rejects.
+	RemovedValues []string `yaml:"values"`
+	// Styled gives each accepted value without a names entry the name that the names entries
+	// have as a style (FillEnum). A value that has no name in that style is an error.
+	Styled map[string]string `yaml:"-"`
 	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
 	// AUTO, ENABLED, and DISABLED.
 	Verbatim bool `yaml:"verbatim"`
@@ -880,14 +1317,19 @@ type Enum struct {
 	// keeps the spelling of the plan or the state when the API value differs only in case. A
 	// scalar field of the enum only: a list or set has no prior value to keep per element.
 	CaseInsensitive bool `yaml:"caseInsensitive"`
-	// Rejected are the values of the contract that the resource does not accept. The generator
-	// reports a value of the contract that is in neither list, so a new API value needs a decision.
+	// Rejected are the values of the contract that the resource does not accept. Every other value
+	// of the contract is accepted, so a value that the API adds is accepted without a line.
 	Rejected []string `yaml:"rejected"`
 	// ReadRejected: a rejected value still reads back, as the API spelling (true) or in lower
 	// case (lower, as a released resource that lowercased an unknown API value did). The write
 	// map and the schema validator do not accept it. Without this key, a rejected value fails
 	// the read.
 	ReadRejected ReadRejected `yaml:"readRejected"`
+	// ReadRejectedAs reads every rejected value as this one Terraform value, for a released resource
+	// that read an API value that it did not accept as unspecified. The value need not be accepted.
+	// "null" reads a rejected value as null, as a released switch that had no case for it did; it is
+	// for a field, not for a list or set of the enum.
+	ReadRejectedAs string `yaml:"readRejectedAs"`
 }
 
 // ReadRejected is how a rejected enum value reads back: not at all (""), as the API spelling
@@ -941,6 +1383,9 @@ func Parse(data []byte) (*File, error) {
 }
 
 func (f *File) check() error {
+	if f.ReadEmptyAs != "" && f.ReadEmptyAs != "null" {
+		return fmt.Errorf("readEmptyAs is %q, want \"null\"", f.ReadEmptyAs)
+	}
 	if f.Resource == "" {
 		return errors.New("resource is required")
 	}
@@ -953,7 +1398,7 @@ func (f *File) check() error {
 	if f.Validators.Inferred == nil {
 		return errors.New("validators.inferred is required: false for a released resource, which does not turn contract limits into validators, and true for a resource without a released version")
 	}
-	if err := f.checkEnums(); err != nil {
+	if err := f.checkEnumKeys(); err != nil {
 		return err
 	}
 	if err := iacoverrides.CheckUnwrap(f.Unwrap); err != nil {
@@ -994,6 +1439,53 @@ func (f *File) checkSections() error {
 	return nil
 }
 
+// applyClientIDs makes the fields with a clientID line computed with UseNonNullStateForUnknown, as
+// the key states. A line that sets either of them too is an error: the key says both.
+func (t Type) applyClientIDs(component string) error {
+	for _, field := range sortedKeys(t.Fields) {
+		line := t.Fields[field]
+		if line.ClientID == "" {
+			continue
+		}
+		if line.ClientID != "uuid" {
+			return fmt.Errorf("types.%s.fields.%s.clientID is %q, want \"uuid\"", component, field, line.ClientID)
+		}
+		if line.Computed != nil || line.UseNonNullStateForUnknown || line.UseStateForUnknown || line.Default != nil || line.ReadOnly || line.Skip {
+			return fmt.Errorf("types.%s.fields.%s: clientID makes the attribute computed with useNonNullStateForUnknown, so the line sets no computed, default, useStateForUnknown, useNonNullStateForUnknown, readOnly, or skip", component, field)
+		}
+		computed := true
+		line.Computed, line.UseNonNullStateForUnknown = &computed, true
+		t.Fields[field] = line
+	}
+	return nil
+}
+
+// checkPlaces checks the at lines of a type: the key names a holder, and each field has a name.
+func (t Type) checkPlaces() error {
+	for _, place := range sortedKeys(t.At) {
+		if !strings.Contains(place, ".") || strings.HasPrefix(place, ".") || strings.HasSuffix(place, ".") {
+			return fmt.Errorf("at.%s: the key is the API path of the holder, such as Component.field", place)
+		}
+		if len(t.At[place].Fields) == 0 {
+			return fmt.Errorf("at.%s has no fields", place)
+		}
+		for _, field := range sortedKeys(t.At[place].Fields) {
+			line := t.At[place].Fields[field]
+			switch {
+			case line.Inline:
+				if err := line.checkInlineKeys(); err != nil {
+					return fmt.Errorf("at.%s.fields.%s: %w", place, field, err)
+				}
+			case len(line.keys()) == 0:
+				return fmt.Errorf("at.%s.fields.%s sets nothing", place, field)
+			case line.Name != "" && !tfNamePattern.MatchString(line.Name):
+				return fmt.Errorf("at.%s.fields.%s.name %q must be lower case letters, digits, and _", place, field, line.Name)
+			}
+		}
+	}
+	return nil
+}
+
 // checkTypes checks the type lines: the required list, the field lines, and the extra attributes.
 func (f *File) checkTypes() error {
 	for name, t := range f.Types {
@@ -1006,19 +1498,29 @@ func (f *File) checkTypes() error {
 		if err := t.checkUnsupported(); err != nil {
 			return fmt.Errorf("types.%s: %w", name, err)
 		}
-		if t.TypedArms != nil {
-			if err := t.TypedArms.check(); err != nil {
-				return fmt.Errorf("types.%s.%w", name, err)
-			}
+		if err := t.checkTypedArms(); err != nil {
+			return fmt.Errorf("types.%s.%w", name, err)
 		}
 		if t.RequestWrapper != "" && name == f.Resource {
 			return fmt.Errorf("types.%s.requestWrapper: the resource component uses api.requestWrapper", name)
+		}
+		if err := t.checkPlaces(); err != nil {
+			return fmt.Errorf("types.%s.%w", name, err)
+		}
+		if err := t.applyClientIDs(name); err != nil {
+			return err
 		}
 		names := map[string]string{}
 		for _, field := range sortedKeys(t.Fields) {
 			line := t.Fields[field]
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
+			}
+			if line.Join != "" && (line.Collection != "" || line.KeyedBy != nil || line.Split != "" || len(line.ValueNames) != 0 || line.ItemName != "" || line.SplitArms) {
+				return fmt.Errorf("types.%s.fields.%s: join shows a list of strings as one string, so collection, keyedBy, split, valueNames, itemName, and splitArms cannot be set", name, field)
+			}
+			if line.DurationFormat != "" && line.DurationFormat != "protoText" && line.DurationFormat != "goDuration" {
+				return fmt.Errorf("types.%s.fields.%s: durationFormat is protoText or goDuration, not %q", name, field, line.DurationFormat)
 			}
 			if line.Split != "" && (line.Collection != "" || line.KeyedBy != nil) {
 				return fmt.Errorf("types.%s.fields.%s: split shows a string as a set, so collection and keyedBy cannot be set", name, field)
@@ -1061,64 +1563,198 @@ func (s Schema) checkUpgrades() error {
 	return nil
 }
 
-// checkEnums checks that no value is accepted and rejected at the same time, and that names
-// gives accepted values distinct Terraform values.
-func (f *File) checkEnums() error {
+// checkEnumKeys checks the enums lines without the contract: no values key (the generator takes
+// the values from the contract), and keys that exclude each other.
+func (f *File) checkEnumKeys() error {
 	for _, name := range sortedKeys(f.Enums) {
 		e := f.Enums[name]
-		for _, v := range e.Rejected {
-			if slices.Contains(e.Values, v) {
-				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
-			}
-		}
-		if e.TrimPrefix != "" {
-			for _, v := range e.Values {
-				if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
-					return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
-				}
-			}
+		if e.RemovedValues != nil {
+			return fmt.Errorf("enums.%s: the values key is not read any more. The accepted values are the values of the contract without the zero value and without rejected. Delete the key", name)
 		}
 		for _, v := range sortedKeys(e.Names) {
-			if !slices.Contains(e.Values, v) {
-				return fmt.Errorf("enums.%s.names: %q is not in values", name, v)
-			}
 			if e.Names[v] == "" {
 				return fmt.Errorf("enums.%s.names: %q has an empty name", name, v)
-			}
-			if e.Names[v] == e.defaultTFValue(v) {
-				return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
 			}
 		}
 		if e.ZeroNull && e.Zero != "" {
 			return fmt.Errorf("enums.%s: zeroNull reads the zero value as null, so it has no Terraform value: remove zero", name)
 		}
-		seen := map[string]string{}
-		if e.Zero != "" {
-			seen[e.Zero] = "zero"
-		}
-		if err := e.checkAliases(name); err != nil {
-			return err
-		}
 		if e.ReadRejected == ReadRejectedLower && e.Verbatim {
 			return fmt.Errorf("enums.%s: readRejected: lower excludes verbatim", name)
 		}
-		if e.ReadRejected.On() {
-			// A rejected value reads back as its read spelling, so no accepted value can have it.
-			for _, v := range e.Rejected {
-				tf := e.RejectedTFValue(v)
-				if previous, ok := seen[tf]; ok {
-					return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, tf)
-				}
-				seen[tf] = "the rejected " + strconv.Quote(v)
+		if e.ReadRejectedAs != "" && e.ReadRejected.On() {
+			return fmt.Errorf("enums.%s: readRejected and readRejectedAs cannot both be set", name)
+		}
+	}
+	return nil
+}
+
+// UndecidedNames is the error of an enum that has names entries in no single style, and a value
+// without an entry. The fix is a names entry for each value.
+type UndecidedNames struct {
+	Enum   string
+	Values []string
+	Reason string
+}
+
+func (u *UndecidedNames) Error() string {
+	return fmt.Sprintf("enums.%s: no name for %s: %s", u.Enum, strings.Join(u.Values, ", "), u.Reason)
+}
+
+// HasZeroValue reports whether the first value of an enum of the contract is the protobuf zero
+// value, which ends in _UNSPECIFIED.
+func HasZeroValue(contract []string) bool {
+	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
+}
+
+// FillEnum sets the accepted values of the enums line name from the values of its contract
+// enum: every value except the zero value and the rejected ones, in the order of the contract. It
+// names each accepted value that the line gives no name, and checks the line against the values.
+func (f *File) FillEnum(name string, contract []string) error {
+	e := f.Enums[name]
+	e.Values, e.Styled = nil, nil
+	for i, v := range contract {
+		if (i == 0 && HasZeroValue(contract)) || slices.Contains(e.Rejected, v) {
+			continue
+		}
+		e.Values = append(e.Values, v)
+	}
+	if err := e.styleNewValues(name); err != nil {
+		return err
+	}
+	if err := checkEnum(name, e); err != nil {
+		return err
+	}
+	f.Enums[name] = e
+	return nil
+}
+
+// styleNewValues gives each accepted value without a names entry its Terraform name. A line with
+// trimPrefix, or without names, names such a value by the plain rule (the value without the
+// prefix, in lower case). A line that has names entries and no trimPrefix has the style of the
+// entries: its names are the style, so the generator finds the one style (lower, UPPER, or Title,
+// after the prefix of the enum name) that reproduces every entry, and names the value with it.
+func (e *Enum) styleNewValues(name string) error {
+	if len(e.Names) == 0 || e.TrimPrefix != "" || e.Verbatim {
+		return nil
+	}
+	var unnamed []string
+	for _, v := range e.Values {
+		if _, ok := e.Names[v]; !ok {
+			unnamed = append(unnamed, v)
+		}
+	}
+	if len(unnamed) == 0 {
+		return nil
+	}
+	prefix := enumNamePrefix(name, e.Values)
+	var fit []func(string) string
+	for _, style := range enumStyles {
+		ok := true
+		for _, v := range sortedKeys(e.Names) {
+			if slices.Contains(e.Values, v) && style(strings.TrimPrefix(v, prefix)) != e.Names[v] {
+				ok = false
 			}
 		}
+		if ok {
+			fit = append(fit, style)
+		}
+	}
+	if len(fit) == 0 {
+		return &UndecidedNames{Enum: name, Values: unnamed, Reason: "the names entries follow no single style (lower, UPPER, or Title), so the generator cannot guess the name"}
+	}
+	e.Styled = map[string]string{}
+	for _, v := range unnamed {
+		named := map[string]bool{}
+		for _, style := range fit {
+			named[style(strings.TrimPrefix(v, prefix))] = true
+		}
+		if len(named) != 1 {
+			return &UndecidedNames{Enum: name, Values: []string{v}, Reason: "more than one style fits the names entries, and they name this value in different ways"}
+		}
+		for n := range named {
+			e.Styled[v] = n
+		}
+	}
+	return nil
+}
+
+var enumStyles = []func(string) string{
+	strings.ToLower,
+	strings.ToUpper,
+	func(s string) string {
+		if s == "" {
+			return s
+		}
+		return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
+	},
+}
+
+// enumNamePrefix is the prefix that protobuf puts before each value of an enum: the name of the
+// enum in upper snake case (DayOfWeek gives DAY_OF_WEEK_). It is "" when a value does not have it.
+func enumNamePrefix(component string, values []string) string {
+	name := component[strings.LastIndex(component, ".")+1:]
+	var b strings.Builder
+	for i, r := range name {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			prev := name[i-1]
+			nextLower := i+1 < len(name) && name[i+1] >= 'a' && name[i+1] <= 'z'
+			if prev >= 'a' && prev <= 'z' || prev >= '0' && prev <= '9' || nextLower {
+				b.WriteByte('_')
+			}
+		}
+		b.WriteRune(r)
+	}
+	prefix := strings.ToUpper(b.String()) + "_"
+	for _, v := range values {
+		if !strings.HasPrefix(v, prefix) {
+			return ""
+		}
+	}
+	return prefix
+}
+
+// checkEnum checks the filled enums line against the accepted values: names give accepted values
+// distinct Terraform values.
+func checkEnum(name string, e Enum) error {
+	if e.TrimPrefix != "" {
 		for _, v := range e.Values {
-			tf := e.TFValue(v)
-			if previous, ok := seen[tf]; ok {
-				return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
+			if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
+				return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of the accepted value %q. Add a names entry for it, or reject it", name, e.TrimPrefix, v)
 			}
-			seen[tf] = strconv.Quote(v)
 		}
+	}
+	for _, v := range sortedKeys(e.Names) {
+		if !slices.Contains(e.Values, v) {
+			return fmt.Errorf("enums.%s.names: %q is not an accepted value of the contract (it is not in the contract, it is the zero value, or it is rejected)", name, v)
+		}
+		if e.Names[v] == e.defaultTFValue(v) {
+			return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
+		}
+	}
+	seen := map[string]string{}
+	if e.Zero != "" {
+		seen[e.Zero] = "zero"
+	}
+	if err := e.checkAliases(name); err != nil {
+		return err
+	}
+	if e.ReadRejected.On() {
+		// A rejected value reads back as its read spelling, so no accepted value can have it.
+		for _, v := range e.Rejected {
+			tf := e.RejectedTFValue(v)
+			if previous, ok := seen[tf]; ok {
+				return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, tf)
+			}
+			seen[tf] = "the rejected " + strconv.Quote(v)
+		}
+	}
+	for _, v := range e.Values {
+		tf := e.TFValue(v)
+		if previous, ok := seen[tf]; ok {
+			return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
+		}
+		seen[tf] = strconv.Quote(v)
 	}
 	return nil
 }
@@ -1152,10 +1788,12 @@ func (l Field) keys() []string {
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.UseNonNullStateForUnknown, "useNonNullStateForUnknown")
+	add(l.DefaultFromSibling != "", "defaultFromSibling")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
+	add(l.UnsupportedIfEmpty != nil, "unsupportedIfEmpty")
 	add(l.SendUnknownAsZero, "sendUnknownAsZero")
 	add(l.SplitArms, "splitArms")
 	add(l.ShowInverted, "showInverted")
@@ -1177,6 +1815,11 @@ func (l Field) keys() []string {
 	add(l.ItemName != "", "itemName")
 	add(l.Negate, "negate")
 	add(l.Split != "", "split")
+	add(l.DurationFormat != "", "durationFormat")
+	add(l.EnumAs != "", "enumAs")
+	add(l.Join != "", "join")
+	add(l.ClientID != "", "clientID")
+	add(l.DistributeTo != nil, "distributeTo")
 	add(l.Inline, "inline")
 	return keys
 }
@@ -1373,14 +2016,20 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == "" && l.DurationFormat == "" && l.EnumAs == "" && l.Join == "" && l.ClientID == "" && l.DistributeTo == nil && l.UnsupportedIfEmpty == nil
 }
 
 func (l Field) check() error {
 	if l.empty() {
 		return errors.New("the line sets nothing")
 	}
+	if t := l.UnsupportedIfEmpty; t != nil && (t.Summary == "" || t.Detail == "") {
+		return errors.New("unsupportedIfEmpty needs a summary and a detail")
+	}
 	if err := l.checkConflicts(); err != nil {
+		return err
+	}
+	if err := l.checkDistributeTo(); err != nil {
 		return err
 	}
 	if err := l.checkDefault(); err != nil {
@@ -1417,8 +2066,8 @@ func (l Field) check() error {
 	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
 	}
-	if l.TerraformType != "" && l.TerraformType != "Int64" && l.TerraformType != "String" {
-		return fmt.Errorf("terraformType is %q, want \"Int64\" or \"String\"", l.TerraformType)
+	if l.TerraformType != "" && !slices.Contains([]string{"Int64", "String", "Float64", "Number"}, l.TerraformType) {
+		return fmt.Errorf("terraformType is %q, want \"Int64\", \"String\", \"Float64\", or \"Number\"", l.TerraformType)
 	}
 	if l.StoredAs != "" && l.StoredAs != "float32" {
 		return fmt.Errorf("storedAs is %q, want \"float32\"", l.StoredAs)
@@ -1429,22 +2078,51 @@ func (l Field) check() error {
 	if err := checkValueNames(l.ValueNames); err != nil {
 		return err
 	}
-	if l.Inline && !slices.Equal(l.keys(), []string{"required", "inline"}) && len(l.keys()) != 1 {
-		return errors.New("an inlined field has no attribute of its own, so the line sets only inline, and required when the API always has the object: put the other keys on the lines of its fields")
+	if err := l.checkInlineKeys(); err != nil {
+		return err
 	}
+
 	return checkValidators(l.Validators)
 }
 
+// inlineKeys are the keys that an inline line can have besides inline. required says that the API
+// always has the object. The others state the type, the checks, or the text of the field of the object
+// that has the name of the inlined field, when there is one: the line of an inlined field has no
+// attribute of its own, and that field takes its name.
+var inlineKeys = map[string]bool{"inline": true, "required": true, "terraformType": true, "validators": true, "description": true, "markdownDescription": true, "deprecation": true}
+
+// checkInlineKeys checks the keys of an inline line.
+func (l Field) checkInlineKeys() error {
+	if !l.Inline {
+		return nil
+	}
+	for _, key := range l.keys() {
+		if !inlineKeys[key] {
+			return errors.New("an inlined field has no attribute of its own, so the line sets only inline, and required when the API always has the object: put the other keys on the lines of its fields. An object that has a field of the same name takes terraformType, validators, description, markdownDescription, and deprecation for that field")
+		}
+	}
+	return nil
+}
+
 func (l Field) checkConflicts() error {
+	if l.DefaultFromSibling != "" {
+		switch {
+		case l.Computed == nil || !*l.Computed:
+			return errors.New("defaultFromSibling needs computed: true: the plan sets the value of an omitted attribute")
+		case l.Default != nil || l.UseStateForUnknown || l.UseNonNullStateForUnknown:
+			return errors.New("defaultFromSibling cannot go with default, useStateForUnknown, or useNonNullStateForUnknown: the plan keeps the state value, but a value that follows its sibling must change with it")
+		case !tfNamePattern.MatchString(l.DefaultFromSibling):
+			return fmt.Errorf("defaultFromSibling %q is not a Terraform attribute name", l.DefaultFromSibling)
+		}
+	}
 	if l.UseStateForUnknown && l.UseNonNullStateForUnknown {
 		return errors.New("useStateForUnknown and useNonNullStateForUnknown cannot both be set")
 	}
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
 	}
-	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
-		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
-	}
+	// "empty" reads a missing string or list as empty. Any other text is the Terraform value that a
+	// missing enum reads as: the generator checks that the field is an enum.
 	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
 		return errors.New("readEmptyAs and readNullAs cannot both be set")
 	}
@@ -1471,6 +2149,24 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON && l.Equality != EqualityCaseInsensitive {
 		return fmt.Errorf("equality is %q, want %q, %q, or %q", l.Equality, EqualityYAML, EqualityJSON, EqualityCaseInsensitive)
+	}
+	return nil
+}
+
+// checkDistributeTo checks a distributeTo line. The list is no attribute of the resource, so the
+// line states only the attribute that the items of the component get: its texts.
+func (l Field) checkDistributeTo() error {
+	if l.DistributeTo == nil {
+		return nil
+	}
+	if err := l.DistributeTo.check(); err != nil {
+		return err
+	}
+	others := slices.DeleteFunc(l.keys(), func(key string) bool {
+		return key == "distributeTo" || key == "description" || key == "markdownDescription" || key == "validators"
+	})
+	if len(others) != 0 {
+		return fmt.Errorf("distributeTo moves the list into another component, so the line sets only description, markdownDescription, and validators besides it, not %s", strings.Join(others, ", "))
 	}
 	return nil
 }
@@ -1677,10 +2373,10 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
+	return l.ReadOnly || l.Computed != nil || l.DefaultFromSibling != "" || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
-		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != ""
+		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.DurationFormat != "" || l.Join != "" || l.ClientID != "" || l.DistributeTo != nil
 }
 
 func checkValidators(validators []Validator) error {
@@ -1722,6 +2418,12 @@ func checkValidators(validators []Validator) error {
 		if len(v.ConflictsWith) != 0 {
 			set++
 		}
+		if v.Equals != nil {
+			if !*v.Equals {
+				return errors.New("equals is true only: a marker bool has one valid value")
+			}
+			set++
+		}
 		if v.AtLeast != nil {
 			set++
 		}
@@ -1737,8 +2439,11 @@ func checkValidators(validators []Validator) error {
 				return fmt.Errorf("keysAre needs a pattern that Go compiles: %q", v.KeysAre.Pattern)
 			}
 		}
+		if v.Unsupported != "" {
+			set++
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, atLeast, regexMatches, and keysAre")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, equals, atLeast, regexMatches, keysAre, and unsupported")
 		}
 	}
 	return nil
@@ -1851,7 +2556,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Inline: f.Inline, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Deprecation: f.Deprecation, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Inline: f.Inline, Keys: f.keys()})
 		}
 		for _, group := range sortedKeys(t.Groups) {
 			out = append(out, Line{Kind: KindGroup, Component: name, Field: group, GroupFields: t.Groups[group].Fields})
@@ -1899,6 +2604,7 @@ type Line struct {
 	Optional     bool   // for a field line: the file says that the field is optional
 	Collection   string // for a field line: "set" when the file shows a list as a set
 	Name         string // for a field line: the Terraform attribute name
+	Deprecation  string // for a field line: the deprecation message of the line
 	// NoAttribute are, for a field line, the fields of the component without a Terraform
 	// attribute: skipped fields and requestValue fields. A name line can take their name.
 	NoAttribute []string
@@ -1956,10 +2662,31 @@ func (f *File) accepted(k *iacoverrides.KeyedBy) map[string]map[string]string {
 	return out
 }
 
-// TypedArmsOf returns the typedArms line of the component, or nil.
+// TypedArmsOf returns the typedArms line of the component, or nil. A component without a line
+// takes the line of the typedArms object that an inline line moved into it: the arms are then
+// its own fields, and it shows them as that object does.
 func (f *File) TypedArmsOf(component string) *TypedArms {
 	if f == nil {
 		return nil
 	}
-	return f.Types[component].TypedArms
+	if line := f.Types[component].TypedArms; line != nil {
+		return line
+	}
+	return f.inlinedTypedArms(component)
+}
+
+// inlinedTypedArms returns the typedArms line of the object that an inline line moved into the
+// component, or nil. The generator reports an object with an asList line, and a component that
+// holds more than one such object or other fields (reshape.go), so the first one is the one.
+func (f *File) inlinedTypedArms(component string) *TypedArms {
+	if f.Inlined == nil {
+		return nil
+	}
+	parents := f.Inlined.Nested[component]
+	for _, field := range sortedKeys(parents) {
+		if line := f.Types[parents[field].Schema].TypedArms; line != nil && !line.AsList {
+			return line
+		}
+	}
+	return nil
 }

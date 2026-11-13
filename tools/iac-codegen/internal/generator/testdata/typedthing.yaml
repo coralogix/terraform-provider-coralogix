@@ -20,10 +20,12 @@ paths:
                 name: {type: string, x-coralogix-presence: true}
                 aggregation: {$ref: '#/components/schemas/TypedAggregation'}
                 selection: {$ref: '#/components/schemas/TypedSelection'}
+                pick: {$ref: '#/components/schemas/TypedPick'}
                 operator: {$ref: '#/components/schemas/TypedOperator'}
                 fields:
                   type: array
                   items: {$ref: '#/components/schemas/TypedSpanField'}
+                spanValue: {$ref: '#/components/schemas/TypedSpanValue'}
       responses:
         '200':
           description: ok
@@ -56,10 +58,12 @@ paths:
                 name: {type: string, x-coralogix-presence: true}
                 aggregation: {$ref: '#/components/schemas/TypedAggregation'}
                 selection: {$ref: '#/components/schemas/TypedSelection'}
+                pick: {$ref: '#/components/schemas/TypedPick'}
                 operator: {$ref: '#/components/schemas/TypedOperator'}
                 fields:
                   type: array
                   items: {$ref: '#/components/schemas/TypedSpanField'}
+                spanValue: {$ref: '#/components/schemas/TypedSpanValue'}
       responses:
         '200':
           description: ok
@@ -98,10 +102,18 @@ components:
         name: {type: string, x-coralogix-presence: true}
         aggregation: {$ref: '#/components/schemas/TypedAggregation'}
         selection: {$ref: '#/components/schemas/TypedSelection'}
+        pick: {$ref: '#/components/schemas/TypedPick'}
         operator: {$ref: '#/components/schemas/TypedOperator'}
         fields:
           type: array
           items: {$ref: '#/components/schemas/TypedSpanField'}
+        spanValue: {$ref: '#/components/schemas/TypedSpanValue'}
+    # An object that holds one span field in its value, as the field value of a query does.
+    TypedSpanValue:
+      type: object
+      properties:
+        value: {$ref: '#/components/schemas/TypedSpanField'}
+        note: {type: string, x-coralogix-presence: true}
     TypedAggregation:
       type: object
       oneOf:
@@ -126,6 +138,11 @@ components:
         field: {type: string, x-coralogix-presence: true}
         mode: {$ref: '#/components/schemas/TypedMode'}
         weight: {type: number, format: double, x-coralogix-presence: true}
+        averageUnit: {type: string, x-coralogix-presence: true}
+        rounding: {$ref: '#/components/schemas/TypedRounding'}
+    TypedRounding:
+      type: string
+      enum: [ROUNDING_UNSPECIFIED, ROUNDING_UP, ROUNDING_DOWN]
     TypedPercentile:
       type: object
       properties:
@@ -133,6 +150,8 @@ components:
         mode: {type: string, x-coralogix-presence: true}
         weight: {type: number, format: double, x-coralogix-presence: true}
         percent: {type: number, format: double, x-coralogix-presence: true}
+        percentileUnit: {type: string, x-coralogix-presence: true}
+        rounding: {type: string, x-coralogix-presence: true}
         bucket: {$ref: '#/components/schemas/TypedBucket'}
     TypedBucket:
       type: object
@@ -213,3 +232,27 @@ components:
     TypedMode:
       type: string
       enum: [MODE_UNSPECIFIED, MODE_FAST, MODE_EXACT]
+    # A oneOf of all (no fields) and a list, as the legacy selection of a variable is: the released
+    # resource shows it as the list of values, with [] for all.
+    TypedPick:
+      type: object
+      oneOf:
+        - {required: [all], type: object}
+        - {required: [list], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [all], type: object}
+              - {required: [list], type: object}
+      properties:
+        all: {$ref: '#/components/schemas/TypedAll'}
+        list: {$ref: '#/components/schemas/TypedPickList'}
+    TypedPickList:
+      type: object
+      properties:
+        values:
+          type: array
+          items: {type: string}
+        labels:
+          type: array
+          items: {type: string}

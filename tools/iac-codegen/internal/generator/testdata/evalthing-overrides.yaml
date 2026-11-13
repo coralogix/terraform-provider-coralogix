@@ -38,6 +38,5 @@ types:
 
 enums:
   EvalTarget:
-    values: [PROMPT, RESPONSE]
     rejected: [CONVERSATION]
     readRejected: lower

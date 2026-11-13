@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/enumtest"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
@@ -54,11 +55,24 @@ enums:
   legacy.Kind: {zero: unspecified, values: [ALPHA, BETA], rejected: [GAMMA]}
 `
 
+// mustParse parses an overrides file. A test may write the accepted values of an enum on its
+// enums line to keep a snippet short. The helper takes the values key out and fills the line the
+// way the generator does from the contract: the zero value (when the line has zero or zeroNull),
+// the values, and the rejected values, in that order.
 func mustParse(t *testing.T, text string) *overrides.File {
 	t.Helper()
+	text, contracts, err := enumtest.Split(text)
+	if err != nil {
+		t.Fatal(err)
+	}
 	f, err := overrides.Parse([]byte(text))
 	if err != nil {
 		t.Fatal(err)
+	}
+	for name, contract := range contracts {
+		if err := f.FillEnum(name, contract); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return f
 }
@@ -411,32 +425,67 @@ func TestReadEmptyAsOnAStringList(t *testing.T) {
 	}
 }
 
-// A value of the contract must be accepted or rejected. A new API value stops the generator until
-// someone decides, so it cannot be silently refused or silently accepted.
-func TestEnumValueOfTheContractNeedsADecision(t *testing.T) {
+// A value of the contract that the line does not reject is accepted, so a value that the API adds
+// needs no line. A rejected value that the contract does not have is a stale line.
+func TestEnumValueOfTheContractIsAcceptedWithoutALine(t *testing.T) {
 	const head = "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  legacy.Kind:\n    zero: unspecified\n"
 	tests := map[string]struct {
 		lines string
-		want  string
+		want  []string
 	}{
-		"value without a decision": {"    values: [ALPHA, BETA]\n", "ENUM_VALUE_UNDECIDED"},
-		"rejected value is gone":   {"    values: [ALPHA, BETA]\n    rejected: [GAMMA, DELTA]\n", "OVERRIDE_UNUSED"},
+		"no decision":      {"", []string{"ALPHA", "BETA", "GAMMA"}},
+		"a rejected value": {"    rejected: [GAMMA]\n", []string{"ALPHA", "BETA"}},
+		"two rejected":     {"    rejected: [ALPHA, GAMMA]\n", []string{"BETA"}},
+		"rejected is gone": {"    rejected: [GAMMA, DELTA]\n", nil},
+		"a removed values": {"    values: [ALPHA]\n", nil},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+test.lines))
-			if !slices.Contains(eligibilityCodes(t, err), test.want) {
-				t.Fatalf("err = %v, want %s", err, test.want)
+			text := head + test.lines
+			file, err := overrides.Parse([]byte(text))
+			if test.want == nil && strings.Contains(test.lines, "values:") {
+				if err == nil || !strings.Contains(err.Error(), "values key is not read any more") {
+					t.Fatalf("err = %v, want the values key to be refused", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+			if test.want == nil {
+				if !slices.Contains(eligibilityCodes(t, err), "OVERRIDE_UNUSED") {
+					t.Fatalf("err = %v, want OVERRIDE_UNUSED", err)
+				}
+				return
+			}
+			for _, code := range eligibilityCodes(t, err) {
+				if code == "OVERRIDE_UNUSED" {
+					t.Fatalf("err = %v, want no %s", err, code)
+				}
+			}
+			if got := file.Enums["legacy.Kind"].Values; !slices.Equal(got, test.want) {
+				t.Fatalf("accepted values = %v, want %v", got, test.want)
 			}
 		})
 	}
-	// With a decision for every value, the line is accepted.
-	file := mustParse(t, head+"    values: [ALPHA, BETA]\n    rejected: [GAMMA]\n")
-	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
-	for _, code := range eligibilityCodes(t, err) {
-		if code == "ENUM_VALUE_UNDECIDED" || code == "OVERRIDE_UNUSED" {
-			t.Fatalf("err = %v, want no %s", err, code)
-		}
+}
+
+// A new value of an enum whose names entries follow no single style has no name that the generator
+// can guess. It stops with ENUM_NAME_UNDECIDED, and the remediation asks for a names entry.
+func TestNewEnumValueWithoutAStyleAsksForANamesEntry(t *testing.T) {
+	const lines = "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  legacy.Kind:\n    zero: unspecified\n    names: {ALPHA: 'A.', BETA: 'B.'}\n"
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, lines))
+	if !slices.Contains(eligibilityCodes(t, err), "ENUM_NAME_UNDECIDED") {
+		t.Fatalf("err = %v, want ENUM_NAME_UNDECIDED", err)
+	}
+	if !strings.Contains(err.Error(), "GAMMA") || !strings.Contains(err.Error(), "names entry") {
+		t.Fatalf("err = %v, want it to name GAMMA and ask for a names entry", err)
+	}
+	// With the entry, the line is accepted.
+	file := mustParse(t, strings.Replace(lines, "BETA: 'B.'}", "BETA: 'B.', GAMMA: 'G.'}", 1))
+	if _, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file); slices.Contains(eligibilityCodes(t, err), "ENUM_NAME_UNDECIDED") {
+		t.Fatalf("err = %v, want no ENUM_NAME_UNDECIDED with a names entry", err)
 	}
 }
 
@@ -964,6 +1013,7 @@ func TestBetweenOnIntegersNeedsExactBounds(t *testing.T) {
 func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 	a := &tfAttr{Name: "static_values"}
 	siblings := []*tfAttr{a, {Name: "label_keys"}}
+	above := [][]*tfAttr{{{Name: "title"}, {Name: "outer"}}, {{Name: "root_only"}}}
 	tests := []struct {
 		v    overrides.Validator
 		fail bool
@@ -973,9 +1023,15 @@ func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 		{overrides.Validator{ExactlyOneOf: []string{"labelKeys"}}, true},
 		{overrides.Validator{AtLeastOneOf: []string{"missing"}}, true},
 		{overrides.Validator{ExactlyOneOf: []string{"static_values"}}, true},
+		// "../" goes up one level for each step, to an attribute of an object above.
+		{overrides.Validator{AlsoRequires: []string{"../root_only"}}, false},
+		{overrides.Validator{AlsoRequires: []string{"../../title"}}, false},
+		{overrides.Validator{AlsoRequires: []string{"../title"}}, true},
+		{overrides.Validator{AlsoRequires: []string{"../../../title"}}, true},
+		{overrides.Validator{AlsoRequires: []string{"../static_values"}}, true},
 	}
 	for _, test := range tests {
-		err := checkSiblingTargets(a, siblings, []overrides.Validator{test.v})
+		err := checkSiblingTargets(a, siblings, above, []overrides.Validator{test.v})
 		if (err != nil) != test.fail {
 			t.Errorf("checkSiblingTargets(%+v) = %v, want error %v", test.v, err, test.fail)
 		}
@@ -1171,14 +1227,16 @@ func TestDefaultArmNeedsAFullReplace(t *testing.T) {
 	}
 }
 
-// A group of a nested component holds fields of that component, every arm of a oneOf or none, and
-// needs a full replace, as a top-level group does.
+// A group of a nested component holds fields of that component, every arm of a oneOf or none (or one
+// arm, as the object of that arm), and needs a full replace, as a top-level group does.
 func TestNestedGroupErrors(t *testing.T) {
 	const from = "        fields: [daily, weekly]\n"
 	tests := map[string]struct{ to, want string }{
-		"no such field":      {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
-		"split oneOf":        {"        fields: [daily]\n", "must all be in one group, or in none"},
-		"requireOne non-arm": {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
+		"no such field": {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
+		// One arm in a group stands for the arm, so the group must be optional.
+		"split oneOf":                           {"        fields: [daily]\n", "so the other arms can be set instead: add optional: true"},
+		"split oneOf, an arm and another field": {"        fields: [daily, every]\n        optional: true\n", "so a group holds one arm and no other field"},
+		"requireOne non-arm":                    {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -1337,10 +1395,10 @@ func TestRequiredLineOnAResponseOnlyComponent(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := overrides.Line{Kind: overrides.KindField, Component: "Item", Field: "priority", Required: true}
-	if problem := fieldLineProblem(schema, line, true, true, nil); problem != nil {
+	if problem := fieldLineProblem(schema, line, nil, true, true, nil); problem != nil {
 		t.Fatalf("problem = %v, want none for a component that no request reaches", problem)
 	}
-	if problem := fieldLineProblem(schema, line, true, false, nil); problem == nil || !slices.Contains(problem.stale, "required") {
+	if problem := fieldLineProblem(schema, line, nil, true, false, nil); problem == nil || !slices.Contains(problem.stale, "required") {
 		t.Fatalf("problem = %v, want a stale required key for a shared component", problem)
 	}
 }

@@ -49,7 +49,7 @@ func TestUnwrapLinesThatDecideNothingAreUnused(t *testing.T) {
 		t.Fatalf("codes %v, want none for the valid file", codes)
 	}
 	tests := map[string][]string{
-		"component no field holds": {"ListSelection]", "ListSelection, Missing]"},
+		"component no field holds": {"LinkRef]", "LinkRef, Missing]"},
 		"false line, not listed":   {"      mainLabel:\n", "      extraLabel:\n        unwrap: false\n      mainLabel:\n"},
 	}
 	for name, replacements := range tests {
@@ -71,7 +71,7 @@ func TestUnwrapReportsLinesOnHiddenProperties(t *testing.T) {
 		"collapses everywhere":         {[]string{"types:\n", "types:\n  PriorityValue:\n    fields:\n      value:\n        useStateForUnknown: true\n"}, []string{"OVERRIDE_UNUSED"}},
 		"stays an object in one place": {[]string{"types:\n", "types:\n  LuceneQuery:\n    fields:\n      value:\n        useStateForUnknown: true\n"}, nil},
 		// The unwrap key decides the wrapper inside the hidden property.
-		"unwrap key only": {[]string{"Selection, ListSelection]", "Selection]", "types:\n", "types:\n  Selection:\n    fields:\n      list:\n        unwrap: true\n"}, nil},
+		"unwrap key only": {[]string{"Selection, ListSelection, LinkRef]", "Selection]", "types:\n", "types:\n  Selection:\n    fields:\n      list:\n        unwrap: true\n"}, nil},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -113,7 +113,7 @@ func TestUnwrapRejectsKeysThatReadTheWrappedField(t *testing.T) {
 }
 
 func TestUnwrapRejectsAListedComponentThatIsNoWrapper(t *testing.T) {
-	codes := wrapThingCodes(t, "ListSelection]", "ListSelection, SimpleFilter]")
+	codes := wrapThingCodes(t, "LinkRef]", "LinkRef, SimpleFilter]")
 	if !slices.Contains(codes, "UNWRAP_COMPONENT_UNSUPPORTED") {
 		t.Fatalf("codes %v do not contain UNWRAP_COMPONENT_UNSUPPORTED", codes)
 	}

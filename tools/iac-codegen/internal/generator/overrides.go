@@ -85,6 +85,43 @@ func readOverrides(path string) (*overrides.File, error) {
 	return file, nil
 }
 
+// fillEnums sets the accepted values of every enums line from its contract enum, so a value that
+// the API adds is accepted without a line. A line whose component is missing or is not an enum is
+// left for overrideIssues to report.
+func fillEnums(doc *v3.Document, file *overrides.File) issue.Report {
+	if doc.Components == nil || doc.Components.Schemas == nil {
+		return nil
+	}
+	var report issue.Report
+	for _, name := range slices.Sorted(maps.Keys(file.Enums)) {
+		component, _, _ := strings.Cut(name, "@")
+		proxy := doc.Components.Schemas.GetOrZero(component)
+		if proxy == nil {
+			continue
+		}
+		schema, err := proxy.BuildSchema()
+		if err != nil || len(schema.Enum) == 0 {
+			continue
+		}
+		contract := make([]string, 0, len(schema.Enum))
+		for _, n := range schema.Enum {
+			contract = append(contract, n.Value)
+		}
+		err = file.FillEnum(name, contract)
+		if err == nil {
+			continue
+		}
+		item := issue.Issue{Code: "OVERRIDE_INVALID", Location: overrides.FileName + ":enums." + name, Message: err.Error(), Remediation: "Fix the enums line."}
+		var undecided *overrides.UndecidedNames
+		if errors.As(err, &undecided) {
+			item.Code = "ENUM_NAME_UNDECIDED"
+			item.Remediation = fmt.Sprintf("Add a names entry for each of these values to enums.%s: the Terraform value that a user writes.", name)
+		}
+		report = append(report, item)
+	}
+	return report
+}
+
 // overrideIssues reports every line of the file that does not match the contract.
 // A line that matches nothing is an error, so a stale line cannot stay in the file.
 func overrideIssues(doc *v3.Document, component string, file *overrides.File, ids model.OperationIDs, policy model.Policy) issue.Report {
@@ -160,9 +197,11 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
-	proxy := doc.Components.Schemas.GetOrZero(line.Component)
+	// An enums entry "<Enum>@<variant>" is another spelling of the contract enum <Enum>.
+	contractComponent, _, _ := strings.Cut(line.Component, "@")
+	proxy := doc.Components.Schemas.GetOrZero(contractComponent)
 	if proxy == nil {
-		return wholeLine(fmt.Errorf("no component %q", line.Component))
+		return wholeLine(fmt.Errorf("no component %q", contractComponent))
 	}
 	schema, err := proxy.BuildSchema()
 	if err != nil {
@@ -199,7 +238,7 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		if !nested && !requested[line.Component] {
 			byCreate = createOptional
 		}
-		return fieldLineProblem(schema, line, nested, responseOnly, byCreate)
+		return fieldLineProblem(schema, line, siblingFields(file, resource, line), nested, responseOnly, byCreate)
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
@@ -302,16 +341,11 @@ func createOptionalFields(doc *v3.Document, component string, ids model.Operatio
 }
 
 // withInlinedFields returns the component with the fields of its inlined objects: they are
-// attributes of the component, so their lines are lines of the component. The model checks that an
-// inlined field is an object.
+// attributes of the component, so their lines are lines of the component. An inlined object can
+// inline an object of its own (its lines inline a field), and the fields of that one are attributes of
+// the component too. The model checks that an inlined field is an object.
 func withInlinedFields(schema *base.Schema, file *overrides.File, component string) (*base.Schema, error) {
-	var inlined []string
-	for _, line := range file.Lines() {
-		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
-			inlined = append(inlined, line.Field)
-		}
-	}
-	if len(inlined) == 0 || schema.Properties == nil {
+	if schema.Properties == nil || len(inlinedFieldsOf(file, component)) == 0 {
 		return schema, nil
 	}
 	out := *schema
@@ -320,35 +354,76 @@ func withInlinedFields(schema *base.Schema, file *overrides.File, component stri
 	for name, proxy := range schema.Properties.FromOldest() {
 		out.Properties.Set(name, proxy)
 	}
-	for _, name := range inlined {
-		proxy := schema.Properties.GetOrZero(name)
+	if err := addInlinedFields(&out, schema, file, component, 0); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// inlinedFieldsOf returns the fields of the component that the file inlines.
+func inlinedFieldsOf(file *overrides.File, component string) []string {
+	var inlined []string
+	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
+			inlined = append(inlined, line.Field)
+		}
+	}
+	return inlined
+}
+
+// addInlinedFields adds the fields of the objects that the lines of holder inline to out, and then the
+// fields of the objects that those objects inline, to a depth of 8 levels.
+func addInlinedFields(out *base.Schema, holder *base.Schema, file *overrides.File, component string, depth int) error {
+	if depth > 8 || holder.Properties == nil {
+		return nil
+	}
+	for _, name := range inlinedFieldsOf(file, component) {
+		proxy := holder.Properties.GetOrZero(name)
 		if proxy == nil {
 			continue // the line of the inlined field reports it
 		}
 		object, err := proxy.BuildSchema()
 		if err != nil {
-			return nil, fmt.Errorf("field %q: %w", name, err)
+			return fmt.Errorf("field %q: %w", name, err)
 		}
+		objectComponent := refComponent(proxy)
 		if len(object.AllOf) == 1 {
+			objectComponent = refComponent(object.AllOf[0])
 			if object, err = object.AllOf[0].BuildSchema(); err != nil {
-				return nil, fmt.Errorf("field %q: %w", name, err)
+				return fmt.Errorf("field %q: %w", name, err)
 			}
 		}
 		if object.Properties == nil {
 			continue
 		}
 		for child, childProxy := range object.Properties.FromOldest() {
-			if out.Properties.GetOrZero(child) == nil {
+			// A field of the object with the name of the inlined field takes its place, and the other
+			// keys of the line of the inlined field are its keys.
+			if out.Properties.GetOrZero(child) == nil || child == name {
 				out.Properties.Set(child, childProxy)
 			}
 		}
 		out.Required = append(out.Required, object.Required...)
+		if objectComponent != "" {
+			if err := addInlinedFields(out, object, file, objectComponent, depth+1); err != nil {
+				return err
+			}
+		}
 	}
-	return &out, nil
+	return nil
 }
 
-// enumLineProblem checks an enums line. Each value that the file names must be in the contract,
-// and each value of the contract must be accepted or rejected, so a new API value needs a decision.
+// refComponent returns the name of the component that the schema proxy refers to, or "".
+func refComponent(proxy *base.SchemaProxy) string {
+	ref := proxy.GetReference()
+	if i := strings.LastIndex(ref, "/"); i >= 0 {
+		return ref[i+1:]
+	}
+	return ""
+}
+
+// enumLineProblem checks an enums line. Each value that the file names must be in the contract.
+// A value of the contract that the line does not reject is accepted, so a new API value needs no line.
 func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if len(schema.Enum) == 0 {
 		return wholeLine(fmt.Errorf("component %q is not an enum", line.Component))
@@ -376,27 +451,11 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 			fix:     "Remove zero and put that value in values. A missing field reads back as that first value, not as an enum zero.",
 		}
 	}
-	var undecided []string
-	for i, value := range contract {
-		zero := i == 0 && hasZeroValue(contract)
-		if !zero && !slices.Contains(line.EnumValues, value) && !slices.Contains(line.EnumRejected, value) {
-			undecided = append(undecided, value)
-		}
-	}
-	if len(undecided) == 0 {
-		return nil
-	}
-	return &lineIssue{
-		code:    "ENUM_VALUE_UNDECIDED",
-		message: fmt.Sprintf("the contract of enum %q has values that the file neither accepts nor rejects: %s", line.Component, strings.Join(undecided, ", ")),
-		fix:     "Add each value to values (the resource accepts it) or to rejected (it does not).",
-	}
+	return nil
 }
 
 // hasZeroValue reports whether the first value of the enum is the protobuf zero value.
-func hasZeroValue(contract []string) bool {
-	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
-}
+func hasZeroValue(contract []string) bool { return overrides.HasZeroValue(contract) }
 
 // requestOperations returns the ids of the Create and Update operations of the resource. The ids
 // that api.operations names come first: an upsert or a delete: none contract builds only after
@@ -478,10 +537,11 @@ func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is
 // stale when the contract states the same fact.
+// group lists the fields of the group that holds the field, or is nil (see siblingFields).
 // shared is true for a nested component, which the requests and the response usually share, so
 // its required list binds the requests too. responseOnly is true for a nested component that no
 // request reaches: its required list binds no request, so a required or optional line is not stale.
-func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool, createOptional map[string]bool) *lineIssue {
+func fieldLineProblem(schema *base.Schema, line overrides.Line, group []string, shared, responseOnly bool, createOptional map[string]bool) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
@@ -491,6 +551,10 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 	var stale []string
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
+	}
+	if line.Deprecation == overrides.DeprecationText {
+		// The generator writes this text for a deprecated field by itself.
+		stale = append(stale, "deprecation")
 	}
 	requiredByContract := slices.Contains(schema.Required, line.Field)
 	if createOptional[line.Field] {
@@ -518,7 +582,7 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 		}
 	}
 	if line.Name != "" {
-		if problem := nameProblem(schema, line); problem != nil {
+		if problem := nameProblem(schema, line, group); problem != nil {
 			return problem
 		}
 	}
@@ -599,6 +663,17 @@ func caseInsensitiveElementsProblem(built *base.Schema, line overrides.Line) *li
 	return nil
 }
 
+// unwrapUsedByCopy reports whether a copy of the component at a place decided an unwrap: a place that
+// skips a field has a copy of its own, and the original has no place left that holds it.
+func unwrapUsedByCopy(r *model.Resource, file *overrides.File, name string) bool {
+	for _, c := range file.PlaceClones {
+		if c.Component == name && r.UnwrapUsed["unwrap."+c.Name] {
+			return true
+		}
+	}
+	return false
+}
+
 // unwrapUsageIssues reports each unwrap line that decided no place of the resource: a component of
 // the list that no field holds, an unwrap: true line that the model rejected first, or an
 // unwrap: false line on a field whose component the list does not name. It also reports a field
@@ -610,7 +685,7 @@ func unwrapUsageIssues(r *model.Resource, file *overrides.File) issue.Report {
 	}
 	var report issue.Report
 	for _, name := range file.Unwrap {
-		if !r.UnwrapUsed["unwrap."+name] {
+		if !r.UnwrapUsed["unwrap."+name] && !unwrapUsedByCopy(r, file, name) {
 			report = append(report, issue.Issue{
 				Code:        "OVERRIDE_UNUSED",
 				Location:    overrides.FileName + ":unwrap." + name,
@@ -655,7 +730,7 @@ func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	if !r.HiddenWrappers[line.Component] {
 		return nil
 	}
-	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" })
+	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" || key == "join" })
 }
 
 // stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum
@@ -932,13 +1007,39 @@ func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	return nil
 }
 
+// siblingFields returns the fields that share an object with the field of a field line, when
+// the resource component puts the field in a group: the group is an object, so the field is an
+// attribute of it, next to the other fields of the group. It returns nil for any other field,
+// which is an attribute of its component.
+func siblingFields(file *overrides.File, resource string, line overrides.Line) []string {
+	if line.Component != resource {
+		return nil
+	}
+	path := file.GroupPath(line.Field)
+	if len(path) == 0 {
+		return nil
+	}
+	g := file.Groups[path[0]]
+	if len(path) == 2 {
+		g = g.Groups[path[1]]
+	}
+	return g.Fields
+}
+
 // nameProblem checks a name line. The name must differ from the name that the JSON name
-// gives, and from the name of every other field of the component that has an attribute.
-func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+// gives, and from the name of every other field of the object that holds the attribute that has an
+// attribute. That object is the component, or the group when the field is in one: a group is an
+// attribute of the component, so its fields can use the name of a field of the component. group
+// lists the fields of the group, or is nil. The Terraform names come from TerraformName, as the
+// attributes of the resource do.
+func nameProblem(schema *base.Schema, line overrides.Line, group []string) *lineIssue {
 	if line.Name == TerraformName(line.Field) {
 		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
 	}
 	for field := range schema.Properties.KeysFromOldest() {
+		if group != nil && !slices.Contains(group, field) {
+			continue
+		}
 		if field != line.Field && TerraformName(field) == line.Name && !slices.Contains(line.NoAttribute, field) {
 			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
 		}

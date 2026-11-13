@@ -362,13 +362,11 @@ func flattenEvaluationConfig(ctx context.Context, p path.Path, v *ai_evaluations
 	if v == nil {
 		return nil
 	}
-	if v.CustomEvaluation != nil {
+	if v.CustomEvaluation != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
-		return &EvaluationConfigModel{}
 	}
-	if v.SqlLoad != nil {
+	if v.SqlLoad != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
-		return &EvaluationConfigModel{}
 	}
 	out := &EvaluationConfigModel{}
 	out.AllowedTopics = flattenAllowedTopicsConfig(ctx, p.AtName("allowed_topics"), v.AllowedTopics, diags)
@@ -866,4 +864,17 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
 }

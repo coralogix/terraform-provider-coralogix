@@ -10,11 +10,9 @@ enums:
   DefaultUnit:
     zero: never
     trimPrefix: UNIT_
-    values: [UNIT_HOURS, UNIT_DAYS]
   DefaultSeverity:
     zero: low
     trimPrefix: SEVERITY_
-    values: [SEVERITY_HIGH]
 
 types:
   DefaultThing:

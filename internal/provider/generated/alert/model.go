@@ -36,11 +36,12 @@ type NoDataPolicyModel struct {
 }
 
 type AnalyticsImmediateTypeModel struct {
-	DataprimeQuery        *DataprimeAlertQueryModel `tfsdk:"dataprime_query"`
-	EvaluationDelayMs     types.Int32               `tfsdk:"custom_evaluation_delay"`
-	NoDataPolicy          types.Object              `tfsdk:"no_data_policy"`
-	TimeframeMinutes      types.Int32               `tfsdk:"timeframe_minutes"`
-	UseRowsAsPermutations types.Bool                `tfsdk:"use_rows_as_permutations"`
+	DataprimeQuery          *DataprimeAlertQueryModel `tfsdk:"dataprime_query"`
+	EvaluationDelayMs       types.Int32               `tfsdk:"custom_evaluation_delay"`
+	EvaluationPeriodMinutes types.Int32               `tfsdk:"evaluation_period_minutes"`
+	NoDataPolicy            types.Object              `tfsdk:"no_data_policy"`
+	TimeframeMinutes        types.Int32               `tfsdk:"timeframe_minutes"`
+	UseRowsAsPermutations   types.Bool                `tfsdk:"use_rows_as_permutations"`
 }
 
 type AlertDefTypeDefinitionModel struct {
@@ -75,14 +76,15 @@ type AnalyticsThresholdRuleModel struct {
 }
 
 type AnalyticsThresholdTypeModel struct {
-	DataprimeQuery        *DataprimeAlertQueryModel `tfsdk:"dataprime_query"`
-	EvaluationDelayMs     types.Int32               `tfsdk:"custom_evaluation_delay"`
-	NoDataPolicy          types.Object              `tfsdk:"no_data_policy"`
-	Operator              types.String              `tfsdk:"operator"`
-	Rules                 types.List                `tfsdk:"rules"`
-	TargetColumn          types.String              `tfsdk:"target_column"`
-	TimeframeMinutes      types.Int32               `tfsdk:"timeframe_minutes"`
-	UseRowsAsPermutations types.Bool                `tfsdk:"use_rows_as_permutations"`
+	DataprimeQuery          *DataprimeAlertQueryModel `tfsdk:"dataprime_query"`
+	EvaluationDelayMs       types.Int32               `tfsdk:"custom_evaluation_delay"`
+	EvaluationPeriodMinutes types.Int32               `tfsdk:"evaluation_period_minutes"`
+	NoDataPolicy            types.Object              `tfsdk:"no_data_policy"`
+	Operator                types.String              `tfsdk:"operator"`
+	Rules                   types.List                `tfsdk:"rules"`
+	TargetColumn            types.String              `tfsdk:"target_column"`
+	TimeframeMinutes        types.Int32               `tfsdk:"timeframe_minutes"`
+	UseRowsAsPermutations   types.Bool                `tfsdk:"use_rows_as_permutations"`
 }
 
 type AlertDefCaseDestinationModel struct {

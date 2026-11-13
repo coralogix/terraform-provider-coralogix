@@ -329,7 +329,7 @@ func TestAcceptanceLeftoversRunBeforeEverySubtest(t *testing.T) {
 	if out, err = renderAcceptance(data); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(out), "acctest") {
+	if strings.Contains(string(out), "acctest.") || strings.Contains(string(out), `/internal/acctest"`) {
 		t.Errorf("without leftovers the test must not call a leftovers function:\n%s", out)
 	}
 }

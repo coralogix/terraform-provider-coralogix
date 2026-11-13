@@ -25,13 +25,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// An alert type is an arm of a oneOf of the API. The overrides file lists the arms by hand in three places,
+// An alert type is an arm of a oneOf of the API. The overrides file lists the arms by hand in two places,
 // and the generator does not notice a new arm that one of them misses:
 //   - groups.type_definition.fields: without it the generator stops with an error (RENDERER_SHAPE_UNSUPPORTED);
-//   - enums.AlertDefType: without it the generator stops (ENUM_VALUE_UNDECIDED);
 //   - types.AlertDef.fields.type.requestValueBy: without it the generator passes, and a request of the new
 //     type is sent without a type, which the server reads as logs_immediate.
-// This test fails for all three with the edit to make, so the last one cannot be missed.
+// The enum AlertDefType needs no line for a new value: the generator accepts every value of the contract.
+// This test fails for both with the edit to make, so the last one cannot be missed.
 
 type alertOverridesFile struct {
 	Groups map[string]struct {
@@ -43,7 +43,6 @@ type alertOverridesFile struct {
 		} `yaml:"fields"`
 	} `yaml:"types"`
 	Enums map[string]struct {
-		Values   []string `yaml:"values"`
 		Rejected []string `yaml:"rejected"`
 	} `yaml:"enums"`
 }
@@ -92,9 +91,8 @@ func TestEveryAlertTypeIsInTheOverrides(t *testing.T) {
 			t.Errorf("alert type %q has no value in types.AlertDef.fields.type.requestValueBy of the overrides: add `%s: <the AlertDefType value>`. Without it, a request of this type is sent without a type, and the server reads it as logs_immediate", arm, arm)
 			continue
 		}
-		zero := strings.HasSuffix(value, "_OR_UNSPECIFIED")
-		if !zero && !slices.Contains(enum.Values, value) && !slices.Contains(enum.Rejected, value) {
-			t.Errorf("alert type %q sends %s, which enums.AlertDefType does not accept: add it to values", arm, value)
+		if slices.Contains(enum.Rejected, value) {
+			t.Errorf("alert type %q sends %s, which enums.AlertDefType rejects: remove it from rejected", arm, value)
 		}
 	}
 	for arm := range grouped {

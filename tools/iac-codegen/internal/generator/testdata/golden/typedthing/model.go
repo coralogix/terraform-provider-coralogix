@@ -12,14 +12,18 @@ type TypedThingModel struct {
 	Name        types.String           `tfsdk:"name"`
 	Aggregation *TypedAggregationModel `tfsdk:"aggregation"`
 	Selection   *TypedSelectionModel   `tfsdk:"selection"`
+	Pick        types.List             `tfsdk:"picked_values"`
 	Operator    *TypedOperatorModel    `tfsdk:"operator"`
 	Fields      types.List             `tfsdk:"fields"`
+	SpanValue   *TypedSpanValueModel   `tfsdk:"span_value"`
 }
 
 type TypedAverageModel struct {
-	Field  types.String  `tfsdk:"field"`
-	Mode   types.String  `tfsdk:"mode"`
-	Weight types.Float64 `tfsdk:"weight"`
+	Field       types.String  `tfsdk:"field"`
+	Mode        types.String  `tfsdk:"mode"`
+	Weight      types.Float64 `tfsdk:"weight"`
+	AverageUnit types.String  `tfsdk:"unit"`
+	Rounding    types.String  `tfsdk:"rounding"`
 }
 
 type TypedBucketModel struct {
@@ -27,20 +31,24 @@ type TypedBucketModel struct {
 }
 
 type TypedPercentileModel struct {
-	Field   types.String      `tfsdk:"field"`
-	Mode    types.String      `tfsdk:"mode"`
-	Weight  types.Float64     `tfsdk:"weight"`
-	Percent types.Float64     `tfsdk:"percent"`
-	Bucket  *TypedBucketModel `tfsdk:"bucket"`
+	Field          types.String      `tfsdk:"field"`
+	Mode           types.String      `tfsdk:"mode"`
+	Weight         types.Float64     `tfsdk:"weight"`
+	Percent        types.Float64     `tfsdk:"percent"`
+	PercentileUnit types.String      `tfsdk:"unit"`
+	Rounding       types.String      `tfsdk:"rounding"`
+	Bucket         *TypedBucketModel `tfsdk:"bucket"`
 }
 
 type TypedAggregationModel struct {
-	Type    types.String      `tfsdk:"type"`
-	Field   types.String      `tfsdk:"field"`
-	Mode    types.String      `tfsdk:"mode"`
-	Weight  types.Float64     `tfsdk:"weight"`
-	Percent types.Float64     `tfsdk:"percent"`
-	Bucket  *TypedBucketModel `tfsdk:"bucket"`
+	Type        types.String      `tfsdk:"type"`
+	Field       types.String      `tfsdk:"field"`
+	Mode        types.String      `tfsdk:"mode"`
+	Weight      types.Float64     `tfsdk:"weight"`
+	AverageUnit types.String      `tfsdk:"unit"`
+	Rounding    types.String      `tfsdk:"rounding"`
+	Percent     types.Float64     `tfsdk:"percent"`
+	Bucket      *TypedBucketModel `tfsdk:"bucket"`
 }
 
 type TypedListModel struct {
@@ -79,6 +87,11 @@ type TypedOperatorModel struct {
 }
 
 type TypedSpanFieldModel struct {
+	Type  types.String `tfsdk:"type"`
+	Value types.String `tfsdk:"value"`
+}
+
+type TypedSpanValueModel struct {
 	Type  types.String `tfsdk:"type"`
 	Value types.String `tfsdk:"value"`
 }

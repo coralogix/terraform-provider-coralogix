@@ -33,6 +33,7 @@ func (c accCheck) Expr() string {
 
 // accStep is one config of the acceptance test and what the test checks after the apply.
 type accStep struct {
+	N      int        // the number of a step of the values-and-choices subtest, from 1
 	Config string     // the resource block, HCL with @{run} and @{env.NAME}
 	Checks []accCheck // attributes that must have the value
 	Absent []string   // top-level attributes that must not be in the state
@@ -47,11 +48,21 @@ type acceptanceData struct {
 	ProviderImport         string // import path of the provider package
 	Name                   string // resource name, for the names of the tests
 	Address                string // address of the resource in the config
-	IDAttr                 string
-	IDCustom               bool // the id attribute is not "id": the import step names it
-	Env                    []string
-	Prerequisites          string
-	Full, Updated, Minimal *accStep
+	TypeName               string // the Terraform type, such as coralogix_alert
+	FailPathsImport        string // import path of the package that checks the failure paths
+	// FailSingleton and FailNoDelete tell the failure path test what the API has: one resource of the
+	// kind (a singleton, or a list that one write replaces), and no delete.
+	FailSingleton, FailNoDelete bool
+	IDAttr                      string
+	IDCustom                    bool // the id attribute is not "id": the import step names it
+	Env                         []string
+	Prerequisites               string
+	Full, Updated, Minimal      *accStep
+	// Variants are the configs after the full config in the values-and-choices subtest: each sets
+	// the enum values and the oneOf arms that no earlier config set. Empty: no subtest.
+	Variants []*accStep
+	// SplitSteps: each variant is a subtest of its own, values-and-choices-N.
+	SplitSteps bool
 	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
 	UpgradeMinimal *accStep
 	// UpgradeFull is the full config without the attributes that the released provider does not
@@ -150,6 +161,20 @@ type accSynth struct {
 	// immutables records the HCL of each immutable value that a walk sets, by its state path. nil
 	// records nothing.
 	immutables map[string]string
+	// cov records the enum values and the oneOf arms that the configs of the values-and-choices
+	// subtest have set. nil: the walk records nothing.
+	cov map[string]bool
+	// sweeping: the walk sets what cov does not have yet (acceptance_sweep.go).
+	sweeping bool
+	// element is the number of the element of a list or set that a sweep step makes, from 0. A
+	// made-up string of an element after the first has the number at its end, so that the elements
+	// differ where the API wants them to.
+	element int
+	// extra is the number of elements after the first that the step has added to its lists.
+	extra int
+	// armBuilds records, for each oneOf arm that the sweep considered, the error of the trial that
+	// made a value for it, or nil.
+	armBuilds map[string]error
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -160,32 +185,52 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	typeName := res.CRUD.TypeName
 	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}, updated: map[string]bool{}}
 	out := &acceptanceData{
-		Package:        res.Package,
-		VersionHeader:  version.Header,
-		ProviderImport: providerModule + "/internal/provider",
-		Name:           camelize(typeName), // the Terraform type, which can differ from the SDK type
-		Address:        "coralogix_" + typeName + ".test",
-		IDAttr:         res.CRUD.IDAttr,
-		IDCustom:       res.CRUD.IDAttr != "id",
-		Env:            file.Env,
-		Prerequisites:  strings.TrimSpace(file.Prerequisites),
-		UpgradeFrom:    file.UpgradeFrom,
+		Package:         res.Package,
+		VersionHeader:   version.Header,
+		ProviderImport:  providerModule + "/internal/provider",
+		Name:            camelize(typeName), // the Terraform type, which can differ from the SDK type
+		Address:         "coralogix_" + typeName + ".test",
+		TypeName:        "coralogix_" + typeName,
+		FailSingleton:   res.CRUD.Singleton || res.CRUD.Overwrite,
+		FailNoDelete:    res.CRUD.Upsert,
+		FailPathsImport: providerModule + "/internal/acctest/failpaths",
+		IDAttr:          res.CRUD.IDAttr,
+		IDCustom:        res.CRUD.IDAttr != "id",
+		Env:             file.Env,
+		Prerequisites:   strings.TrimSpace(file.Prerequisites),
+		UpgradeFrom:     file.UpgradeFrom,
 	}
 	if file.Leftovers != "" {
 		dir := file.LeftoversPackage()
 		out.LeftoversImport = providerModule + "/" + dir
 		out.LeftoversCall = filepath.Base(dir) + "." + file.LeftoversFunc()
 	}
+	var full map[string]bool // what the full config sets: the sweep of values-and-choices starts there
 	for _, step := range []struct {
 		mode accMode
 		into **accStep
 	}{{accFull, &out.Full}, {accUpdated, &out.Updated}, {accMinimal, &out.Minimal}} {
+		if step.mode == accFull {
+			s.cov = map[string]bool{} // the full config sets the first value and the first arm
+		}
 		body, checks, err := s.attrs(res.Attributes, "", "", step.mode, true)
 		if err != nil {
 			return nil, fmt.Errorf("acceptance test: %w", err)
 		}
 		*step.into = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
+		if step.mode == accFull {
+			full = s.cov
+			s.cov = nil // the other configs record nothing
+		}
 	}
+	s.cov = full
+	variants, err := s.sweepSteps(res)
+	s.cov = nil
+	if err != nil {
+		return nil, err
+	}
+	out.Variants = variants
+	out.SplitSteps = file.StepCopies > 0
 	out.Minimal.Absent = s.absent(res.Attributes)
 	defaults, kept := s.removed(res.Attributes, out.Full.Checks)
 	out.Minimal.Checks = append(out.Minimal.Checks, defaults...)
@@ -572,6 +617,9 @@ func (s *accSynth) checkFile() error {
 			}
 		}
 	}
+	if err := s.checkMaxElements(); err != nil {
+		return err
+	}
 	for _, path := range s.file.ValuePaths() {
 		if !s.used[path] {
 			return fmt.Errorf("values: %q is not set by the full config: it names no attribute, or the attribute is skipped, computed, or in a oneOf arm that the test leaves out", path)
@@ -590,11 +638,27 @@ func (s *accSynth) checkFile() error {
 	return nil
 }
 
-func resourceBlock(resourceType, body string) string {
-	if body == "" {
-		return fmt.Sprintf("resource %q \"test\" {\n}", resourceType)
+// checkMaxElements fails when a maxElements entry names no attribute.
+func (s *accSynth) checkMaxElements() error {
+	for _, path := range sortedStringKeys(s.file.MaxElements) {
+		if !s.known[path] {
+			return fmt.Errorf("maxElements: %q is not an attribute of the resource", path)
+		}
 	}
-	return fmt.Sprintf("resource %q \"test\" {\n%s\n}", resourceType, indentLines(body))
+	return nil
+}
+
+func resourceBlock(resourceType, body string) string {
+	return namedResourceBlock(resourceType, "test", body)
+}
+
+// namedResourceBlock is resourceBlock with the name of the block, for a config that holds copies of
+// the resource.
+func namedResourceBlock(resourceType, name, body string) string {
+	if body == "" {
+		return fmt.Sprintf("resource %q %q {\n}", resourceType, name)
+	}
+	return fmt.Sprintf("resource %q %q {\n%s\n}", resourceType, name, indentLines(body))
 }
 
 func indentLines(text string) string {
@@ -654,21 +718,20 @@ func (s *accSynth) minimalBelow(key string) bool {
 func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top bool) (string, []accCheck, error) {
 	var lines []string
 	var checks []accCheck
-	armTaken := map[string]bool{} // the oneOf groups that already have an arm
-	for _, a := range attrs {
+	armTaken := s.requiredArms(attrs, key, mode, top) // the oneOf groups that already have an arm
+	picks := s.armPicks(attrs, key, mode, top)
+	var arm *typedArmSet // the arm of a typedArms object that the type names
+	for _, a := range typedFirst(attrs) {
 		attrKey := joinPath(key, a.Name)
 		s.known[attrKey] = true
 		s.settable[attrKey] = a.Required || a.Optional
 		s.required[attrKey] = a.Required
-		if !s.include(a, attrKey, mode, top) {
+		a, ok := s.included(a, attrKey, arm, mode, top)
+		if !ok {
 			continue
 		}
-		if a.OneOfGroup != "" && !a.Required {
-			// A oneOf group takes one arm. The test sets the first arm of each group.
-			if armTaken[a.OneOfGroup] {
-				continue
-			}
-			armTaken[a.OneOfGroup] = true
+		if a.OneOfGroup != "" && !a.Required && !s.takeArm(a, armTaken, picks) {
+			continue
 		}
 		value, c, err := s.value(a, joinPath(tfPath, a.Name), attrKey, mode)
 		if err != nil {
@@ -676,8 +739,95 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		}
 		lines = append(lines, a.Name+" = "+value)
 		checks = append(checks, c...)
+		if a.Typed != nil {
+			arm = newTypedArmSet(a.Typed, value)
+		}
 	}
 	return strings.Join(lines, "\n"), checks, nil
+}
+
+// requiredArms returns the oneOf groups that have a required arm. A required arm is the arm of its
+// group: the others stay out, because the API takes one.
+func (s *accSynth) requiredArms(attrs []*tfAttr, key string, mode accMode, top bool) map[string]bool {
+	taken := map[string]bool{}
+	for _, a := range attrs {
+		if a.OneOfGroup != "" && a.Required && s.include(a, joinPath(key, a.Name), mode, top) {
+			taken[a.OneOfGroup] = true
+		}
+	}
+	return taken
+}
+
+// included returns the attribute that the config sets, and false when the config leaves it out. An
+// attribute of another arm of a typedArms object is left out, and one that the arm needs is kept
+// also in the minimal config, with the validators that run for the arm.
+func (s *accSynth) included(a *tfAttr, attrKey string, arm *typedArmSet, mode accMode, top bool) (*tfAttr, bool) {
+	force := false
+	if a.TypedArm && arm != nil {
+		if !arm.fields[a.Name] {
+			return nil, false
+		}
+		force = slices.Contains(arm.info.Required[arm.value], a.Name) && !slices.Contains(s.file.Skip, attrKey)
+		a = withChecks(a, arm.info.Checked[arm.value][a.Name])
+	}
+	return a, s.include(a, attrKey, mode, top) || force
+}
+
+// takeArm says whether the arm of a oneOf group is the one that the config sets. A group takes one
+// arm: the first, or the one that a step of the sweep picks. An arm that the resource refuses is
+// never taken.
+func (s *accSynth) takeArm(a *tfAttr, armTaken map[string]bool, picks map[string]*tfAttr) bool {
+	if refused(a) || armTaken[a.OneOfGroup] {
+		return false
+	}
+	if pick, ok := picks[a.OneOfGroup]; ok && pick != a {
+		return false
+	}
+	armTaken[a.OneOfGroup] = true
+	s.noteArm(a)
+	return true
+}
+
+// refused reports whether a validator of the attribute rejects every value of it. An override
+// states it (the unsupported key), because the API does not support the value.
+func refused(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Validators, func(v string) bool { return strings.HasPrefix(v, "unsupported") })
+}
+
+// typedArmSet is the arm that the type of a typedArms object names, in a config.
+type typedArmSet struct {
+	info   *typedInfo
+	value  string
+	fields map[string]bool
+}
+
+// newTypedArmSet reads the type value from its HCL. It returns nil when the HCL is no plain string.
+func newTypedArmSet(info *typedInfo, hcl string) *typedArmSet {
+	value, err := strconv.Unquote(hcl)
+	if err != nil {
+		return nil
+	}
+	return &typedArmSet{info: info, value: value, fields: info.fields(value)}
+}
+
+// typedFirst puts the type attribute of a typedArms object first: the fields of the arm depend on its
+// value. The other attributes keep their order.
+func typedFirst(attrs []*tfAttr) []*tfAttr {
+	i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Typed != nil })
+	if i <= 0 {
+		return attrs
+	}
+	out := []*tfAttr{attrs[i]}
+	out = append(out, attrs[:i]...)
+	return append(out, attrs[i+1:]...)
+}
+
+// withChecks returns the attribute of a typedArms arm with the validators that run for the arm. The
+// attribute itself takes none, because another arm can have other values for it.
+func withChecks(a *tfAttr, checks []string) *tfAttr {
+	c := *a
+	c.Validators = checks
+	return &c
 }
 
 // absent lists the top-level attributes that the minimal config leaves out and that the server
@@ -818,14 +968,10 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 		return strings.TrimSpace(v), checks, nil
 	}
 	switch a.Kind {
-	case "String", "Bool", "Int64", "Int32", "Float64", "Float32":
-		v, check, err := scalarValue(a, mode)
-		if err != nil {
-			return "", nil, err
-		}
-		return v, []accCheck{{Path: tfPath, Value: check}}, nil
+	case "String", "Bool", "Int64", "Int32", "Float64", "Float32", "Number":
+		return s.scalarAttr(a, tfPath, key, mode)
 	case "Map", "List", "Set":
-		return s.collectionValue(a, tfPath, mode)
+		return s.collectionValue(a, tfPath, key, mode)
 	case "SingleNested":
 		body, checks, err := s.attrs(a.Attributes, tfPath, key, mode, false)
 		if err != nil {
@@ -838,6 +984,23 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 	return "", nil, fmt.Errorf("the %s attribute kind is not supported: set the value in %s", a.Kind, acceptance.FileName)
 }
 
+// scalarAttr makes the value of a scalar attribute. An enum takes the value that the sweep has not
+// set yet, or the value of the full config.
+func (s *accSynth) scalarAttr(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	if tf, ok := s.sweepValue(a, key); ok && a.Kind == "String" {
+		return strconv.Quote(tf), []accCheck{{Path: tfPath, Value: tf}}, nil
+	}
+	v, check, err := scalarValue(a, mode)
+	if err != nil {
+		return "", nil, err
+	}
+	if a.Kind == "String" {
+		s.noteValue(a, key, check)
+		v, check = s.numbered(a, v, check)
+	}
+	return v, []accCheck{{Path: tfPath, Value: check}}, nil
+}
+
 func objectHCL(body string) string {
 	if body == "" {
 		return "{}"
@@ -848,6 +1011,9 @@ func objectHCL(body string) string {
 func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
+	}
+	if s.sweeping {
+		return s.sweepElements(a, tfPath, key, mode)
 	}
 	element := tfPath + ".0"
 	if a.Kind == "SetNested" {
@@ -878,8 +1044,12 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 		}
 		v := strconv.FormatInt(int64(full), 10)
 		return v, v, nil
-	case "Float64", "Float32":
-		full, next := numberValues(a, 1.5)
+	case "Float64", "Float32", "Number":
+		base := 1.5
+		if a.Kind == "Number" {
+			base = 1 // a Number can be a whole number, and an API field that holds one rejects 1.5
+		}
+		full, next := numberValues(a, base)
 		if updated {
 			full = next
 		}
@@ -1087,15 +1257,27 @@ func lengthRange(a *tfAttr) (low, high int) {
 	return low, high
 }
 
+// oneOfCall is the OneOf call of a string validator. A OneOf can sit alone, or as one choice of
+// stringvalidator.Any, next to a pattern that accepts another kind of value.
+const oneOfCall = "stringvalidator.OneOf("
+
 // enumValues returns the values of the OneOf validator of a string attribute, without the zero
 // value "unspecified" when others exist.
 func enumValues(a *tfAttr) []string {
 	var values []string
-	for _, v := range a.Validators {
-		if !strings.HasPrefix(v, "stringvalidator.OneOf(") {
+	validators := a.Validators
+	if a.Kind == "List" || a.Kind == "Set" {
+		// The validator of the elements sits in ElemValidators, and the schema wraps it with
+		// ValueStringsAre at the collection.
+		validators = append(slices.Clone(validators), a.ElemValidators...)
+	}
+	for _, v := range validators {
+		if !strings.HasPrefix(v, oneOfCall) && !strings.HasPrefix(v, "stringvalidator.Any("+oneOfCall) {
 			continue
 		}
-		for _, m := range quoted.FindAllStringSubmatch(v, -1) {
+		_, call, _ := strings.Cut(v, oneOfCall)
+		call, _, _ = strings.Cut(call, ")")
+		for _, m := range quoted.FindAllStringSubmatch(call, -1) {
 			values = append(values, m[1])
 		}
 	}
@@ -1107,7 +1289,7 @@ func enumValues(a *tfAttr) []string {
 
 // collectionValue makes a map, list, or set of plain values. Only string, number, and bool
 // elements are made up.
-func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (string, []accCheck, error) {
+func (s *accSynth) collectionValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	elem, ok := map[string]string{
 		"types.StringType": "String", rfc3339Type: "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
 		"types.Int32Type": "Int32", "types.Float64Type": "Float64", "types.Float32Type": "Float32",
@@ -1121,6 +1303,13 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 	item, state, err := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators, CustomType: timeType(a.ElementType)}, mode)
 	if err != nil {
 		return "", nil, err
+	}
+	if a.Kind != "Map" {
+		if tf, ok := s.sweepValue(a, key); ok {
+			item, state = strconv.Quote(tf), tf
+		} else {
+			s.noteValue(a, key, state)
+		}
 	}
 	switch a.Kind {
 	case "Map":

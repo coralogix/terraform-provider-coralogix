@@ -80,6 +80,8 @@ type convData struct {
 	// RootUnsupported are the oneOf arms of the resource itself that it does not configure
 	// (unsupportedArms). flatten reports a response that selects one before it checks Arms.
 	RootUnsupported []unsupportedArm
+	// Distributions are the lists that distributeTo lines moved into the items of a component.
+	Distributions []*convDistribution
 }
 
 // convArm is an inlined object of the resource response that the SDK holds in a pointer.
@@ -160,6 +162,18 @@ type enumMap struct {
 	Read []enumMapValue
 	// ZeroNull is the API zero value that flatten reads as null (zeroNull), or "".
 	ZeroNull string
+	// NullValues are rejected API values that flatten reads as null (readRejectedAs: "null").
+	NullValues []string
+}
+
+// NullAPIValues are the API values that flatten reads as null: the zero value with zeroNull, and the
+// rejected values with readRejectedAs: "null".
+func (m *enumMap) NullAPIValues() []string {
+	var out []string
+	if m.ZeroNull != "" {
+		out = append(out, m.ZeroNull)
+	}
+	return append(out, m.NullValues...)
 }
 
 type enumMapValue struct{ TF, API string }
@@ -197,6 +211,9 @@ type convObject struct {
 	// OptionalGroup: the group is optional (the line has optional). Flatten returns nil, a null
 	// group, when the response has none of its fields.
 	OptionalGroup bool
+	// KeepPriorArm: flatten keeps the prior value when the response has other fields than it does
+	// (the keepPriorArm key of a group).
+	KeepPriorArm bool
 	// AttrTypes are the Terraform attribute types, when a list holds the
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
@@ -229,6 +246,9 @@ type convObject struct {
 	// Typed is set when Terraform shows the oneOf as a type attribute plus the merged fields of
 	// its arms (typedArms). Fields then holds the type and the merged fields, all Carried.
 	Typed *convTyped
+	// Lists are the top-level lists of a root that distributeTo lines moved into other objects.
+	// Expand sends the items that those objects collect, and flatten gives the response list to them.
+	Lists []convRootList
 }
 
 // convCarry is an object that Terraform shows as the arms of its oneOf field: each arm attribute
@@ -295,10 +315,15 @@ const (
 	convEnum       = "enum"       // types.String ↔ *<enum type> (D12)
 	convObj        = "object"     // *<Model> ↔ *<SDK type>
 	convEmpty      = "empty"      // *<Model> ↔ map[string]interface{} (F16)
+	// convFoldList shows a oneOf of an arm without fields and an arm with one list as that list
+	// (typedArms.asList): no values are the first arm, some values the second.
+	convFoldList = "foldlist" // types.List of strings ↔ *<oneOf SDK type>
 	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
 	convEmptyBool = "emptybool"
 	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
-	convObjects   = "objects" // types.List ↔ []<SDK type>
+	// convJoin shows a list of strings as one string with the elements joined (join).
+	convJoin    = "join"    // types.String ↔ []string
+	convObjects = "objects" // types.List ↔ []<SDK type>
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
@@ -317,6 +342,12 @@ const (
 	// the shortest decimal of the float32.
 	convFloat64AsFloat32 = "float64asfloat32" // types.Float64 ↔ *float64
 	convInts32AsInt64    = "ints32asint64"    // types.List/Set of types.Int64Type ↔ []int32
+	// convFloat32AsFloat64 keeps the released Float64 type of a float32 field (terraformType:
+	// Float64). convInt32AsNumber and convFloat64AsNumber keep the released Number type of an
+	// int32 or a double field (terraformType: Number).
+	convFloat32AsFloat64 = "float32asfloat64" // types.Float64 ↔ *float32
+	convInt32AsNumber    = "int32asnumber"    // types.Number ↔ *int32
+	convFloat64AsNumber  = "float64asnumber"  // types.Number ↔ *float64
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -334,6 +365,9 @@ const (
 	// convSplitArms is a list of oneOf items that Terraform shows as one collection per arm
 	// (splitArms). Object holds the conversion of each arm, whose Model is the attribute.
 	convSplitArms = "splitarms" // types.Set/List per arm ↔ []<SDK type>
+
+	// convDistributed is a list that Terraform shows in the items of another object (distributeTo).
+	convDistributed = "distributed" // types.List of objects ↔ the items of a list of the resource
 
 	convKeyedObjects = "keyedobjects" // types.Map of objects ↔ []<SDK type> keyed by a property (keyedBy)
 	convKeyedValues  = "keyedvalues"  // types.Map of String ↔ []<SDK type> of a key and a value (keyedBy)
@@ -375,8 +409,16 @@ type convField struct {
 	// ReadNullAsEmpty: flatten reads a missing string as "", and a missing list or set of objects
 	// as an empty collection.
 	ReadNullAsEmpty bool
+	// EnumVariant is the enumAs of the line: the spelling of the enum at this field.
+	EnumVariant string
+	// ReadNullAsValue is the Terraform value that flatten gives an enum that the response does not
+	// have (readNullAs with a value).
+	ReadNullAsValue string
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
+	// EmptyError is the error that flatten reports when the response has no value of this object
+	// field, or an object with all fields unset (unsupportedIfEmpty).
+	EmptyError *unsupportedArm
 	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
 	// the value in any case, and flatten keeps the prior spelling of an equal value.
 	CaseInsensitive bool
@@ -404,6 +446,16 @@ type convField struct {
 	FixedValue   string
 	// StringFold holds the two arms of a oneOf that Terraform shows as one string (asString).
 	StringFold *foldArms
+	// ListFold holds the arms of a oneOf that Terraform shows as one list (typedArms.asList).
+	ListFold *foldList
+	// ClientID: expand makes a UUID for an unknown value (clientID: uuid).
+	ClientID bool
+	// Dist and ItemID are set on a distributed field (distributeTo): the attribute of the object that
+	// holds the items of a list of the resource. ItemID is the field of the object that names them.
+	Dist   *convDistribution
+	ItemID *convField
+	// Join is the separator of a list of strings that Terraform shows as one string (join).
+	Join string
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -436,6 +488,9 @@ type convField struct {
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
 	Value bool
+	// SetPrior: a set of objects whose items need the prior model. Flatten pairs each API item with the
+	// prior item that has the same request value.
+	SetPrior bool
 	// Wrap is set when the API holds the value in wrapper objects that Terraform does not show.
 	Wrap *fieldWrap
 	// FlattenOnly is a field that no request sends, of an object that a request holds, such as
@@ -450,6 +505,9 @@ type convField struct {
 	Negated bool
 	// Split is the separator of a split field: the API holds the values of the set joined by it.
 	Split string
+	// Duration is the released text of a duration (protoText or goDuration): the API holds a
+	// protobuf JSON duration such as 900s.
+	Duration string
 }
 
 // dropParent is an optional request object that expand leaves out when the configuration sets
@@ -592,6 +650,22 @@ func (obj *convObject) PositionField() *convField {
 	return nil
 }
 
+// UsesFoldedSame reports whether the comparison of two items of a set compares a set of strings in
+// any case (equality: caseInsensitive on a set inside an object that the package compares).
+func (d *convData) UsesFoldedSame() bool {
+	for _, obj := range d.Objects {
+		if !obj.Same {
+			continue
+		}
+		for _, f := range obj.Fields {
+			if f.Conv == convStrings && f.Collection == "Set" && f.Equality == overrides.EqualityCaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UsesElementCase reports whether a field keeps the spelling of the prior elements of a list or
 // set of strings (equality: caseInsensitive).
 func (d *convData) UsesElementCase() bool {
@@ -659,6 +733,76 @@ func (d *convData) UsesEnumsMapped() bool {
 	return false
 }
 
+// applyJoin turns a list of strings with a join line into the string of its elements.
+func (b *convBuilder) applyJoin(cf *convField, sep string) error {
+	if cf.Conv != convStrings || cf.Collection != "List" && cf.Collection != "" || cf.SDKType != "string" || cf.EnumMap != nil || cf.Enum || cf.Projection != nil {
+		return fmt.Errorf("%s: join needs a list of plain strings", cf.TFName)
+	}
+	cf.Conv, cf.Collection, cf.Join = convJoin, "", sep
+	return nil
+}
+
+// UpgradePrior are the fields of the resource that a state upgrade copies from the prior state into
+// the prior model of flatten: the groups that keep the arm the user wrote. The prior schema holds
+// them with the same type as the current one, and the API cannot tell which arm the user wrote.
+func (d *convData) UpgradePrior() []*convField {
+	var out []*convField
+	if d.Resource == nil {
+		return nil
+	}
+	for _, f := range d.Resource.Fields {
+		if f.Conv == convGroup && !f.ObjectValue && f.Object != nil && f.Object.KeepPriorArm {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// UsesKeepPriorArm reports whether a group keeps the prior arm. The template then emits its helper.
+func (d *convData) UsesKeepPriorArm() bool {
+	return slices.ContainsFunc(d.Objects, func(o *convObject) bool { return o.KeepPriorArm })
+}
+
+// SetIn is the Go condition that the value of the field in the model v (a name) is set: not null, not
+// unknown, and not a nil object.
+func (f *convField) SetIn(v string) string {
+	if (f.Conv == convObj || f.Conv == convGroup) && !f.ObjectValue {
+		return v + "." + f.Model + " != nil"
+	}
+	return "!" + v + "." + f.Model + ".IsNull() && !" + v + "." + f.Model + ".IsUnknown()"
+}
+
+// UsesUnsupported reports whether the resource has unsupported fields or arms (unsupportedArms).
+// The template then emits the context switch that the AllowUnsupported hook turns on.
+func (d *convData) UsesUnsupported() bool {
+	return len(d.RootUnsupported) != 0 || slices.ContainsFunc(d.Objects, func(o *convObject) bool {
+		return len(o.Unsupported) != 0 || slices.ContainsFunc(o.Fields, func(f *convField) bool { return f.EmptyError != nil })
+	})
+}
+
+// UsesDuration reports whether a field keeps a released duration text. The template then emits its helpers.
+func (d *convData) UsesDuration() bool {
+	return slices.ContainsFunc(d.Objects, func(o *convObject) bool {
+		return slices.ContainsFunc(o.Fields, func(f *convField) bool { return f.Duration != "" })
+	})
+}
+
+// UsesJoin reports whether a field shows a list as one string. The template then emits its helpers.
+func (d *convData) UsesJoin() bool { return d.Uses(convJoin) }
+
+// UsesClientID reports whether a field gets a UUID that the client makes (clientID: uuid). The template
+// then emits the function that makes it.
+func (d *convData) UsesClientID() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.ClientID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UsesFloat32 reports whether a field holds float32 values, alone or in a list, set, or map.
 // The template then emits the helpers that widen them.
 func (d *convData) UsesFloat32() bool {
@@ -685,7 +829,7 @@ func (d *convData) HasValue() bool {
 			}
 		}
 	}
-	return false
+	return slices.ContainsFunc(d.Distributions, func(dist *convDistribution) bool { return dist.List.Value })
 }
 
 // setBodyMask records the SDK field that carries a JSON-body update mask.
@@ -722,7 +866,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err != nil {
 		return nil, err
 	}
-	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
+	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file)}
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
@@ -751,6 +895,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		if err := b.buildRoot(out, root); err != nil {
 			return nil, err
 		}
+	}
+	if err := b.distribute(out); err != nil {
+		return nil, err
 	}
 	if err := b.arms(out); err != nil {
 		return nil, err
@@ -786,6 +933,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := markPrior(out); err != nil {
 		return nil, err
 	}
+	if err := checkDistributions(out); err != nil {
+		return nil, err
+	}
 	for _, f := range r.Fields {
 		appendCreateField(out, r, f, b.fixedRequest(r.Name, f.Name), b.file)
 	}
@@ -817,7 +967,10 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
-			out = append(out, rootPath(file.GroupOf(arm), terraformName(r.Policy, r.Name, arm)).dotted())
+			if file != nil && file.Groups[file.GroupOf(arm)].TypedArms != nil {
+				continue // the type attribute names the arm: no attribute is the arm
+			}
+			out = append(out, rootPath(file.GroupPath(arm), terraformName(r.Policy, r.Name, arm)).dotted())
 		}
 	}
 	for _, f := range r.Fields {
@@ -825,7 +978,7 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 			// The arms are collections of values, or the arms of a string, not objects of the state.
 			continue
 		}
-		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupPath(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
@@ -1035,41 +1188,63 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 			// The SDK struct still has it, and the released client sends the fixed value.
 			typ = f.Type
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
+		cf, err := b.rootField(obj, root, fieldsPath, f, typ)
 		if err != nil {
-			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+			return err
 		}
-		if root.expand && fieldsPath == root.path && f.RequestPathOf(root.path == "update.body") != "" {
-			// The request holds the field deeper than the wrapper, so the Go expression goes through the objects.
-			prefix, err := b.requestObjects(obj, root, f)
-			if err != nil {
-				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-			}
-			cf.SDK = prefix + cf.SDK
-		}
-		if parent := root.parent(f); parent != nil {
-			// The SDK holds the field in the inlined object, so the Go expression goes through it.
-			field, err := b.parentField(obj, root, parent)
-			if err != nil {
-				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-			}
-			cf.SDK = field + "." + cf.SDK
-		}
-		b.markComputedObjectValue(cf, f, root.path == "fields")
-		if err := checkReadEmptyAs(cf); err != nil {
-			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-		}
-		if group := b.file.GroupOf(f.Name); group != "" {
-			b.addToGroup(obj, groups, group, cf)
+		if path := b.file.GroupPath(f.Name); path != nil {
+			b.addToGroup(obj, groups, path, cf)
 			continue
 		}
 		obj.Fields = append(obj.Fields, cf)
+	}
+	if err := b.rootListsAndGroups(obj, root, fieldsPath, groups); err != nil {
+		return err
 	}
 	if err := b.mark(obj, root.expand); err != nil {
 		return fmt.Errorf("%s: %w", root.path, err)
 	}
 	*root.obj = obj
 	return nil
+}
+
+// rootListsAndGroups finishes the fields of the root that need all of them: the typedArms groups, which
+// replace the arms that they hold, and the lists that other components distribute into.
+func (b *convBuilder) rootListsAndGroups(obj *convObject, root convRoot, fieldsPath string, groups map[string]*convObject) error {
+	if err := b.typedGroups(groups); err != nil {
+		return err
+	}
+	return b.rootLists(obj, root, fieldsPath)
+}
+
+// rootField returns the conversion of the top-level field f of type typ in the root: the Go
+// expression of its SDK field goes through the request objects and the inlined object that hold it.
+func (b *convBuilder) rootField(obj *convObject, root convRoot, fieldsPath string, f *model.ResourceField, typ *model.Type) (*convField, error) {
+	cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
+	if err != nil {
+		return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+	}
+	if root.expand && fieldsPath == root.path && f.RequestPathOf(root.path == "update.body") != "" {
+		// The request holds the field deeper than the wrapper, so the Go expression goes through the objects.
+		prefix, err := b.requestObjects(obj, root, f)
+		if err != nil {
+			return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		cf.SDK = prefix + cf.SDK
+	}
+	if parent := root.parent(f); parent != nil {
+		// The SDK holds the field in the inlined object, so the Go expression goes through it.
+		field, err := b.parentField(obj, root, parent)
+		if err != nil {
+			return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		cf.SDK = field + "." + cf.SDK
+	}
+	b.markComputedObjectValue(cf, f, root.path == "fields")
+	if err := checkReadEmptyAs(cf); err != nil {
+		return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+	}
+	return cf, nil
 }
 
 // rootType is the type of field f in the root at path: the request type in
@@ -1134,10 +1309,21 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref)
 	return &convObject{Func: function, Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
 }
 
+// checkEmptyError rejects unsupportedIfEmpty on a field that is no pointer to an object.
+func checkEmptyError(cf *convField) error {
+	if cf.EmptyError != nil && (cf.Conv != convObj || cf.ObjectValue) {
+		return fmt.Errorf("unsupportedIfEmpty needs an object field that the SDK holds in a pointer: %s", cf.TFName)
+	}
+	return nil
+}
+
 // checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
 // works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
 // do nothing, and the released normalization that the line states would be missing.
 func checkReadEmptyAs(cf *convField) error {
+	if err := checkEmptyError(cf); err != nil {
+		return err
+	}
 	if cf.SendNullAsEmpty && cf.Conv != convString {
 		return fmt.Errorf("sendNullAsEmpty is supported for a string, not for the %s field %s", cf.Conv, cf.TFName)
 	}
@@ -1160,8 +1346,10 @@ func (f *convField) ValueKind() string {
 		return "Int32"
 	case convFloat32:
 		return "Float32"
-	case convFloat64, convFloat64AsFloat32:
+	case convFloat64, convFloat64AsFloat32, convFloat32AsFloat64:
 		return "Float64"
+	case convInt32AsNumber, convFloat64AsNumber:
+		return "Number"
 	case convInt64AsString:
 		return "String"
 	}
@@ -1376,6 +1564,7 @@ type convBuilder struct {
 	wraps        []*wrapHelper
 	projections  []*itemProjection
 	keyedObjects []*keyedObject
+	dists        map[string]*convDistribution // by the name of the top-level list
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.
@@ -1433,7 +1622,10 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	for _, v := range over.Values {
 		m.Values = append(m.Values, enumMapValue{TF: over.TFValue(v), API: v})
 	}
-	if over.ReadRejected.On() {
+	switch {
+	case over.ReadRejectedAs == "null":
+		m.NullValues = slices.Clone(over.Rejected)
+	case over.ReadsRejected():
 		for _, v := range over.Rejected {
 			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
@@ -1489,7 +1681,24 @@ type keyedFields struct {
 
 // foldArms are the arms of a oneOf that asString shows as one string. Enum converts the spelling of
 // an enum value, and Str holds any other text.
-type foldArms struct{ Enum, Str *convField }
+type foldArms struct {
+	Enum, Str *convField
+	// Empty are the arms of a oneOf of objects without fields: the string is the Terraform name of
+	// the arm that is set.
+	Empty []emptyFoldArm
+}
+
+// foldList holds the arms of a oneOf that typedArms.asList shows as one list: the Go fields of the
+// arm without fields and of the arm with the list, the type of that arm, and the Go field of its list.
+type foldList struct {
+	All, List, ListType, Values string
+}
+
+// emptyFoldArm is one arm of a oneOf of objects without fields that asString shows as a string.
+type emptyFoldArm struct {
+	Value string // the Terraform name of the arm
+	SDK   string // the Go field of the oneOf
+}
 
 // fixedBy is the API value that expand sends when the object field Model is set.
 type fixedBy struct {
@@ -1509,8 +1718,16 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 	line := b.file.Types[component].Fields[name]
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+	cf.EnumVariant = line.EnumAs
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
+	if line.ReadNullAs != "" && line.ReadNullAs != "empty" {
+		cf.ReadNullAsValue = line.ReadNullAs
+	}
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
+	if t := line.UnsupportedIfEmpty; t != nil {
+		cf.EmptyError = &unsupportedArm{SDK: cf.SDK, Summary: t.Summary, Detail: t.Detail}
+	}
+	cf.ClientID = line.ClientID != ""
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
 	cf.ShowInverted = line.ShowInverted
@@ -1559,6 +1776,13 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string, 
 		}
 		return nil
 	}
+	if conv, ok := floatOrNumberType(line.TerraformType, cf.Conv); ok {
+		cf.Conv = conv
+		return nil
+	}
+	if line.TerraformType == "Float64" || line.TerraformType == "Number" {
+		return fmt.Errorf("%s: terraformType %s needs %s", cf.TFName, line.TerraformType, floatOrNumberNeeds[line.TerraformType])
+	}
 	if terraformType(b.resource.Policy, component, name) == "" {
 		return nil
 	}
@@ -1572,6 +1796,26 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string, 
 		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, a 64-bit number that the API sends as a string, or a list or set of int32", cf.TFName)
 	}
 	return nil
+}
+
+// floatOrNumberNeeds is what terraformType Float64 and Number each need, for an error text.
+var floatOrNumberNeeds = map[string]string{
+	"Float64": "a float32 field",
+	"Number":  "an int32 or a double field",
+}
+
+// floatOrNumberType returns the conversion that terraformType Float64 (a float32 field) or Number
+// (an int32 or a double field) gives to a field with the conversion conv.
+func floatOrNumberType(terraformType, conv string) (string, bool) {
+	switch {
+	case terraformType == "Float64" && conv == convFloat32:
+		return convFloat32AsFloat64, true
+	case terraformType == "Number" && conv == convInt32:
+		return convInt32AsNumber, true
+	case terraformType == "Number" && conv == convFloat64:
+		return convFloat64AsNumber, true
+	}
+	return "", false
 }
 
 // applyValueNames converts a list or set of integers to the names of its values and back.
@@ -1682,11 +1926,25 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err != nil {
 		return nil, err
 	}
+	if sep := joinOf(b.file, component, name, t); sep != "" {
+		if err := b.applyJoin(cf, sep); err != nil {
+			return nil, err
+		}
+	}
 	if sep := splitOf(b.file, component, name); sep != "" {
 		if cf.Conv != convString || cf.Wrap != nil {
 			return nil, fmt.Errorf("%s: split needs a plain string field", cf.TFName)
 		}
 		cf.Conv, cf.Split, cf.Collection = convSplit, sep, "Set"
+	}
+	if b.file != nil && b.file.ReadEmptyAs == "null" && (cf.Conv == convObjects || cf.Conv == convStrings) && !cf.ReadEmptyAsNull && !cf.ReadNullAsEmpty && !cf.SendEmpty {
+		cf.ReadEmptyAsNull = true
+	}
+	if format := durationOf(b.file, component, name); format != "" {
+		if cf.Conv != convString || cf.Wrap != nil {
+			return nil, fmt.Errorf("%s: durationFormat needs a plain string field", cf.TFName)
+		}
+		cf.Duration = format
 	}
 	// A caseInsensitive line acts on the read, and the field of an Update body is only expanded, so
 	// a wrapper that only Update holds does not meet it.
@@ -1737,6 +1995,9 @@ func (b *convBuilder) fieldConvOf(cf *convField, t *model.Type, computed bool, c
 // text that is both would be ambiguous: the generator stops when a pattern of the line matches a
 // spelling.
 func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, name string) (string, error) {
+	if arms := emptyArms(t); arms != nil {
+		return b.foldEmptyArmsConv(cf, t, arms)
+	}
 	enum, str, err := stringArms(t)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", cf.TFName, err)
@@ -1772,6 +2033,48 @@ func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, na
 	return "*" + obj.SDK, nil
 }
 
+// foldListConv sets the conversion of a oneOf that typedArms.asList shows as one list of strings.
+func (b *convBuilder) foldListConv(cf *convField, t *model.Type) (string, error) {
+	all, list, err := listArms(t)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", cf.TFName, err)
+	}
+	obj, err := b.nested(t)
+	if err != nil {
+		return "", err
+	}
+	allField, listField := fieldByModel(obj.Fields, camelize(all.Name)), fieldByModel(obj.Fields, camelize(list.Name))
+	if allField == nil || listField == nil || listField.Object == nil || len(listField.Object.Fields) != 1 {
+		return "", fmt.Errorf("%s: typedArms.asList needs the arms %s and %s", cf.TFName, all.Name, list.Name)
+	}
+	values := listField.Object.Fields[0]
+	if values.Conv != convStrings || values.EnumMap != nil || values.Enum || values.Wrap != nil || values.Projection != nil {
+		return "", fmt.Errorf("%s: typedArms.asList needs a list arm with one list of plain strings", cf.TFName)
+	}
+	cf.Conv, cf.SDKType = convFoldList, b.qualify(obj.SDK)
+	cf.ListFold = &foldList{All: allField.SDK, List: listField.SDK, ListType: b.qualify(listField.Object.SDK), Values: values.SDK}
+	return "*" + obj.SDK, nil
+}
+
+// foldEmptyArmsConv sets the conversion of a oneOf of objects without fields that Terraform shows
+// as one string: the name of the arm that is set. The SDK holds each arm as a map.
+func (b *convBuilder) foldEmptyArmsConv(cf *convField, t *model.Type, arms []*model.Field) (string, error) {
+	obj, err := b.nested(t)
+	if err != nil {
+		return "", err
+	}
+	fold := &foldArms{}
+	for _, arm := range arms {
+		field := fieldByModel(obj.Fields, camelize(arm.Name))
+		if field == nil || field.Conv != convEmpty {
+			return "", fmt.Errorf("%s: asString needs arms that are objects without fields, and %s is not", cf.TFName, arm.Name)
+		}
+		fold.Empty = append(fold.Empty, emptyFoldArm{Value: terraformName(b.resource.Policy, t.Schema, arm.Name), SDK: field.SDK})
+	}
+	cf.Conv, cf.StringFold, cf.SDKType = convFoldString, fold, b.qualify(obj.SDK)
+	return "*" + obj.SDK, nil
+}
+
 // checkObjects checks the objects that the fields of the resource built.
 func checkObjects(objects []*convObject) error {
 	if err := checkOptionalGroups(objects); err != nil {
@@ -1781,15 +2084,16 @@ func checkObjects(objects []*convObject) error {
 }
 
 // checkOptionalGroups reports an optional group that has a field whose absence flatten cannot tell: a
-// field that the SDK holds as a value, in wrappers, or as a list or a map. The group is null when
-// every field is absent, so each one must be a pointer.
+// field that the SDK holds as a value, or as a list or a map. A field in wrappers is held by its
+// outer wrapper, so that wrapper must be a pointer: a nil wrapper tells that the field is absent. The
+// group is null when every field is absent, so each one must be a pointer.
 func checkOptionalGroups(objects []*convObject) error {
 	for _, obj := range objects {
 		if !obj.OptionalGroup {
 			continue
 		}
 		for _, f := range obj.Fields {
-			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj) || f.Value || f.Wrap != nil {
+			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj && f.Conv != convGroup) || f.Value || f.Wrap != nil && !strings.HasPrefix(f.Wrap.Outer, "*") {
 				return fmt.Errorf("%s: an optional group needs fields that the SDK holds by pointer (a scalar or an object), so that a missing value tells the group is absent; %s is not one", obj.Model, f.TFName)
 			}
 		}
@@ -1926,10 +2230,24 @@ func (b *convBuilder) applyUpdateDefault(cf *convField, component, name string) 
 	return nil
 }
 
+// enumKey is the key of the enums entry of the field for the contract enum schema.
+func (f *convField) enumKey(schema string) string {
+	if f.EnumVariant != "" && schema != "" {
+		return schema + "@" + f.EnumVariant
+	}
+	return schema
+}
+
 // checkReadAs checks the readEmptyAs and readNullAs keys of the line of cf.
 func checkReadAs(cf *convField) error {
 	if err := checkReadEmptyAs(cf); err != nil {
 		return err
+	}
+	if cf.ReadNullAsValue != "" {
+		if cf.Conv != convEnum || cf.EnumMap == nil {
+			return fmt.Errorf("%s: readNullAs: %s needs an enum", cf.TFName, cf.ReadNullAsValue)
+		}
+		cf.Missing = cf.ReadNullAsValue
 	}
 	if cf.ReadNullAsEmpty && cf.Conv != convObjects && cf.Conv != convString {
 		return fmt.Errorf("%s: readNullAs: empty needs a string, or a list or set of objects", cf.TFName)
@@ -1983,14 +2301,17 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 			return "", err
 		}
 		cf.Conv, cf.SDKType, cf.EnumZero = convEnum, b.qualify(enum.Name), t.EnumZero
-		m, err := b.enumMapFor(t.Schema, b.qualify(enum.Name), t)
+		m, err := b.enumMapFor(cf.enumKey(t.Schema), b.qualify(enum.Name), t)
 		if err != nil {
 			return "", err
 		}
 		cf.EnumMap = m
-		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[t.Schema].CaseInsensitive
+		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[cf.enumKey(t.Schema)].CaseInsensitive
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
+		if line := b.file.TypedArmsOf(t.Schema); line != nil && line.AsList {
+			return b.foldListConv(cf, t)
+		}
 		if len(t.Fields) == 0 {
 			cf.Conv, cf.Object = convEmpty, &convObject{Model: modelTypeName(t.Schema)}
 			return "map[string]interface{}", nil
@@ -2099,16 +2420,16 @@ func (b *convBuilder) enumsConv(cf *convField, t *model.Type) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if b.file != nil && b.file.Enums[t.Elem.Schema].CaseInsensitive {
+	if b.file != nil && b.file.Enums[cf.enumKey(t.Elem.Schema)].CaseInsensitive {
 		return "", fmt.Errorf("%s: enums caseInsensitive (%s) is for a scalar field of the enum: a list or set has no prior value per element to keep", cf.TFName, t.Elem.Schema)
 	}
 	cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
 	// An enums line maps each element, the zero value too when the line names it.
-	m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
+	m, err := b.enumMapFor(cf.enumKey(t.Elem.Schema), cf.SDKType, t.Elem)
 	if err != nil {
 		return "", err
 	}
-	if m != nil && m.ZeroNull != "" {
+	if m != nil && len(m.NullAPIValues()) != 0 {
 		// A list or set has no null element to read the zero value as.
 		return "", fmt.Errorf("zeroNull on %s reads its zero value as null, but a list or set of it has no null element", t.Elem.Schema)
 	}
@@ -2209,7 +2530,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		// fields. The object serves both, so it gets the fields of either walk. A typedArms
 		// object holds the merged fields, not the arms, so it has nothing to add.
 		if obj.Typed != nil {
-			return obj, nil
+			return obj, b.typedParentsOfBoth(obj, ref.Path, t)
 		}
 		if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
 			return nil, err
@@ -2247,6 +2568,18 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	return obj, nil
+}
+
+// typedParentsOfBoth makes the SDK pointer that holds an inlined object a parent of both the request
+// and the response conversion of the typedArms object obj. The second walk of a shared component
+// adds no field to it, but the pointer that holds the arms is a parent for both.
+func (b *convBuilder) typedParentsOfBoth(obj *convObject, sdkPath string, t *model.Type) error {
+	for _, f := range t.Fields {
+		if err := b.nestedParentsOfBoth(obj, sdkPath, b.file.NestedParents(t.Schema, f.Name)); err != nil {
+			return fmt.Errorf("%s: %w", f.Name, err)
+		}
+	}
+	return nil
 }
 
 // carry sets obj.Carry when the line of a field of component has carrySiblings, and adds the
@@ -2386,7 +2719,11 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 	byName := map[string]*convField{}
 	var lines []string
 	for _, f := range t.Fields {
-		cf := findField(fields, terraformName(b.resource.Policy, component, f.Name))
+		name := terraformName(b.resource.Policy, component, f.Name)
+		if placed, ok := placeFieldName(b.file, t, f.Name); ok {
+			name = placed
+		}
+		cf := findField(fields, name)
 		if cf == nil {
 			return nil, fmt.Errorf("%s: no conversion of the field", f.Name)
 		}
@@ -2557,9 +2894,9 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch {
-		case f.Conv == convTime && expand:
+		case f.Conv == convTime && expand && !f.FlattenOnly:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects:
+		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects || f.Conv == convDistributed:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -2619,9 +2956,10 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convFoldString: "types.StringType", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convFoldString: "types.StringType", convJoin: "types.StringType", convFoldList: "types.ListType{ElemType: types.StringType}", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convIntegerAsString: "types.StringType",
-	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type",
+	convInt64AsString:   "types.StringType", convFloat64AsFloat32: "types.Float64Type", convFloat32AsFloat64: "types.Float64Type",
+	convInt32AsNumber: "types.NumberType", convFloat64AsNumber: "types.NumberType",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
@@ -2645,13 +2983,13 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.Int64Type}", nil
 	case convKeyedValues:
 		return "types.MapType{ElemType: types.StringType}", nil
-	case convObj, convObjects, convObjectMap, convGroup, convKeyedObjects:
+	case convObj, convObjects, convObjectMap, convGroup, convKeyedObjects, convDistributed:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}
 		expr := "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
 		switch f.Conv {
-		case convObjects:
+		case convObjects, convDistributed:
 			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
 		case convObjectMap, convKeyedObjects:
 			expr = "types.MapType{ElemType: " + expr + "}"
@@ -2855,6 +3193,7 @@ func markPrior(d *convData) error {
 		return err
 	}
 	propagatePrior(d)
+	markSetPriors(d)
 	if err := checkPriorContainers(d); err != nil {
 		return err
 	}
@@ -2891,7 +3230,7 @@ func markPriorFields(d *convData) error {
 				obj.NeedsPrior = true
 			}
 			// A double that the API stores as a float32 keeps the prior value of the same float32.
-			if f.Conv == convFloat64AsFloat32 {
+			if f.Conv == convFloat64AsFloat32 || f.Conv == convFloat32AsFloat64 || f.Conv == convFloat64AsNumber {
 				obj.NeedsPrior = true
 			}
 			// An enum read in any case keeps the spelling of the prior value.
@@ -2957,6 +3296,24 @@ func sortedFieldNames(obj *convObject) []string {
 	return names
 }
 
+// markSetPriors marks the objects that a set of objects holds, when they need the prior model: flatten
+// pairs each API item with the prior item that is the same value (same<Func>), because a set has no
+// order, so the prior item at the same index is not the same item. Their nested objects are compared too.
+func markSetPriors(d *convData) {
+	marked := false
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Conv == convObjects && f.Collection == "Set" && f.Object != nil && f.Object.NeedsPrior && f.Object.Expand {
+				marked = marked || !f.Object.Same
+				f.Object.Same, f.SetPrior = true, true
+			}
+		}
+	}
+	if marked {
+		propagatePrior(d)
+	}
+}
+
 // errPriorContainer reports a field that needs the prior model in a container whose flatten has no
 // prior value to pass: a map of objects, or a computed object stored as types.Object. A set of
 // objects has no order, so the prior item at the same index is not the same item.
@@ -2965,7 +3322,7 @@ var errPriorContainer = errors.New("equality, keepPriorOrder, and readEmptyAs on
 func checkPriorContainers(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set") {
+			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set" && !f.SetPrior) {
 				return fmt.Errorf("%s.%s holds %s: %w", obj.Model, f.TFName, f.Object.Model, errPriorContainer)
 			}
 		}
@@ -3013,7 +3370,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convInt64Wire, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convFloat32AsFloat64, convInt32, convInt32AsInt64, convInt32AsNumber, convFloat64AsNumber, convInt64, convInt64AsString, convUint64, convInt64Wire, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
@@ -3025,6 +3382,14 @@ func sameCheck(f *convField) (string, error) {
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
 	case convStrings, convScalars, convNamedInts, convInts32AsInt64:
+		if f.Conv == convStrings && f.Equality == overrides.EqualityCaseInsensitive {
+			// The API can return an element in another case, so two items with the same elements in
+			// any case are the same item. A set has no order.
+			if f.Collection == "Set" {
+				return "sameUnordered(" + a + ", " + b + ", sameFoldedString)", nil
+			}
+			return "slices.EqualFunc(" + a + ", " + b + ", strings.EqualFold)", nil
+		}
 		if f.Collection == "Set" {
 			break
 		}
@@ -3062,6 +3427,18 @@ func (d *convData) UsesPrior() bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.KeepPriorOrder {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesSetPrior reports whether a set of objects pairs its items with prior items.
+func (d *convData) UsesSetPrior() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.SetPrior {
 				return true
 			}
 		}
@@ -3131,18 +3508,104 @@ func idGuard(r *model.Resource) string {
 	return camelize(r.ID())
 }
 
-// addToGroup puts the field cf of the root object in its group. The group is an object of its
-// own in Terraform, and its fields are fields of the SDK struct of the root.
-func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject, group string, cf *convField) {
-	g, found := groups[group]
+// addToGroup puts the field cf of the root object in its group, or in the group inside it (path is
+// the group names, outer first). The group is an object of its own in Terraform, and its fields are
+// fields of the SDK struct of the root.
+func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject, path []string, cf *convField) {
+	outer := path[0]
+	line := b.file.Groups[outer]
+	g, found := groups[outer]
 	if !found {
-		g = &convObject{Func: root.Func + camelize(group), Model: groupModelName(b.resource.Name, group), SDK: root.SDK, Group: true, RequireOne: b.file.Groups[group].RequireOne}
+		g = &convObject{Func: root.Func + camelize(outer), Model: groupModelName(b.resource.Name, outer), SDK: root.SDK, Group: true,
+			RequireOne: line.RequireOne, OptionalGroup: line.Optional, KeepPriorArm: line.KeepPriorArm, NeedsPrior: line.KeepPriorArm}
 		g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
-		groups[group] = g
+		groups[outer] = g
 		b.objects = append(b.objects, g)
-		root.Fields = append(root.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+		// The model holds a computed group as a types.Object, which can be unknown in a plan.
+		root.Fields = append(root.Fields, &convField{TFName: outer, Model: camelize(outer), Conv: convGroup, Object: g, ObjectValue: line.Computed})
+		if line.Computed {
+			b.listed = append(b.listed, g)
+		}
 	}
-	g.Fields = append(g.Fields, cf)
+	if len(path) == 1 {
+		g.Fields = append(g.Fields, cf)
+		return
+	}
+	key := innerKey(outer, path[1])
+	inner, found := groups[key]
+	if !found {
+		inner = &convObject{Func: g.Func + camelize(path[1]), Model: groupModelName(b.resource.Name, outer+"_"+path[1]), SDK: root.SDK, Group: true, OptionalGroup: true}
+		inner.AttrTypesFunc = lowerFirst(inner.Func) + "AttrTypes"
+		groups[key] = inner
+		b.objects = append(b.objects, inner)
+		g.Fields = append(g.Fields, &convField{TFName: path[1], Model: camelize(path[1]), Conv: convGroup, Object: inner})
+	}
+	inner.Fields = append(inner.Fields, cf)
+}
+
+// typedGroups turns each group of the resource with a typedArms line into a typedArms object: the
+// type attribute replaces the arms, which stay the SDK fields that expand sets and flatten reads. The
+// arms are objects without fields.
+func (b *convBuilder) typedGroups(groups map[string]*convObject) error {
+	for name, g := range groups {
+		line := b.file.Groups[name].TypedArms
+		if line == nil || strings.Contains(name, ".") {
+			continue
+		}
+		values, err := typedValues(&model.Type{Schema: b.resource.Name}, line, groupArmFields(b.resource, b.file.Groups[name]), func(arm string) string { return terraformName(b.resource.Policy, b.resource.Name, arm) })
+		if err != nil {
+			return fmt.Errorf("groups.%s: %w", name, err)
+		}
+		typeField := &convField{TFName: line.TypeField(), Model: camelize(line.TypeField()), Conv: convString, Carried: true}
+		typed := &convTyped{Pkg: b.ix.pkg.Name, TypeField: typeField}
+		var allowed []string
+		for _, f := range b.resource.Fields {
+			if !slices.Contains(b.file.Groups[name].Fields, f.Name) {
+				continue
+			}
+			cf := fieldByModel(g.Fields, camelize(f.Name))
+			if cf == nil || cf.Conv != convEmpty {
+				return fmt.Errorf("groups.%s: typedArms needs arms that are objects without fields, and %s is not one", name, f.Name)
+			}
+			typed.Arms = append(typed.Arms, &typedArm{Value: values[f.Name], SDK: cf.SDK, Empty: true})
+			allowed = append(allowed, values[f.Name])
+		}
+		typed.Allowed = strings.Join(allowed, ", ")
+		g.Fields, g.Typed = []*convField{typeField}, typed
+	}
+	return nil
+}
+
+// groupArmFields returns the fields that the group holds, as the arms of a oneOf, in the order of
+// the resource.
+func groupArmFields(r *model.Resource, line overrides.Group) []*model.Field {
+	var arms []*model.Field
+	for _, f := range r.Fields {
+		if slices.Contains(line.Fields, f.Name) {
+			arms = append(arms, &model.Field{Name: f.Name, Type: f.Type})
+		}
+	}
+	return arms
+}
+
+// LeafSDK returns the SDK fields that the fields of the object hold, also inside its groups. A
+// typedArms object holds the fields of its arms.
+func (o *convObject) LeafSDK() []string {
+	var out []string
+	if o.Typed != nil {
+		for _, arm := range o.Typed.Arms {
+			out = append(out, arm.SDK)
+		}
+		return out
+	}
+	for _, f := range o.Fields {
+		if f.Conv == convGroup {
+			out = append(out, f.Object.LeafSDK()...)
+			continue
+		}
+		out = append(out, f.SDK)
+	}
+	return out
 }
 
 // addMissingFields adds the fields of t that obj does not have yet. A field that no request
@@ -3150,22 +3613,31 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
 		name := terraformName(b.resource.Policy, component, f.Name)
+		if placed, ok := placeFieldName(b.file, t, f.Name); ok {
+			name = placed // the component has another name for the field at this place
+		}
+		ftype := placedType(b.file, f.Type, component+"."+f.Name)
 		if findField(obj.Fields, name) != nil {
 			// The field is there, but an object inside it can still miss fields.
-			if err := b.mergeNested(f.Type); err != nil {
+			if err := b.mergeNested(ftype); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+			// The component is a request and a response. The first pass made one list of parents.
+			if err := b.nestedParentsOfBoth(obj, sdkPath, b.file.NestedParents(t.Schema, f.Name)); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 			continue
 		}
 		responseOnly := b.sent.responseOnly(component, f)
-		cf, err := b.field(sdkPath, component, f.Name, f.Type, responseOnly, f.Attrs.Presence)
+		cf, err := b.field(sdkPath, component, f.Name, ftype, responseOnly, f.Attrs.Presence)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
+		cf.TFName = name
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
-		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
+		if parents := b.file.NestedParents(t.Schema, f.Name); len(parents) != 0 {
 			// An inline line moved the field out of its object: the Go expression goes through it.
-			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parent, cf, f.Attrs.Required && scalarKind(f.Type)); err != nil {
+			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parents, cf, f.Attrs.Required && scalarKind(f.Type)); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 		}
@@ -3393,47 +3865,91 @@ func (b *convBuilder) nestedRequestPath(obj *convObject, sdkPath string, f *mode
 	return nil
 }
 
-// nestedInlineParent points cf, a field that an inline line moved out of the object parent of the
-// object at sdkPath, at the field of that object. A request allocates an SDK pointer before it writes
-// the field; a response reads a missing one as empty.
-func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parent *overrides.Parent, cf *convField, requiredScalar bool) error {
-	ref, err := b.ix.fieldRef(sdkPath + "." + parent.Field)
-	if err != nil {
-		return err
+// nestedInlineParent points cf, a field that inline lines moved out of the objects in parents (the
+// outer one first) of the object at sdkPath, at the field of the innermost one. A request allocates
+// each SDK pointer on the way before it writes the field; a response reads a missing one as empty.
+func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parents []overrides.Parent, cf *convField, requiredScalar bool) error {
+	selector, prefix := "", sdkPath
+	var pointers []convParent
+	for _, parent := range parents {
+		plain := prefix + "." + parent.Field
+		objectPath := parent.ObjectPath(plain)
+		ref, err := b.ix.fieldRef(objectPath)
+		if err != nil {
+			return err
+		}
+		typ, err := b.ix.typeRef(objectPath)
+		if err != nil {
+			return err
+		}
+		selector += ref.Name
+		switch ref.Want {
+		case typ.Name:
+		case "*" + typ.Name:
+			if !request && (cf.Value || requiredScalar) {
+				// A missing object flattens as a zero value of its type, so a field that the SDK holds as a
+				// value would read as "", false, or 0 instead of null. The SDK holds a required scalar as a
+				// value; the contract says so before the SDK exists.
+				return fmt.Errorf("%s is an optional object, and its field %s is a value in the SDK, so it would read back as a zero value instead of null when the API returns no object", ref.SDKName(), selector+"."+cf.SDK)
+			}
+			pointers = append(pointers, convParent{SDK: selector, Type: b.qualify(typ.Name), DropEmpty: request && !parent.Always})
+		default:
+			return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
+		}
+		selector += "."
+		prefix = plain
 	}
-	typ, err := b.ix.typeRef(sdkPath + "." + parent.Field)
-	if err != nil {
-		return err
-	}
-	cf.SDK = ref.Name + "." + cf.SDK
-	switch ref.Want {
-	case typ.Name:
-		return nil
-	case "*" + typ.Name:
-	default:
-		return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
-	}
-	if !request && (cf.Value || requiredScalar) {
-		// A missing object flattens as a zero value of its type, so a field that the SDK holds as a
-		// value would read as "", false, or 0 instead of null. The SDK holds a required scalar as a
-		// value; the contract says so before the SDK exists.
-		return fmt.Errorf("%s is an optional object, and its field %s is a value in the SDK, so it would read back as a zero value instead of null when the API returns no object", ref.SDKName(), cf.SDK)
-	}
-	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name), DropEmpty: request}
+	cf.SDK = selector + cf.SDK
 	list := &obj.FlattenParents
 	if request {
 		list = &obj.Parents
 	}
-	if !slices.Contains(*list, p) {
-		*list = append(*list, p)
+	for _, p := range pointers {
+		if !slices.Contains(*list, p) {
+			*list = append(*list, p)
+		}
 	}
 	if request {
-		// The same object is flattened: a response can leave the object out, as expand does when no
+		// The same objects are flattened: a response can leave an object out, as expand does when no
 		// attribute of it is set, and flatten reads a missing one as an empty object, with null fields.
-		read := convParent{SDK: ref.Name, Type: b.qualify(typ.Name)}
-		if !slices.Contains(obj.FlattenParents, read) {
-			obj.FlattenParents = append(obj.FlattenParents, read)
+		for _, p := range pointers {
+			read := convParent{SDK: p.SDK, Type: p.Type}
+			if !slices.Contains(obj.FlattenParents, read) {
+				obj.FlattenParents = append(obj.FlattenParents, read)
+			}
 		}
+	}
+	return nil
+}
+
+// nestedParentsOfBoth makes the SDK pointers that hold an inlined object, the outer one first, a
+// parent of both the request and the response conversion of obj: a component that a request and a
+// response share has one object. An object that the SDK holds as a value needs nothing.
+func (b *convBuilder) nestedParentsOfBoth(obj *convObject, sdkPath string, parents []overrides.Parent) error {
+	selector, prefix := "", sdkPath
+	for _, parent := range parents {
+		plain := prefix + "." + parent.Field
+		objectPath := parent.ObjectPath(plain)
+		ref, err := b.ix.fieldRef(objectPath)
+		if err != nil {
+			return err
+		}
+		typ, err := b.ix.typeRef(objectPath)
+		if err != nil {
+			return err
+		}
+		selector += ref.Name
+		if ref.Want == "*"+typ.Name {
+			p := convParent{SDK: selector, Type: b.qualify(typ.Name)}
+			if q := (convParent{SDK: selector, Type: p.Type, DropEmpty: !parent.Always}); !slices.Contains(obj.Parents, q) {
+				obj.Parents = append(obj.Parents, q)
+			}
+			if !slices.Contains(obj.FlattenParents, p) {
+				obj.FlattenParents = append(obj.FlattenParents, p)
+			}
+		}
+		selector += "."
+		prefix = plain
 	}
 	return nil
 }

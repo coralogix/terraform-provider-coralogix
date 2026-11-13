@@ -103,6 +103,12 @@ components:
         armA: {$ref: '#/components/schemas/ArmA'}
         armB: {$ref: '#/components/schemas/ArmB'}
         armC: {$ref: '#/components/schemas/ArmC'}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/UnionItem'}
+        reminders:
+          type: array
+          items: {$ref: '#/components/schemas/UnionReminder'}
       oneOf:
         - required: [armA]
         - required: [armB]
@@ -130,3 +136,107 @@ components:
       required: []
       properties:
         label: {type: string, x-coralogix-presence: true}
+    # An item with three objects that its lines inline: an optional object (extra), an object that has
+    # a field of the name of its own field (value.value), and an arm of a oneOf that stays beside
+    # another arm (options.custom beside options.internal).
+    UnionItem:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1}
+        extra: {$ref: '#/components/schemas/ItemExtra'}
+        value:
+          allOf: [{$ref: '#/components/schemas/Labelled'}]
+          description: The value, held in an object with the same field.
+        options: {$ref: '#/components/schemas/ItemOptions'}
+        first: {$ref: '#/components/schemas/Tag'}
+        second: {$ref: '#/components/schemas/Tag'}
+        choice: {$ref: '#/components/schemas/Pick'}
+        choices:
+          type: array
+          items: {$ref: '#/components/schemas/Pick'}
+        action: {$ref: '#/components/schemas/ItemAction'}
+        behavior: {$ref: '#/components/schemas/ActionDefinition'}
+    # One component in two places. Terraform names its label title in the first place and label in the
+    # second, as the released resource names a metric in two kinds of filter.
+    Tag:
+      type: object
+      properties:
+        label: {type: string, x-coralogix-presence: true}
+    # One component in two places that hold its value in different shapes. The single place (choice)
+    # inlines the value: choice = {value, label, remark}. The list (choices) keeps the object:
+    # choices = [{value = {value, label}, note}].
+    Pick:
+      type: object
+      properties:
+        value:
+          allOf: [{$ref: '#/components/schemas/Labelled'}]
+          description: The value, held in an object.
+        note: {type: string, x-coralogix-presence: true}
+    ItemExtra:
+      type: object
+      properties:
+        note: {type: string, x-coralogix-presence: true}
+    Labelled:
+      type: object
+      properties:
+        value: {type: string, x-coralogix-presence: true}
+        label: {type: string, x-coralogix-presence: true}
+    ItemOptions:
+      type: object
+      oneOf:
+        - required: [custom]
+        - required: [internal]
+        - not:
+            anyOf:
+              - required: [custom]
+              - required: [internal]
+      properties:
+        custom: {allOf: [{$ref: '#/components/schemas/CustomOptions'}]}
+        internal: {$ref: '#/components/schemas/InternalOptions'}
+    CustomOptions:
+      type: object
+      properties:
+        title: {type: string, x-coralogix-presence: true}
+        collapsed: {type: boolean, x-coralogix-presence: true}
+    InternalOptions:
+      type: object
+      additionalProperties: false
+    # A definition that is a oneOf of a link and a target, held in an object of an action (action) and
+    # by the item itself (behavior). The released resource shows only the link, as flat attributes. The
+    # other arm is skipped, and the line of the link says that the API always has it.
+    ItemAction:
+      type: object
+      properties:
+        label: {type: string, x-coralogix-presence: true}
+        definition: {$ref: '#/components/schemas/ActionDefinition'}
+    ActionDefinition:
+      type: object
+      oneOf:
+        - required: [link]
+        - required: [target]
+        - not:
+            anyOf:
+              - required: [link]
+              - required: [target]
+      properties:
+        link: {$ref: '#/components/schemas/ActionLink'}
+        target: {$ref: '#/components/schemas/ActionTarget'}
+    # A reminder names its item by the name of the item. The reminders are in the list of the thing, not
+    # in the item. A reminder whose definition has a link is shown; one with a target is another kind,
+    # which the resource does not show.
+    UnionReminder:
+      type: object
+      required: [itemName]
+      properties:
+        itemName: {type: string, minLength: 1}
+        label: {type: string, x-coralogix-presence: true}
+        definition: {$ref: '#/components/schemas/ActionDefinition'}
+    ActionLink:
+      type: object
+      properties:
+        url: {type: string, x-coralogix-presence: true}
+    ActionTarget:
+      type: object
+      properties:
+        pageId: {type: string, x-coralogix-presence: true}
