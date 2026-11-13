@@ -85,7 +85,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_custom_role | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not update name of custom role mine to taken for team 700001 as it already exists.\"}\noperation - Update"
+      "error: Unable to update custom_role | id 5002: 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not update name of custom role mine to taken for team 700001 as it already exists.\"}"
     ],
     "state": {
       "description": "made with Terraform",

@@ -10,6 +10,7 @@ archivemetrics: v0.1.0-beta.83
 archiveretentions: v0.1.0-beta.83
 configurationgroup: v0.1.0-beta.83
 connector: v0.1.0-beta.83
+customrole: v0.1.0-beta.83
 dashboard: v0.1.0-beta.83
 dashboardsfolder: v0.1.0-beta.83
 events2metric: v0.1.0-beta.83

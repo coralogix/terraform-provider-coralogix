@@ -29,6 +29,11 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
       }
     ],
     "state": {
@@ -36,30 +41,7 @@
       "id": "5001",
       "name": "seeded",
       "parent_role": "Standard User",
-      "permissions": [
-        "parent-area-1:Read",
-        "parent-area-2:Read",
-        "parent-area-3:Read",
-        "parent-area-4:Read",
-        "parent-area-5:Read",
-        "parent-area-6:Read",
-        "parent-area-7:Read",
-        "parent-area-8:Read",
-        "parent-area-9:Read",
-        "parent-area-10:Read",
-        "parent-area-11:Read",
-        "parent-area-12:Read",
-        "parent-area-13:Read",
-        "parent-area-14:Read",
-        "parent-area-15:Read",
-        "parent-area-16:Read",
-        "parent-area-17:Read",
-        "parent-area-18:Read",
-        "parent-area-19:Read",
-        "parent-area-20:Read",
-        "parent-area-21:Read",
-        "parent-area-22:Read"
-      ]
+      "permissions": []
     }
   }
 ]

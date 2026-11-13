@@ -85,9 +85,16 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_custom_role 5001 is in state, but no longer exists in Coralogix backend | 5001 will be recreated when you apply",
-      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+      "error: Resource no longer exists | The API did not find custom_role with id 5001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
-    "state": null
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "gone",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    }
   }
 ]

@@ -22,7 +22,7 @@ import (
 )
 
 func searchedUser(id, userName string) users.RbacV2User {
-	return users.RbacV2User{UserId: &id, Username: &userName}
+	return users.RbacV2User{UserId: id, Username: userName}
 }
 
 // The Users API username filter can match partially, so the provider compares the
@@ -89,7 +89,7 @@ func TestMatchUsersByUsername(t *testing.T) {
 
 func TestUserIDsSkipsMissingIDs(t *testing.T) {
 	userName := "alice@example.com"
-	candidates := []users.RbacV2User{{Username: &userName}, searchedUser("2", "bob@example.com")}
+	candidates := []users.RbacV2User{{Username: userName}, searchedUser("2", "bob@example.com")}
 
 	got := userIDs(candidates)
 	if len(got) != 1 || got[0] != "2" {

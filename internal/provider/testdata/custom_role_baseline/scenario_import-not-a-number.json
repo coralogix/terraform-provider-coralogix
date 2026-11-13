@@ -1,16 +1,9 @@
 [
   {
     "step": "import a non-numeric id",
+    "applyDiagnostics": [
+      "error: Invalid import ID | The import ID \"not-a-number\" is not a valid int64."
+    ],
     "state": null
-  },
-  {
-    "step": "import a non-numeric id (refresh)",
-    "state": {
-      "description": null,
-      "id": "not-a-number",
-      "name": null,
-      "parent_role": null,
-      "permissions": null
-    }
   }
 ]

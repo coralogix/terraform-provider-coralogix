@@ -88,7 +88,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_custom_role | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Expression is not valid: nope:Nope\"}\noperation - Update"
+      "error: Unable to update custom_role | id 5001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Expression is not valid: nope:Nope\"}"
     ],
     "state": {
       "description": "made with Terraform",

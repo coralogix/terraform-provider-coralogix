@@ -332,8 +332,10 @@ func deactivateTestUsers(ctx context.Context, usersClient *usersservice.UsersMan
 			if !strings.HasPrefix(user.GetUsername(), "tf-acc-user") || user.GetStatus() == inactive {
 				continue
 			}
+			// The update is sent after this loop, and it still takes a pointer to the id.
+			id := user.UserId
 			updates = append(updates, usersservice.UpdateUserRequest{
-				UserId: user.UserId,
+				UserId: &id,
 				UserTemplate: &usersservice.UserTemplate{
 					FirstName:        user.FirstName,
 					LastName:         user.LastName,

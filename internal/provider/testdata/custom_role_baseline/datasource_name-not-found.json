@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: coralogix_custom_role not found | coralogix_custom_role \"missing\" not found"
+      "error: coralogix_custom_role with name \"missing\" not found"
     ],
     "state": {
       "description": null,
