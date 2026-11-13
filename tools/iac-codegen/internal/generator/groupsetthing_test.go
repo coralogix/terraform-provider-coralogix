@@ -29,6 +29,41 @@ func TestGoldenOutputGroupSetThing(t *testing.T) {
 	}
 }
 
+// This fixture pins the shared map-response/list-request set conversion independently
+// of the generated IP access resource. The SDK types, Terraform model/schema, and both
+// directions of conversion must retain their distinct collection shapes.
+func TestGroupSetThingGoldenCoversMapSetWireShapes(t *testing.T) {
+	out := generateGroupSetThing(t)
+	checks := map[string][]string{
+		"schema.go": {`"groups": schema.SetNestedAttribute{`},
+		"model.go":  {`Groups   types.Set`},
+		"convert.go": {
+			`out.Groups = make([]group_set_things_service.InGroupThing, 0, len(items))`,
+			`for _, k := range slices.Sorted(maps.Keys(v.Groups))`,
+			`item := v.Groups[k]`,
+		},
+		"testdata/sdk/go/openapi/gen/group_set_things_service/group_set.go": {
+			`Groups         []InGroupThing`,
+			`Groups         map[string]OutGroupThing`,
+		},
+	}
+	for file, fragments := range checks {
+		path := filepath.Join(out, file)
+		if strings.HasPrefix(file, "testdata/") {
+			path = filepath.Join("testdata", strings.TrimPrefix(file, "testdata/"))
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, fragment := range fragments {
+			if !strings.Contains(string(data), fragment) {
+				t.Errorf("%s lacks %q", file, fragment)
+			}
+		}
+	}
+}
+
 // Create sends the limit as a string and leaves out the unset interval; a read flattens the stored
 // limit to Int64, and keeps the document of the plan. A state upgrade keeps the prior document.
 func TestGroupSetThingRuntimeSemantics(t *testing.T) {
