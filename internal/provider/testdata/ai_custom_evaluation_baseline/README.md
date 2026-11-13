@@ -1,13 +1,34 @@
 # coralogix_ai_custom_evaluation protocol baseline
 
-These goldens record the handwritten `coralogix_ai_custom_evaluation` resource through the plugin
-protocol, against the fake in `ai_custom_evaluation_baseline_fake_test.go`. The resource has no data
-source. When the resource switches to generated code, the golden diff must show only message
-wording or proven bug fixes.
+These goldens record the `coralogix_ai_custom_evaluation` resource through the plugin protocol, against
+the fake in `ai_custom_evaluation_baseline_fake_test.go`. The resource has no data source.
+
+The resource is generated now (`internal/provider/generated/aicustomevaluation`, with the overlay in
+`internal/provider/ai`). The goldens show the generated resource. The tables below describe the
+handwritten behavior that the goldens recorded first, and the section "What the migration changed"
+says what differs. The fixes are in `CHANGELOG.md`.
 
 ```sh
 UPDATE_GOLDEN=1 go test ./internal/provider -run 'TestAICustomEvaluationBaseline'
 ```
+
+## What the migration changed
+
+Of the 96 scenarios of the handwritten resource, two were replaced (the failure of the list route and the failure of the call that cleared the examples, which no longer exist), and 81 of the other 94 are the same in every plan, state, diagnostic, and second plan. They differ only in the requests: a read is `GET /ai/custom-evaluations/v3/{id}` and no
+longer a list, and an update is one `PATCH` with a mask. The other differences are these:
+
+| Difference | Scenarios |
+|---|---|
+| The wording of an API error or of a missing resource: `Unable to create ai_custom_evaluation`, `Resource disappeared during read`, `Resource no longer exists`. | `create-api-error`, `name-duplicate`, `rename-to-taken-name`, `update-api-error`, `update-not-found`, `delete-api-error`, `read-api-error`, `read-not-found`, `import-not-found`, `import-api-error` |
+| A 404 of the route is an error and keeps the state. Before, a 404 of the list route removed the resource. | `read-route-not-found` (was `read-list-not-found`) |
+| An update sends one `PATCH` whose mask names the changed fields. The examples are cleared in the same call, so the second call and its failure case are gone. A change of only `applications` sends no `PATCH`. | `criteria-examples-cleared-in-one-call` (was `criteria-examples-clear-fails`), `minimal-lifecycle`, `applications-added-on-update` |
+| An id that is no UUID fails to import with an error. Before, the list had no such evaluation and the import warned. | `import-not-a-uuid` |
+| The order of the elements of a set in the golden (`applications`, `application_ids`). The sets are equal. | `applications-multiple`, `import-with-applications` |
+
+The fake answers the new read, which the recording does not have (the API of the recording does not
+have the call yet): it follows the contract of the call. The update mask takes the names of the JSON
+body in lower camel case (`policyType`), and the gateway refuses a proto name (`policy_type`); the
+recording has cases for both.
 
 ## The fake follows the real API
 
@@ -48,11 +69,11 @@ with more than 200 applications does.
 | Behavior | Golden |
 |---|---|
 | `criteria` is not an API object. The resource sends `acceptable.flags` as `safe`, `prohibited.flags` as `violates`, and the examples of both lists as one list with the score `"1"` for acceptable and `"0"` for prohibited. It reads them back in the same way, and an example with another score fails the read. At most 100 examples across both lists, checked when the apply starts, not at validation. | `scenario_criteria-*.json` |
-| Every Update with no examples in the plan sends a second PATCH with the mask `examples`, also for an evaluation that never had examples. If the second call fails, the first change is already made and the state keeps the old values until the next refresh. | `scenario_criteria-examples-clear-fails.json`, `scenario_applications-added-on-update.json` |
+| Every Update with no examples in the plan sends a second PATCH with the mask `examples`, also for an evaluation that never had examples. If the second call fails, the first change is already made and the state keeps the old values until the next refresh. | `scenario_criteria-examples-cleared-in-one-call.json`, `scenario_applications-added-on-update.json` |
 | `applications` names applications by `application` and `subsystem`. The resource lists the applications of the team in pages of 200 (`page_offset` counts pages) to find their ids, only when it needs them: Create with applications, Update when the selectors changed, and a refresh when the linked ids changed outside Terraform. A refresh keeps the configured selectors when the ids are the same. | `scenario_applications-omitted.json`, `scenario_applications-second-page.json`, `scenario_applications-linked-outside.json` |
 | Update changes the fields first and then links the new applications, then unlinks the removed ones, each sorted by id. A failed link or unlink fails the apply after the fields changed; the state keeps the old values until the next refresh. | `scenario_update-link-fails.json`, `scenario_update-unlink-fails.json` |
 | An application that matches no application, or more than one, fails the apply before any call that writes. | `scenario_applications-not-found.json`, `scenario_applications-ambiguous.json` |
-| Read treats a 404 of the list route as a resource that is gone and removes it from state with a warning. A missing route and a missing evaluation look the same. | `scenario_read-list-not-found.json`, `scenario_read-not-found.json` |
+| Read treats a 404 of the list route as a resource that is gone and removes it from state with a warning. A missing route and a missing evaluation look the same. | `scenario_read-route-not-found.json`, `scenario_read-not-found.json` |
 | Import takes the id as it is. An id that no evaluation has, or that is no UUID, imports to a warning and no resource. | `scenario_import-not-found.json`, `scenario_import-not-a-uuid.json` |
 | Delete treats 404 as success. | `scenario_delete-not-found.json` |
 | `application_ids` is computed and has no plan modifier, so it is `(known after apply)` in every plan that changes the resource. | `scenario_description-changed-outside.json` |

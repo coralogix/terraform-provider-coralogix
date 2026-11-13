@@ -45,7 +45,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_ai_custom_evaluation | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: A custom evaluation with name 'taken' already exists\"}\noperation - Create"
+      "error: Unable to create ai_custom_evaluation | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: A custom evaluation with name 'taken' already exists\"}"
     ],
     "state": null
   }

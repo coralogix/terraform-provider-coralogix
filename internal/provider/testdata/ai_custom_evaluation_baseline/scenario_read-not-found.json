@@ -67,16 +67,16 @@
     "replanEmpty": true
   },
   {
-    "step": "refresh: the evaluation is not in the list",
+    "step": "refresh: the API does not find the evaluation",
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
-        "status": 200
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "status": 404
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_ai_custom_evaluation 00000000-0000-4000-8000-000000001001 is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000001001 will be recreated when you apply"
+      "warning: Resource disappeared during read | ai_custom_evaluation with id 00000000-0000-4000-8000-000000001001 was not found. Terraform removed it from state."
     ],
     "state": null
   }

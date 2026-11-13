@@ -71,7 +71,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
         "status": 200
       }
     ],
@@ -143,16 +143,8 @@
           "policyType": "quality",
           "safe": "",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "instructions",
           "violates": ""
-        },
-        "status": 200
-      },
-      {
-        "method": "PATCH",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
-        "body": {
-          "examples": [],
-          "updateMask": "examples"
         },
         "status": 200
       }

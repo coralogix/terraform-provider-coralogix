@@ -88,7 +88,7 @@
     "replanEmpty": true
   },
   {
-    "step": "update: the first call works and the call that clears the examples answers 500",
+    "step": "update: rename and remove the examples",
     "config": {
       "instructions": "Check {prompt}",
       "name": "n-renamed",
@@ -126,53 +126,10 @@
           "policyType": "quality",
           "safe": "",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "name,safe,violates,examples",
           "violates": ""
         },
         "status": 200
-      },
-      {
-        "method": "PATCH",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
-        "body": {
-          "examples": [],
-          "updateMask": "examples"
-        },
-        "status": 500
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error clearing coralogix_ai_custom_evaluation examples | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Update"
-    ],
-    "state": {
-      "application_ids": [],
-      "applications": [],
-      "criteria": {
-        "acceptable": {
-          "examples": [
-            "ok"
-          ],
-          "flags": ""
-        },
-        "prohibited": {
-          "examples": [],
-          "flags": ""
-        }
-      },
-      "description": "",
-      "id": "00000000-0000-4000-8000-000000001001",
-      "instructions": "Check {prompt}",
-      "name": "n",
-      "policy_type": "quality",
-      "should_include_system_prompt": false
-    }
-  },
-  {
-    "step": "refresh after the failed update",
-    "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
-        "status": 200
       }
     ],
     "state": {
@@ -180,9 +137,7 @@
       "applications": [],
       "criteria": {
         "acceptable": {
-          "examples": [
-            "ok"
-          ],
+          "examples": [],
           "flags": ""
         },
         "prohibited": {
@@ -197,14 +152,37 @@
       "policy_type": "quality",
       "should_include_system_prompt": false
     },
-    "drift": [
-      "AttributeName(\"name\")"
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "status": 200
+      }
     ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"application_ids\")",
-      "AttributeName(\"criteria\").AttributeName(\"acceptable\").AttributeName(\"examples\")",
-      "AttributeName(\"criteria\").AttributeName(\"acceptable\").AttributeName(\"examples\").ElementKeyInt(0)"
-    ]
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n-renamed",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
   }
 ]
