@@ -5,16 +5,19 @@
   },
   {
     "step": "import an id that is no UUID (refresh)",
-    "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
-        "status": 200
-      }
-    ],
     "applyDiagnostics": [
-      "warning: coralogix_ai_custom_evaluation not-a-uuid is in state, but no longer exists in Coralogix backend | not-a-uuid will be recreated when you apply"
+      "error: Unable to read ai_custom_evaluation | id not-a-uuid: id must have at least 36 elements"
     ],
-    "state": null
+    "state": {
+      "application_ids": null,
+      "applications": null,
+      "criteria": null,
+      "description": null,
+      "id": "not-a-uuid",
+      "instructions": null,
+      "name": null,
+      "policy_type": null,
+      "should_include_system_prompt": null
+    }
   }
 ]

@@ -136,7 +136,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
         "status": 200
       }
     ],
@@ -264,6 +264,7 @@
           "policyType": "quality",
           "safe": "polite",
           "shouldIncludeSystemPrompt": true,
+          "updateMask": "name",
           "violates": "rude"
         },
         "status": 200
@@ -393,6 +394,7 @@
           "policyType": "quality",
           "safe": "polite",
           "shouldIncludeSystemPrompt": true,
+          "updateMask": "description",
           "violates": "rude"
         },
         "status": 200
@@ -522,6 +524,7 @@
           "policyType": "quality",
           "safe": "polite",
           "shouldIncludeSystemPrompt": true,
+          "updateMask": "instructions",
           "violates": "rude"
         },
         "status": 200
@@ -651,6 +654,7 @@
           "policyType": "quality",
           "safe": "polite",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "shouldIncludeSystemPrompt",
           "violates": "rude"
         },
         "status": 200
@@ -695,7 +699,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
         "status": 200
       }
     ],

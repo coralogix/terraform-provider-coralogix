@@ -76,7 +76,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting coralogix_ai_custom_evaluation | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Delete"
+      "error: Unable to delete ai_custom_evaluation | id 00000000-0000-4000-8000-000000001001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "application_ids": [],

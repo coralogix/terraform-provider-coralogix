@@ -67,16 +67,16 @@
     "replanEmpty": true
   },
   {
-    "step": "refresh: the list answers 500",
+    "step": "refresh: the read answers 500",
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
         "status": 500
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_ai_custom_evaluation | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+      "error: Unable to read ai_custom_evaluation | id 00000000-0000-4000-8000-000000001001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "application_ids": [],

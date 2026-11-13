@@ -45,7 +45,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_ai_custom_evaluation | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Create"
+      "error: Unable to create ai_custom_evaluation | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": null
   }
