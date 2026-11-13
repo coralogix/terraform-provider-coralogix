@@ -19,8 +19,9 @@
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
 
 #### resource/coralogix_ai_custom_evaluation
-- CHORE: The resource is generated from the API contract. The schema, the import, and the state are the same, except as listed below. A new field of the API contract is a new attribute without a hand edit.
+- CHORE: The resource is generated from the API contract. The schema, the import, and the state are the same, except as listed below. A new field of the custom evaluation in the API contract is a new attribute without a hand edit. A field that the API adds to an example of `criteria` makes the read fail, because the resource shows the conversation and the score only.
 - CHORE: The resource reads one custom evaluation with its own call, `GET /ai/custom-evaluations/v3/{id}`, instead of listing every custom evaluation and looking for the id. It needs a Coralogix environment that has this call.
+- FIX: A destroy no longer treats every 404 as success: a 404 of a route that does not exist is an error, and only a 404 for the custom evaluation itself is a custom evaluation that is gone already.
 - FIX: A refresh no longer removes the resource from state when the API route is missing. Before, a 404 of the list route read as a deleted custom evaluation. Now only a 404 for the custom evaluation itself does, and a missing route is an error.
 - FIX: An update sends one `PATCH` with an update mask that names the fields that changed. Before, it sent every field, and a second `PATCH` cleared the examples whenever the plan had none. A change of only `applications` sends no `PATCH`.
 - FIX: Removing the examples of `criteria` no longer needs a second request, so a failure of that request can no longer leave the other fields changed and the state unchanged.

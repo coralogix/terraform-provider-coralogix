@@ -561,6 +561,12 @@ var aiceScenarios = map[string]func(h *grHarness){
 		h.aice().forgetOutside(aiceFirstEvalID)
 		h.Destroy("destroy: the API answers 404", s)
 	},
+	// A 404 with no message of its own is a missing route, not a deleted evaluation.
+	"delete-route-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), aiceConfig("n"))
+		h.aice().deleteStatus = 404
+		h.Destroy("destroy: the route answers 404", s)
+	},
 	"delete-api-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("broken"))
 		h.aice().deleteStatus = 500
