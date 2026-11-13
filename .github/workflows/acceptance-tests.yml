@@ -308,30 +308,44 @@ jobs:
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_wrapper: false
+      # Use literal secret names in separate steps. A computed secret name
+      # makes every available secret accessible to the runner.
       - name: Non-Dashboard Acceptance Tests
-        if: ${{ steps.gate.outputs.run == 'true' }}
+        if: ${{ steps.gate.outputs.run == 'true' && env.CI_PREP_EXPERIMENT != 'true' }}
         env:
-          CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
-          TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
-          # The experiment's ID secret names are intentionally unset. The
-          # read-only SDK lookup exports these values inside this test job.
-          SLACK_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_ID' || 'SLACK_INTEGRATION_ID'] }}
+          SLACK_INTEGRATION_ID: ${{ secrets.SLACK_INTEGRATION_ID }}
           SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
-          PD_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_INTEGRATION_ID' || 'PD_INTEGRATION_ID'] }}
-          PD_CONNECTOR_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_CONNECTOR_KEY' || 'PD_INTEGRATION_ID'] }}
-          CORALOGIX_SLO_V2_APM_SERVICE: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'ci-acceptance-apm' || secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
+          PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
+          PD_CONNECTOR_KEY: ${{ secrets.PD_INTEGRATION_ID }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
           RUN_PATTERN: ${{ matrix.pattern }}
           # The Makefile passes it to -skip. Empty for a shard without a skip pattern.
           ACC_SKIP_PATTERN: ${{ matrix.skip }}
-        run: |
+        run: &non_dashboard_shard_run |
           # make reads `$` as a variable, so a pattern that ends in `$'` lost its
           # closing quote. `$$` reaches the shell as one `$`.
           bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${RUN_PATTERN//\$/\$\$}'"
+      - name: Non-Dashboard Acceptance Tests (EU2 experiment)
+        if: ${{ steps.gate.outputs.run == 'true' && env.CI_PREP_EXPERIMENT == 'true' }}
+        env:
+          CORALOGIX_ENV: EU2
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+          RUN_PATTERN: ${{ matrix.pattern }}
+          ACC_SKIP_PATTERN: ${{ matrix.skip }}
+        run: *non_dashboard_shard_run
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -358,7 +372,7 @@ jobs:
   test-unsharded:
     name: Non-dashboard acceptance tests (unsharded catch-all)
     needs: [changes, prepare-team]
-    if: ${{ needs.changes.outputs.code == 'true' && needs.prepare-team.result == 'success' && (needs.changes.outputs.rest == 'true' || needs.changes.outputs.deps == 'true') }
+    if: ${{ needs.changes.outputs.code == 'true' && needs.prepare-team.result == 'success' && (needs.changes.outputs.rest == 'true' || needs.changes.outputs.deps == 'true') }}
     permissions:
       contents: read
     env:
@@ -388,20 +402,21 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Non-Dashboard Acceptance Tests Not Covered By A Shard
+        if: ${{ env.CI_PREP_EXPERIMENT != 'true' }}
         env:
-          CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
-          TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
-          SLACK_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_ID' || 'SLACK_INTEGRATION_ID'] }}
+          SLACK_INTEGRATION_ID: ${{ secrets.SLACK_INTEGRATION_ID }}
           SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
-          PD_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_INTEGRATION_ID' || 'PD_INTEGRATION_ID'] }}
-          PD_CONNECTOR_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_CONNECTOR_KEY' || 'PD_INTEGRATION_ID'] }}
-          CORALOGIX_SLO_V2_APM_SERVICE: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'ci-acceptance-apm' || secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
-        run: |
+          PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
+          PD_CONNECTOR_KEY: ${{ secrets.PD_INTEGRATION_ID }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
+        run: &non_dashboard_unsharded_run |
           shard_patterns=(
             "$NON_DASHBOARD_SHARD_ALERTS_AND_SCHEDULER"
             "$NON_DASHBOARD_SHARD_NOTIFICATION_CENTER"
@@ -417,6 +432,18 @@ jobs:
             skip_pattern+="|($pattern)"
           done
           ACC_SKIP_PATTERN="$skip_pattern" bash .github/scripts/run-tests-with-summary.sh make testacc
+      - name: Non-Dashboard Acceptance Tests Not Covered By A Shard (EU2 experiment)
+        if: ${{ env.CI_PREP_EXPERIMENT == 'true' }}
+        env:
+          CORALOGIX_ENV: EU2
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+        run: *non_dashboard_unsharded_run
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -443,7 +470,7 @@ jobs:
   dashboard:
     name: Dashboard acceptance tests (${{ matrix.shard }})
     needs: [changes, prepare-team]
-    if: ${{ needs.changes.outputs.code == 'true' && needs.prepare-team.result == 'success' && needs.changes.outputs.dashboards == 'true' }
+    if: ${{ needs.changes.outputs.code == 'true' && needs.prepare-team.result == 'success' && needs.changes.outputs.dashboards == 'true' }}
     permissions:
       contents: read
     env:
@@ -526,14 +553,21 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Dashboard Acceptance Tests
+        if: ${{ env.CI_PREP_EXPERIMENT != 'true' }}
         env:
-          CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
-        run: |
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+        run: &dashboard_shard_run |
           # All provider packages, not only ./internal/provider: the non-dashboard jobs skip
           # dashboard names in every package, so a generated dashboard resource in its own
           # package must be picked up here.
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+      - name: Dashboard Acceptance Tests (EU2 experiment)
+        if: ${{ env.CI_PREP_EXPERIMENT == 'true' }}
+        env:
+          CORALOGIX_ENV: EU2
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+        run: *dashboard_shard_run
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -560,7 +594,7 @@ jobs:
   dashboard-unsharded:
     name: Dashboard acceptance tests (unsharded catch-all)
     needs: [changes, prepare-team]
-    if: ${{ needs.changes.outputs.code == 'true' && needs.prepare-team.result == 'success' && needs.changes.outputs.dashboards == 'true' }
+    if: ${{ needs.changes.outputs.code == 'true' && needs.prepare-team.result == 'success' && needs.changes.outputs.dashboards == 'true' }}
     permissions:
       contents: read
     env:
@@ -589,10 +623,11 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Dashboard Acceptance Tests Not Covered By A Shard
+        if: ${{ env.CI_PREP_EXPERIMENT != 'true' }}
         env:
-          CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
-        run: |
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+        run: &dashboard_unsharded_run |
           shard_patterns=(
             "$DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE"
             "$DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS"
@@ -622,6 +657,12 @@ jobs:
           # dashboard names in every package, so a generated dashboard resource in its own
           # package must be picked up here.
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+      - name: Dashboard Acceptance Tests Not Covered By A Shard (EU2 experiment)
+        if: ${{ env.CI_PREP_EXPERIMENT == 'true' }}
+        env:
+          CORALOGIX_ENV: EU2
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+        run: *dashboard_unsharded_run
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -730,24 +771,44 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Test pinned gRPC to current REST provider migration
-        if: ${{ steps.gate.outputs.run == 'true' }}
+        if: ${{ steps.gate.outputs.run == 'true' && env.CI_PREP_EXPERIMENT != 'true' && !matrix.org_key }}
         env:
-          CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
-          # The team shard needs a key whose owner is an organization.
-          CORALOGIX_API_KEY: ${{ matrix.org_key && env.CI_PREP_EXPERIMENT != 'true' && secrets.CORALOGIX_ORG_API_KEY || secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
           # The coralogix_slo_v2 upgrade test creates APM SLOs, which need a catalog service.
-          CORALOGIX_SLO_V2_APM_SERVICE: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'ci-acceptance-apm' || secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
           # The coralogix_integration upgrade test needs a role that the tenant can assume.
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
           # The coralogix_api_key upgrade test creates keys that the team of the CI key owns.
-          TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
           IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION: ${{ matrix.shard == 'ip-access' && 'I_UNDERSTAND_THIS_USES_A_DISPOSABLE_TEAM' || '' }}
-          SLACK_INTEGRATION_CHANNEL: ${{ env.CI_PREP_EXPERIMENT == 'true' && secrets.SLACK_INTEGRATION_CHANNEL || '' }}
-          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ env.CI_PREP_EXPERIMENT == 'true' && secrets.SLACK_INTEGRATION_CHANNEL_UPDATED || '' }}
-        run: |
+        run: &provider_migration_run |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=${{ !matrix.paused && '1' || '' }} TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
+      - name: Test pinned gRPC to current REST provider migration (organization key)
+        if: ${{ steps.gate.outputs.run == 'true' && env.CI_PREP_EXPERIMENT != 'true' && matrix.org_key }}
+        env:
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_ORG_API_KEY }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
+        run: *provider_migration_run
+      - name: Test pinned gRPC to current REST provider migration (EU2 experiment)
+        if: ${{ steps.gate.outputs.run == 'true' && env.CI_PREP_EXPERIMENT == 'true' }}
+        env:
+          CORALOGIX_ENV: EU2
+          CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
+          CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
+        run: *provider_migration_run
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
