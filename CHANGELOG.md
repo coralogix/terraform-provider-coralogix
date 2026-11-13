@@ -7,6 +7,7 @@
 - FEAT: Each generated acceptance test has a `values-and-choices` subtest. It sends every enum value and every `oneOf` arm to the API, in few steps with copies of the resource and several list elements. `skipValues` and `skipChoices` in `acceptance.yaml` leave out what the tenant refuses, each with a reason.
 - FEAT: Each generated acceptance test file has a `TestFailurePaths<Name>Generated` test that needs no tenant. A local server answers every request with an error, and the test checks create, read, update, and delete of the resource: no state after a failed create, a resource that the API says is gone leaves the state on read, and every other failure is an error.
 - FEAT: Each generated acceptance test file has a `TestConfigsValidate<Name>Generated` test that needs no tenant and no API key. It checks that every config of the file passes the validators of the schema. A `maxElements` key in `acceptance.yaml` limits the elements of a list in the `values-and-choices` subtest, and the subtest sets only the fields that the type of a `typedArms` object names.
+- FIX: The `values-and-choices` subtest sets every enum value of a field that only one arm of a `typedArms` object has, such as `aggregation_type` of a spans metric. Before, it set the first value only. It also fails when such a value is in no config.
 - FEAT: A field that the API contract marks `deprecated: true` gets a deprecation warning in the schema without a `deprecation` line. A `deprecation` line wins. A Required attribute gets no warning.
 
 #### provider

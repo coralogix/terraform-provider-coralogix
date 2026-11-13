@@ -487,3 +487,34 @@ func TestGeneratedSweepSplitsStepsWithStepCopies(t *testing.T) {
 		t.Error("with stepCopies, no subtest holds all steps")
 	}
 }
+
+// The type of a typedArms object visits each arm once. An arm can have an enum field of its own, and
+// its values are not all set by that visit: the type names the arm again until its field has set
+// every value. Without it, only the first value of the field reaches the API.
+func TestSweepSetsEveryValueOfAFieldOfATypedArm(t *testing.T) {
+	checked := map[string]map[string][]string{"list": {"items": {`stringvalidator.OneOf("red", "blue", "green")`}}}
+	attrs := append([]*tfAttr{{Name: "name", Kind: "String", Required: true}}, typedObject("all", nil, checked)...)
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: attrs}
+	all, err := sweepAll(t, res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`items = "red"`, `items = "blue"`, `items = "green"`} {
+		if !strings.Contains(all, want) {
+			t.Errorf("no config sets %s:\n%s", want, all)
+		}
+	}
+}
+
+// The guard also looks into the arms of a typedArms object: a value of an arm field that no config
+// sets is an error, although the merged field has no validator of its own.
+func TestSweepFailsWhenAValueOfATypedArmStaysOut(t *testing.T) {
+	checked := map[string]map[string][]string{"list": {"items": {`stringvalidator.OneOf("red", "blue")`}}}
+	attrs := typedObject("all", nil, checked)
+	s := testSynth(t, "")
+	s.cov = map[string]bool{}
+	err := s.leftOut(attrs)
+	if err == nil || !strings.Contains(err.Error(), `"blue"`) {
+		t.Fatalf("got %v, want an error that names the value blue", err)
+	}
+}

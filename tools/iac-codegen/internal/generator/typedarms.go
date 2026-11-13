@@ -107,7 +107,7 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	if line.Infer {
 		inferTypeAttribute(attrs[0], arms, values, has)
 	}
-	attrs[0].Typed = &typedInfo{Has: has, Required: required, Checked: checked, Rules: m.rules}
+	attrs[0].Typed = &typedInfo{Has: has, Required: required, Checked: checked, Rules: m.rules, Attrs: attrs[1:]}
 	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked, m.rules))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
 	name := typeModelName(t)
@@ -127,6 +127,7 @@ type typedInfo struct {
 	Required map[string][]string            // the attributes that the arm needs
 	Checked  map[string]map[string][]string // the validators of an attribute that run for the arm
 	Rules    map[string][]typedRule         // the rules over attributes of the arm
+	Attrs    []*tfAttr                      // the merged fields of all arms, without the type
 }
 
 // fields are the attributes that a config sets for the arm of the type value: the attributes of the
