@@ -198,7 +198,7 @@ components:
       enum: [KIND_UNSPECIFIED, KIND_LIMITED, KIND_PLAIN]
     Level:
       type: string
-      enum: [LEVEL_UNSPECIFIED, LEVEL_LOW, LEVEL_HIGH]
+      enum: [LEVEL_UNSPECIFIED, LEVEL_LOW, LEVEL_HIGH, LEVEL_MEDIUM]
     Detail:
       type: object
       required: [text]

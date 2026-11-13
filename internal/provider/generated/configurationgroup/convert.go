@@ -26,20 +26,20 @@ import (
 var chartNameToAPI = map[string]fleet_manager_configuration_groups.ChartName{
 	"CHART_NAME_UNSPECIFIED":             fleet_manager_configuration_groups.ChartName("CHART_NAME_UNSPECIFIED"),
 	"chart_name_otel_integration":        fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_INTEGRATION"),
-	"chart_name_otel_ecs_ec2":            fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_ECS_EC2"),
 	"chart_name_otel_linux_standalone":   fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_LINUX_STANDALONE"),
 	"chart_name_otel_windows_standalone": fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_WINDOWS_STANDALONE"),
 	"chart_name_otel_macos_standalone":   fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_MACOS_STANDALONE"),
+	"chart_name_otel_ecs_ec2":            fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_ECS_EC2"),
 }
 
 // chartNameFromAPI maps the API values of the enum to its Terraform values.
 var chartNameFromAPI = map[fleet_manager_configuration_groups.ChartName]string{
 	fleet_manager_configuration_groups.ChartName("CHART_NAME_UNSPECIFIED"):             "CHART_NAME_UNSPECIFIED",
 	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_INTEGRATION"):        "chart_name_otel_integration",
-	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_ECS_EC2"):            "chart_name_otel_ecs_ec2",
 	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_LINUX_STANDALONE"):   "chart_name_otel_linux_standalone",
 	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_WINDOWS_STANDALONE"): "chart_name_otel_windows_standalone",
 	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_MACOS_STANDALONE"):   "chart_name_otel_macos_standalone",
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_ECS_EC2"):            "chart_name_otel_ecs_ec2",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is

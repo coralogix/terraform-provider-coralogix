@@ -25,7 +25,7 @@ dashboards='^(internal/provider/(dashboards/|generated/dashboard(sfolder)?/|test
 
 # Files that the dashboard tests use but that are not dashboard files. Keep this list in step
 # with the tests: when a dashboard test starts to use a helper of another file, add that file.
-shared='^internal/provider/(provider_test|mux_test|provider_domain_test|data_source_baseline_test|data_source_baseline_fake_test|global_router_baseline_test|global_router_baseline_harness_test|global_router_baseline_fake_test|global_router_fidelity_test)\.go$'
+shared='^internal/provider/(provider_test|mux_test|provider_domain_test)\.go$'
 
 # One directory per other domain. A new directory is not listed, so it runs every job.
 domains='aaa|actions|ai|alerts|apm|data_exploration|dataengine|dataplans|enrichment_rules|events2metrics|fleet|integrations|logs|metrics|notifications|parsing_rules|recording_rules|slo_mgmt|views|webhook'

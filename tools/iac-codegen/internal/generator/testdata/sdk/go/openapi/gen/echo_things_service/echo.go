@@ -60,6 +60,7 @@ const (
 	LEVEL_LEVEL_UNSPECIFIED Level = "LEVEL_UNSPECIFIED"
 	LEVEL_LEVEL_LOW         Level = "LEVEL_LOW"
 	LEVEL_LEVEL_HIGH        Level = "LEVEL_HIGH"
+	LEVEL_LEVEL_MEDIUM      Level = "LEVEL_MEDIUM"
 )
 
 type EchoItem struct {

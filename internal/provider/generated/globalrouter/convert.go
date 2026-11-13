@@ -26,16 +26,16 @@ import (
 var notificationCenterEntityTypeToAPI = map[string]global_routers_service.NotificationCenterEntityType{
 	"unspecified":        global_routers_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"),
 	"alerts":             global_routers_service.NotificationCenterEntityType("ALERTS"),
-	"cases":              global_routers_service.NotificationCenterEntityType("CASES"),
 	"test_notifications": global_routers_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"),
+	"cases":              global_routers_service.NotificationCenterEntityType("CASES"),
 }
 
 // notificationCenterEntityTypeFromAPI maps the API values of the enum to its Terraform values.
 var notificationCenterEntityTypeFromAPI = map[global_routers_service.NotificationCenterEntityType]string{
 	global_routers_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"): "unspecified",
 	global_routers_service.NotificationCenterEntityType("ALERTS"):                  "alerts",
-	global_routers_service.NotificationCenterEntityType("CASES"):                   "cases",
 	global_routers_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"):      "test_notifications",
+	global_routers_service.NotificationCenterEntityType("CASES"):                   "cases",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is

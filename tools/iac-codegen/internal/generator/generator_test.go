@@ -2990,7 +2990,7 @@ func TestUnsupportedArmKeepsItsEnumLine(t *testing.T) {
 		spec = strings.Replace(spec, legacy, legacy+"        mode: {$ref: '#/components/schemas/LegacyMode'}\n", 1)
 		return strings.Replace(spec, "    EvalThing:\n", "    LegacyMode:\n      type: string\n      enum: [LEGACY_MODE_UNSPECIFIED, LEGACY_MODE_ON]\n    EvalThing:\n", 1)
 	}
-	lines := evalThingLines(t) + "  LegacyMode:\n    zero: unspecified\n    values: [LEGACY_MODE_ON]\n"
+	lines := evalThingLines(t) + "  LegacyMode:\n    zero: unspecified\n"
 	if err := generateEvalThingWith(t, lines, edit); err != nil {
 		t.Fatal(err)
 	}

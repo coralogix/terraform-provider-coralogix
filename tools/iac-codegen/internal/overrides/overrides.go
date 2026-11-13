@@ -22,6 +22,9 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+// DeprecationText is the warning of an attribute that the contract marks deprecated.
+const DeprecationText = "The Coralogix API deprecates this attribute. A future version may remove it."
+
 // FileName is the name of the file. It sits in the output directory of the resource.
 const FileName = "behavior-overrides.yaml"
 
@@ -885,7 +888,8 @@ type Field struct {
 	// Name is the Terraform attribute name of the field, when the released resource does not
 	// use the name derived from the JSON name (applications for applicationnameFilters).
 	Name string `yaml:"name"`
-	// Deprecation is the released deprecation message.
+	// Deprecation is the released deprecation message. A field that the contract marks deprecated
+	// gets DeprecationText without a line, so a line that says the same is stale.
 	Deprecation string `yaml:"deprecation"`
 	// Sensitive marks the Terraform attribute sensitive, as the released attribute was: Terraform
 	// hides its value in plans and output. It is a Terraform fact that the contract does not state.
@@ -1224,8 +1228,6 @@ type UnsupportedText struct {
 	Detail  string `yaml:"detail"`
 }
 
-// TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
-// without trimPrefix, in lower case unless the line is verbatim.
 // checkAliases checks that each alias is an accepted Terraform value and has another accepted value
 // as its target. The zero value is no target: the plan would replace a value with the API's
 // unspecified one.
@@ -1255,8 +1257,14 @@ func (e Enum) checkAliases(name string) error {
 	return nil
 }
 
+// TFValue is the Terraform value of the API value v of the enum: its names entry, the name that
+// the style of the names entries gives a new value (styled), or the value without trimPrefix, in
+// lower case unless the line is verbatim.
 func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
+		return tf
+	}
+	if tf, ok := e.Styled[v]; ok {
 		return tf
 	}
 	return e.defaultTFValue(v)
@@ -1279,9 +1287,16 @@ type Enum struct {
 	// ZeroNull: the released resource reads the zero value as null and does not accept it, as a new
 	// resource does. It excludes Zero.
 	ZeroNull bool `yaml:"zeroNull"`
-	// Values are the enum values that the resource accepts. The Terraform value is the
-	// lower case of the API value, unless Verbatim is set.
-	Values []string `yaml:"values"`
+	// Values are the enum values that the resource accepts: the values of the contract, without
+	// the zero value and without Rejected, in the order of the contract. The generator fills
+	// them (FillEnum), so a value that the API adds is accepted at once. The Terraform value is
+	// the lower case of the API value, unless Verbatim is set or the names entries have a style.
+	Values []string `yaml:"-"`
+	// RemovedValues only catches a values key of an older file, which Parse rejects.
+	RemovedValues []string `yaml:"values"`
+	// Styled gives each accepted value without a names entry the name that the names entries
+	// have as a style (FillEnum). A value that has no name in that style is an error.
+	Styled map[string]string `yaml:"-"`
 	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
 	// AUTO, ENABLED, and DISABLED.
 	Verbatim bool `yaml:"verbatim"`
@@ -1302,8 +1317,8 @@ type Enum struct {
 	// keeps the spelling of the plan or the state when the API value differs only in case. A
 	// scalar field of the enum only: a list or set has no prior value to keep per element.
 	CaseInsensitive bool `yaml:"caseInsensitive"`
-	// Rejected are the values of the contract that the resource does not accept. The generator
-	// reports a value of the contract that is in neither list, so a new API value needs a decision.
+	// Rejected are the values of the contract that the resource does not accept. Every other value
+	// of the contract is accepted, so a value that the API adds is accepted without a line.
 	Rejected []string `yaml:"rejected"`
 	// ReadRejected: a rejected value still reads back, as the API spelling (true) or in lower
 	// case (lower, as a released resource that lowercased an unknown API value did). The write
@@ -1383,7 +1398,7 @@ func (f *File) check() error {
 	if f.Validators.Inferred == nil {
 		return errors.New("validators.inferred is required: false for a released resource, which does not turn contract limits into validators, and true for a resource without a released version")
 	}
-	if err := f.checkEnums(); err != nil {
+	if err := f.checkEnumKeys(); err != nil {
 		return err
 	}
 	if err := iacoverrides.CheckUnwrap(f.Unwrap); err != nil {
@@ -1548,43 +1563,21 @@ func (s Schema) checkUpgrades() error {
 	return nil
 }
 
-// checkEnums checks that no value is accepted and rejected at the same time, and that names
-// gives accepted values distinct Terraform values.
-func (f *File) checkEnums() error {
+// checkEnumKeys checks the enums lines without the contract: no values key (the generator takes
+// the values from the contract), and keys that exclude each other.
+func (f *File) checkEnumKeys() error {
 	for _, name := range sortedKeys(f.Enums) {
 		e := f.Enums[name]
-		for _, v := range e.Rejected {
-			if slices.Contains(e.Values, v) {
-				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
-			}
-		}
-		if e.TrimPrefix != "" {
-			for _, v := range e.Values {
-				if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
-					return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
-				}
-			}
+		if e.RemovedValues != nil {
+			return fmt.Errorf("enums.%s: the values key is not read any more. The accepted values are the values of the contract without the zero value and without rejected. Delete the key", name)
 		}
 		for _, v := range sortedKeys(e.Names) {
-			if !slices.Contains(e.Values, v) {
-				return fmt.Errorf("enums.%s.names: %q is not in values", name, v)
-			}
 			if e.Names[v] == "" {
 				return fmt.Errorf("enums.%s.names: %q has an empty name", name, v)
-			}
-			if e.Names[v] == e.defaultTFValue(v) {
-				return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
 			}
 		}
 		if e.ZeroNull && e.Zero != "" {
 			return fmt.Errorf("enums.%s: zeroNull reads the zero value as null, so it has no Terraform value: remove zero", name)
-		}
-		seen := map[string]string{}
-		if e.Zero != "" {
-			seen[e.Zero] = "zero"
-		}
-		if err := e.checkAliases(name); err != nil {
-			return err
 		}
 		if e.ReadRejected == ReadRejectedLower && e.Verbatim {
 			return fmt.Errorf("enums.%s: readRejected: lower excludes verbatim", name)
@@ -1592,23 +1585,176 @@ func (f *File) checkEnums() error {
 		if e.ReadRejectedAs != "" && e.ReadRejected.On() {
 			return fmt.Errorf("enums.%s: readRejected and readRejectedAs cannot both be set", name)
 		}
-		if e.ReadRejected.On() {
-			// A rejected value reads back as its read spelling, so no accepted value can have it.
-			for _, v := range e.Rejected {
-				tf := e.RejectedTFValue(v)
-				if previous, ok := seen[tf]; ok {
-					return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, tf)
-				}
-				seen[tf] = "the rejected " + strconv.Quote(v)
+	}
+	return nil
+}
+
+// UndecidedNames is the error of an enum that has names entries in no single style, and a value
+// without an entry. The fix is a names entry for each value.
+type UndecidedNames struct {
+	Enum   string
+	Values []string
+	Reason string
+}
+
+func (u *UndecidedNames) Error() string {
+	return fmt.Sprintf("enums.%s: no name for %s: %s", u.Enum, strings.Join(u.Values, ", "), u.Reason)
+}
+
+// HasZeroValue reports whether the first value of an enum of the contract is the protobuf zero
+// value, which ends in _UNSPECIFIED.
+func HasZeroValue(contract []string) bool {
+	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
+}
+
+// FillEnum sets the accepted values of the enums line name from the values of its contract
+// enum: every value except the zero value and the rejected ones, in the order of the contract. It
+// names each accepted value that the line gives no name, and checks the line against the values.
+func (f *File) FillEnum(name string, contract []string) error {
+	e := f.Enums[name]
+	e.Values, e.Styled = nil, nil
+	for i, v := range contract {
+		if (i == 0 && HasZeroValue(contract)) || slices.Contains(e.Rejected, v) {
+			continue
+		}
+		e.Values = append(e.Values, v)
+	}
+	if err := e.styleNewValues(name); err != nil {
+		return err
+	}
+	if err := checkEnum(name, e); err != nil {
+		return err
+	}
+	f.Enums[name] = e
+	return nil
+}
+
+// styleNewValues gives each accepted value without a names entry its Terraform name. A line with
+// trimPrefix, or without names, names such a value by the plain rule (the value without the
+// prefix, in lower case). A line that has names entries and no trimPrefix has the style of the
+// entries: its names are the style, so the generator finds the one style (lower, UPPER, or Title,
+// after the prefix of the enum name) that reproduces every entry, and names the value with it.
+func (e *Enum) styleNewValues(name string) error {
+	if len(e.Names) == 0 || e.TrimPrefix != "" || e.Verbatim {
+		return nil
+	}
+	var unnamed []string
+	for _, v := range e.Values {
+		if _, ok := e.Names[v]; !ok {
+			unnamed = append(unnamed, v)
+		}
+	}
+	if len(unnamed) == 0 {
+		return nil
+	}
+	prefix := enumNamePrefix(name, e.Values)
+	var fit []func(string) string
+	for _, style := range enumStyles {
+		ok := true
+		for _, v := range sortedKeys(e.Names) {
+			if slices.Contains(e.Values, v) && style(strings.TrimPrefix(v, prefix)) != e.Names[v] {
+				ok = false
 			}
 		}
+		if ok {
+			fit = append(fit, style)
+		}
+	}
+	if len(fit) == 0 {
+		return &UndecidedNames{Enum: name, Values: unnamed, Reason: "the names entries follow no single style (lower, UPPER, or Title), so the generator cannot guess the name"}
+	}
+	e.Styled = map[string]string{}
+	for _, v := range unnamed {
+		named := map[string]bool{}
+		for _, style := range fit {
+			named[style(strings.TrimPrefix(v, prefix))] = true
+		}
+		if len(named) != 1 {
+			return &UndecidedNames{Enum: name, Values: []string{v}, Reason: "more than one style fits the names entries, and they name this value in different ways"}
+		}
+		for n := range named {
+			e.Styled[v] = n
+		}
+	}
+	return nil
+}
+
+var enumStyles = []func(string) string{
+	strings.ToLower,
+	strings.ToUpper,
+	func(s string) string {
+		if s == "" {
+			return s
+		}
+		return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
+	},
+}
+
+// enumNamePrefix is the prefix that protobuf puts before each value of an enum: the name of the
+// enum in upper snake case (DayOfWeek gives DAY_OF_WEEK_). It is "" when a value does not have it.
+func enumNamePrefix(component string, values []string) string {
+	name := component[strings.LastIndex(component, ".")+1:]
+	var b strings.Builder
+	for i, r := range name {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			prev := name[i-1]
+			nextLower := i+1 < len(name) && name[i+1] >= 'a' && name[i+1] <= 'z'
+			if prev >= 'a' && prev <= 'z' || prev >= '0' && prev <= '9' || nextLower {
+				b.WriteByte('_')
+			}
+		}
+		b.WriteRune(r)
+	}
+	prefix := strings.ToUpper(b.String()) + "_"
+	for _, v := range values {
+		if !strings.HasPrefix(v, prefix) {
+			return ""
+		}
+	}
+	return prefix
+}
+
+// checkEnum checks the filled enums line against the accepted values: names give accepted values
+// distinct Terraform values.
+func checkEnum(name string, e Enum) error {
+	if e.TrimPrefix != "" {
 		for _, v := range e.Values {
-			tf := e.TFValue(v)
-			if previous, ok := seen[tf]; ok {
-				return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
+			if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
+				return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of the accepted value %q. Add a names entry for it, or reject it", name, e.TrimPrefix, v)
 			}
-			seen[tf] = strconv.Quote(v)
 		}
+	}
+	for _, v := range sortedKeys(e.Names) {
+		if !slices.Contains(e.Values, v) {
+			return fmt.Errorf("enums.%s.names: %q is not an accepted value of the contract (it is not in the contract, it is the zero value, or it is rejected)", name, v)
+		}
+		if e.Names[v] == e.defaultTFValue(v) {
+			return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
+		}
+	}
+	seen := map[string]string{}
+	if e.Zero != "" {
+		seen[e.Zero] = "zero"
+	}
+	if err := e.checkAliases(name); err != nil {
+		return err
+	}
+	if e.ReadRejected.On() {
+		// A rejected value reads back as its read spelling, so no accepted value can have it.
+		for _, v := range e.Rejected {
+			tf := e.RejectedTFValue(v)
+			if previous, ok := seen[tf]; ok {
+				return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, tf)
+			}
+			seen[tf] = "the rejected " + strconv.Quote(v)
+		}
+	}
+	for _, v := range e.Values {
+		tf := e.TFValue(v)
+		if previous, ok := seen[tf]; ok {
+			return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
+		}
+		seen[tf] = strconv.Quote(v)
 	}
 	return nil
 }
@@ -2410,7 +2556,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Inline: f.Inline, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Deprecation: f.Deprecation, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Inline: f.Inline, Keys: f.keys()})
 		}
 		for _, group := range sortedKeys(t.Groups) {
 			out = append(out, Line{Kind: KindGroup, Component: name, Field: group, GroupFields: t.Groups[group].Fields})
@@ -2458,6 +2604,7 @@ type Line struct {
 	Optional     bool   // for a field line: the file says that the field is optional
 	Collection   string // for a field line: "set" when the file shows a list as a set
 	Name         string // for a field line: the Terraform attribute name
+	Deprecation  string // for a field line: the deprecation message of the line
 	// NoAttribute are, for a field line, the fields of the component without a Terraform
 	// attribute: skipped fields and requestValue fields. A name line can take their name.
 	NoAttribute []string

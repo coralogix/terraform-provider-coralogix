@@ -61,6 +61,27 @@ func TestGeneratedSchemaPathValidatorBudget(t *testing.T) {
 	}
 }
 
+// noAPI is the backend of a harness that only validates and plans: it makes no API call.
+type noAPI struct{}
+
+func (noAPI) takeRequests() []grRequest { return nil }
+
+// speedData reads a JSON list from testdata/validation_speed. The files hold configs that a real
+// dashboard and real alerts used (8 widgets of different kinds, and the first config of 90 alert
+// scenarios), so the timing tests below need no fake API.
+func speedData(t *testing.T, name string) []any {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("testdata", "validation_speed", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // Validate must not cost much more than half of plan, as on the released resource. A one-of
 // check that walks the whole configuration for each object made it grow faster than plan. The bound is
 // 65% (the measured ratio is about 0.45, and 0.7 with a path validator on every widget).
@@ -68,22 +89,12 @@ func TestDashboardValidateIsCheaperThanPlan(t *testing.T) {
 	if testing.Short() {
 		t.Skip("timing test")
 	}
-	var widgets []any
-	for _, b := range walkBases() {
-		if b.top || len(widgets) == 8 {
-			continue
-		}
-		cfg, _ := b.config(0, map[string]int{})
-		layout, _ := cfg["layout"].(j)
-		sections, _ := layout["sections"].([]any)
-		rows, _ := sections[0].(j)["rows"].([]any)
-		widgets = append(widgets, rows[0].(j)["widgets"].([]any)[0])
-	}
+	widgets := speedData(t, "dashboard_widgets.json")
 	if len(widgets) < 8 {
 		t.Fatalf("found %d widgets, want 8", len(widgets))
 	}
-	h := newDashboardHarness(t)
-	cfg := h.config(j{"name": "validate speed", "layout": dashboardLayout(widgets...)})
+	h := newProtocolHarness(t, "coralogix_dashboard", noAPI{})
+	cfg := h.config(j{"name": "validate speed", "layout": j{"sections": []any{j{"rows": []any{j{"height": 10.0, "widgets": widgets}}}}}})
 	start := time.Now()
 	h.validate(cfg)
 	validate := time.Since(start)
@@ -101,49 +112,25 @@ func TestAlertValidateIsCheaperThanPlan(t *testing.T) {
 	if testing.Short() {
 		t.Skip("timing test")
 	}
-	files, err := filepath.Glob(filepath.Join(alertGoldenDir, "scenario_*.json"))
-	if err != nil || len(files) == 0 {
-		t.Fatalf("no scenario golden: %v", err)
-	}
-	sort.Strings(files)
 	var validate, plan time.Duration
 	used := 0
-	for _, file := range files {
-		raw, err := os.ReadFile(file)
-		if err != nil {
-			t.Fatal(err)
+	for _, raw := range speedData(t, "alert_configs.json") {
+		config, ok := raw.(map[string]any)
+		if !ok {
+			continue
 		}
-		steps, err := decodeAlertSteps(raw)
-		if err != nil {
-			t.Fatal(err)
+		h := newProtocolHarness(t, "coralogix_alert", noAPI{})
+		cfg := h.config(config)
+		start := time.Now()
+		diags := h.validate(cfg)
+		validate += time.Since(start)
+		if hasError(diags) {
+			continue
 		}
-		for _, step := range steps {
-			config, ok := step["config"].(map[string]any)
-			if !ok || config == nil {
-				continue
-			}
-			encoded, err := json.Marshal(config)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var plain map[string]any
-			if err := json.Unmarshal(encoded, &plain); err != nil {
-				t.Fatal(err)
-			}
-			h := newAlertHarness(t)
-			cfg := h.config(plain)
-			start := time.Now()
-			diags := h.validate(cfg)
-			validate += time.Since(start)
-			if hasError(diags) {
-				break
-			}
-			start = time.Now()
-			h.plan(h.null(), cfg)
-			plan += time.Since(start)
-			used++
-			break
-		}
+		start = time.Now()
+		h.plan(h.null(), cfg)
+		plan += time.Since(start)
+		used++
 		if used == 60 {
 			break
 		}

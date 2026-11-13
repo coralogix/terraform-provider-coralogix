@@ -1,9 +1,0 @@
-[
-  {
-    "step": "import a non-numeric id",
-    "applyDiagnostics": [
-      "error: Invalid import ID | The import ID \"not-a-number\" is not a valid int64."
-    ],
-    "state": null
-  }
-]

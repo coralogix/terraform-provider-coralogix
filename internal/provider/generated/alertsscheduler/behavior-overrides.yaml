@@ -145,13 +145,11 @@ types:
 enums:
   ScheduleOperation:
     zero: unspecified
-    values: [SCHEDULE_OPERATION_MUTE, SCHEDULE_OPERATION_ACTIVATE]
     names:
       SCHEDULE_OPERATION_MUTE: mute
       SCHEDULE_OPERATION_ACTIVATE: active
   DurationFrequency:
     zero: unspecified
-    values: [DURATION_FREQUENCY_MINUTE, DURATION_FREQUENCY_HOUR, DURATION_FREQUENCY_DAY]
     names:
       DURATION_FREQUENCY_MINUTE: minutes
       DURATION_FREQUENCY_HOUR: hours

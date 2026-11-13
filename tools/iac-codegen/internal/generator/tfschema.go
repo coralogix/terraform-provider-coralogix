@@ -112,6 +112,11 @@ type tfAttr struct {
 	// them (enumValuesInDescription), so the list is never read back from the text of a validator.
 	// A validator that is no longer in Validators contributes nothing.
 	EnumValueSets map[string][]string
+	// EnumChoices are the values of the enum mapping that a user can set, in the order of the
+	// contract: the API value and the Terraform value of each. The acceptance test reads them, so
+	// an attribute without an enum validator is covered too. It is nil for an enum of a new
+	// resource, whose validator states the values.
+	EnumChoices []enumOption
 	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
 	// The acceptance test sets one arm of each group.
 	OneOfGroup string
@@ -170,6 +175,9 @@ type tfAttr struct {
 	// validators lines of an arm field run only when the type names the arm, so the attribute
 	// itself takes none of them.
 	TypedArm bool
+	// Typed: the attribute is the type of a typedArms object. It holds what each arm has, so that a
+	// generated config sets only the fields of the arm that the type names.
+	Typed *typedInfo
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
@@ -181,6 +189,9 @@ type tfAttr struct {
 	// read-only, as an id that a write sends back to name an item of an overwrite resource.
 	ServerSetInRequest bool
 }
+
+// enumOption is one accepted value of an enum: the API value and the Terraform value.
+type enumOption struct{ API, TF string }
 
 // tfModel is one Go struct of the Terraform model.
 type tfModel struct {
@@ -507,6 +518,12 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	walk = func(attrs []*tfAttr, above [][]*tfAttr, steps []int) error {
 		for _, a := range attrs {
 			a.UpSteps = steps
+			if enum, mapped := file.Enums[a.EnumSchema]; mapped && a.EnumSchema != "" && (a.ValueKind == "String" || a.ValueKind == "List" || a.ValueKind == "Set") {
+				a.EnumChoices = nil
+				for _, v := range enum.Values {
+					a.EnumChoices = append(a.EnumChoices, enumOption{API: v, TF: enum.TFValue(v)})
+				}
+			}
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })

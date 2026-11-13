@@ -64,7 +64,6 @@ types:
 enums:
   legacy.Kind:
     zero: unspecified
-    values: [ALPHA, BETA]
     rejected: [GAMMA]
 
 # The released resource has a data source that adds the managed flag of each rule, which the

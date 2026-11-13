@@ -115,22 +115,18 @@ enums:
   # and CUSTOM type-check; their prefix is not PRESET_TYPE.
   PresetType:
     zero: unspecified
-    values: [SYSTEM, CUSTOM]
   notification_center.ConnectorType:
     zero: unspecified
-    values: [SLACK, GENERIC_HTTPS, PAGERDUTY, PAGERDUTY_INCIDENTS, SERVICE_NOW, EMAIL, MICROSOFT_TEAMS, EVENTBRIDGE, INCIDENT_IO]
     rejected: [IBM_EVENT_NOTIFICATIONS]
     readRejected: true
   notification_center.EntityType:
     zero: unspecified
-    values: [ALERTS, CASES, TEST_NOTIFICATIONS]
     rejected: [OLLY_SCHEDULED_TASKS]
     readRejected: true
   AttachmentConfigPolicy:
     # AUTO is a business value, not an *_UNSPECIFIED sentinel. The field default
     # is what a missing value reads back as.
     verbatim: true
-    values: [AUTO, ENABLED, DISABLED]
 
 # The data source reads a preset by id or by name. A name that more than one preset has takes the
 # first one in the order of the List, as the released data source did.

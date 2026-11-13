@@ -140,13 +140,10 @@ enums:
   quota.v1.Priority:
     zeroNull: true
     trimPrefix: PRIORITY_TYPE_
-    values: [PRIORITY_TYPE_BLOCK, PRIORITY_TYPE_LOW, PRIORITY_TYPE_MEDIUM, PRIORITY_TYPE_HIGH]
   RuleTypeId:
     zero: unspecified
     trimPrefix: RULE_TYPE_ID_
     names: {RULE_TYPE_ID_START_WITH: starts_with}
-    values: [RULE_TYPE_ID_IS, RULE_TYPE_ID_IS_NOT, RULE_TYPE_ID_START_WITH, RULE_TYPE_ID_INCLUDES]
   quota.v1.Severity:
     zero: unspecified
     trimPrefix: SEVERITY_
-    values: [SEVERITY_DEBUG, SEVERITY_VERBOSE, SEVERITY_INFO, SEVERITY_WARNING, SEVERITY_ERROR, SEVERITY_CRITICAL]

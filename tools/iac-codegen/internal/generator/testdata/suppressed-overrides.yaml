@@ -46,7 +46,6 @@ types:
 enums:
   ThingOperation:
     zero: unspecified
-    values: [THING_OPERATION_MUTE, THING_OPERATION_ACTIVATE]
     names:
       THING_OPERATION_MUTE: mute
       THING_OPERATION_ACTIVATE: active

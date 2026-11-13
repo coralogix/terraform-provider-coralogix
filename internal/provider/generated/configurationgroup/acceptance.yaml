@@ -38,3 +38,10 @@ values:
 # The otel-integration chart requires ClusterName in metadata.
 minimal:
   - family.preset.metadata
+
+# The API refuses to change a family from a preset to raw content in an update (400: raw content
+# cannot replace a configuration family rendered from a Helm chart). The test starts from a preset.
+skipChoices:
+  ConfigurationFamily:
+    choices: [raw]
+    reason: The API does not change a preset family to raw content.

@@ -83,6 +83,42 @@ type File struct {
 	// module>.<Func>, and the package name is the last element of the directory. The signature is
 	// func(t *testing.T, configs ...string): configs are the rendered configs that the subtest applies.
 	Leftovers string `yaml:"leftovers"`
+	// SkipValues lists enum values that the values-and-choices subtest never sets, because the
+	// tenant refuses them (a value behind a feature flag). The key is the enum component of the
+	// contract, as in the enums section of behavior-overrides.yaml. A value that the enum does not
+	// have is an error, so the list cannot go stale.
+	SkipValues map[string]SkipValues `yaml:"skipValues"`
+	// StepCopies is the most copies of the resource that one step of the values-and-choices subtest
+	// holds. Setting it also gives each step a subtest of its own, values-and-choices-N, that applies
+	// the full config and then the step, so that CI can run the steps in jobs of their own. Use it
+	// for a resource whose steps take too long together, such as a dashboard: its time grows with
+	// the number of copies, because the API is slow to make one.
+	StepCopies int `yaml:"stepCopies"`
+	// MaxElements maps the path of a list or set of objects, as in values, to the most elements that
+	// the values-and-choices subtest puts in it. Use it for a list that the API limits without
+	// saying so in the contract (exactly one rule), or whose elements must differ in a value that the
+	// subtest cannot vary (each rule has its own priority). The subtest then covers the values of the
+	// elements in more copies of the resource.
+	MaxElements map[string]int `yaml:"maxElements"`
+	// SkipChoices lists the arms of a oneOf that the values-and-choices subtest never sets. The key
+	// is the component of the object that holds the arms, and each choice is the API name of an arm.
+	SkipChoices map[string]SkipChoices `yaml:"skipChoices"`
+}
+
+// SkipValues is the skipValues entry of one enum.
+type SkipValues struct {
+	// Values are the API values of the enum, such as SPAN_RELATION_TYPE_CHILD.
+	Values []string `yaml:"values"`
+	// Reason says why the tenant refuses them. It is required.
+	Reason string `yaml:"reason"`
+}
+
+// SkipChoices is the skipChoices entry of one component.
+type SkipChoices struct {
+	// Choices are the API names of the arms, such as geomap.
+	Choices []string `yaml:"choices"`
+	// Reason says why the test cannot set them. It is required.
+	Reason string `yaml:"reason"`
 }
 
 // LeftoversPackage and LeftoversFunc split Leftovers into the package directory and the function.
@@ -135,7 +171,7 @@ func (f *File) check() error {
 	if f.Resource == "" {
 		return errors.New("resource is required")
 	}
-	steps := []func() error{f.checkEnv, f.checkValues, f.checkUpdatedValues, f.checkUpgradeValues, f.checkPaths, f.checkVersionAndText, f.checkUpgradeCases}
+	steps := []func() error{f.checkEnv, f.checkValues, f.checkUpdatedValues, f.checkUpgradeValues, f.checkPaths, f.checkVersionAndText, f.checkUpgradeCases, f.checkSkipLists}
 	for _, step := range steps {
 		if err := step(); err != nil {
 			return err
@@ -292,6 +328,56 @@ func (f *File) checkUpgradeCases() error {
 		}
 	}
 	return nil
+}
+
+// checkSkipLists checks the skipValues and skipChoices entries: each names something, has no
+// duplicate, and states a reason.
+func (f *File) checkSkipLists() error {
+	for _, name := range sortedKeys(f.SkipValues) {
+		e := f.SkipValues[name]
+		if err := checkSkip("skipValues."+name, "values", e.Values, e.Reason); err != nil {
+			return err
+		}
+	}
+	if f.StepCopies < 0 {
+		return fmt.Errorf("stepCopies: at least 1, got %d", f.StepCopies)
+	}
+	for _, path := range sortedKeys(f.MaxElements) {
+		if f.MaxElements[path] < 1 {
+			return fmt.Errorf("maxElements.%s: the most elements is at least 1", path)
+		}
+	}
+	for _, name := range sortedKeys(f.SkipChoices) {
+		e := f.SkipChoices[name]
+		if err := checkSkip("skipChoices."+name, "choices", e.Choices, e.Reason); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkSkip(where, key string, names []string, reason string) error {
+	if len(names) == 0 {
+		return fmt.Errorf("%s.%s is empty", where, key)
+	}
+	if strings.TrimSpace(reason) == "" {
+		return fmt.Errorf("%s.reason is required: say why the test skips it", where)
+	}
+	for i, name := range names {
+		if strings.TrimSpace(name) == "" || slices.Contains(names[:i], name) {
+			return fmt.Errorf("%s.%s names %q twice or empty", where, key, name)
+		}
+	}
+	return nil
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // checkPlaceholders accepts only @{run} and @{env.NAME} with NAME in env.

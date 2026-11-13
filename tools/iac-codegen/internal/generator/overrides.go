@@ -85,6 +85,43 @@ func readOverrides(path string) (*overrides.File, error) {
 	return file, nil
 }
 
+// fillEnums sets the accepted values of every enums line from its contract enum, so a value that
+// the API adds is accepted without a line. A line whose component is missing or is not an enum is
+// left for overrideIssues to report.
+func fillEnums(doc *v3.Document, file *overrides.File) issue.Report {
+	if doc.Components == nil || doc.Components.Schemas == nil {
+		return nil
+	}
+	var report issue.Report
+	for _, name := range slices.Sorted(maps.Keys(file.Enums)) {
+		component, _, _ := strings.Cut(name, "@")
+		proxy := doc.Components.Schemas.GetOrZero(component)
+		if proxy == nil {
+			continue
+		}
+		schema, err := proxy.BuildSchema()
+		if err != nil || len(schema.Enum) == 0 {
+			continue
+		}
+		contract := make([]string, 0, len(schema.Enum))
+		for _, n := range schema.Enum {
+			contract = append(contract, n.Value)
+		}
+		err = file.FillEnum(name, contract)
+		if err == nil {
+			continue
+		}
+		item := issue.Issue{Code: "OVERRIDE_INVALID", Location: overrides.FileName + ":enums." + name, Message: err.Error(), Remediation: "Fix the enums line."}
+		var undecided *overrides.UndecidedNames
+		if errors.As(err, &undecided) {
+			item.Code = "ENUM_NAME_UNDECIDED"
+			item.Remediation = fmt.Sprintf("Add a names entry for each of these values to enums.%s: the Terraform value that a user writes.", name)
+		}
+		report = append(report, item)
+	}
+	return report
+}
+
 // overrideIssues reports every line of the file that does not match the contract.
 // A line that matches nothing is an error, so a stale line cannot stay in the file.
 func overrideIssues(doc *v3.Document, component string, file *overrides.File, ids model.OperationIDs, policy model.Policy) issue.Report {
@@ -385,8 +422,8 @@ func refComponent(proxy *base.SchemaProxy) string {
 	return ""
 }
 
-// enumLineProblem checks an enums line. Each value that the file names must be in the contract,
-// and each value of the contract must be accepted or rejected, so a new API value needs a decision.
+// enumLineProblem checks an enums line. Each value that the file names must be in the contract.
+// A value of the contract that the line does not reject is accepted, so a new API value needs no line.
 func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if len(schema.Enum) == 0 {
 		return wholeLine(fmt.Errorf("component %q is not an enum", line.Component))
@@ -414,27 +451,11 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 			fix:     "Remove zero and put that value in values. A missing field reads back as that first value, not as an enum zero.",
 		}
 	}
-	var undecided []string
-	for i, value := range contract {
-		zero := i == 0 && hasZeroValue(contract)
-		if !zero && !slices.Contains(line.EnumValues, value) && !slices.Contains(line.EnumRejected, value) {
-			undecided = append(undecided, value)
-		}
-	}
-	if len(undecided) == 0 {
-		return nil
-	}
-	return &lineIssue{
-		code:    "ENUM_VALUE_UNDECIDED",
-		message: fmt.Sprintf("the contract of enum %q has values that the file neither accepts nor rejects: %s", line.Component, strings.Join(undecided, ", ")),
-		fix:     "Add each value to values (the resource accepts it) or to rejected (it does not).",
-	}
+	return nil
 }
 
 // hasZeroValue reports whether the first value of the enum is the protobuf zero value.
-func hasZeroValue(contract []string) bool {
-	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
-}
+func hasZeroValue(contract []string) bool { return overrides.HasZeroValue(contract) }
 
 // requestOperations returns the ids of the Create and Update operations of the resource. The ids
 // that api.operations names come first: an upsert or a delete: none contract builds only after
@@ -530,6 +551,10 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, group []string, 
 	var stale []string
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
+	}
+	if line.Deprecation == overrides.DeprecationText {
+		// The generator writes this text for a deprecated field by itself.
+		stale = append(stale, "deprecation")
 	}
 	requiredByContract := slices.Contains(schema.Required, line.Field)
 	if createOptional[line.Field] {
