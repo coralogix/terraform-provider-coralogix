@@ -76,9 +76,6 @@ func flatten(ctx context.Context, v *role_management_service.CustomRole, prior *
 		return nil, diags
 	}
 	out := flattenCustomRole(ctx, path.Empty(), v, prior, &diags)
-	if out.RoleId.IsNull() {
-		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
-	}
 	return out, diags
 }
 
@@ -281,7 +278,7 @@ func flattenCustomRole(ctx context.Context, p path.Path, v *role_management_serv
 		priorElements = prior.Permissions.Elements()
 	}
 	out.Permissions = flattenStringsSet(ctx, keepPriorElementCase(priorElements, v.Permissions, false), diags)
-	out.RoleId = types.StringPointerValue(int64AsString(v.RoleId))
+	out.RoleId = types.StringPointerValue(int64AsString(&v.RoleId))
 	return out
 }
 

@@ -24,9 +24,6 @@ api:
     delete: RoleManagementService_DeleteRole
   methods: {create: PUT, update: POST}
   idProperty: roleId
-  # PINNED-SDK: the Get response of the pinned SDK does not require roleId, though the service
-  # always returns it. Delete the line when the SDK has the contract that requires it.
-  serverSetID: true
   createResponseOnlyIDProperty: id
 
 # The Update by POST has no update mask. It sends every field, as the released resource did: the

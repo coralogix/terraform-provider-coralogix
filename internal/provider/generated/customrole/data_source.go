@@ -148,9 +148,7 @@ func (d *DataSource) idByName(ctx context.Context, name string) (int64, diag.Dia
 			if item.Name == nil || *item.Name != name {
 				continue
 			}
-			if item.RoleId != nil {
-				ids = append(ids, *item.RoleId)
-			}
+			ids = append(ids, item.RoleId)
 		}
 	}
 	if len(ids) == 0 {

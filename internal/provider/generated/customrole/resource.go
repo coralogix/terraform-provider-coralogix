@@ -236,10 +236,10 @@ func (r *Resource) create(ctx context.Context, body *role_management_service.Rol
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
-	if out == nil || out.Id == nil || *out.Id == 0 {
+	if out == nil || out.Id == 0 {
 		return nil, fmt.Errorf("the API did not return the id of the new resource")
 	}
-	id := *out.Id
+	id := out.Id
 	// The Create response holds only the id. Read the resource that it created.
 	v, err := r.get(ctx, id)
 	if err != nil {
@@ -264,7 +264,7 @@ func (r *Resource) get(ctx context.Context, id int64) (*role_management_service.
 	if out == nil {
 		return nil, nil
 	}
-	return out.Role, nil
+	return &out.Role, nil
 }
 
 func (r *Resource) update(ctx context.Context, id int64, body *role_management_service.RoleManagementServiceUpdateRoleRequest) (*role_management_service.CustomRole, error) {
@@ -367,15 +367,15 @@ func stateID(ctx context.Context, state tfsdk.State) (int64, diag.Diagnostics) {
 
 // apiID returns the id that v holds, and false when v holds none.
 func apiID(v *role_management_service.CustomRole) (int64, bool) {
-	if v == nil || v.RoleId == nil {
+	if v == nil {
 		return 0, false
 	}
-	return *v.RoleId, true
+	return v.RoleId, true
 }
 
 // setAPIID sets the id that v holds.
 func setAPIID(v *role_management_service.CustomRole, id int64) {
-	v.RoleId = &id
+	v.RoleId = id
 }
 
 // resourceWithID returns a resource that holds only id.
