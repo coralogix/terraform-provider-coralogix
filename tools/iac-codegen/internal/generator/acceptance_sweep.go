@@ -67,15 +67,62 @@ func (s *accSynth) skippedArm(a *tfAttr) bool {
 	return slices.Contains(s.file.SkipChoices[a.Component].Choices, a.Property)
 }
 
-// uncovered returns the first value of the enum that no config sets yet and that the file does not skip.
+// uncovered returns the first value of the enum that no config sets yet and that the file does not
+// skip. The type of a typedArms object has one more case: all its values are set, but an arm still
+// has an enum value that no config sets. The type then names that arm again, so that its fields can
+// take their next value. A value that is not set yet goes first, so that this never starves an arm.
 func (s *accSynth) uncovered(a *tfAttr, key string) (enumOption, bool) {
 	id := enumID(a, key)
+	var again *enumOption
 	for _, o := range choices(a) {
-		if !s.cov[enumCoverKey(id, o.TF)] && !s.skippedValue(a, o) {
+		if s.skippedValue(a, o) {
+			continue
+		}
+		if !s.cov[enumCoverKey(id, o.TF)] {
 			return o, true
 		}
+		if again == nil && s.armLeft(a, key, o.TF) {
+			again = &o
+		}
+	}
+	if again != nil {
+		return *again, true
 	}
 	return enumOption{}, false
+}
+
+// typedArmAttrs returns the attributes that the arm of a typedArms type value has, with the validators
+// that run for the arm. The merged attributes themselves hold none, because another arm can allow
+// other values for the same field.
+func typedArmAttrs(info *typedInfo, value string) []*tfAttr {
+	fields := info.fields(value)
+	var out []*tfAttr
+	for _, c := range info.Attrs {
+		if fields[c.Name] {
+			out = append(out, withChecks(c, info.Checked[value][c.Name]))
+		}
+	}
+	return out
+}
+
+// parentKey returns the key of the object that holds the attribute.
+func parentKey(a *tfAttr, key string) string {
+	return strings.TrimSuffix(strings.TrimSuffix(key, a.Name), ".")
+}
+
+// armLeft reports whether the arm that the type value of a typedArms attribute names has an enum
+// value or an arm below it that no config sets yet.
+func (s *accSynth) armLeft(a *tfAttr, key, value string) bool {
+	if a.Typed == nil {
+		return false
+	}
+	parent := parentKey(a, key)
+	for _, c := range typedArmAttrs(a.Typed, value) {
+		if s.gain(c, joinPath(parent, c.Name)) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // sweepValue returns the value that a step of the sweep sets in an enum attribute, and marks it as
@@ -366,6 +413,26 @@ func (s *accSynth) leftOutBelow(attrs []*tfAttr, key string) []string {
 			below = attrKey + "[]"
 		}
 		lines = append(lines, s.leftOutBelow(a.Attributes, below)...)
+		lines = append(lines, s.leftOutInArms(a, attrKey)...)
+	}
+	return lines
+}
+
+// leftOutInArms describes what the sweep did not set in the arms of a typedArms attribute. The
+// merged attributes of its arms hold no validators, so each arm is checked with its own.
+func (s *accSynth) leftOutInArms(a *tfAttr, attrKey string) []string {
+	if a.Typed == nil {
+		return nil
+	}
+	var lines []string
+	parent := parentKey(a, attrKey)
+	for _, o := range choices(a) {
+		if s.skippedValue(a, o) {
+			continue
+		}
+		for _, line := range s.leftOutBelow(typedArmAttrs(a.Typed, o.TF), parent) {
+			lines = append(lines, line+fmt.Sprintf(" (for %s %q)", attrKey, o.TF))
+		}
 	}
 	return lines
 }
