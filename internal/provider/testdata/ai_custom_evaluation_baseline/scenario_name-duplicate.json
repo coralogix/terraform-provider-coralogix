@@ -1,0 +1,52 @@
+[
+  {
+    "step": "create with a name that another evaluation has",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "taken",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "taken",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [],
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "taken",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_ai_custom_evaluation | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: A custom evaluation with name 'taken' already exists\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

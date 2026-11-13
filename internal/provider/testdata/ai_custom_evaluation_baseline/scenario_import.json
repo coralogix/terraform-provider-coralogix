@@ -1,0 +1,98 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "seeded",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "drift": [
+      "AttributeName(\"application_ids\")",
+      "AttributeName(\"applications\")",
+      "AttributeName(\"criteria\")",
+      "AttributeName(\"criteria\").AttributeName(\"acceptable\")",
+      "AttributeName(\"criteria\").AttributeName(\"prohibited\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"instructions\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"policy_type\")",
+      "AttributeName(\"should_include_system_prompt\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "description": "seeded",
+      "instructions": "Check {prompt}",
+      "name": "imported",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "seeded",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "noChange": true,
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "seeded",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    }
+  }
+]

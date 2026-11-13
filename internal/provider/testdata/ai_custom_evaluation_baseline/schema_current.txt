@@ -1,0 +1,63 @@
+(schema)  version=0
+    markdown: "Coralogix AI custom evaluation."
+application_ids  SetAttribute computed elem=basetypes.StringType
+    markdown: "Resolved AI application IDs linked to this custom evaluation."
+applications  SetNestedAttribute optional computed
+    default: setdefault.staticValueDefault value defaults to []
+    markdown: "AI applications to link this custom evaluation to, selected by application and subsystem. Defaults to no linked applications."
+    validator: setvalidator.sizeAtMostValidator set must contain at most 1024 elements
+applications[]  NestedObject
+applications[].application  StringAttribute required
+    markdown: "AI application name."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 256
+applications[].subsystem  StringAttribute required
+    markdown: "AI application subsystem."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 256
+criteria  SingleNestedAttribute optional computed
+    default: objectdefault.staticValueDefault value defaults to {"acceptable":{"examples":[],"flags":""},"prohibited":{"examples":[],"flags":""}}
+    markdown: "Acceptable and prohibited criteria for this custom evaluation. Defaults to empty criteria."
+criteria.acceptable  SingleNestedAttribute optional computed
+    default: objectdefault.staticValueDefault value defaults to {"examples":[],"flags":""}
+    markdown: "Criteria and examples for acceptable responses."
+criteria.acceptable.examples  ListAttribute optional computed elem=basetypes.StringType
+    default: listdefault.staticValueDefault value defaults to []
+    markdown: "Example conversations for this criterion."
+    validator: listvalidator.sizeAtMostValidator list must contain at most 100 elements
+    validator: listvalidator.valueStringsAreValidator element value must satisfy all validations: string length must be between 1 and 65536
+criteria.acceptable.flags  StringAttribute optional computed
+    default: stringdefault.staticStringDefault value defaults to 
+    markdown: "Criterion flags."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 0 and 65536
+criteria.prohibited  SingleNestedAttribute optional computed
+    default: objectdefault.staticValueDefault value defaults to {"examples":[],"flags":""}
+    markdown: "Criteria and examples for prohibited responses."
+criteria.prohibited.examples  ListAttribute optional computed elem=basetypes.StringType
+    default: listdefault.staticValueDefault value defaults to []
+    markdown: "Example conversations for this criterion."
+    validator: listvalidator.sizeAtMostValidator list must contain at most 100 elements
+    validator: listvalidator.valueStringsAreValidator element value must satisfy all validations: string length must be between 1 and 65536
+criteria.prohibited.flags  StringAttribute optional computed
+    default: stringdefault.staticStringDefault value defaults to 
+    markdown: "Criterion flags."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 0 and 65536
+description  StringAttribute optional computed
+    default: stringdefault.staticStringDefault value defaults to 
+    markdown: "Human-readable description. Defaults to an empty string."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 0 and 65536
+id  StringAttribute computed
+    markdown: "AI custom evaluation ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+instructions  StringAttribute required
+    markdown: "Instructions sent to the LLM evaluator. Must contain at least one of `{prompt}`, `{response}`, or `{chat_history}`."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 1048576
+    validator: stringvalidator.regexMatchesValidator instructions must contain at least one of {prompt}, {response}, or {chat_history}.
+name  StringAttribute required
+    markdown: "Display name of the custom evaluation."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 256
+policy_type  StringAttribute required
+    markdown: "Policy type identifier. Can be one of `quality` or `security`."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 256
+    validator: stringvalidator.oneOfValidator value must be one of: ["quality" "security"]
+should_include_system_prompt  BoolAttribute optional computed
+    default: booldefault.staticBoolDefault value defaults to false
+    markdown: "Whether to include the system prompt in the LLM input. Defaults to `false`."

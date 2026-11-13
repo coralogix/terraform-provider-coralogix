@@ -1,0 +1,14 @@
+[
+  {
+    "step": "validate a policy type in upper case",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "QUALITY"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"policy_type\")] | Attribute policy_type value must be one of: [\"quality\" \"security\"], got: \"QUALITY\""
+    ],
+    "state": null
+  }
+]

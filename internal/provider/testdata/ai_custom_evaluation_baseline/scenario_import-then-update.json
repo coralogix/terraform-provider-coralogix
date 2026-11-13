@@ -1,0 +1,201 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/applications/v3?page_offset=0&page_size=200",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [
+        "00000000-0000-4000-8000-000000002002"
+      ],
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "web"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "seeded",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "drift": [
+      "AttributeName(\"application_ids\")",
+      "AttributeName(\"application_ids\").ElementKeyValue(tftypes.String<\"00000000-0000-4000-8000-000000002002\">)",
+      "AttributeName(\"applications\")",
+      "AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<\"web\">>)",
+      "AttributeName(\"criteria\")",
+      "AttributeName(\"criteria\").AttributeName(\"acceptable\")",
+      "AttributeName(\"criteria\").AttributeName(\"prohibited\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"instructions\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"policy_type\")",
+      "AttributeName(\"should_include_system_prompt\")"
+    ]
+  },
+  {
+    "step": "update to another configuration",
+    "config": {
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2"
+          ],
+          "flags": "polite"
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "made with Terraform",
+      "instructions": "Check {prompt} and {response}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2"
+          ],
+          "flags": "polite"
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "made with Terraform",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt} and {response}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/applications/v3?page_offset=0&page_size=200",
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "description": "made with Terraform",
+          "examples": [
+            {
+              "conversation": "ok 1",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 2",
+              "score": "1"
+            },
+            {
+              "conversation": "bad 1",
+              "score": "0"
+            }
+          ],
+          "instructions": "Check {prompt} and {response}",
+          "name": "imported",
+          "policyType": "quality",
+          "safe": "polite",
+          "shouldIncludeSystemPrompt": true,
+          "violates": "rude"
+        },
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001/applications/00000000-0000-4000-8000-000000002001",
+        "status": 200
+      },
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001/applications/00000000-0000-4000-8000-000000002002",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [
+        "00000000-0000-4000-8000-000000002001"
+      ],
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2"
+          ],
+          "flags": "polite"
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "made with Terraform",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt} and {response}",
+      "name": "imported",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "replanEmpty": true
+  }
+]

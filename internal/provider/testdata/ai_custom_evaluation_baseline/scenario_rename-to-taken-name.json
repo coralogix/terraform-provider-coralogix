@@ -1,0 +1,137 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "mine",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "mine",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [],
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "mine",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001002",
+      "instructions": "Check {prompt}",
+      "name": "mine",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename to a name that another evaluation has",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "taken",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001002",
+      "instructions": "Check {prompt}",
+      "name": "taken",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001002",
+        "body": {
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "taken",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating coralogix_ai_custom_evaluation | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: A custom evaluation with name 'taken' already exists\"}\noperation - Update"
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001002",
+      "instructions": "Check {prompt}",
+      "name": "mine",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    }
+  }
+]

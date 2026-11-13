@@ -1,0 +1,20 @@
+[
+  {
+    "step": "validate an empty subsystem",
+    "config": {
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": ""
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<\"\">>).AttributeName(\"subsystem\")] | Attribute applications[Value({\"application\":\"checkout\",\"subsystem\":\"\"})].subsystem string length must be between 1 and 256, got: 0"
+    ],
+    "state": null
+  }
+]
