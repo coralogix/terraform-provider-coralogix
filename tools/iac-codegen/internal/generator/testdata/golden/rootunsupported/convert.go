@@ -90,7 +90,7 @@ func flatten(ctx context.Context, v *shared_things_service.SharedThing, prior *S
 		diags.AddError("Missing resource", "The API response has no SharedThing.")
 		return nil, diags
 	}
-	if v.ByRatio != nil {
+	if v.ByRatio != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Unsupported measure", "The API returned a ratio measure.")
 		return nil, diags
 	}
@@ -665,6 +665,19 @@ func flattenFloat32(v *float32) types.Float32 {
 		return types.Float32Value(*v)
 	}
 	return value.(types.Float32)
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
 }
 
 // widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain

@@ -42,7 +42,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_scope | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Failed to compile expression. Expression: [false], Errors: [expected version tag. e.g. \\\"\\u003cv1\\u003e foo == 'bar'\\\"]\"}\noperation - Create"
+      "error: Unable to create scope | 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Failed to compile expression. Expression: [false], Errors: [expected version tag. e.g. \\\"\\u003cv1\\u003e foo == 'bar'\\\"]\"}"
     ],
     "state": null
   }

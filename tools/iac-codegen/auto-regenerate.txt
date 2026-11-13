@@ -8,6 +8,7 @@
 
 coralogix_action
 coralogix_ai_evaluation
+coralogix_alert
 coralogix_alerts_scheduler
 coralogix_api_key
 coralogix_archive_logs
@@ -15,6 +16,8 @@ coralogix_archive_metrics
 coralogix_archive_retentions
 coralogix_configuration_group
 coralogix_connector
+coralogix_custom_role
+coralogix_dashboard
 coralogix_dashboards_folder
 coralogix_events2metric
 coralogix_global_router
@@ -23,6 +26,7 @@ coralogix_parsing_rules
 coralogix_preset
 coralogix_quota_allocation_rule_set
 coralogix_recording_rules_groups_set
+coralogix_scope
 coralogix_slo_v2
 coralogix_tco_policies_logs
 coralogix_tco_policies_rum

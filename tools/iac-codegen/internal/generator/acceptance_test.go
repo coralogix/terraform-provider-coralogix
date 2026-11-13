@@ -329,7 +329,7 @@ func TestAcceptanceLeftoversRunBeforeEverySubtest(t *testing.T) {
 	if out, err = renderAcceptance(data); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(out), "acctest") {
+	if strings.Contains(string(out), "acctest.") || strings.Contains(string(out), `/internal/acctest"`) {
 		t.Errorf("without leftovers the test must not call a leftovers function:\n%s", out)
 	}
 }
@@ -639,6 +639,9 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 		"data source skip of a missing check": {func(s string) string {
 			return strings.Replace(s, "  - rules.0.kind\n", "  - rules.0.nope\n", 1)
 		}, "dataSourceSkip"},
+		"skip of a missing subtest": {func(s string) string {
+			return strings.Replace(s, "  full-lifecycle:", "  missing-subtest:", 1)
+		}, "matches no generated live subtest"},
 		"minimal of a missing one": {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
 		"another resource":         {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
 	}

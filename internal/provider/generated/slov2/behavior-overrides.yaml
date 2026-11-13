@@ -204,29 +204,22 @@ enums:
   SloTimeFrame:
     zero: unspecified
     trimPrefix: SLO_TIME_FRAME_
-    values: [SLO_TIME_FRAME_1_DAY, SLO_TIME_FRAME_7_DAYS, SLO_TIME_FRAME_14_DAYS, SLO_TIME_FRAME_21_DAYS, SLO_TIME_FRAME_28_DAYS, SLO_TIME_FRAME_30_DAYS]
   WindowSloWindow:
     zero: unspecified
     trimPrefix: WINDOW_SLO_WINDOW_
-    values: [WINDOW_SLO_WINDOW_1_MINUTE, WINDOW_SLO_WINDOW_5_MINUTES]
   ComparisonOperator:
     zero: unspecified
     trimPrefix: COMPARISON_OPERATOR_
-    values: [COMPARISON_OPERATOR_GREATER_THAN, COMPARISON_OPERATOR_GREATER_THAN_OR_EQUALS, COMPARISON_OPERATOR_LESS_THAN, COMPARISON_OPERATOR_LESS_THAN_OR_EQUALS]
   MissingDataStrategy:
     trimPrefix: MISSING_DATA_STRATEGY_
-    values: [MISSING_DATA_STRATEGY_UNCOUNTED, MISSING_DATA_STRATEGY_GOOD, MISSING_DATA_STRATEGY_BAD]
   ApmFilterMatchOperator:
     zero: unspecified
     trimPrefix: APM_FILTER_MATCH_OPERATOR_
-    values: [APM_FILTER_MATCH_OPERATOR_IS, APM_FILTER_MATCH_OPERATOR_STARTS_WITH, APM_FILTER_MATCH_OPERATOR_ENDS_WITH, APM_FILTER_MATCH_OPERATOR_INCLUDES]
   SloProductType:
     zero: unspecified
     trimPrefix: SLO_PRODUCT_TYPE_
-    values: [SLO_PRODUCT_TYPE_APM]
   # sloType is skipped, but the contract check still reads its enum.
   SloType:
-    values: [SLO_TYPE_REQUEST, SLO_TYPE_WINDOW]
 
 # The data source reads an SLO by id.
 dataSource: {}

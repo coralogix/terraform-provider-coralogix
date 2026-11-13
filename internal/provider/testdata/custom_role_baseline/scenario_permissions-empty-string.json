@@ -1,0 +1,41 @@
+[
+  {
+    "step": "create with an empty permission",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        ""
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        ""
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            ""
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to create custom_role | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Expression is not valid: \"}"
+    ],
+    "state": null
+  }
+]

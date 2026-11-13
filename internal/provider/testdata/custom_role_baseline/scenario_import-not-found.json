@@ -1,0 +1,20 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5009",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | custom_role with id 5009 was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "step": "create with an empty description",
+    "config": {
+      "description": "",
+      "name": "quiet",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "",
+      "id": "(unknown)",
+      "name": "quiet",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "",
+          "name": "quiet",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "id": "5001",
+      "name": "quiet",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "id": "5001",
+      "name": "quiet",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  }
+]

@@ -2,7 +2,7 @@
   {
     "step": "import by email: SearchUsers returns the user without userId",
     "applyDiagnostics": [
-      "error: User with user_name \"tf-acc-user-1@coralogix.com\" was returned without an id | Use the user id instead, or report this to the provider developers."
+      "error: Error importing User | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
     ],
     "state": null
   }

@@ -1,0 +1,91 @@
+[
+  {
+    "step": "create: Get after Create answers 500",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to create custom_role | created custom_role with id 5001, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
+    ],
+    "state": {
+      "description": null,
+      "id": "5001",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
+  },
+  {
+    "step": "apply again",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to create custom_role | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role n for team 700001 as it already exists.\"}"
+    ],
+    "state": null
+  }
+]

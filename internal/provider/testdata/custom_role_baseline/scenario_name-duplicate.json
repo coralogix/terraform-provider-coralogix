@@ -1,0 +1,41 @@
+[
+  {
+    "step": "create with a name that another role has",
+    "config": {
+      "description": "made with Terraform",
+      "name": "taken",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "taken",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "taken",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to create custom_role | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role taken for team 700001 as it already exists.\"}"
+    ],
+    "state": null
+  }
+]

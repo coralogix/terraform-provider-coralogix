@@ -43,12 +43,9 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "default_expression": "<v1>true",
-      "description": null,
+      "description": "",
       "display_name": "example",
       "filters": [
         {
@@ -59,10 +56,7 @@
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and plan empty description",
@@ -75,7 +69,7 @@
     ],
     "state": {
       "default_expression": "<v1>true",
-      "description": null,
+      "description": "",
       "display_name": "example",
       "filters": [
         {
@@ -86,10 +80,7 @@
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

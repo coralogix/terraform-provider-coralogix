@@ -42,7 +42,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_scope | the Coralogix API reported success but returned no scope id. Nothing is written to state, because a scope without an id can be neither read nor deleted. The scope may still have been created — check Coralogix before retrying."
+      "error: Missing id | The API response has no id. Without it, Terraform cannot read, update, or delete the resource."
     ],
     "state": null
   }

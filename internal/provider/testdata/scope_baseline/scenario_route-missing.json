@@ -66,7 +66,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}\noperation - Read"
+      "error: Unable to read scope | id 00000000-0000-4000-8000-000000000001: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
     "state": {
       "default_expression": "<v1>true",

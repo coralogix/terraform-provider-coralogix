@@ -1,0 +1,29 @@
+[
+  {
+    "step": "read by name",
+    "config": {
+      "name": "seeded"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5002",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "seeded",
+      "id": "5002",
+      "name": "seeded",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    }
+  }
+]

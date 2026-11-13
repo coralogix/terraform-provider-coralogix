@@ -100,7 +100,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_scope | the Coralogix API reported success but returned no scope id for 00000000-0000-4000-8000-000000000001. State is left unchanged rather than overwritten with an empty id; re-run to refresh it."
+      "error: Missing id | The API response has no id. Without it, Terraform cannot read, update, or delete the resource."
     ],
     "state": {
       "default_expression": "<v1>true",

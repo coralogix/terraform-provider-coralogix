@@ -100,7 +100,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_scope | error - no value given for required property id — {\"scope\":{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}}\noperation - Replace"
+      "error: Unable to update scope | id 00000000-0000-4000-8000-000000000001: no value given for required property id — {\"scope\":{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}}"
     ],
     "state": {
       "default_expression": "<v1>true",

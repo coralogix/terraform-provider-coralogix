@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
@@ -236,6 +237,7 @@ var importStep = resource.TestStep{
 func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
+		t.Skip("the test tenant refuses this update")
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
@@ -271,6 +273,60 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 				importStep,
 			},
 		})
+	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverLegacyThings(t, config(run, fullConfig)) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
+}
+
+// TestFailurePathsLegacyThingGenerated checks, without a tenant, what the resource does when the API
+// fails: a local server answers every request with an error (failpaths.Run). It needs no API key.
+func TestFailurePathsLegacyThingGenerated(t *testing.T) {
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Skipf("%s is not set: the test config reads it", name)
+		}
+	}
+	failpaths.Run(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_legacy_thing",
+		IDAttr:         "id",
+		Config:         render("failure-paths", minimalConfig),
+	})
+}
+
+// TestConfigsValidateLegacyThingGenerated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidateLegacyThingGenerated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_legacy_thing",
+	}, map[string]string{
+		"full":     offline.Replace(fullConfig),
+		"updated":  offline.Replace(updatedConfig),
+		"minimal":  offline.Replace(minimalConfig),
+		"variant1": offline.Replace(variant1Config),
 	})
 }
 
@@ -346,6 +402,7 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 	requireUpgradeAcceptance(t)
 
 	t.Run("upgrade-full", func(t *testing.T) {
+		t.Skip("the released API refuses this update")
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
@@ -369,3 +426,22 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_legacy_thing" "test" {
+  name = "@{run}-name"
+  labels = {}
+  rules = [
+    {
+      name = "@{run}-name"
+      kind = "beta"
+      targets = [
+        {
+          connector_id = coralogix_other.dependency.id
+        },
+      ]
+    },
+  ]
+}`

@@ -65,6 +65,21 @@
         "status": 404
       }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: Unable to delete scope | id 00000000-0000-4000-8000-000000000001: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
   }
 ]

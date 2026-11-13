@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
@@ -274,5 +275,41 @@ func TestAccCoralogixResourceConfigurationGroupGenerated(t *testing.T) {
 				importStep,
 			},
 		})
+	})
+}
+
+// TestFailurePathsConfigurationGroupGenerated checks, without a tenant, what the resource does when the API
+// fails: a local server answers every request with an error (failpaths.Run). It needs no API key.
+func TestFailurePathsConfigurationGroupGenerated(t *testing.T) {
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Skipf("%s is not set: the test config reads it", name)
+		}
+	}
+	failpaths.Run(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_configuration_group",
+		IDAttr:         "id",
+		Config:         render("failure-paths", minimalConfig),
+	})
+}
+
+// TestConfigsValidateConfigurationGroupGenerated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidateConfigurationGroupGenerated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_configuration_group",
+	}, map[string]string{
+		"full":    offline.Replace(fullConfig),
+		"updated": offline.Replace(updatedConfig),
+		"minimal": offline.Replace(minimalConfig),
 	})
 }

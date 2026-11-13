@@ -1,0 +1,16 @@
+# What the generated acceptance test needs for coralogix_custom_role, besides the schema.
+#
+# The parent role is a system role of the team, and the permissions are ones that the service
+# knows. The updated config adds a permission and keeps the parent, because Update cannot change it
+# (a changed parent_role replaces the role).
+resource: CustomRole
+
+values:
+  parent_role: '"Standard User"'
+  permissions: '["spans.events2metrics:UpdateConfig"]'
+
+updatedValues:
+  permissions: '["spans.events2metrics:UpdateConfig", "spans.events2metrics:ReadConfig"]'
+
+minimal: []
+upgradeFrom: "3.24.0"

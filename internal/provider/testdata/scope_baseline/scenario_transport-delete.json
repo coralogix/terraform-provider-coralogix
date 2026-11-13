@@ -59,7 +59,7 @@
   {
     "step": "delete transport failure",
     "applyDiagnostics": [
-      "error: Error deleting coralogix_scope | error - Delete \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001\": scope transport unavailable\noperation - Delete"
+      "error: Unable to delete scope | id 00000000-0000-4000-8000-000000000001: Delete \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001\": scope transport unavailable"
     ],
     "state": {
       "default_expression": "<v1>true",

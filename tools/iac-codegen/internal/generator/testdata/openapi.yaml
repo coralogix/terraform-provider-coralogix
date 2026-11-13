@@ -254,6 +254,7 @@ components:
         paused:
           type: boolean
           description: Whether the thing is paused. Omitted and false are the same.
+          deprecated: true
         retries:
           type: integer
           format: int32

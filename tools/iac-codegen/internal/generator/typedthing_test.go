@@ -79,6 +79,13 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 			"names: {metadataField: metadata, tagField: tag, processTagField: process_tag}",
 			"field: value\n      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}", "field and value are both"},
 	}
+	cases["asList with a field"] = struct{ from, to, want string }{"typedArms: {asList: true}", "typedArms: {asList: true, field: kind}", "takes no field"}
+	cases["asList on a list arm with other fields"] = struct{ from, to, want string }{"      labels: {skip: true}\n", "      labels: {readEmptyAs: \"null\"}\n", "skip the other fields of the list arm"}
+	cases["a rule that names no attribute of the arm"] = struct{ from, to, want string }{"exactlyOneOf: [unit]", "exactlyOneOf: [nothing]", "is not another attribute of the arm"}
+	cases["a validators line on a number field of an arm"] = struct{ from, to, want string }{"      percentileUnit: {name: unit}\n", "      percentileUnit: {name: unit}\n      percent: {validators: [{between: [0, 1]}]}\n", "takes a rule over other attributes, or a validator of a text field"}
+	cases["two arm fields with one Go name and two Terraform names"] = struct{ from, to, want string }{
+		"      field: {readEmptyAs: \"null\", validators: [{exactlyOneOf: [unit]}]}\n",
+		"      field: {readEmptyAs: \"null\", name: other_field}\n", "have one Go name"}
 	// A shared field that is not text has one attribute, so its checks must be the same in every arm.
 	t.Run("a shared number with other limits", func(t *testing.T) {
 		limited := strings.Replace(string(spec), "        weight: {type: number, format: double, x-coralogix-presence: true}\n", "        weight: {type: number, format: double, minimum: 0, x-coralogix-presence: true}\n", 1)
@@ -118,5 +125,115 @@ func TestTypedThingKeysRefuseOtherShapes(t *testing.T) {
 				t.Fatalf("error = %v, want it to contain %q", err, c.want)
 			}
 		})
+	}
+}
+
+// An inline line on a field whose object has a typedArms line shows the arms of the object as the
+// attributes of the component that holds it. The generator refuses the shapes where the line would
+// make an arm of something that is no arm, or where no component could take it.
+func TestInlineOfATypedObjectIsChecked(t *testing.T) {
+	spanValue := "    TypedSpanValue:\n      type: object\n      properties:\n        value: {$ref: '#/components/schemas/TypedSpanField'}\n        note: {type: string, x-coralogix-presence: true}\n"
+	tests := map[string]struct {
+		spec, overrides [2]string
+		want            string
+	}{
+		"an object that shows a list": {
+			overrides: [2]string{"    typedArms:\n      names: {metadataField: metadata, tagField: tag, processTagField: process_tag}", "    typedArms: {asList: true}"},
+			want:      "has typedArms.asList, which shows a list",
+		},
+		"another field beside the object": {
+			spec: [2]string{spanValue, spanValue + "        other: {type: string, x-coralogix-presence: true}\n"},
+			want: "the fields of an object with a typedArms line are arms in TypedSpanValue, but TypedSpanValue has other fields",
+		},
+		"two objects with a typedArms line": {
+			spec:      [2]string{spanValue, spanValue + "        notSelection: {$ref: '#/components/schemas/TypedNotSelection'}\n"},
+			overrides: [2]string{"      value: {inline: true}\n", "      value: {inline: true}\n      notSelection: {inline: true}\n"},
+			want:      "more than one inlined object has a typedArms line",
+		},
+		"the resource itself": {
+			overrides: [2]string{"      id: {readOnly: true}\n", "      id: {readOnly: true}\n      aggregation: {inline: true, required: true}\n"},
+			want:      "only a nested component takes with its fields",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec, err := os.ReadFile(filepath.Join("testdata", "typedthing.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			overrides, err := os.ReadFile(filepath.Join("testdata", "typedthing-overrides.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.spec[0] != "" {
+				spec = []byte(replaceOnce(t, string(spec), test.spec[0], test.spec[1]))
+			}
+			if test.overrides[0] != "" {
+				overrides = []byte(replaceOnce(t, string(overrides), test.overrides[0], test.overrides[1]))
+			}
+			path := filepath.Join(t.TempDir(), "typedthing-overrides.yaml")
+			if err := os.WriteFile(path, overrides, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			err = generateFromInput(Options{Resource: "TypedThing", OutputDir: filepath.Join(t.TempDir(), "typedthing"), OverridesPath: path}, input, loadDir)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A oneOf of all and a list is shown as one list: [] selects the arm without fields, and values
+// select the list arm. The list arm can say minItems: 1, because an empty list of that arm means
+// nothing. The shown attribute must still accept [], so the minimum size of the arm is no validator
+// of it: the list arm never gets an empty list, as expand sends [] as the other arm. The other
+// limits of the arm stay.
+func TestAsListAcceptsAnEmptyListWhenTheListArmNeedsAnItem(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "typedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "typedthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The list arm needs one value and holds at most three, each of at least two characters; the
+	// contract limits become validators, which the fixture turns off.
+	spec = []byte(replaceOnce(t, string(spec),
+		"    TypedPickList:\n      type: object\n      properties:\n        values:\n          type: array\n          items: {type: string}\n",
+		"    TypedPickList:\n      type: object\n      properties:\n        values:\n          type: array\n          minItems: 1\n          maxItems: 3\n          items: {type: string, minLength: 2}\n"))
+	overrides = []byte(replaceOnce(t, string(overrides), "validators:\n  inferred: false\n", "validators:\n  inferred: true\n"))
+	dir := t.TempDir()
+	path := filepath.Join(dir, "typedthing-overrides.yaml")
+	if err := os.WriteFile(path, overrides, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(dir, "typedthing")
+	if err := generateFromInput(Options{Resource: "TypedThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := strings.Index(string(schema), `"picked_values": schema.ListAttribute{`)
+	if start < 0 {
+		t.Fatal("the schema has no list attribute picked_values")
+	}
+	block := string(schema[start:])
+	if end := strings.Index(block, "\n\t\t\t},"); end > 0 {
+		block = block[:end]
+	}
+	if strings.Contains(block, "SizeAtLeast") {
+		t.Errorf("picked_values has a SizeAtLeast validator, which rejects []:\n%s", block)
+	}
+	for _, want := range []string{"SizeAtMost(3)", "LengthAtLeast(2)"} {
+		if !strings.Contains(block, want) {
+			t.Errorf("picked_values lost the limit %s of the list arm:\n%s", want, block)
+		}
 	}
 }

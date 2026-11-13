@@ -1,0 +1,63 @@
+# Released Terraform behavior that differs from the scope API contract.
+resource: v1.Scope
+mode: existing
+typeName: scope
+markdownDescription: "Coralogix Scope. Scopes assign data access to users via groups. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/scopes/."
+
+schema:
+  version: 0
+
+# Keep the released validators. API limits must not add new restrictions to HCL.
+validators:
+  inferred: false
+
+api:
+  getByIDs: ids
+  updateIDInBody: true
+  operations:
+    create: ScopesService_CreateScope
+    get: ScopesService_GetTeamScopesByIds
+    update: ScopesService_UpdateScope
+    delete: ScopesService_DeleteScope
+
+types:
+  v1.Scope:
+    fields:
+      id:
+        markdownDescription: "Scope ID."
+      displayName:
+        required: true
+        markdownDescription: "Scope display name."
+      description:
+        markdownDescription: "Description of the scope. Optional."
+        readEmptyAs: "null"
+      defaultExpression:
+        markdownDescription: "Default expression to use when no filter matches the query. Until further notice, this is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`)"
+        validators:
+          - regexMatches:
+              pattern: '^<v[\d]+>true|false+$'
+              message: "Default expression must be in the format `<vX>true` or `<vX>false where X is a version number. E.g. `<v1>true` or `<v1>false"
+      teamId:
+        terraformType: String
+        useStateForUnknown: true
+        markdownDescription: "Associated team."
+      filters:
+        required: true
+        readEmptyAs: "null"
+        markdownDescription: "Filters applied to include data in the scope."
+  scopes.v1.Filter:
+    fields:
+      expression:
+        markdownDescription: "Expression to run"
+      entityType:
+        markdownDescription: "Entity type to apply the expression on"
+        validators: [{enum: true}]
+
+enums:
+  v1.EntityType:
+    zero: unspecified
+    names:
+      ENTITY_TYPE_LOGS: logs
+      ENTITY_TYPE_SPANS: spans
+
+dataSource: {}

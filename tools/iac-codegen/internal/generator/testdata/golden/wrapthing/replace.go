@@ -36,7 +36,13 @@ var updateFields = []struct {
 	{attr: "tags", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
+	{attr: "span", serverDefault: false},
+	{attr: "step", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
+	{attr: "panels", serverDefault: false},
+	{attr: "folder_path", serverDefault: false},
+	{attr: "marks", serverDefault: false},
+	{attr: "home", serverDefault: false},
 	{attr: "offset", serverDefault: false},
 }
 
@@ -56,6 +62,7 @@ func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.
 		if fieldDiags.HasError() {
 			continue
 		}
+		p, s = requestValue(ctx, field.attr, p, &diags), requestValue(ctx, field.attr, s, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 		if !p.Equal(s) {
 			changed = true

@@ -4,6 +4,7 @@ package {{.Package}}
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"maps"
 	"math"
@@ -279,7 +280,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 		return nil, diags
 	}
 {{- range .RootUnsupported}}
-	if v.{{.SDK}} != nil {
+	if v.{{.SDK}} != nil && !unsupportedAllowed(ctx) {
 		diags.AddError({{printf "%q" .Summary}}, {{printf "%q" .Detail}})
 		return nil, diags
 	}
@@ -503,8 +504,58 @@ func defaultValue(at string, child attr.Value) bool {
 	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
 }
 {{- end}}
+{{- range .Distributions}}
+
+// distributed{{.Name}} holds the {{.Name}} list of one request or one response. The list is no
+// attribute of the resource: each item of it is an attribute of the object that it names. Expand
+// collects the items of every object, and flatten gives each object the items that name it.
+type distributed{{.Name}} struct {
+	items []{{.SDKType}}
+}
+
+type distributed{{.Name}}Key struct{}
+
+// withDistributed{{.Name}} returns ctx with a new collector that holds items.
+func withDistributed{{.Name}}(ctx context.Context, items []{{.SDKType}}) (context.Context, *distributed{{.Name}}) {
+	d := &distributed{{.Name}}{items: items}
+	return context.WithValue(ctx, distributed{{.Name}}Key{}, d), d
+}
+
+// distributed{{.Name}}Of returns the collector of ctx, or nil when ctx has none.
+func distributed{{.Name}}Of(ctx context.Context) *distributed{{.Name}} {
+	d, _ := ctx.Value(distributed{{.Name}}Key{}).(*distributed{{.Name}})
+	return d
+}
+
+{{- if .Keep}}
+
+// distributed{{.Name}}Shown reports whether a response shows the item: it has a value at {{.KeepPath}}.
+// Flatten drops the other items, so expand refuses them, or the write would lose them on the read.
+func distributed{{.Name}}Shown(a {{.SDKType}}) bool {
+	return {{.Keep}}
+}
+{{- end}}
+
+// of returns the items that name the object with the id, in the order of the list.
+func (d *distributed{{.Name}}) of(id string) []{{.SDKType}} {
+	var out []{{.SDKType}}
+	for _, a := range d.items {
+{{- if .Keep}}
+		if !distributed{{.Name}}Shown(a) {
+			continue
+		}
+{{- end}}
+		if got := {{.ListRead}}; got != nil && *got == id {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+{{- end}}
 {{range .Objects}}
-{{- if and .Expand .Group}}
+{{- if and .Expand .Typed}}
+{{- template "typedExpand" .}}
+{{else if and .Expand .Group}}
 // expand{{.Func}} writes the fields of a group, which the API holds in the parent object, to out.
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) {
 	if m == nil {
@@ -514,8 +565,6 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- template "expandField" .}}
 {{- end}}
 }
-{{else if and .Expand .Typed}}
-{{- template "typedExpand" .}}
 {{else if and .Expand .Carry}}
 {{- template "carryExpand" .}}
 {{else if .Expand}}
@@ -524,6 +573,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}{}
+{{- range .Lists}}
+	ctx, collected{{.Dist.Name}} := withDistributed{{.Dist.Name}}(ctx, nil)
+{{- end}}
 {{- range .Parents}}
 	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its fields are top-level attributes
 {{- end}}
@@ -531,6 +583,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- if not (or .FlattenOnly .Carried)}}
 {{- template "expandField" .}}
 {{- end}}
+{{- end}}
+{{- range .Lists}}
+	out.{{.SDK}} = collected{{.Dist.Name}}.items
 {{- end}}
 {{- range .DropEmptyParents}}
 	if out.{{.SDK}} != nil{{range .Nulls}} && {{.}}{{end}} {
@@ -556,16 +611,22 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 		return nil
 	}
 {{- if .OptionalGroup}}
-	if {{range $i, $f := .Fields}}{{if $i}} && {{end}}v.{{$f.SDK}} == nil{{end}} {
+	if {{range $i, $f := .LeafSDK}}{{if $i}} && {{end}}v.{{$f}} == nil{{end}} {
 		return nil // the response has none of the fields: the group is null
 	}
 {{- end}}
 {{- $model := .Model}}
 {{- range .Unsupported}}
-	if v.{{.SDK}} != nil {
+	if v.{{.SDK}} != nil && !unsupportedAllowed(ctx) {
 		diags.AddError({{printf "%q" .Summary}}, {{printf "%q" .Detail}})
-		return &{{$model}}{}
 	}
+{{- end}}
+{{- range $f := .Fields}}
+{{- if $f.EmptyError}}
+	if !unsupportedAllowed(ctx) && (v.{{$f.SDK}} == nil{{if $f.Object.LeafSDK}} || ({{range $i, $leaf := $f.Object.LeafSDK}}{{if $i}} && {{end}}v.{{$f.SDK}}.{{$leaf}} == nil{{end}}){{end}}) {
+		diags.AddError({{printf "%q" $f.EmptyError.Summary}}, {{printf "%q" $f.EmptyError.Detail}})
+	}
+{{- end}}
 {{- end}}
 {{- if .FlattenParents}}
 	// The fields of an inlined object read as null when the API returns no object.
@@ -577,6 +638,9 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 	}
 {{- end}}
 {{- end}}
+{{- range .Lists}}
+	ctx, _ = withDistributed{{.Dist.Name}}(ctx, v.{{.SDK}})
+{{- end}}
 	out := &{{.Model}}{}
 {{- range .Fields}}
 {{- if not .Carried}}
@@ -585,16 +649,31 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 {{- end}}
 {{- range .ExtraFlatten}}
 	out.{{.Name}} = {{.Expr}}
+{{- if .Keep}}
+{{- if .Default}}
+	out.{{.Name}} = {{.Default}}
+{{- end}}
+	if prior != nil{{if .Default}} && !prior.{{.Name}}.IsNull(){{end}} {
+		out.{{.Name}} = prior.{{.Name}}
+	}
+{{- end}}
 {{- end}}
 {{- if .RequireOne}}
 	arms := 0
-{{- range .Fields}}
-	if v.{{.SDK}} != nil {
+{{- range .LeafSDK}}
+	if v.{{.}} != nil {
 		arms++
 	}
 {{- end}}
 	if arms != 1 {
 		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}; it must have exactly one.", arms))
+	}
+{{- end}}
+{{- if .KeepPriorArm}}
+	if prior != nil && otherArm([]bool{ {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.SetIn "prior"}}{{end}} }, []bool{ {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.SetIn "out"}}{{end}} }) {
+		// The API answered another arm than the one that the user wrote, so the written arm stays.
+		kept := *prior
+		return &kept
 	}
 {{- end}}
 	return out
@@ -1102,7 +1181,7 @@ func priorItems[T any](ctx context.Context, v elements) []T {
 	return items
 }
 {{- end}}
-{{- if .Conv.UsesPrior}}
+{{- if or .Conv.UsesPrior .Conv.UsesSetPrior}}
 
 // keepOrder returns the items in the order of the prior list, when the API returned the same items in
 // another order. It expands the prior list to SDK values and compares them with same. The prior only
@@ -1144,6 +1223,41 @@ func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
 	}
 	return prior
 }
+{{- if .Conv.UsesSetPrior}}
+
+// pairPrior returns, for each item, the prior model that has the same request value as the item, or
+// nil. A set has no order, so the prior item is found by value and not by index. Each prior item pairs
+// with one item. The prior only keeps the text of a value, so a prior that cannot be read is no error.
+func pairPrior[M, S any](ctx context.Context, items []S, models []M, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []*M {
+	out := make([]*M, len(items))
+	var scratch diag.Diagnostics
+	values := make([]S, 0, len(models))
+	for i := range models {
+		values = append(values, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return out
+	}
+	used := make([]bool, len(values))
+	for i := range items {
+		for j := range values {
+			if !used[j] && same(&items[i], &values[j]) {
+				used[j], out[i] = true, &models[j]
+				break
+			}
+		}
+	}
+	return out
+}
+{{- end}}
+{{- if .Conv.UsesFoldedSame}}
+
+// sameFoldedString reports whether two strings are equal when the case is ignored. A set with
+// equality: caseInsensitive compares its elements with it.
+func sameFoldedString(a, b *string) bool {
+	return strings.EqualFold(*a, *b)
+}
+{{- end}}
 {{- if .Conv.UsesPriorVia}}
 
 // keepOrderVia is keepOrder for a list whose response items the request does not send. It
@@ -1327,6 +1441,60 @@ func flattenTimesSet(ctx context.Context, v []time.Time, diags *diag.Diagnostics
 }
 {{- end}}
 
+{{if .Conv.UsesElementCase -}}
+// keepPriorElementCase returns the API elements, each in the spelling of the prior element that
+// differs from it only in case. An element without a prior twin keeps the API spelling. A prior
+// element serves one API element. In a list (ordered), the prior element at the same index serves
+// the API element at that index when the two match in any case, so twins that differ only in case
+// keep their spellings at their places. Then, in a list or a set, an exact match goes first, and
+// then the first unused twin, so that elements that differ only in case keep their own spellings.
+func keepPriorElementCase(prior []attr.Value, api []string, ordered bool) []string {
+	if api == nil {
+		return nil
+	}
+	spellings := make([]string, len(prior))
+	known := make([]bool, len(prior))
+	for j, element := range prior {
+		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
+			spellings[j], known[j] = s.ValueString(), true
+		}
+	}
+	used := make([]bool, len(prior))
+	out := slices.Clone(api)
+	done := make([]bool, len(api))
+	if ordered {
+		for i, element := range api {
+			if i < len(prior) && known[i] && strings.EqualFold(spellings[i], element) {
+				out[i], used[i], done[i] = spellings[i], true, true
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if known[j] && !used[j] && spelled == element {
+				used[j], done[i] = true, true
+				break
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if known[j] && !used[j] && strings.EqualFold(spelled, element) {
+				used[j], out[i] = true, spelled
+				break
+			}
+		}
+	}
+	return out
+}
+
+{{end -}}
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
 		return types.SetNull(types.StringType)
@@ -1390,7 +1558,7 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	return l
 }
 
-{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap") (.Conv.Uses "keyedobjects") (.Conv.Uses "keyedvalues")}}
+{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "mapset") (.Conv.Uses "scalarmap") (.Conv.Uses "keyedobjects") (.Conv.Uses "keyedvalues")}}
 
 // expandMap returns the values of v. It returns nil for a null value, and a
 // non-nil map for an empty value.
@@ -1543,12 +1711,259 @@ func flattenFloat64AsFloat32(v *float64) types.Float64 {
 	}
 	return types.Float64Value(f)
 }
+{{- end}}
+{{- if .Conv.Uses "float32asfloat64"}}
+
+// expandFloat64AsFloat32 returns the float32 that the API holds for a Float64 attribute.
+func expandFloat64AsFloat32(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+// flattenFloat32AsFloat64 returns a float32 of the API as the shortest decimal that reads back as
+// it: 0.3 and not 0.30000001192092896.
+func flattenFloat32AsFloat64(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, err := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
+	if err != nil {
+		return types.Float64Value(float64(*v))
+	}
+	return types.Float64Value(f)
+}
+{{- end}}
+{{- if or (.Conv.Uses "float64asfloat32") (.Conv.Uses "float32asfloat64")}}
 
 // keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
 // value that the API stores. A configured 0.123456789 then stays, though the API returns the
 // float32 0.12345679.
 func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() || float32(prior.ValueFloat64()) != float32(v.ValueFloat64()) {
+		return v
+	}
+	return prior
+}
+{{- end}}
+{{- if .Conv.UsesKeepPriorArm}}
+
+// otherArm reports whether the prior value and the new value each have a field set, and no field is
+// set in both: the new value holds another arm than the prior one.
+func otherArm(prior, now []bool) bool {
+	anyPrior, anyNow := false, false
+	for i := range prior {
+		if prior[i] && now[i] {
+			return false
+		}
+		anyPrior, anyNow = anyPrior || prior[i], anyNow || now[i]
+	}
+	return anyPrior && anyNow
+}
+{{- end}}
+{{- if .Conv.UsesUnsupported}}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
+}
+{{- end}}
+{{- if .Conv.UsesDuration}}
+
+// expandDuration converts the released text of a duration to the protobuf JSON duration that the API
+// holds: seconds:900 (protoText, also minutes:15) or 15m0s (goDuration) become 900s. A null or unknown
+// text is no value.
+func expandDuration(p path.Path, v types.String, format string, diags *diag.Diagnostics) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	d, err := parseDurationText(v.ValueString(), format)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid duration", err.Error())
+		return nil
+	}
+	wire := wireDuration(d)
+	return &wire
+}
+
+// flattenDuration converts a protobuf JSON duration to the released text. A value that is no duration
+// stays as the API wrote it.
+func flattenDuration(v *string, format string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	d, ok := parseWireDuration(*v)
+	if !ok {
+		return types.StringValue(*v)
+	}
+	if format == "goDuration" {
+		return types.StringValue(d.String())
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos != 0:
+		return types.StringValue(fmt.Sprintf("seconds:%d nanos:%d", seconds, nanos))
+	default:
+		return types.StringValue(fmt.Sprintf("seconds:%d", seconds))
+	}
+}
+
+func parseDurationText(text, format string) (time.Duration, error) {
+	if format == "goDuration" {
+		return time.ParseDuration(text)
+	}
+	unit, number, found := strings.Cut(text, ":")
+	if !found {
+		return 0, fmt.Errorf("error parsing duration %q: want seconds:<n> or minutes:<n>", text)
+	}
+	n, err := strconv.Atoi(number)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing duration numbers in %q", text)
+	}
+	switch unit {
+	case "seconds":
+		return time.Second * time.Duration(n), nil
+	case "minutes":
+		return time.Minute * time.Duration(n), nil
+	}
+	return 0, fmt.Errorf("error parsing duration unit %q", unit)
+}
+
+// wireDuration writes a duration as the protobuf JSON text: whole seconds, then a fraction of 3, 6, or
+// 9 digits, then s.
+func wireDuration(d time.Duration) string {
+	sign := ""
+	if d < 0 {
+		sign, d = "-", -d
+	}
+	seconds, nanos := int64(d/time.Second), int64(d%time.Second)
+	switch {
+	case nanos == 0:
+		return fmt.Sprintf("%s%ds", sign, seconds)
+	case nanos%1000000 == 0:
+		return fmt.Sprintf("%s%d.%03ds", sign, seconds, nanos/1000000)
+	case nanos%1000 == 0:
+		return fmt.Sprintf("%s%d.%06ds", sign, seconds, nanos/1000)
+	}
+	return fmt.Sprintf("%s%d.%09ds", sign, seconds, nanos)
+}
+
+func parseWireDuration(text string) (time.Duration, bool) {
+	number, ok := strings.CutSuffix(text, "s")
+	if !ok || number == "" {
+		return 0, false
+	}
+	d, err := time.ParseDuration(number + "s")
+	return d, err == nil
+}
+{{- end}}
+{{- if .Conv.UsesJoin}}
+
+// splitText returns the elements of a text that Terraform shows for a list of strings: the text split
+// at every separator, with no trimming, so "a//b/" is a, an empty text, b, and an empty text. A null
+// or unknown text is no list.
+func splitText(v types.String, sep string) []string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return strings.Split(v.ValueString(), sep)
+}
+
+// joinText returns the elements of a list as one text, joined by the separator. A list that the API
+// does not have is null.
+func joinText(v []string, sep string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strings.Join(v, sep))
+}
+{{- end}}
+{{- if .Conv.UsesClientID}}
+
+// expandClientUUID returns the id that the client makes: the value of a known id, and a new version 4
+// UUID for an id that is unknown. A null id is no id.
+func expandClientUUID(v types.String) *string {
+	if v.IsNull() {
+		return nil
+	}
+	if !v.IsUnknown() {
+		return expandString(v)
+	}
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6], b[8] = b[6]&0x0f|0x40, b[8]&0x3f|0x80
+	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+	return &id
+}
+{{- end}}
+{{- if or (.Conv.Uses "int32asnumber") (.Conv.Uses "float64asnumber")}}
+
+// expandNumberAsInt32 returns the int32 that the API holds for a Number attribute. A value that is
+// not a whole number, or is outside the int32 range, is an error.
+func expandNumberAsInt32(p path.Path, v types.Number, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, accuracy := v.ValueBigFloat().Int64()
+	if accuracy != big.Exact || n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is not a whole number from %d to %d.", v.ValueBigFloat().Text('g', -1), math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// expandNumberAsFloat64 returns the double that the API holds for a Number attribute.
+func expandNumberAsFloat64(p path.Path, v types.Number, diags *diag.Diagnostics) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f, _ := v.ValueBigFloat().Float64()
+	if math.IsInf(f, 0) {
+		diags.AddAttributeError(p, "Invalid number", fmt.Sprintf("%s is outside the range of a double.", v.ValueBigFloat().Text('g', -1)))
+		return nil
+	}
+	return &f
+}
+
+func int32AsNumber(v *int32) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*v)))
+}
+
+func float64AsNumber(v *float64) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*v))
+}
+{{- end}}
+{{- if .Conv.Uses "float64asnumber"}}
+
+// keepPriorNumber returns the plan or state value prior when it is the same double as v, the value
+// that the API stores. A configured 0.1 then stays, though Terraform holds it with more bits than a
+// double and the API returns the double 0.1000000000000000055.
+func keepPriorNumber(prior, v types.Number) types.Number {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	p, _ := prior.ValueBigFloat().Float64()
+	f, _ := v.ValueBigFloat().Float64()
+	if p != f {
 		return v
 	}
 	return prior
@@ -1809,10 +2224,38 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	} else {
 		{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 	}
+{{- else if eq .Conv "distributed"}}
+	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); len(items) != 0 {
+		if collected := distributed{{.Dist.Name}}Of(ctx); collected != nil {
+			// The items name this object by its id, as the request holds it.
+			id := {{.ItemID.ReadOf "out"}}
+			if id == nil || *id == "" {
+				diags.AddAttributeError({{$p}}, "Missing id", "The items name their object by its id, so the object needs an id.")
+			} else {
+				for i := range items {
+					item := expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags)
+{{- if .Dist.Keep}}
+					if !distributed{{.Dist.Name}}Shown(*item) {
+						diags.AddAttributeError({{$p}}.AtListIndex(i), "Item would not be read back", "A response shows only the items that have a value at {{.Dist.KeepPath}}, so this item would be missing after the write. Set that value.")
+						continue
+					}
+{{- end}}
+					item.{{.Dist.List.SDK}} = {{.Dist.List.WriteOf "id"}}
+					collected.items = append(collected.items, *item)
+				}
+			}
+		}
+	}
+{{- else if and (eq .Conv "string") .ClientID}}
+	{{.Dst}} = {{$l}}expandClientUUID(m.{{.Model}}){{$r}}
+{{- else if and (eq .Conv "string") .Duration}}
+	{{.Dst}} = {{$l}}expandDuration({{$p}}, m.{{.Model}}, {{printf "%q" .Duration}}, diags){{$r}}
 {{- else if eq .Conv "string"}}
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "split"}}
 	{{.Dst}} = {{$l}}joinStrings(ctx, {{$p}}, m.{{.Model}}, {{printf "%q" .Split}}, diags){{$r}}
+{{- else if eq .Conv "join"}}
+	{{.Dst}} = splitText(m.{{.Model}}, {{printf "%q" .Join}})
 {{- else if and (eq .Conv "bool") .Negated}}
 	{{.Dst}} = {{$l}}negateBool(expandBool(m.{{.Model}})){{$r}}
 {{- else if eq .Conv "bool"}}
@@ -1830,6 +2273,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandInt64(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "int32asint64"}}
 	{{.Dst}} = {{$l}}expandInt64AsInt32({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "float32asfloat64"}}
+	{{.Dst}} = {{$l}}expandFloat64AsFloat32(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int32asnumber"}}
+	{{.Dst}} = {{$l}}expandNumberAsInt32({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "float64asnumber"}}
+	{{.Dst}} = {{$l}}expandNumberAsFloat64({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "ints32asint64"}}
 	{{- if eq .Collection "Set"}}
 	{{.Dst}} = int64sAsInt32({{$p}}, expandSet[int64](ctx, {{$p}}, m.{{.Model}}, diags), diags)
@@ -1880,6 +2329,31 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "foldlist"}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		// No values select the arm without fields. Some values are the list arm.
+		fold := &{{.SDKType}}{}
+		if values := expandElements[string](ctx, {{$p}}, v, diags); len(values) == 0 {
+			fold.{{.ListFold.All}} = map[string]interface{}{}
+		} else {
+			fold.{{.ListFold.List}} = &{{.ListFold.ListType}}{{"{"}}{{.ListFold.Values}}: values{{"}"}}
+		}
+		{{.Dst}} = {{$l}}fold{{$r}}
+	}
+{{- else if and (eq .Conv "foldstring") .StringFold.Empty}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		// The text names the arm. Each arm is an object without fields.
+		fold := &{{.SDKType}}{}
+		switch v.ValueString() {
+{{- range .StringFold.Empty}}
+		case {{printf "%q" .Value}}:
+			fold.{{.SDK}} = map[string]interface{}{}
+{{- end}}
+		default:
+			diags.AddAttributeError({{$p}}, "Unknown value", fmt.Sprintf("%q is not one of{{range .StringFold.Empty}} {{.Value}}{{end}}.", v.ValueString()))
+		}
+		{{.Dst}} = {{$l}}fold{{$r}}
+	}
 {{- else if eq .Conv "foldstring"}}
 	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
 		// A spelling of the enum is the enum arm. Any other text is the string arm.
@@ -2026,7 +2500,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "readZeroAsNull"}}
 	{{- if .ReadZeroAsNull}}
 	// A configuration cannot hold the zero value, so a read of it is an omitted value.
-	if out.{{.Model}}.Value{{.ValueKind}}() == {{if eq .Conv "string"}}{{printf "%q" .Zero}}{{else}}0{{end}} {
+	if {{if eq .ValueKind "Number"}}out.{{.Model}}.ValueBigFloat() != nil && out.{{.Model}}.ValueBigFloat().Sign() == 0{{else}}out.{{.Model}}.Value{{.ValueKind}}() == {{if eq .Conv "string"}}{{printf "%q" .Zero}}{{else}}0{{end}}{{end}} {
 		out.{{.Model}} = types.{{.ValueKind}}Null()
 	}
 	{{- end}}
@@ -2035,8 +2509,25 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "flattenValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $v := .Src}}{{if .DirectValue}}{{$v = printf "&%s" .Src}}{{end}}
-{{- if eq .Conv "split"}}
+{{- if eq .Conv "distributed"}}
+	out.{{.Model}} = types.ListNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if collected := distributed{{.Dist.Name}}Of(ctx); collected != nil {
+		if id := {{.ItemID.ReadOf "v"}}; id != nil {
+			if matched := collected.of(*id); len(matched) != 0 {
+				items := make([]{{.Object.Model}}, 0, len(matched))
+				for i := range matched {
+					items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &matched[i], diags))
+				}
+				out.{{.Model}} = flattenList(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+			}
+		}
+	}
+{{- else if eq .Conv "join"}}
+	out.{{.Model}} = joinText({{.Src}}, {{printf "%q" .Join}})
+{{- else if eq .Conv "split"}}
 	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})
+{{- else if and (eq .Conv "string") .Duration}}
+	out.{{.Model}} = flattenDuration({{$v}}, {{printf "%q" .Duration}})
 {{- else if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
 	{{- if .ReadNullAsEmpty}}
@@ -2094,6 +2585,21 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "int32asint64"}}
 	out.{{.Model}} = types.Int64PointerValue(int32AsInt64({{$v}}))
 	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "float32asfloat64"}}
+	out.{{.Model}} = flattenFloat32AsFloat64({{$v}})
+	{{- template "readZeroAsNull" .}}
+	if prior != nil {
+		out.{{.Model}} = keepPriorFloat32(prior.{{.Model}}, out.{{.Model}})
+	}
+{{- else if eq .Conv "int32asnumber"}}
+	out.{{.Model}} = int32AsNumber({{$v}})
+	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "float64asnumber"}}
+	out.{{.Model}} = float64AsNumber({{$v}})
+	{{- template "readZeroAsNull" .}}
+	if prior != nil {
+		out.{{.Model}} = keepPriorNumber(prior.{{.Model}}, out.{{.Model}})
+	}
 {{- else if eq .Conv "ints32asint64"}}
 	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, types.Int64Type, ints32AsInt64({{.Src}}), diags)
 {{- else if eq .Conv "float32"}}
@@ -2117,9 +2623,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenRFC3339({{$v}})
 {{- else if eq .Conv "times"}}
 	out.{{.Model}} = flattenTimes{{.Collection}}(ctx, {{.Src}}, diags)
-{{- else if and (eq .Conv "enum") .EnumMap .EnumMap.ZeroNull}}
-	if api := {{$v}}; api != nil && *api == {{printf "%q" .EnumMap.ZeroNull}} {
-		// The zero value means that the API has no value.
+{{- else if and (eq .Conv "enum") .EnumMap .EnumMap.NullAPIValues}}
+	if api := {{$v}}; api != nil && ({{range $i, $n := .EnumMap.NullAPIValues}}{{if $i}} || {{end}}*api == {{printf "%q" $n}}{{end}}) {
+		// The zero value, or a value that the resource does not accept, means that the API has no value.
 		out.{{.Model}} = types.StringNull()
 	} else {
 		out.{{.Model}} = flattenEnumMapped({{$p}}, api, {{.EnumMap.Name}}FromAPI, diags)
@@ -2211,6 +2717,26 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 	{{- end}}
+{{- else if eq .Conv "foldlist"}}
+	out.{{.Model}} = types.ListNull(types.StringType)
+	if fold := {{$v}}; fold != nil {
+		switch {
+		case fold.{{.ListFold.List}} != nil:
+			out.{{.Model}} = flattenStringsList(ctx, append([]string{}, fold.{{.ListFold.List}}.{{.ListFold.Values}}...), diags)
+		case fold.{{.ListFold.All}} != nil:
+			out.{{.Model}} = flattenStringsList(ctx, []string{}, diags)
+		}
+	}
+{{- else if and (eq .Conv "foldstring") .StringFold.Empty}}
+	out.{{.Model}} = types.StringNull()
+	if fold := {{$v}}; fold != nil {
+		switch {
+{{- range .StringFold.Empty}}
+		case fold.{{.SDK}} != nil:
+			out.{{$.Model}} = types.StringValue({{printf "%q" .Value}})
+{{- end}}
+		}
+	}
 {{- else if eq .Conv "foldstring"}}
 	out.{{.Model}} = types.StringNull()
 	if fold := {{$v}}; fold != nil {
@@ -2235,6 +2761,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else if .Projection}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Projection.Func}}({{.Src}}), diags)
+	{{- else if eq .Equality "caseInsensitive"}}
+	// The API can return an element in another case, so the spelling of the plan or the state stays.
+	var priorElements []attr.Value
+	if prior != nil {
+		priorElements = prior.{{.Model}}.Elements()
+	}
+	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, keepPriorElementCase(priorElements, {{.Src}}, {{eq .Collection "List"}}), diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)
 	{{- end}}
@@ -2261,6 +2794,16 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
 		}
 		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "mapset"}}
+	out.{{.Model}} = types.SetNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if {{.Src}} != nil {
+		items := make([]{{.Object.Model}}, 0, len({{.Src}}))
+		for _, k := range slices.Sorted(maps.Keys({{.Src}})) {
+			item := {{.Src}}[k]
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &item, diags))
+		}
+		out.{{.Model}} = flattenSet(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
 {{- else if eq .Conv "keyedobjects"}}
 	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
@@ -2362,9 +2905,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			prior{{.Model}} = priorItems[{{.Object.Model}}](ctx, prior.{{.Model}})
 		}
 		{{- end}}
+		{{- if .SetPrior}}
+		// A set has no order: the prior item of an API item is the one with the same request value.
+		pairs := pairPrior(ctx, {{$src}}, prior{{.Model}}, expand{{.Object.Func}}, same{{.Object.Func}})
+		{{- end}}
 		for i := range {{$src}} {
 			{{- if eq .Collection "Set"}}
-			{{- if .Object.NeedsPrior}}
+			{{- if .SetPrior}}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], pairs[i], diags))
+			{{- else if .Object.NeedsPrior}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], nil, diags))
 			{{- else}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], diags))
@@ -2495,6 +3044,14 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 {{- define "typedExpand"}}
 {{- $typed := .Typed}}
 {{- $type := .Typed.TypeField}}
+{{- if .Group}}
+// expand{{.Func}} sets the arm that the type attribute names in out, the API object that holds the
+// arms of the group.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$typed.Pkg}}.{{.SDK}}, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+{{- else}}
 // expand{{.Func}} sends the arm that the type attribute names, with the merged fields that the arm
 // holds in the API.
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$typed.Pkg}}.{{.SDK}} {
@@ -2502,6 +3059,10 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{$typed.Pkg}}.{{.SDK}}{}
+{{- end}}
+{{- range .Parents}}
+	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its arms are the arms of this object
+{{- end}}
 	kind := m.{{$type.Model}}.ValueString()
 {{- if $typed.Infer}}
 	if m.{{$type.Model}}.IsNull() || m.{{$type.Model}}.IsUnknown() {
@@ -2524,16 +3085,16 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- if .Inline}}
 		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
 			{{.Inline.Model}}: &{{.Inner.Model}}{
-{{- range .Inner.Fields}}
-				{{.Model}}: m.{{.Model}},
+{{- range .Pairs}}
+				{{.Arm}}: m.{{.Merged}},
 {{- end}}
 			},
 		}, diags)
 {{- else if .Object}}
 		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
-{{- range .Object.Fields}}{{if not .Carried}}
-			{{.Model}}: m.{{.Model}},
-{{- end}}{{end}}
+{{- range .Pairs}}
+			{{.Arm}}: m.{{.Merged}},
+{{- end}}
 		}, diags)
 {{- else if .Empty}}
 		out.{{.SDK}} = map[string]interface{}{}
@@ -2544,7 +3105,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	default:
 		diags.AddAttributeError(p.AtName({{printf "%q" $type.TFName}}), "Unknown {{$type.TFName}}", fmt.Sprintf({{printf "%q" (print "The " $type.TFName " %q is not one of " $typed.Allowed ".")}}, m.{{$type.Model}}.ValueString()))
 	}
+{{- if not .Group}}
 	return out
+{{- end}}
 }
 {{- end}}
 
@@ -2556,6 +3119,21 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 	if v == nil {
 		return nil
 	}
+{{- if .OptionalGroup}}
+	if {{range $i, $f := .LeafSDK}}{{if $i}} && {{end}}v.{{$f}} == nil{{end}} {
+		return nil // the response has none of the arms: the group is null
+	}
+{{- end}}
+{{- if .FlattenParents}}
+	// A response without the inlined object has no arm, which the switch below reports.
+	copied := *v
+	v = &copied
+{{- range .FlattenParents}}
+	if v.{{.SDK}} == nil {
+		v.{{.SDK}} = &{{.Type}}{}
+	}
+{{- end}}
+{{- end}}
 	out := &{{.Model}}{}
 {{- $obj := .}}
 {{- range $typed.Arms}}
@@ -2563,13 +3141,16 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 	// A field that the selected arm does not have reads as an absent value.
 	if empty := flatten{{.Object.Func}}(ctx, p, &{{$typed.Pkg}}.{{.Object.SDK}}{}, {{if .Object.NeedsPrior}}nil, {{end}}diags); empty != nil {
 {{- range .Fields}}
-		out.{{.}} = empty.{{.}}
+		out.{{.Merged}} = empty.{{.Arm}}
 {{- end}}
 	}
 {{- end}}
 {{- if .InitScalar}}
 	{
 		v := &{{$typed.Pkg}}.{{$obj.SDK}}{}
+{{- range $obj.FlattenParents}}
+		v.{{.SDK}} = &{{.Type}}{}
+{{- end}}
 {{- template "flattenField" .Scalar}}
 	}
 {{- end}}
@@ -2586,16 +3167,16 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 		if prior != nil && prior.{{$type.Model}}.ValueString() == {{printf "%q" .Value}} {
 			priorArm = &{{.Object.Model}}{
 				{{.Inline.Model}}: &{{.Inner.Model}}{
-{{- range .Inner.Fields}}
-					{{.Model}}: prior.{{.Model}},
+{{- range .Pairs}}
+					{{.Arm}}: prior.{{.Merged}},
 {{- end}}
 				},
 			}
 		}
 {{- end}}
 		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
-{{- range .Inner.Fields}}
-			out.{{.Model}} = arm.{{$arm.Inline.Model}}.{{.Model}}
+{{- range .Pairs}}
+			out.{{.Merged}} = arm.{{$arm.Inline.Model}}.{{.Arm}}
 {{- end}}
 		}
 {{- else if .Object}}
@@ -2604,16 +3185,16 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 		var priorArm *{{.Object.Model}}
 		if prior != nil && prior.{{$type.Model}}.ValueString() == {{printf "%q" .Value}} {
 			priorArm = &{{.Object.Model}}{
-{{- range .Object.Fields}}{{if not .Carried}}
-				{{.Model}}: prior.{{.Model}},
-{{- end}}{{end}}
+{{- range .Pairs}}
+				{{.Arm}}: prior.{{.Merged}},
+{{- end}}
 			}
 		}
 {{- end}}
 		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil {
-{{- range .Object.Fields}}{{if not .Carried}}
-			out.{{.Model}} = arm.{{.Model}}
-{{- end}}{{end}}
+{{- range .Pairs}}
+			out.{{.Merged}} = arm.{{.Arm}}
+{{- end}}
 		}
 {{- else if .Scalar}}
 {{- template "flattenField" .Scalar}}

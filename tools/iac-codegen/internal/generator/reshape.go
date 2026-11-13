@@ -43,7 +43,7 @@ const upsertLocation = "behavior-overrides.yaml:api.operations"
 func reshape(data []byte, component string, ids model.OperationIDs, file *overrides.File, policy model.Policy) ([]byte, model.OperationIDs, issue.Report) {
 	inlined := file.InlinedFields()
 	nested := file.NestedInlined()
-	if file == nil || !file.Upserts() && len(inlined) == 0 && len(nested) == 0 {
+	if file == nil || !file.Upserts() && len(inlined) == 0 && len(nested) == 0 && len(file.PlaceClones) == 0 {
 		return data, ids, nil
 	}
 	var root yaml.Node
@@ -54,6 +54,18 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 	schemas := mapValue(mapValue(doc, "components"), "schemas")
 	h := inliner{schemas: schemas, fields: inlined, resource: component, file: file, done: map[*yaml.Node]map[string]overrides.Parent{}, relied: map[*yaml.Node][]string{}}
 	shape := &overrides.Inlined{}
+	if report := h.placeClones(); len(report) != 0 {
+		return data, ids, report
+	}
+	if len(inlined) == 0 && len(nested) == 0 && !file.Upserts() {
+		// Only a place copy changed the contract: no field is inlined, so the bodies keep their shape.
+		written, err := yaml.Marshal(&root)
+		if err != nil {
+			return data, ids, issue.Report{{Code: "OPENAPI_INVALID", Location: "openapi", Message: fmt.Sprintf("write the contract: %v", err), Remediation: "Correct the source OpenAPI document."}}
+		}
+		file.Inlined = shape
+		return written, ids, nil
+	}
 	var needed []*yaml.Node // the schemas of the resource that an inline line with required: true can be needed in
 	if len(inlined) != 0 {
 		response := mapValue(schemas, component)
@@ -206,7 +218,7 @@ func (h inliner) unusedNestedRequired(nested map[string][]string, relied map[str
 	for _, component := range slices.Sorted(maps.Keys(nested)) {
 		for _, field := range nested[component] {
 			if h.file.Types[component].Fields[field].Required && !relied[component+"."+field] {
-				report = append(report, issue.Issue{Code: "OVERRIDE_UNUSED", Location: overrides.FileName + ":types." + component + ".fields." + field, Message: fmt.Sprintf("every schema that holds %q requires it, so required: true on its inline line says nothing", field), Remediation: "Delete only the key required from the inline line."})
+				report = append(report, issue.Issue{Code: "OVERRIDE_UNUSED", Location: overrides.FileName + ":types." + component + ".fields." + field, Message: fmt.Sprintf("no schema needs required: true on the inline line of %q, so it says nothing: every schema that holds the object requires it, the object is an arm that stays beside other arms, or only a response holds the component", field), Remediation: "Delete only the key required from the inline line."})
 			}
 		}
 	}
@@ -283,6 +295,9 @@ type inliner struct {
 	// relied has, for each schema that inline changed, the inlined fields that the schema does not
 	// require and that the inline line states as required: the line is needed there.
 	relied map[*yaml.Node][]string
+	// nested: the line is on a nested component. Its object can be optional, and an arm can be
+	// inlined while the other arms stay.
+	nested bool
 }
 
 // inline replaces each inlined object of s by its fields, in place and in order. An inlined object
@@ -299,14 +314,15 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 		return nil, fmt.Errorf("inline: an object with allOf or anyOf is not supported")
 	}
 	required := stringList(mapValue(s, "required"))
-	arm, err := h.inlinedArm(s, response)
+	arm, kept, err := h.inlinedArm(s, response)
 	if err != nil {
 		return nil, err
 	}
 	parents := map[string]overrides.Parent{}
 	flat := &yaml.Node{Kind: yaml.MappingNode}
 	var flatRequired []string
-	var carried *yaml.Node // the oneOf of an inlined object
+	var carried *yaml.Node        // the oneOf of an inlined object
+	var typedObjects []*yaml.Node // the properties of each inlined object that has a typedArms line
 	add := func(key, value *yaml.Node, isRequired bool) error {
 		if mapValue(flat, key.Value) != nil {
 			return fmt.Errorf("inline: two fields have the name %q", key.Value)
@@ -343,23 +359,39 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 		if carried, err = carryOneOf(s, object, name, carried); err != nil {
 			return nil, err
 		}
+		if typedObjects, err = h.typedObject(typedObjects, name, component, objectProps); err != nil {
+			return nil, err
+		}
 		isArm := name == arm
-		if !isArm && !slices.Contains(required, name) {
+		armOnly := isArm && len(kept) == 0
+		optional := h.optionalObject(s, name, isArm, kept, required)
+		if !isArm && !slices.Contains(required, name) && !optional {
 			if err := h.requireObject(s, name); err != nil {
 				return nil, err
 			}
 		}
 		objectRequired := stringList(mapValue(object, "required"))
+		if optional && len(objectRequired) != 0 {
+			return nil, fmt.Errorf("inline: %s is optional, so its fields must be optional too, but it requires %s", name, strings.Join(objectRequired, ", "))
+		}
+		// A field of the object has the name of the object: every field of it moves out of an object
+		// whose reference needs a path of its own.
+		same := mapValue(objectProps, name) != nil
 		for j := 0; j+1 < len(objectProps.Content); j += 2 {
 			child := objectProps.Content[j].Value
-			if slices.Contains(h.fields, child) {
+			// The inlined field leaves its place, so on a nested component a field of its object can
+			// take its name.
+			if slices.Contains(h.fields, child) && !(h.nested && child == name) {
 				return nil, fmt.Errorf("inline: %s.%s is inlined too, but only a field of the resource can be", name, child)
 			}
 			if err := add(objectProps.Content[j], objectProps.Content[j+1], slices.Contains(objectRequired, child)); err != nil {
 				return nil, err
 			}
-			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: isArm}
+			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: armOnly, Kept: strings.Join(kept, ","), Same: same, Always: h.alwaysSent(name, armOnly, response)}
 		}
+	}
+	if err := h.checkTypedFields(typedObjects, flat); err != nil {
+		return nil, err
 	}
 	setMap(s, "properties", flat)
 	setMap(s, "required", stringNode(flatRequired))
@@ -370,6 +402,53 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 		setMap(s, "oneOf", carried)
 	}
 	return parents, nil
+}
+
+// typedObject adds the properties of an inlined object that has a typedArms line to typed, and
+// checks the object. Its fields keep the line: the component that receives them shows them as that
+// object does (File.TypedArmsOf). A list has no fields to move, and the resource has no line of its
+// own that could take the arms.
+func (h inliner) typedObject(typed []*yaml.Node, name, object string, props *yaml.Node) ([]*yaml.Node, error) {
+	line := h.file.Types[object].TypedArms
+	switch {
+	case line == nil:
+		return typed, nil
+	case line.AsList:
+		return nil, fmt.Errorf("inline: %s has typedArms.asList, which shows a list: no fields of an object are left to inline", name)
+	case !h.nested:
+		return nil, fmt.Errorf("inline: %s has a typedArms line, which only a nested component takes with its fields; put the line on the resource component to show the arms as one object", name)
+	}
+	return append(typed, props), nil
+}
+
+// checkTypedFields checks the component that receives the fields of inlined objects with a
+// typedArms line. It takes that line when it has none of its own. The line shows every field of the
+// component as an arm, so the fields must be those of one object: another field, or a second
+// object, would be an arm too.
+func (h inliner) checkTypedFields(typed []*yaml.Node, flat *yaml.Node) error {
+	if len(typed) == 0 || h.file.Types[h.resource].TypedArms != nil {
+		return nil
+	}
+	if len(typed) > 1 {
+		return fmt.Errorf("inline: more than one inlined object has a typedArms line, so the line of the component is unclear; put a typedArms line on %s", h.resource)
+	}
+	if h.keptFields(flat) != len(typed[0].Content) {
+		return fmt.Errorf("inline: the fields of an object with a typedArms line are arms in %s, but %s has other fields; put a typedArms line on %s to say what it shows (a field that its line skips does not count)", h.resource, h.resource, h.resource)
+	}
+	return nil
+}
+
+// keptFields counts the entries (names and schemas) of the properties of the component that its
+// lines do not skip.
+func (h inliner) keptFields(props *yaml.Node) int {
+	lines := h.file.Types[h.resource].Fields
+	kept := 0
+	for i := 0; i+1 < len(props.Content); i += 2 {
+		if line, ok := lines[props.Content[i].Value]; !ok || !line.Skip {
+			kept += 2
+		}
+	}
+	return kept
 }
 
 // carryOneOf returns the oneOf group that the fields of the inlined object bring to s: the group of
@@ -386,6 +465,27 @@ func carryOneOf(s, object *yaml.Node, name string, carried *yaml.Node) (*yaml.No
 	return oneOf, nil
 }
 
+// optionalObject reports whether the inlined object name of s is optional. On a nested component an
+// object that the schema does not require and that the line does not state as required is optional:
+// a request sends it only when a field of it is set, and a response without it reads as nulls. An
+// arm that stays beside other arms is optional too.
+func (h inliner) optionalObject(s *yaml.Node, name string, isArm bool, kept, required []string) bool {
+	if !h.nested || slices.Contains(required, name) {
+		return false
+	}
+	if isArm {
+		return len(kept) != 0
+	}
+	return !h.file.Types[h.resource].Fields[name].Required
+}
+
+// alwaysSent reports whether a request always sends the inlined object name: it is an arm that is
+// the object (the other arms are skipped) of a nested component that a request holds, and the line
+// says that the API always has it.
+func (h inliner) alwaysSent(name string, armOnly, response bool) bool {
+	return h.nested && armOnly && !response && h.file.Types[h.resource].Fields[name].Required
+}
+
 // requireObject checks an inlined object that s does not require. The line states that the API
 // always has it, when the contract cannot say so, and the line is then needed for s.
 func (h inliner) requireObject(s *yaml.Node, name string) error {
@@ -398,11 +498,13 @@ func (h inliner) requireObject(s *yaml.Node, name string) error {
 
 // inlinedArm returns the inlined field that is an arm of the oneOf group of s, or "". The other
 // arms must be skipped, so that the group means that the inlined arm is set, or that the resource
-// does not exist. A request cannot have an inlined arm: the request must always send the object.
-func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, error) {
+// does not exist. A request cannot have an inlined arm of the resource: the request must always send
+// the object. On a nested component, a line with required: true says that the API always has the
+// arm, so a request always sends it.
+func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, []string, error) {
 	group := mapValue(s, "oneOf")
 	if group == nil {
-		return "", nil
+		return "", nil, nil
 	}
 	var arms []string
 	for _, entry := range group.Content {
@@ -415,17 +517,38 @@ func (h inliner) inlinedArm(s *yaml.Node, response bool) (string, error) {
 		}
 	}
 	if arm == "" {
-		return "", nil
+		return "", nil, nil
 	}
-	if !response {
-		return "", fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it", arm)
-	}
+	var kept []string
 	for _, other := range arms {
 		if other != arm && !h.file.Types[h.resource].Fields[other].Skip {
-			return "", fmt.Errorf("inline: %s is an arm of a oneOf group; skip the other arm %s, or the resource could be that arm", arm, other)
+			kept = append(kept, other)
 		}
 	}
-	return arm, nil
+	if h.nested && len(kept) != 0 {
+		// The other arms stay. The fields of the arm join the object, and conflict with them. The
+		// group goes away, and the conflicts do not say that an arm is set, so the group must allow
+		// that none is.
+		if !slices.ContainsFunc(group.Content, func(entry *yaml.Node) bool { return mapValue(entry, "not") != nil }) {
+			return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group that requires one arm, and the group goes away when %s is inlined beside %s, so a request could send no arm; the generator cannot keep that rule", arm, arm, strings.Join(kept, ", "))
+		}
+		return arm, kept, nil
+	}
+	if !response {
+		if !h.nested {
+			return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it", arm)
+		}
+		if !h.file.Types[h.resource].Fields[arm].Required {
+			return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group of a request, so the request does not always send it; if the API always has it, add required: true to the inline line of %s", arm, arm)
+		}
+		// The line says that the API always has the arm: a request always sends it.
+		h.relied[s] = append(h.relied[s], arm)
+		return arm, nil, nil
+	}
+	if len(kept) != 0 {
+		return "", nil, fmt.Errorf("inline: %s is an arm of a oneOf group; skip the other arm %s, or the resource could be that arm", arm, kept[0])
+	}
+	return arm, nil, nil
 }
 
 // upsertSDKNames gives the SDK names of the PUT and the DELETE that reshape added the names of the
@@ -481,7 +604,7 @@ func inlineSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 			// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
 			out = append(out,
 				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: pkg, Owner: rootType, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: pkg, Name: typ, Rule: sdkcheck.RuleComponent, Schema: parent.Schema})
+				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: pkg, Name: typ, Rule: sdkcheck.RuleComponent})
 		}
 	}
 	return inlineNestedSDKNames(out, file)
@@ -489,7 +612,8 @@ func inlineSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 
 // inlineNestedSDKNames moves the SDK names of the fields that an inline line of a nested component
 // moved to the type of the object that holds them, and adds that object: its field of the
-// component, next to the moved field, and its type.
+// component, next to the moved field, and its type. When the object has an inline line of its own
+// for the field, the field moves on, to the type of the inner object, which the outer one holds.
 func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 	if len(file.Inlined.Nested) == 0 {
 		return refs
@@ -500,29 +624,33 @@ func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.
 		if ref.Kind != sdkcheck.KindField {
 			continue
 		}
-		for schema, parents := range file.Inlined.Nested {
+		at := strings.LastIndex(ref.Path, ".")
+		if at < 0 {
+			continue
+		}
+		field := ref.Path[at+1:]
+		for schema := range file.Inlined.Nested {
 			if ref.Owner != model.GoName(schema) {
 				continue
 			}
-			at := strings.LastIndex(ref.Path, ".")
-			if at < 0 {
-				continue
+			prefix, owner := ref.Path[:at], ref.Owner
+			for _, parent := range file.NestedParents(schema, field) {
+				typ := model.GoName(parent.Schema)
+				out[i].Owner = typ
+				plain := prefix + "." + parent.Field
+				path := parent.ObjectPath(plain)
+				prefix, schema = plain, parent.Schema
+				if added[path] {
+					owner = typ
+					continue
+				}
+				added[path] = true
+				// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
+				out = append(out,
+					sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: ref.Pkg, Owner: owner, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
+					sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent})
+				owner = typ
 			}
-			parent, ok := parents[ref.Path[at+1:]]
-			if !ok {
-				continue
-			}
-			typ := model.GoName(parent.Schema)
-			out[i].Owner = typ
-			path := ref.Path[:at] + "." + parent.Field
-			if added[path] {
-				continue
-			}
-			added[path] = true
-			// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
-			out = append(out,
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: ref.Pkg, Owner: ref.Owner, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
-				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent, Schema: parent.Schema})
 		}
 	}
 	return out
@@ -660,13 +788,13 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 	out := map[string]map[string]overrides.Parent{}
 	relied := map[string]bool{}         // component.field of each inline line that a schema needs required: true for
 	counterparts := map[string]string{} // the request counterpart of each component
-	for _, name := range slices.Sorted(maps.Keys(mergeSets(responses, requests))) {
+	for _, name := range h.holdersLast(slices.Sorted(maps.Keys(mergeSets(responses, requests)))) {
 		schema := mapValue(h.schemas, name)
 		props := mapValue(schema, "properties")
 		for _, component := range slices.Sorted(maps.Keys(objects)) {
 			// A line on C.f inlines f in C, and in a component that only a request holds, the request
 			// counterpart of C. Another component of the response that has the same field keeps it.
-			if name != component && (responses[name] || !requests[name]) {
+			if name != component && !h.isCounterpart(component, responses[name], requests[name]) {
 				continue
 			}
 			var fields []string
@@ -687,7 +815,7 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 				counterparts[component] = name
 			}
 			slices.Sort(fields)
-			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done, relied: h.relied}
+			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done, relied: h.relied, nested: true}
 			parents, err := nestedInliner.inline(schema, responses[name] && !requests[name])
 			if err != nil {
 				return nil, issue.Report{inlineIssue(name, name+": "+err.Error())}
@@ -705,13 +833,63 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 	}
 	for _, component := range slices.Sorted(maps.Keys(nested)) {
 		if len(out[component]) == 0 {
-			return nil, issue.Report{inlineIssue(component, "the resource does not hold "+component+", so its inline lines change nothing")}
+			return nil, issue.Report{h.unheldIssue(component)}
 		}
 	}
 	if report := h.unusedNestedRequired(nested, relied); len(report) != 0 {
 		return nil, report
 	}
 	return out, nil
+}
+
+// holdersLast orders names so that a schema comes after the schemas of names that its fields refer
+// to, otherwise in the order of names. An inline line of a component takes the fields of its object
+// as the object has them: when the object has inline lines too, they must be done first, so that
+// the fields move up through both (a chain of lines).
+func (h inliner) holdersLast(names []string) []string {
+	known := map[string]bool{}
+	for _, name := range names {
+		known[name] = true
+	}
+	var out []string
+	seen := map[string]bool{}
+	var visit func(name string)
+	visit = func(name string) {
+		if seen[name] {
+			return
+		}
+		seen[name] = true
+		props := mapValue(mapValue(h.schemas, name), "properties")
+		for i := 1; props != nil && i < len(props.Content); i += 2 {
+			ref := refName(props.Content[i])
+			if ref == "" {
+				ref = allOfRef(props.Content[i])
+			}
+			if known[ref] {
+				visit(ref)
+			}
+		}
+		out = append(out, name)
+	}
+	for _, name := range names {
+		visit(name)
+	}
+	return out
+}
+
+// isCounterpart reports whether a schema that is not component can be its request counterpart: only
+// a request holds it. The copy of a component at a place has none.
+func (h inliner) isCounterpart(component string, inResponse, inRequest bool) bool {
+	return !inResponse && inRequest && !h.file.IsPlaceClone(component)
+}
+
+// unheldIssue reports an inline line, or an at line that inlines, of a component that the resource
+// does not hold.
+func (h inliner) unheldIssue(component string) issue.Issue {
+	if c := h.file.PlaceCloneOf(component); c != nil {
+		return inlineIssue(c.Component, "the resource does not hold "+c.Holder+", so the at line of "+c.Component+" changes nothing")
+	}
+	return inlineIssue(component, "the resource does not hold "+component+", so its inline lines change nothing")
 }
 
 // reachable adds the components that s refers to, directly or through other components, to seen.

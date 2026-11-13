@@ -105,7 +105,6 @@ types:
 enums:
   v2.SourceType:
     zero: unspecified
-    values: [SOURCE_TYPE_LOG, SOURCE_TYPE_DATA_MAP]
     names:
       SOURCE_TYPE_LOG: Log
       SOURCE_TYPE_DATA_MAP: DataMap

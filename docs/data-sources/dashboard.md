@@ -17,43 +17,43 @@ Coralogix Custom Dashboard. For more info please review - https://coralogix.com/
 
 ### Required
 
-- `id` (String) Unique identifier for the dashboard.
+- `id` (String) A unique identifier of the dashboard
 
 ### Read-Only
 
 - `access_policy` (String) JSON-encoded access policy for this dashboard.
-- `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
+- `annotations` (Attributes List) A list of annotations that can be used within the dashboard's visualizations (see [below for nested schema](#nestedatt--annotations))
 - `auto_refresh` (Attributes) (see [below for nested schema](#nestedatt--auto_refresh))
-- `content_json` (String) an option to set the dashboard content from a json file.
-- `description` (String) Brief description or summary of the dashboard's purpose or content.
-- `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
-- `folder` (Attributes) The dashboards folder this dashboard belongs to. Exactly one of `id` or `path` is set. When authoring a `coralogix_dashboard` resource, `id` (pointing at a `coralogix_dashboards_folder` resource) is the recommended form; `path` is accepted but can trigger implicit server-side folder creation that Terraform will not clean up on destroy — see the `path` attribute description for details. (see [below for nested schema](#nestedatt--folder))
-- `layout` (Attributes) Layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
-- `name` (String) Display name of the dashboard.
+- `content_json` (String) An option to set the dashboard content from a json file. It excludes every other attribute of the dashboard, except `folder`, `auto_refresh`, and `access_policy`.
+- `description` (String) A brief description or summary of the dashboard's purpose or content
+- `filters` (Attributes List) A list of filters that can be applied to the dashboard's data (see [below for nested schema](#nestedatt--filters))
+- `folder` (Attributes) The dashboards folder this dashboard belongs to. Exactly one of `id` or `path` is set. (see [below for nested schema](#nestedatt--folder))
+- `layout` (Attributes) The layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
+- `name` (String) The display name of the dashboard
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
-- `variables` (Attributes List) Deprecated: list of legacy variables. Use `variables_v2` for new dashboard variables. (see [below for nested schema](#nestedatt--variables))
-- `variables_v2` (Attributes List) Dashboard variables v2. This replaces `variables`. Both forms can coexist during migration. (see [below for nested schema](#nestedatt--variables_v2))
+- `variables` (Attributes List) A list of variables that can be used within the dashboard for dynamic content (see [below for nested schema](#nestedatt--variables))
+- `variables_v2` (Attributes List) A list of variables that can be used within the dashboard for dynamic content (see [below for nested schema](#nestedatt--variables_v2))
 
 <a id="nestedatt--annotations"></a>
 ### Nested Schema for `annotations`
 
 Read-Only:
 
-- `color` (String) The colour the Coralogix UI draws the annotation in. Valid values are: blue, cyan, default, green, magenta, orange, purple, red, yellow.
-- `description` (String) A human-readable description of the annotation. The Coralogix UI shows it next to the annotation name.
-- `enabled` (Boolean)
-- `id` (String)
-- `name` (String)
-- `scope` (Attributes) Restrict this annotation to specific widgets. Omit to show on all widgets. (see [below for nested schema](#nestedatt--annotations--scope))
-- `source` (Attributes) (see [below for nested schema](#nestedatt--annotations--source))
+- `color` (String) Annotation color. Valid values: ["blue" "cyan" "default" "green" "magenta" "orange" "purple" "red" "yellow"].
+- `description` (String) Human-readable description.
+- `enabled` (Boolean) Whether this resource is enabled.
+- `id` (String) Unique identifier.
+- `name` (String) Display name.
+- `scope` (Attributes) Widget scope. (see [below for nested schema](#nestedatt--annotations--scope))
+- `source` (Attributes) Source. (see [below for nested schema](#nestedatt--annotations--source))
 
 <a id="nestedatt--annotations--scope"></a>
 ### Nested Schema for `annotations.scope`
 
 Read-Only:
 
-- `all_widgets` (Attributes) Apply this annotation to every widget in the dashboard. (see [below for nested schema](#nestedatt--annotations--scope--all_widgets))
-- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--annotations--scope--specific_widgets))
+- `all_widgets` (Attributes) Indicates that the annotation applies to all widgets in the dashboard. (see [below for nested schema](#nestedatt--annotations--scope--all_widgets))
+- `specific_widgets` (Attributes) Specific widgets. (see [below for nested schema](#nestedatt--annotations--scope--specific_widgets))
 
 <a id="nestedatt--annotations--scope--all_widgets"></a>
 ### Nested Schema for `annotations.scope.all_widgets`
@@ -64,7 +64,7 @@ Read-Only:
 
 Read-Only:
 
-- `widget_ids` (List of String) UUIDs of the widgets this annotation applies to.
+- `widget_ids` (List of String) The widget ids.
 
 
 
@@ -73,32 +73,32 @@ Read-Only:
 
 Read-Only:
 
-- `dataprime` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime))
-- `event_recurrence` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs))
-- `manual` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans))
+- `dataprime` (Attributes) Dataprime source. (see [below for nested schema](#nestedatt--annotations--source--dataprime))
+- `event_recurrence` (Attributes) Annotation source driven by recurring calendar events such as weekly deployments or maintenance windows. (see [below for nested schema](#nestedatt--annotations--source--event_recurrence))
+- `logs` (Attributes) Logs source. (see [below for nested schema](#nestedatt--annotations--source--logs))
+- `manual` (Attributes) Manual source. (see [below for nested schema](#nestedatt--annotations--source--manual))
+- `metrics` (Attributes) Annotation source backed by a PromQL metrics query with a configurable time strategy. (see [below for nested schema](#nestedatt--annotations--source--metrics))
+- `spans` (Attributes) Spans source. (see [below for nested schema](#nestedatt--annotations--source--spans))
 
 <a id="nestedatt--annotations--source--dataprime"></a>
 ### Nested Schema for `annotations.source.dataprime`
 
 Read-Only:
 
-- `data_mode_type` (String)
-- `label_fields` (Attributes List) (see [below for nested schema](#nestedatt--annotations--source--dataprime--label_fields))
-- `message_template` (String)
-- `orientation` (String)
-- `query` (String)
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy))
+- `data_mode_type` (String) Data mode type. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "unspecified"].
+- `label_fields` (Attributes List) The label fields. (see [below for nested schema](#nestedatt--annotations--source--dataprime--label_fields))
+- `message_template` (String) The message template.
+- `orientation` (String) Annotation orientation. Valid values: ["horizontal" "vertical"].
+- `query` (String) Line chart.dataprime query.
+- `strategy` (Attributes) Determines the time strategy for fetching Dataprime results (instant snapshot, fixed range, or sliding window). (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy))
 
 <a id="nestedatt--annotations--source--dataprime--label_fields"></a>
 ### Nested Schema for `annotations.source.dataprime.label_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--dataprime--strategy"></a>
@@ -106,25 +106,25 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration))
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--instant))
-- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range))
+- `duration` (Attributes) Duration. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration))
+- `instant` (Attributes) Instant snapshot strategy: uses a single timestamp field to define the annotation point. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--instant))
+- `range` (Attributes) Range strategy: uses start and end timestamp fields to define the annotation span. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range))
 
 <a id="nestedatt--annotations--source--dataprime--strategy--duration"></a>
 ### Nested Schema for `annotations.source.dataprime.strategy.duration`
 
 Read-Only:
 
-- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration--duration_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration--start_timestamp_field))
+- `duration_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration--start_timestamp_field))
 
 <a id="nestedatt--annotations--source--dataprime--strategy--duration--duration_field"></a>
 ### Nested Schema for `annotations.source.dataprime.strategy.duration.duration_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--dataprime--strategy--duration--start_timestamp_field"></a>
@@ -132,8 +132,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -142,15 +142,15 @@ Read-Only:
 
 Read-Only:
 
-- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--instant--timestamp_field))
+- `timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--instant--timestamp_field))
 
 <a id="nestedatt--annotations--source--dataprime--strategy--instant--timestamp_field"></a>
 ### Nested Schema for `annotations.source.dataprime.strategy.instant.timestamp_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -159,16 +159,16 @@ Read-Only:
 
 Read-Only:
 
-- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range--end_timestamp_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range--start_timestamp_field))
+- `end_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range--start_timestamp_field))
 
 <a id="nestedatt--annotations--source--dataprime--strategy--range--end_timestamp_field"></a>
 ### Nested Schema for `annotations.source.dataprime.strategy.range.end_timestamp_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--dataprime--strategy--range--start_timestamp_field"></a>
@@ -176,8 +176,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -188,23 +188,23 @@ Read-Only:
 
 Read-Only:
 
-- `message_template` (String)
-- `recurrence` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--recurrence))
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy))
+- `message_template` (String) The message template.
+- `recurrence` (Attributes) Recurrence. (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--recurrence))
+- `strategy` (Attributes) Determines how the recurrence event is rendered: as an instant point or a sliding window duration. (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy))
 
 <a id="nestedatt--annotations--source--event_recurrence--recurrence"></a>
 ### Nested Schema for `annotations.source.event_recurrence.recurrence`
 
 Read-Only:
 
-- `weekly` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--recurrence--weekly))
+- `weekly` (Attributes) Weekly recurrence. (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--recurrence--weekly))
 
 <a id="nestedatt--annotations--source--event_recurrence--recurrence--weekly"></a>
 ### Nested Schema for `annotations.source.event_recurrence.recurrence.weekly`
 
 Read-Only:
 
-- `days_of_week` (List of String)
+- `days_of_week` (List of String) The days of week. Valid values: ["friday" "monday" "saturday" "sunday" "thursday" "tuesday" "unspecified" "wednesday"].
 
 
 
@@ -213,16 +213,16 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy--duration))
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy--instant))
+- `duration` (Attributes) Duration. (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy--duration))
+- `instant` (Attributes) Renders the recurrence event as an instant snapshot at the configured start hour. (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy--instant))
 
 <a id="nestedatt--annotations--source--event_recurrence--strategy--duration"></a>
 ### Nested Schema for `annotations.source.event_recurrence.strategy.duration`
 
 Read-Only:
 
-- `duration` (String)
-- `start_time_hour` (Number)
+- `duration` (String) Duration.
+- `start_time_hour` (Number) The start time hour.
 
 
 <a id="nestedatt--annotations--source--event_recurrence--strategy--instant"></a>
@@ -230,7 +230,7 @@ Read-Only:
 
 Read-Only:
 
-- `start_time_hour` (Number)
+- `start_time_hour` (Number) The start time hour.
 
 
 
@@ -240,18 +240,19 @@ Read-Only:
 
 Read-Only:
 
-- `label_fields` (Attributes List) (see [below for nested schema](#nestedatt--annotations--source--logs--label_fields))
-- `lucene_query` (String)
-- `message_template` (String)
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy))
+- `data_mode_type` (String) Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.
+- `label_fields` (Attributes List) The label fields. (see [below for nested schema](#nestedatt--annotations--source--logs--label_fields))
+- `lucene_query` (String) Lucene query.
+- `message_template` (String) The message template.
+- `strategy` (Attributes) Determines the time strategy for fetching logs (instant snapshot, fixed range, or sliding window). (see [below for nested schema](#nestedatt--annotations--source--logs--strategy))
 
 <a id="nestedatt--annotations--source--logs--label_fields"></a>
 ### Nested Schema for `annotations.source.logs.label_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--logs--strategy"></a>
@@ -259,25 +260,25 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration))
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant))
-- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range))
+- `duration` (Attributes) Duration. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration))
+- `instant` (Attributes) Instant snapshot strategy: uses a single timestamp field to define the annotation point. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant))
+- `range` (Attributes) Range strategy: uses start and end timestamp fields to define the annotation span. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range))
 
 <a id="nestedatt--annotations--source--logs--strategy--duration"></a>
 ### Nested Schema for `annotations.source.logs.strategy.duration`
 
 Read-Only:
 
-- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--duration_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field))
+- `duration_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field))
 
 <a id="nestedatt--annotations--source--logs--strategy--duration--duration_field"></a>
 ### Nested Schema for `annotations.source.logs.strategy.duration.duration_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field"></a>
@@ -285,8 +286,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -295,15 +296,15 @@ Read-Only:
 
 Read-Only:
 
-- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant--timestamp_field))
+- `timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant--timestamp_field))
 
 <a id="nestedatt--annotations--source--logs--strategy--instant--timestamp_field"></a>
 ### Nested Schema for `annotations.source.logs.strategy.instant.timestamp_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -312,16 +313,16 @@ Read-Only:
 
 Read-Only:
 
-- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--end_timestamp_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--start_timestamp_field))
+- `end_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--start_timestamp_field))
 
 <a id="nestedatt--annotations--source--logs--strategy--range--end_timestamp_field"></a>
 ### Nested Schema for `annotations.source.logs.strategy.range.end_timestamp_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--logs--strategy--range--start_timestamp_field"></a>
@@ -329,8 +330,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -341,26 +342,26 @@ Read-Only:
 
 Read-Only:
 
-- `message_template` (String)
-- `orientation` (String)
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy))
+- `message_template` (String) The message template.
+- `orientation` (String) Annotation orientation. Valid values: ["horizontal" "vertical"].
+- `strategy` (Attributes) Defines the time positioning strategy for manually placed annotations (instant point or range). (see [below for nested schema](#nestedatt--annotations--source--manual--strategy))
 
 <a id="nestedatt--annotations--source--manual--strategy"></a>
 ### Nested Schema for `annotations.source.manual.strategy`
 
 Read-Only:
 
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--instant))
-- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--range))
+- `instant` (Attributes) Instant strategy: places the annotation at a specific absolute timestamp value. (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--instant))
+- `range` (Attributes) Range strategy: places the annotation spanning between two absolute timestamp values. (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--range))
 
 <a id="nestedatt--annotations--source--manual--strategy--instant"></a>
 ### Nested Schema for `annotations.source.manual.strategy.instant`
 
 Read-Only:
 
-- `custom_unit` (String)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value` (Number)
+- `custom_unit` (String) The custom unit.
+- `unit` (String) Unit. Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value` (Number) The value.
 
 
 <a id="nestedatt--annotations--source--manual--strategy--range"></a>
@@ -368,10 +369,10 @@ Read-Only:
 
 Read-Only:
 
-- `custom_unit` (String)
-- `end_value` (Number)
-- `start_value` (Number)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `custom_unit` (String) The custom unit.
+- `end_value` (Number) The end value.
+- `start_value` (Number) The start value.
+- `unit` (String) Unit. Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 
 
 
@@ -381,18 +382,48 @@ Read-Only:
 
 Read-Only:
 
-- `labels` (List of String)
-- `message_template` (String)
-- `orientation` (String) Draw the annotation as a `vertical` line marking a moment in time, or a `horizontal` line marking a value. The API returns `vertical` when nothing is chosen.
-- `promql_query` (String)
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy))
+- `interval_resolution` (Attributes) Configuration for time bucket/interval resolution in time-series widgets. Supports automatic calculation based on widget width and time range, or manual interval specification. (see [below for nested schema](#nestedatt--annotations--source--metrics--interval_resolution))
+- `labels` (List of String) List of labels.
+- `message_template` (String) The message template.
+- `orientation` (String) Annotation orientation. Valid values: ["horizontal" "vertical"].
+- `promql_query` (String) Prom ql query.
+- `strategy` (Attributes) Dataprime source.strategy. (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy))
+
+<a id="nestedatt--annotations--source--metrics--interval_resolution"></a>
+### Nested Schema for `annotations.source.metrics.interval_resolution`
+
+Read-Only:
+
+- `auto` (Attributes) Automatic interval resolution that calculates optimal time buckets based on the widget width, time range, and specified constraints. (see [below for nested schema](#nestedatt--annotations--source--metrics--interval_resolution--auto))
+- `manual` (Attributes) Manual interval resolution with a fixed, user-specified interval for time buckets. Optionally supports minimum interval and maximum data points constraints. (see [below for nested schema](#nestedatt--annotations--source--metrics--interval_resolution--manual))
+- `use_advanced_limit` (Boolean) Whether the max. data points and min. interval fields are user-editable. When true, users can modify these constraint fields; when false or unset, they are read-only.
+
+<a id="nestedatt--annotations--source--metrics--interval_resolution--auto"></a>
+### Nested Schema for `annotations.source.metrics.interval_resolution.auto`
+
+Read-Only:
+
+- `maximum_data_points` (Number) Maximum number of data points to display. The calculated interval ensures this limit is not exceeded.
+- `minimum_interval` (String) Minimum interval duration. The calculated interval will not be smaller than this value.
+
+
+<a id="nestedatt--annotations--source--metrics--interval_resolution--manual"></a>
+### Nested Schema for `annotations.source.metrics.interval_resolution.manual`
+
+Read-Only:
+
+- `interval` (String) Fixed interval duration for time buckets, specified by the user.
+- `maximum_data_points` (Number) Maximum number of data points constraint.
+- `minimum_interval` (String) Minimum interval duration constraint. The selected interval will not be smaller than this value.
+
+
 
 <a id="nestedatt--annotations--source--metrics--strategy"></a>
 ### Nested Schema for `annotations.source.metrics.strategy`
 
 Read-Only:
 
-- `start_time` (Attributes) Take the first data point and use its value as the annotation timestamp, instead of the point's own timestamp. Omit the block to leave the strategy unset, which is what the API stores when nothing is chosen. (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy--start_time))
+- `start_time` (Attributes) Start time metric. (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy--start_time))
 
 <a id="nestedatt--annotations--source--metrics--strategy--start_time"></a>
 ### Nested Schema for `annotations.source.metrics.strategy.start_time`
@@ -405,18 +436,19 @@ Read-Only:
 
 Read-Only:
 
-- `label_fields` (Attributes List) (see [below for nested schema](#nestedatt--annotations--source--spans--label_fields))
-- `lucene_query` (String)
-- `message_template` (String)
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy))
+- `data_mode_type` (String) Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again.
+- `label_fields` (Attributes List) The label fields. (see [below for nested schema](#nestedatt--annotations--source--spans--label_fields))
+- `lucene_query` (String) Lucene query.
+- `message_template` (String) The message template.
+- `strategy` (Attributes) Determines the time strategy for fetching spans (instant snapshot, fixed range, or sliding window). (see [below for nested schema](#nestedatt--annotations--source--spans--strategy))
 
 <a id="nestedatt--annotations--source--spans--label_fields"></a>
 ### Nested Schema for `annotations.source.spans.label_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--spans--strategy"></a>
@@ -424,25 +456,25 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration))
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant))
-- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range))
+- `duration` (Attributes) Duration. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration))
+- `instant` (Attributes) Instant snapshot strategy: uses a single timestamp field to define the annotation point. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant))
+- `range` (Attributes) Range strategy: uses start and end timestamp fields to define the annotation span. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range))
 
 <a id="nestedatt--annotations--source--spans--strategy--duration"></a>
 ### Nested Schema for `annotations.source.spans.strategy.duration`
 
 Read-Only:
 
-- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--duration_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field))
+- `duration_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field))
 
 <a id="nestedatt--annotations--source--spans--strategy--duration--duration_field"></a>
 ### Nested Schema for `annotations.source.spans.strategy.duration.duration_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field"></a>
@@ -450,8 +482,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -460,15 +492,15 @@ Read-Only:
 
 Read-Only:
 
-- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant--timestamp_field))
+- `timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant--timestamp_field))
 
 <a id="nestedatt--annotations--source--spans--strategy--instant--timestamp_field"></a>
 ### Nested Schema for `annotations.source.spans.strategy.instant.timestamp_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -477,16 +509,16 @@ Read-Only:
 
 Read-Only:
 
-- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--end_timestamp_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--start_timestamp_field))
+- `end_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--start_timestamp_field))
 
 <a id="nestedatt--annotations--source--spans--strategy--range--end_timestamp_field"></a>
 ### Nested Schema for `annotations.source.spans.strategy.range.end_timestamp_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--annotations--source--spans--strategy--range--start_timestamp_field"></a>
@@ -494,8 +526,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -508,7 +540,7 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String)
+- `type` (String) Which arm of the oneOf the object holds. One of "off", "two_minutes", "five_minutes", "one_minute", "fifteen_minutes". The default is "off".
 
 
 <a id="nestedatt--filters"></a>
@@ -516,20 +548,20 @@ Read-Only:
 
 Read-Only:
 
-- `collapsed` (Boolean)
-- `display_name` (String) Name shown on the filter chip in the Coralogix UI. The API stores it, and leaves it out when the filter has no name of its own.
-- `enabled` (Boolean)
-- `id` (String) Identifier of the filter inside the dashboard. Generated when omitted.
-- `scope` (Attributes) Restrict this filter to specific widgets. Omit to apply it to all widgets. (see [below for nested schema](#nestedatt--filters--scope))
-- `source` (Attributes) (see [below for nested schema](#nestedatt--filters--source))
+- `collapsed` (Boolean) Indicates if the filter's UI representation should be collapsed or expanded.
+- `display_name` (String) A display name for the filter
+- `enabled` (Boolean) Indicates if the filter is currently enabled or not.
+- `id` (String) Filter's unique identifier
+- `scope` (Attributes) Scope of the filter, defining which widgets the filter applies to. (see [below for nested schema](#nestedatt--filters--scope))
+- `source` (Attributes) The source of the filter, which can be logs, spans, or metrics. (see [below for nested schema](#nestedatt--filters--source))
 
 <a id="nestedatt--filters--scope"></a>
 ### Nested Schema for `filters.scope`
 
 Read-Only:
 
-- `all_widgets` (Attributes) Apply this filter to every widget in the dashboard. (see [below for nested schema](#nestedatt--filters--scope--all_widgets))
-- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--filters--scope--specific_widgets))
+- `all_widgets` (Attributes) Annotation.widget scope.all widgets. (see [below for nested schema](#nestedatt--filters--scope--all_widgets))
+- `specific_widgets` (Attributes) Annotation.widget scope.specific widgets. (see [below for nested schema](#nestedatt--filters--scope--specific_widgets))
 
 <a id="nestedatt--filters--scope--all_widgets"></a>
 ### Nested Schema for `filters.scope.all_widgets`
@@ -540,7 +572,7 @@ Read-Only:
 
 Read-Only:
 
-- `widget_ids` (List of String) UUIDs of the widgets this filter applies to.
+- `widget_ids` (List of String) The widget ids.
 
 
 
@@ -549,26 +581,26 @@ Read-Only:
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--filters--source--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--filters--source--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--filters--source--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--filters--source--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--filters--source--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--filters--source--spans))
 
 <a id="nestedatt--filters--source--logs"></a>
 ### Nested Schema for `filters.source.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--filters--source--logs--operator))
 
 <a id="nestedatt--filters--source--logs--observation_field"></a>
 ### Nested Schema for `filters.source.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--filters--source--logs--operator"></a>
@@ -576,9 +608,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -587,18 +619,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--filters--source--metrics--operator))
 
 <a id="nestedatt--filters--source--metrics--operator"></a>
 ### Nested Schema for `filters.source.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -607,17 +639,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--spans--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--filters--source--spans--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--filters--source--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--filters--source--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--filters--source--spans--operator))
 
 <a id="nestedatt--filters--source--spans--field"></a>
 ### Nested Schema for `filters.source.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--filters--source--spans--observation_field"></a>
@@ -625,9 +657,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -635,9 +667,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -649,7 +681,7 @@ Read-Only:
 Read-Only:
 
 - `id` (String) ID of the dashboards folder this dashboard belongs to. When authoring a `coralogix_dashboard` resource, this is the lifecycle-safe choice: reference a `coralogix_dashboards_folder` resource's `id` so the folder is created and destroyed by Terraform alongside the dashboard.
-- `path` (String) Slash-separated folder path (e.g. `Team/Subteam`). When set on a `coralogix_dashboard` resource and the path does not already exist, the Coralogix dashboards service implicitly creates the missing folder hierarchy as a server-side side-effect of placing the dashboard. **That auto-created folder is not tracked in Terraform state and is not removed when the dashboard is destroyed — it will be left behind as an orphan in the Coralogix UI.** Use `folder.id` (referencing a `coralogix_dashboards_folder` resource) for symmetric apply/destroy semantics.
+- `path` (String) Folder path.
 
 
 <a id="nestedatt--layout"></a>
@@ -657,28 +689,28 @@ Read-Only:
 
 Read-Only:
 
-- `sections` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections))
+- `sections` (Attributes List) The list of sections in the dashboard (see [below for nested schema](#nestedatt--layout--sections))
 
 <a id="nestedatt--layout--sections"></a>
 ### Nested Schema for `layout.sections`
 
 Read-Only:
 
-- `id` (String)
-- `options` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--options))
-- `rows` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows))
+- `id` (String) Section unique identifier
+- `options` (Attributes) Section's options (see [below for nested schema](#nestedatt--layout--sections--options))
+- `rows` (Attributes List) Definition of a section's rows (one row represents a single row of visualizations) (see [below for nested schema](#nestedatt--layout--sections--rows))
 
 <a id="nestedatt--layout--sections--options"></a>
 ### Nested Schema for `layout.sections.options`
 
 Read-Only:
 
-- `collapsed` (Boolean)
-- `color` (String) Section color, valid values: [cyan green blue purple magenta pink orange]
-- `description` (String)
-- `internal` (Attributes) Marks the section as the dashboard's unnamed default. Carries no settings, and cannot be combined with the other options. (see [below for nested schema](#nestedatt--layout--sections--options--internal))
-- `name` (String)
-- `repetitive_var` (Attributes) Repeat the section once per selected value of a dashboard variable. The Coralogix UI offers this for multi-value variables. (see [below for nested schema](#nestedatt--layout--sections--options--repetitive_var))
+- `collapsed` (Boolean) Indicator if the section is collapsed
+- `color` (String) Color of the section header Valid values: ["blue" "cyan" "green" "magenta" "orange" "pink" "purple"].
+- `description` (String) Short description of a section
+- `internal` (Attributes) Internal section options. (see [below for nested schema](#nestedatt--layout--sections--options--internal))
+- `name` (String) Section custom name
+- `repetitive_var` (Attributes) Variable name that can be applied on section making it repetitive section and other metadata (see [below for nested schema](#nestedatt--layout--sections--options--repetitive_var))
 
 <a id="nestedatt--layout--sections--options--internal"></a>
 ### Nested Schema for `layout.sections.options.internal`
@@ -689,7 +721,7 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String) Name of the dashboard variable to repeat the section over.
+- `name` (String) Variable name that can be applied on section making it repetitive section
 
 
 
@@ -698,34 +730,35 @@ Read-Only:
 
 Read-Only:
 
-- `height` (Number) The height of the row.
-- `id` (String)
-- `widgets` (Attributes List) The list of widgets to display in the dashboard. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets))
+- `height` (Number) Height of a row, defined as a multiplier number of the base height, where 1 = 1 * base height, 2 = 2 * base height etc
+- `id` (String) Row unique identifier
+- `widgets` (Attributes List) The list of widgets in the row (see [below for nested schema](#nestedatt--layout--sections--rows--widgets))
 
 <a id="nestedatt--layout--sections--rows--widgets"></a>
 ### Nested Schema for `layout.sections.rows.widgets`
 
 Read-Only:
 
-- `custom_actions` (Attributes List) Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel. Omit the attribute rather than setting an empty list. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--custom_actions))
-- `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown dynamic]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
-- `description` (String) Widget description.
+- `custom_actions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--custom_actions))
+- `definition` (Attributes) Definition of the widget type and details (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
+- `description` (String) Short description of the widget
 - `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.
-- `id` (String)
-- `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
-- `title` (String) Widget title. Required for all inline widgets except markdown, where it is optional.
-- `width` (Number) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
+- `id` (String) Widget unique identifier
+- `reference` (Attributes) Reference to a widget from another dashboard (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
+- `title` (String) Name of the widget
+- `width` (Number) The width.
 
 <a id="nestedatt--layout--sections--rows--widgets--custom_actions"></a>
 ### Nested Schema for `layout.sections.rows.widgets.custom_actions`
 
 Read-Only:
 
-- `data_source` (String) Which of the widget's data the action draws on, one of: [dataprime logs metrics spans]. The API requires it and does not check it against the widget, so set it to match the widget's own query.
-- `id` (String)
-- `name` (String) Name shown on the action.
-- `should_open_in_new_window` (Boolean) Open the destination in a new window.
-- `url` (String) Destination the action opens. May reference widget data, as the Coralogix UI describes.
+- `data_source` (String) Defines the data source type of the action, if applicable Valid values: ["dataprime" "logs" "metrics" "spans"].
+- `id` (String) A unique identifier of the action
+- `name` (String) The display name of the action
+- `query_id` (String) Reference to specific query within a widget, can be null if the action is dashboard wide or related to single query widget
+- `should_open_in_new_window` (Boolean) Defines if the action should open in a new window or current window in the browser
+- `url` (String) Static URL that may contain variables using {{variable_name}} syntax
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
@@ -733,51 +766,51 @@ Read-Only:
 
 Read-Only:
 
-- `bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart))
-- `data_table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table))
-- `dynamic` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic))
-- `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge))
-- `hexagon` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon))
-- `horizontal_bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart))
-- `line_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart))
-- `markdown` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--markdown))
-- `pie_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart))
+- `bar_chart` (Attributes) Vertical bar chart widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart))
+- `data_table` (Attributes) Data table widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table))
+- `dynamic` (Attributes) Dynamic widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic))
+- `gauge` (Attributes) Gauge widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge))
+- `hexagon` (Attributes) Hexagon widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon))
+- `horizontal_bar_chart` (Attributes) Horizontal bar chart widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart))
+- `line_chart` (Attributes) Line chart widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart))
+- `markdown` (Attributes) Markdown widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--markdown))
+- `pie_chart` (Attributes) Pie chart widget definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart`
 
 Read-Only:
 
-- `bar_value_display` (String) Where the bar value is displayed. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: both, inside, top, unspecified.
-- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
-- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
-- `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--legend))
-- `max_bars_per_chart` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
-- `scale_type` (String)
-- `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
-- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `x_axis_time_format` (String) The x-axis time format. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
-- `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `bar_value_display` (String) Specifies where to display the bar value Valid values: ["both" "inside" "top" "unspecified"].
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `colors_by` (String) How the bar colors should be organized Valid values: ["aggregation" "category" "group_by" "query" "stack"].
+- `custom_unit` (String) Custom unit (requires to have unit field set to custom to take effect)
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `decimal` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `decimal_precision` (Boolean) Whether to render numeric value without abbreviation
+- `group_name_template` (String) Custom template name for a bar group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--legend))
+- `max_bars_per_chart` (Number) Maximum number of bars on a chart
+- `query` (Attributes) Query object (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
+- `scale_type` (String) Scale type - linear/logarithmic
+- `sort_by` (String) Sort type, by name or by value Valid values: ["name" "unspecified" "value"].
+- `stack_definition` (Attributes) Configuration of stacked bars (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `x_axis_time_format` (String) Time format for the X axis (only applicable when X axis is time-based) Valid values: ["auto" "dd_mm" "dd_mm_hh_mm" "hh_mm" "hh_mm_dd_mm" "hh_mm_mm_dd" "mm_dd" "mm_dd_hh_mm" "unspecified"].
+- `xaxis` (Attributes) Specifies how to organize the x axis of the chart (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.legend`
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
@@ -785,47 +818,47 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters))
-- `group_names` (List of String)
-- `query` (String)
-- `stacked_group_name` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters))
+- `group_names` (List of String) List of field names by which results are grouped
+- `query` (String) Dataprime query text
+- `stacked_group_name` (String) Field name by which results in groups are divided into subgroups
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator"></a>
@@ -833,9 +866,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -844,18 +877,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -864,16 +897,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--operator"></a>
@@ -881,9 +925,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -893,16 +937,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--relative"></a>
@@ -910,7 +954,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -920,32 +964,32 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters))
-- `group_names` (List of String)
-- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--group_names_fields))
-- `lucene_query` (String)
-- `stacked_group_name` (String)
-- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame))
+- `aggregation` (Attributes) Query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters))
+- `group_names` (List of String) List of field names to group the query results
+- `group_names_fields` (Attributes List) List of observation fields to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--group_names_fields))
+- `lucene_query` (String) A Lucene query string to search logs
+- `stacked_group_name` (String) Field name by which results are stacked in individual group
+- `stacked_group_name_field` (Attributes) Observation field by results are stacked in a group (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time period for which the results should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -954,17 +998,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator"></a>
@@ -972,9 +1016,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -983,8 +1027,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field"></a>
@@ -992,8 +1036,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame"></a>
@@ -1001,16 +1045,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--relative"></a>
@@ -1018,7 +1062,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1028,32 +1072,32 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: avg, last, max, min, sum, unspecified.
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters))
-- `group_names` (List of String)
-- `promql_query` (String)
-- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
-- `stacked_group_name` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame))
+- `aggregation` (String) Aggregation function Valid values: ["avg" "last" "max" "min" "sum" "unspecified"].
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder mode Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters))
+- `group_names` (List of String) List of field names by which metric results are grouped
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `stacked_group_name` (String) Field name by which results in groups are divided into subgroups
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1062,16 +1106,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--relative"></a>
@@ -1079,7 +1123,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1089,23 +1133,23 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters))
-- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names))
-- `group_names_fields` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names_fields))
-- `lucene_query` (String)
-- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name))
-- `stacked_group_name_field` (Attributes) Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name_field))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame))
+- `aggregation` (Attributes) Span query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters))
+- `group_names` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names))
+- `group_names_fields` (Attributes List) A list of observation fields definitions to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names_fields))
+- `lucene_query` (String) A Lucene query string to search span records
+- `stacked_group_name` (Attributes) Field name by which results are stacked in individual group (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name))
+- `stacked_group_name_field` (Attributes) Observation field definition by which groups are divided into subgroups (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation`
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters"></a>
@@ -1113,17 +1157,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field"></a>
@@ -1131,9 +1175,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator"></a>
@@ -1141,9 +1185,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1152,8 +1196,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names_fields"></a>
@@ -1161,9 +1205,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name"></a>
@@ -1171,8 +1215,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name_field"></a>
@@ -1180,9 +1224,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame"></a>
@@ -1190,16 +1234,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--relative"></a>
@@ -1207,7 +1251,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1218,8 +1262,8 @@ Read-Only:
 
 Read-Only:
 
-- `max_slices_per_bar` (Number)
-- `stack_name_template` (String)
+- `max_slices_per_bar` (Number) How many slices can fit in a single bar
+- `stack_name_template` (String) Custom template name of an individual stack
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis"></a>
@@ -1227,17 +1271,17 @@ Read-Only:
 
 Read-Only:
 
-- `time` (Attributes) Deprecated: use `time_buckets` instead. The Coralogix UI no longer writes this block and rewrites it to `time_buckets` when the dashboard is saved. Retained at full fidelity for dashboards that still set it. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time))
-- `time_buckets` (Attributes) How time is grouped into buckets. Set at most one of `auto` and `manual`; omit both to leave the choice to the backend. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets))
-- `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value))
+- `time` (Attributes) X axis scale divided into time buckets (deprecated, use time_buckets instead) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time))
+- `time_buckets` (Attributes) X axis interval resolution settings for time bucket calculations, supporting auto or manual modes (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets))
+- `value` (Attributes) X axis scale showing individual group values (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.time`
 
 Read-Only:
 
-- `buckets_presented` (Number)
-- `interval` (String) The time interval to use for the x-axis. Valid values are in duration format, for example `1m0s` or `1h0m0s` (currently leading zeros should be added).
+- `buckets_presented` (Number) How many buckets to present in the selected timeframe (deprecated)
+- `interval` (String) Interval of value sampling, i.e. every 5 minutes, every 1 second and so on (deprecated)
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets"></a>
@@ -1245,17 +1289,17 @@ Read-Only:
 
 Read-Only:
 
-- `auto` (Attributes) Let the backend choose the interval, within the constraints below. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--auto))
-- `manual` (Attributes) Set the interval yourself. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--manual))
-- `use_advanced_limit` (Boolean) Whether the maximum data points and minimum interval fields are editable in the Coralogix UI. It does not change how the interval is calculated.
+- `auto` (Attributes) Automatic interval resolution that calculates optimal time buckets based on the widget width, time range, and specified constraints. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--auto))
+- `manual` (Attributes) Manual interval resolution with a fixed, user-specified interval for time buckets. Optionally supports minimum interval and maximum data points constraints. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--manual))
+- `use_advanced_limit` (Boolean) Whether the max. data points and min. interval fields are user-editable. When true, users can modify these constraint fields; when false or unset, they are read-only.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--auto"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.time_buckets.auto`
 
 Read-Only:
 
-- `maximum_data_points` (Number) The most data points to display. The calculated interval keeps within this limit.
-- `minimum_interval` (String) The smallest interval the calculation may choose. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+- `maximum_data_points` (Number) Maximum number of data points to display. The calculated interval ensures this limit is not exceeded.
+- `minimum_interval` (String) Minimum interval duration. The calculated interval will not be smaller than this value.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--manual"></a>
@@ -1263,9 +1307,9 @@ Read-Only:
 
 Read-Only:
 
-- `interval` (String) The fixed interval for time buckets. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
-- `maximum_data_points` (Number) The most data points the selected interval may produce.
-- `minimum_interval` (String) The smallest interval the selected one may be. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+- `interval` (String) Fixed interval duration for time buckets, specified by the user.
+- `maximum_data_points` (Number) Maximum number of data points constraint.
+- `minimum_interval` (String) Minimum interval duration constraint. The selected interval will not be smaller than this value.
 
 
 
@@ -1280,20 +1324,20 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--columns))
-- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
-- `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--order_by))
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query))
-- `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["condensed" "json" "list" "one_line" "two_line" "unspecified"].
+- `columns` (Attributes List) List of column definitions. At least one column is required when the query is a logs query. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--columns))
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `order_by` (Attributes) Defines how to order the results in the table (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--order_by))
+- `query` (Attributes) A query object containing query definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query))
+- `results_per_page` (Number) How many results are displayed per table page
+- `row_style` (String) Specifies how rows are displayed Valid values: ["condensed" "json" "list" "one_line" "two_line" "unspecified"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--columns"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.columns`
 
 Read-Only:
 
-- `field` (String)
-- `width` (Number)
+- `field` (String) Name of the field to display in the column
+- `width` (Number) Custom width of the column, by default it's automatically adjusted
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--order_by"></a>
@@ -1301,8 +1345,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
+- `field` (String) Field name to order by
+- `order_direction` (String) Order direction, ascending or descending Valid values: ["asc" "desc" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query"></a>
@@ -1310,45 +1354,45 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters))
-- `query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters))
+- `query` (String) Dataprime query text
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator"></a>
@@ -1356,9 +1400,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1367,18 +1411,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1387,16 +1431,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--operator"></a>
@@ -1404,9 +1459,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1416,16 +1471,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--relative"></a>
@@ -1433,7 +1488,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1443,27 +1498,27 @@ Read-Only:
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters))
-- `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters))
+- `grouping` (Attributes) Definition of grouping and aggregations (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping))
+- `lucene_query` (String) A Lucene query string to search logs
+- `time_frame` (Attributes) Specifies the time period for which the results should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator"></a>
@@ -1471,9 +1526,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1482,36 +1537,37 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations))
-- `group_bys` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--group_bys))
+- `aggregations` (Attributes List) List of aggregations (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations))
+- `group_by` (List of String) List of field names to group the query results
+- `group_bys` (Attributes List) List of observation fields to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--group_bys))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations`
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation))
-- `id` (String)
-- `is_visible` (Boolean)
-- `name` (String)
+- `aggregation` (Attributes) Type of aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation))
+- `id` (String) Aggregation unique identifier
+- `is_visible` (Boolean) Whether the aggregation is visible in the table
+- `name` (String) Aggregation name
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1521,8 +1577,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1531,16 +1587,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--relative"></a>
@@ -1548,7 +1604,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1558,29 +1614,29 @@ Read-Only:
 
 Read-Only:
 
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
-- `promql_query` (String)
-- `promql_query_type` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame))
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder based Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1589,16 +1645,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--relative"></a>
@@ -1606,7 +1662,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1616,27 +1672,27 @@ Read-Only:
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters))
-- `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters))
+- `grouping` (Attributes) Definition of grouping and aggregations (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping))
+- `lucene_query` (String) A Lucene query string to search span records
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters`
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field"></a>
@@ -1644,9 +1700,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator"></a>
@@ -1654,9 +1710,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1665,27 +1721,28 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--group_by))
+- `aggregations` (Attributes List) List of aggregations applied to span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations))
+- `group_by` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--group_by))
+- `group_bys` (Attributes List) A list of observation fields definitions to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--group_bys))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations`
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations--aggregation))
-- `id` (String)
-- `is_visible` (Boolean)
-- `name` (String)
+- `aggregation` (Attributes) Type of spans aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations--aggregation))
+- `id` (String) Aggregation unique identifier
+- `is_visible` (Boolean) Whether the aggregation is visible in the table
+- `name` (String) Aggregation name
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.aggregation`
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 
@@ -1694,8 +1751,18 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--group_bys"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_bys`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1704,16 +1771,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--relative"></a>
@@ -1721,7 +1788,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1733,37 +1800,37 @@ Read-Only:
 
 Read-Only:
 
-- `interpretation` (String) Deprecated: superseded by the `visualization` block. Retained at full fidelity for importing dashboards that still set it. Valid values are: categorical_analysis_horizontal_bars, categorical_analysis_pie_chart, categorical_analysis_vertical_bars, multi_value_kpi, multi_value_kpi_gauge, multi_value_kpi_hexagon_bins, multi_value_kpi_stat, multi_value_kpi_stat_card, raw_data_table, single_value_kpi, single_value_kpi_gauge, single_value_kpi_stat, single_value_kpi_stat_card, trend_over_time_line, unspecified.
-- `query_definitions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame))
-- `visualization` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization))
+- `interpretation` (String) Interpretation of the query results (deprecated, use visualization instead) Valid values: ["categorical_analysis_horizontal_bars" "categorical_analysis_pie_chart" "categorical_analysis_vertical_bars" "multi_value_kpi" "multi_value_kpi_gauge" "multi_value_kpi_hexagon_bins" "multi_value_kpi_stat" "multi_value_kpi_stat_card" "raw_data_table" "single_value_kpi" "single_value_kpi_gauge" "single_value_kpi_stat" "single_value_kpi_stat_card" "trend_over_time_line" "unspecified"].
+- `query_definitions` (Attributes List) Definitions of widget queries. At least one query definition is required unless the deprecated query field is set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions))
+- `time_frame` (Attributes) Time frame which overrides the dashboard time frame (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame))
+- `visualization` (Attributes) Specifies how the query results should be visualized (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions`
 
 Read-Only:
 
-- `id` (String) Identifier for this query. Generated when omitted. Set it explicitly when a visualization needs to reference the query, as `time_series_lines_multi.query_display_settings[*].query_id` does.
-- `name` (String)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query))
+- `id` (String) Unique id of the query definition
+- `name` (String) Custom name of the query
+- `query` (Attributes) Query object (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query`
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.data_prime`
 
 Read-Only:
 
-- `data_mode_type` (String) The data mode type. Valid values are: archive, unspecified.
-- `query` (String)
+- `data_mode_type` (String) Data mode type Valid values: ["archive" "unspecified"].
+- `query` (String) Dataprime query text
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs"></a>
@@ -1771,29 +1838,29 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations))
-- `data_mode_type` (String) The data mode type. Valid values are: archive, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--group_by))
-- `lucene_query` (String)
+- `aggregations` (Attributes List) Aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations))
+- `data_mode_type` (String) Data mode type Valid values: ["archive" "unspecified"].
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters))
+- `group_by` (Attributes List) A list of observation fields by which to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--group_by))
+- `lucene_query` (String) A Lucene query string to search logs
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1802,17 +1869,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--operator"></a>
@@ -1820,9 +1887,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1831,8 +1898,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1841,10 +1908,10 @@ Read-Only:
 
 Read-Only:
 
-- `editor_mode` (String) The metrics query editor mode. Valid values are: builder, text, unspecified.
-- `promql_query` (String)
-- `promql_query_type` (String) The PromQL query type. Use `range` for visualizations that plot values over time, such as the time-series ones; an instant query returns a single point and those charts render empty. Valid values are: instant, range, unspecified.
-- `series_limit_type` (String) The metrics series limit type. Valid values are: by_point_count, by_series_count, unspecified.
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder based Valid values: ["builder" "text" "unspecified"].
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `series_limit_type` (String) How to limit the result using series_count_limit parameter Valid values: ["by_point_count" "by_series_count" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans"></a>
@@ -1852,29 +1919,29 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations))
-- `data_mode_type` (String) The data mode type. Valid values are: archive, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--group_by))
-- `lucene_query` (String)
+- `aggregations` (Attributes List) Span query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations))
+- `data_mode_type` (String) Data mode type Valid values: ["archive" "unspecified"].
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters))
+- `group_by` (Attributes List) A list of fields to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--group_by))
+- `lucene_query` (String) Lucene query string to search span records
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1883,17 +1950,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field"></a>
@@ -1901,9 +1968,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator"></a>
@@ -1911,9 +1978,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -1922,9 +1989,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -1935,16 +2002,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--relative"></a>
@@ -1952,7 +2019,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -1961,53 +2028,53 @@ Read-Only:
 
 Read-Only:
 
-- `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge))
-- `geomap` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap))
-- `heatmap` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap))
-- `hexagon_bins` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins))
-- `horizontal_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars))
-- `horizontal_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi))
-- `pie_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart))
-- `stat` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat))
-- `stat_card` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
-- `table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table))
-- `time_series_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars))
-- `time_series_lines` (Attributes) Deprecated: use `time_series_lines_multi` instead. Retained at full fidelity for importing dashboards that still use the singular time series lines visualization. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines))
-- `time_series_lines_multi` (Attributes) Plots one line per query. Editing this widget in the Coralogix UI fills in optional settings the configuration may not set, so a later plan may show those being reset. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi))
-- `vertical_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars))
-- `vertical_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi))
+- `gauge` (Attributes) Gauge. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge))
+- `geomap` (Attributes) Geomap. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap))
+- `heatmap` (Attributes) Heatmap. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap))
+- `hexagon_bins` (Attributes) Hexagon bins. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins))
+- `horizontal_bars` (Attributes) Horizontal bars. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars))
+- `horizontal_bars_multi` (Attributes) Visualization configuration for horizontal bars with multiple queries. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi))
+- `pie_chart` (Attributes) Pie chart. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart))
+- `stat` (Attributes) Stat. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat))
+- `stat_card` (Attributes) Stat card visualization displaying key values with color mapping and configurable visual elements (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
+- `table` (Attributes) Visualization configuration for displaying query results as a structured table with columns, rules, and display settings. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table))
+- `time_series_bars` (Attributes) Time series bars. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars))
+- `time_series_lines` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines))
+- `time_series_lines_multi` (Attributes) Time series lines multi. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi))
+- `vertical_bars` (Attributes) Vertical bars. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars))
+- `vertical_bars_multi` (Attributes) Visualization configuration for vertical bars with multiple queries. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge`
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display))
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields))
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `display_series_name` (Boolean)
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend))
-- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
-- `max` (Number)
-- `min` (Number)
-- `show_inner_arc` (Boolean) Deprecated: use `arc_display.value_arc` instead.
-- `show_min_max` (Boolean)
-- `show_outer_arc` (Boolean) Deprecated: use `arc_display.threshold_arc` instead.
-- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
-- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `arc_display` (Attributes) Arc display settings; set this object to show the gauge arcs and control the value and threshold arcs, or omit it to hide all arcs (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display))
+- `category_fields` (Attributes List) List of observation fields used to split gauge into multiple gauge instances. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields))
+- `custom_unit` (String) Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `display_series_name` (Boolean) (multigauge display only) Whether to show the series names above the value
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend))
+- `legend_by` (String) Indicates how to group the legend elements, either by thresholds or by query groups Valid values: ["groups" "thresholds" "unspecified"].
+- `max` (Number) A maximum gauge value used in percentage threshold calculation and for visual value representation
+- `min` (Number) A minimum gauge value used in percentage threshold calculation and for visual value representation
+- `show_inner_arc` (Boolean) Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value
+- `show_min_max` (Boolean) Whether to display the min and max range values on the gauge
+- `show_outer_arc` (Boolean) Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range
+- `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `thresholds` (Attributes List) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds))
+- `unit` (String) Unit of the value - one from a predefined list, or 'custom' Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 - `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_field))
-- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_fields))
+- `value_fields` (Attributes List) The value fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_fields))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.arc_display`
 
 Read-Only:
 
-- `threshold_arc` (Boolean)
-- `value_arc` (Boolean)
+- `threshold_arc` (Boolean) Whether to show the threshold arc which graphically represents the threshold bands over the min/max range (replaces the deprecated showOuterArc)
+- `value_arc` (Boolean) Whether to show the value arc which graphically represents the current value (replaces the deprecated showInnerArc)
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields"></a>
@@ -2015,8 +2082,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend"></a>
@@ -2024,10 +2091,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds"></a>
@@ -2035,9 +2102,9 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_field"></a>
@@ -2045,8 +2112,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_fields"></a>
@@ -2054,8 +2121,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2064,41 +2131,41 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation))
-- `allow_abbreviation` (Boolean)
-- `color` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--color))
-- `config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config))
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `min_max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max))
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `aggregation` (Attributes) Determines how data clusters on the geomap will display values. Default should always be set to count to simply provide number of nodes in cluster as a value. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation))
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `color` (Attributes) Color options for the nodes on the geomap, affects cluster scaling as well. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--color))
+- `config` (Attributes) Defines columns which provide required geographic information for the geomap from the query results. Affects location and grouping of the data displayed. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config))
+- `custom_unit` (String) Custom unit (requires to have unit field as 'custom' to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `min_max` (Attributes) Defines min/max values range for the geomap, will affect color and cluster scaling. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max))
+- `tooltip` (Attributes) Tooltip settings for the widget (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation`
 
 Read-Only:
 
-- `avg` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg))
-- `count` (Boolean)
-- `max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max))
-- `min` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min))
-- `sum` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum))
+- `avg` (Attributes) Option that will use selected field in data results, perform AVG aggregation on it across all nodes in a cluster and display that value. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg))
+- `count` (Boolean) Option that will make geomap clusters simply count the number of nodes in each cluster.
+- `max` (Attributes) Option that will use selected field in data results, perform MAX aggregation on it across all nodes in a cluster and display that value. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max))
+- `min` (Attributes) Option that will use selected field in data results, perform MIN aggregation on it across all nodes in a cluster and display that value. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min))
+- `sum` (Attributes) Option that will use selected field in data results, perform SUM aggregation on it across all nodes in a cluster and display that value. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.avg`
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg--field))
+- `field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg--field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.avg.field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2107,15 +2174,15 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max--field))
+- `field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max--field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.max.field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2124,15 +2191,15 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min--field))
+- `field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min--field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.min.field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2141,15 +2208,15 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum--field))
+- `field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum--field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.sum.field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2159,8 +2226,8 @@ Read-Only:
 
 Read-Only:
 
-- `color_range` (String) The gradient color range. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
-- `size` (String) The solid size color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
+- `color_range` (String) Geomap clusters will have same size, but gradient color will be applied to distinguish data values and/or applied aggregation Valid values: ["blue" "blue_reversed" "green" "green_reversed" "red" "red_reversed" "threshold" "threshold_reversed" "unspecified"].
+- `size` (String) Geomap clusters will scale according to data values and/or applied aggregation, using a solid color Valid values: ["blue" "cyan" "green" "magenta" "orange" "purple" "red" "unspecified" "yellow"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config"></a>
@@ -2168,23 +2235,42 @@ Read-Only:
 
 Read-Only:
 
-- `aws_region_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config))
-- `coordinate_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config))
+- `all_region_config` (Attributes) Alternative way to provide geographic information, by specifying a region field whose values may come from any supported cloud provider. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config))
+- `aws_region_config` (Attributes) Alternative way to provide geographic information, by specifying AWS region field from the query results. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config))
+- `coordinate_config` (Attributes) Default way to provide geographic information, by specifying latitude and longitude fields from the query results. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config))
+- `ibm_region_config` (Attributes) Alternative way to provide geographic information, by specifying an IBM Cloud region field from the query results. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config`
+
+Read-Only:
+
+- `region_field` (Attributes) Data for this field should always return valid region strings from any supported cloud provider, aggregating every provider's regions. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config--region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config--region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config.region_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config`
 
 Read-Only:
 
-- `aws_region_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config--aws_region_field))
+- `aws_region_field` (Attributes) Data for this field should always return valid AWS region strings (e.g. us-east-1, us-west-2). (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config--aws_region_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config--aws_region_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config.aws_region_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2193,16 +2279,16 @@ Read-Only:
 
 Read-Only:
 
-- `latitude_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--latitude_field))
-- `longitude_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field))
+- `latitude_field` (Attributes) Data for this field should always return valid numeric coordinate (e.g. 45.756). (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--latitude_field))
+- `longitude_field` (Attributes) Data for this field should always return valid numeric coordinate (e.g. -122.4194). (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--latitude_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.latitude_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field"></a>
@@ -2210,8 +2296,25 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config`
+
+Read-Only:
+
+- `region_field` (Attributes) Data for this field should always return valid IBM Cloud region strings (e.g. us-south, eu-de). (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config--region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config--region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config.region_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2221,16 +2324,16 @@ Read-Only:
 
 Read-Only:
 
-- `auto` (Boolean)
-- `custom` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max--custom))
+- `auto` (Boolean) An empty value to determine min/max limits to be automatically derived from data
+- `custom` (Attributes) Define min and/or max limits with custom values to affect widget scaling and/or colors (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max--custom))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max--custom"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.min_max.custom`
 
 Read-Only:
 
-- `max` (Number)
-- `min` (Number)
+- `max` (Number) Maximum value.
+- `min` (Number) Minimum value.
 
 
 
@@ -2239,16 +2342,16 @@ Read-Only:
 
 Read-Only:
 
-- `labels` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels))
-- `message_template` (String)
+- `labels` (Attributes List) Labels to display on the tooltip, should reference fields from clusters or points on the map. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels))
+- `message_template` (String) Custom template for the geomap tooltip
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.tooltip.labels`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2258,38 +2361,38 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `color_axis_max` (Number) The maximum value for the gradient color axis. Stored at float32 precision by the API.
-- `color_axis_min` (Number) The minimum value for the gradient color axis. Stored at float32 precision by the API.
-- `color_range` (String) The gradient color range. Mutually exclusive with `preset`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `histogram_bucket_unit` (String) The histogram bucket unit. Valid values are: bytes, bytes_iec, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, seconds, unspecified.
-- `preset` (String) The color preset. Mutually exclusive with `color_range`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `show_numbers` (Boolean)
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--value_field))
-- `x_axis_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--x_axis_fields))
-- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
-- `y_axis_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--y_axis_fields))
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `color_axis_max` (Number) Optional number indicating the max value for gradient color axis. Automatically calculated from data if not provided.
+- `color_axis_min` (Number) Optional number indicating the lowest value for gradient color axis. Automatically calculated from data if not provided.
+- `color_range` (String) Color configuration for the heatmap Valid values: ["blue" "blue_reversed" "green" "green_reversed" "red" "red_reversed" "threshold" "threshold_reversed" "unspecified"].
+- `custom_unit` (String) Custom unit (requires to have unit field as 'custom' to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `histogram_bucket_unit` (String) Unit used to format histogram bucket boundaries when a heatmap axis represents cumulative histogram buckets Valid values: ["bytes" "bytes_iec" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "seconds" "unspecified"].
+- `preset` (String) Heatmap color preset. Valid values: ["blue" "blue_reversed" "green" "green_reversed" "red" "red_reversed" "threshold" "threshold_reversed" "unspecified"].
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `show_numbers` (Boolean) Whether to render numeric values inside the heatmap tiles
+- `tooltip` (Attributes) Tooltip settings for the widget (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--value_field))
+- `x_axis_fields` (Attributes List) List of observation fields used as x-axis categories in the heatmap grid. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--x_axis_fields))
+- `x_axis_time_format` (String) Time format for the X axis (only applicable when X axis contains timestamp fields) Valid values: ["auto" "dd_mm" "dd_mm_hh_mm" "hh_mm" "hh_mm_dd_mm" "hh_mm_mm_dd" "mm_dd" "mm_dd_hh_mm" "unspecified"].
+- `y_axis_fields` (Attributes List) List of observation fields used as y-axis categories in the heatmap grid. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--y_axis_fields))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip`
 
 Read-Only:
 
-- `labels` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels))
-- `message_template` (String)
+- `labels` (Attributes List) Labels to display on the tooltip, should reference fields used in x-axis or y-axis (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels))
+- `message_template` (String) Custom template for the heatmap tooltip
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip.labels`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2298,8 +2401,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--x_axis_fields"></a>
@@ -2307,8 +2410,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--y_axis_fields"></a>
@@ -2316,8 +2419,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2326,26 +2429,26 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields))
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend))
-- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
-- `max` (Number)
-- `min` (Number)
-- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
-- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--thresholds))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--value_field))
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields))
+- `custom_unit` (String) Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend))
+- `legend_by` (String) Indicates how to group the legend elements, either by thresholds or by query groups Valid values: ["groups" "thresholds" "unspecified"].
+- `max` (Number) A maximum gauge value used in percentage threshold calculation and for visual value representation
+- `min` (Number) A minimum gauge value used in percentage threshold calculation and for visual value representation
+- `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `thresholds` (Attributes List) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--thresholds))
+- `unit` (String) Unit of the value - one from a predefined list, or 'custom' Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--value_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend"></a>
@@ -2353,10 +2456,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--thresholds"></a>
@@ -2364,9 +2467,9 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--value_field"></a>
@@ -2374,8 +2477,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2384,35 +2487,35 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields))
-- `color_scheme` (String)
-- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `display_on_bar` (Boolean)
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend))
-- `max_bars_per_chart` (Number)
-- `max_slices_per_bar` (Number)
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
-- `stack_name_template` (String)
-- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field))
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
-- `y_axis_view_by` (String) How the y-axis is viewed. Valid values are: category, unspecified, value.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields))
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `colors_by` (String) How the bar colors should be organized Valid values: ["aggregation" "category" "group_by" "query" "stack"].
+- `custom_unit` (String) Custom unit (requires to have unit field set to custom to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `display_on_bar` (Boolean) Specifies where to display the bar value
+- `group_name_template` (String) Custom template name for a group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend))
+- `max_bars_per_chart` (Number) Maximum number of bars on a chart
+- `max_slices_per_bar` (Number) How many slices can fit in a single bar
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `sort_by` (String) Sort type, by name or by value Valid values: ["name" "unspecified" "value"].
+- `stack_name_template` (String) Custom template name of an individual stack
+- `sub_category_fields` (Attributes List) The sub category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field))
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
+- `y_axis_view_by` (String) Specifies how to organize the y-axis view Valid values: ["category" "unspecified" "value"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend"></a>
@@ -2420,10 +2523,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields"></a>
@@ -2431,8 +2534,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field"></a>
@@ -2440,8 +2543,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2450,32 +2553,32 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields))
-- `color_scheme` (String)
-- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `display_on_bar` (Boolean)
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend))
-- `max_bars_per_chart` (Number)
-- `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings))
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `sort_order` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
-- `y_axis_view_by` (String) How the y-axis is viewed. Valid values are: category, unspecified, value.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields))
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `colors_by` (String) How the bar colors should be organized Valid values: ["aggregation" "category" "group_by" "query" "stack"].
+- `custom_unit` (String) Custom unit (requires to have unit field set to custom to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `display_on_bar` (Boolean) Specifies where to display the bar value
+- `group_name_template` (String) Custom template name for a group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend))
+- `max_bars_per_chart` (Number) Maximum number of bars on a chart
+- `query_field_settings` (Attributes List) Per-query field settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings))
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `sort_order` (Attributes) Sort order for bars - by category or by a specific observation field (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
+- `y_axis_view_by` (String) Specifies how to organize the y-axis view Valid values: ["category" "unspecified" "value"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend"></a>
@@ -2483,10 +2586,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings"></a>
@@ -2494,16 +2597,16 @@ Read-Only:
 
 Read-Only:
 
-- `query_id` (String)
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field))
+- `query_id` (String) Reference to the query id from Dynamic.query_display_settings
+- `value_field` (Attributes) Numeric field for this query - each bar gets one value column (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.value_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2512,24 +2615,24 @@ Read-Only:
 
 Read-Only:
 
-- `order_direction` (String) The sort order direction. Valid values are: asc, desc, unspecified.
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy))
+- `order_direction` (String) Order direction, ascending or descending Valid values: ["asc" "desc" "unspecified"].
+- `strategy` (Attributes) How to determine sort key - by category or by query value (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy`
 
 Read-Only:
 
-- `category` (Boolean) Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.
-- `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value))
-- `strategy_type` (String) Discriminator naming the chosen strategy. The backend stores whatever it is given and does not derive it, so leaving it unset reads back as an empty string. Set it only to match the arm above.
+- `category` (Boolean) Order by category (e.g. bar label)
+- `query_value` (Attributes) Order by values from a specific query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value))
+- `strategy_type` (String) Discriminator field - STRATEGY_TYPE_CATEGORY or STRATEGY_TYPE_QUERY_VALUE
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.query_value`
 
 Read-Only:
 
-- `query_id` (String) The `query_definitions` entry whose values order the bars. The API accepts this arm without one and stores it, but the result sorts by nothing, so set it.
+- `query_id` (String) Reference to the query id from Dynamic.query_display_settings
 
 
 
@@ -2540,31 +2643,31 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
-- `color_scheme` (String) How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is deliberately not restricted; the schemes this provider knows about are: classic, severity, cold, negative, green, red, blue. A value the product does not recognise is stored but applies no scheme.
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend))
-- `max_slices_per_chart` (Number) The most slices to draw on the chart. Must be at least 1.
-- `max_slices_per_stack` (Number) The most slices to fit in one stack. Must be at least 1.
-- `min_slice_percentage` (Number) The smallest share, as a percentage, a slice must reach to be drawn. Valid values are 0 to 100.
-- `show_total` (Boolean)
-- `stack_name_template` (String)
-- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--value_field))
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `custom_unit` (String) Custom unit (requires the unit field to be set to custom to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `group_name_template` (String) Custom template name for a group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `label_definition` (Attributes) Settings for slice labels (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend))
+- `max_slices_per_chart` (Number) Maximum number of slices on a chart
+- `max_slices_per_stack` (Number) How many slices can fit in a single slice stack
+- `min_slice_percentage` (Number) Minimum percentage threshold for slices to be displayed
+- `show_total` (Boolean) Whether to show the total amount as a title
+- `stack_name_template` (String) Custom template name of an individual slice in the stack
+- `sub_category_fields` (Attributes List) The sub category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields))
+- `unit` (String) Unit of the value - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--value_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition"></a>
@@ -2572,11 +2675,11 @@ Read-Only:
 
 Read-Only:
 
-- `is_visible` (Boolean)
-- `label_source` (String) The label source. Valid values are: inner, stack, unspecified.
-- `show_name` (Boolean)
-- `show_percentage` (Boolean)
-- `show_value` (Boolean)
+- `is_visible` (Boolean) Are labels visible
+- `label_source` (String) Source of the label Valid values: ["inner" "stack" "unspecified"].
+- `show_name` (Boolean) Whether to show the name of slice in the label
+- `show_percentage` (Boolean) Whether to show percentage value of slice in the label
+- `show_value` (Boolean) Whether to show value of slice in the label
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend"></a>
@@ -2584,10 +2687,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields"></a>
@@ -2595,8 +2698,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--value_field"></a>
@@ -2604,8 +2707,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2614,29 +2717,29 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields))
-- `custom_unit` (String) Custom unit label. Takes effect only when `unit` is `custom`.
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `display_series_name` (Boolean)
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend))
-- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
-- `max` (Number)
-- `min` (Number)
-- `threshold_by` (String) Which part of the widget the threshold colors. Valid values are: background, unspecified, value.
-- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
-- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) Deprecated: superseded by `value_fields`, which holds the same observation fields. Retained at full fidelity so dashboards that still set it can be imported and updated without losing it. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field))
-- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields))
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields))
+- `custom_unit` (String) Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `display_series_name` (Boolean) (multi-stat display only) Whether to show the series names above the value
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend))
+- `legend_by` (String) Indicates how to group the legend elements, either by thresholds or by query groups Valid values: ["groups" "thresholds" "unspecified"].
+- `max` (Number) A maximum gauge value used in percentage threshold calculation and for visual value representation
+- `min` (Number) A minimum gauge value used in percentage threshold calculation and for visual value representation
+- `threshold_by` (String) Indicates which widget element should be colorized as the threshold, either the value or the background Valid values: ["background" "unspecified" "value"].
+- `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `thresholds` (Attributes List) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds))
+- `unit` (String) Unit of the value - one from a predefined list, or 'custom' Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field))
+- `value_fields` (Attributes List) The value fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend"></a>
@@ -2644,10 +2747,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds"></a>
@@ -2655,9 +2758,9 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field"></a>
@@ -2665,8 +2768,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields"></a>
@@ -2674,8 +2777,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2684,26 +2787,26 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean) Shorten large numbers, for example `1.2K` instead of `1200`.
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
-- `color_label_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
-- `custom_unit` (String) A free-text unit label. Documented as taking effect only when `unit` is `custom`.
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `label` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
-- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
-- `primary_value` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value))
-- `title` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--value_fields))
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) Fields to use for categorizing the stat card data (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
+- `color_label_mapping` (Attributes) Color and label mapping configuration for the stat card values (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
+- `custom_unit` (String) Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `label` (Attributes) Optional label display configuration (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
+- `legend_by` (String) Indicates how to group the legend elements, either by thresholds or by query groups Valid values: ["groups" "thresholds" "unspecified"].
+- `primary_value` (Attributes) Primary value display configuration (required) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value))
+- `title` (Attributes) Optional title display configuration (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title))
+- `unit` (String) Unit of the value - one from a predefined list, or 'custom' Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_fields` (Attributes List) Fields to use for the stat card value (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--value_fields))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping"></a>
@@ -2711,35 +2814,35 @@ Read-Only:
 
 Read-Only:
 
-- `color_by` (String) Which part of the widget the color applies to. Valid values are: background, row, unspecified, value.
-- `range` (Attributes) Colour by where the value falls in a numeric range. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range))
-- `regex` (Attributes) Colour by matching the value against regular expressions. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex))
-- `value` (Attributes) Colour by matching the value exactly. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value))
+- `color_by` (String) Determines which element to colorize - value text or background Valid values: ["background" "row" "unspecified" "value"].
+- `range` (Attributes) Range-based color mapping using min/max and thresholds (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range))
+- `regex` (Attributes) Regex pattern-based color mapping (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex))
+- `value` (Attributes) Exact value-based color mapping (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range`
 
 Read-Only:
 
-- `min_max` (Attributes) The range ends. Either derived from the data (`auto`) or fixed (`custom`). (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max))
-- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
-- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--thresholds))
+- `min_max` (Attributes) Min/max range configuration, auto-derived from data or custom values (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max))
+- `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `thresholds` (Attributes List) List of color thresholds defining color ranges (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--thresholds))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.min_max`
 
 Read-Only:
 
-- `auto` (Boolean) Set to `true` to derive the range ends from the data.
-- `custom` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom))
+- `auto` (Boolean) An empty value to determine min/max limits to be automatically derived from data
+- `custom` (Attributes) Define min and/or max limits with custom values to affect widget scaling and/or colors (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.min_max.custom`
 
 Read-Only:
 
-- `max` (Number)
-- `min` (Number)
+- `max` (Number) Maximum value.
+- `min` (Number) Minimum value.
 
 
 
@@ -2748,9 +2851,9 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 
@@ -2759,16 +2862,16 @@ Read-Only:
 
 Read-Only:
 
-- `sections` (Attributes List) One entry per value to match. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections))
+- `sections` (Attributes List) List of regex pattern-to-display mapping sections (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.regex.sections`
 
 Read-Only:
 
-- `color` (String) The section color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
-- `map_to` (String) Text to display instead of the matched value.
-- `value` (String)
+- `color` (String) Color for this mapping section Valid values: ["blue" "cyan" "green" "magenta" "orange" "purple" "red" "unspecified" "yellow"].
+- `map_to` (String) Display text to map the matched value to
+- `value` (String) Value to match (exact string for value mapping, regex pattern for regex mapping)
 
 
 
@@ -2777,16 +2880,16 @@ Read-Only:
 
 Read-Only:
 
-- `sections` (Attributes List) One entry per value to match. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections))
+- `sections` (Attributes List) List of exact value-to-display mapping sections (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.value.sections`
 
 Read-Only:
 
-- `color` (String) The section color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
-- `map_to` (String) Text to display instead of the matched value.
-- `value` (String)
+- `color` (String) Color for this mapping section Valid values: ["blue" "cyan" "green" "magenta" "orange" "purple" "red" "unspecified" "yellow"].
+- `map_to` (String) Display text to map the matched value to
+- `value` (String) Value to match (exact string for value mapping, regex pattern for regex mapping)
 
 
 
@@ -2796,18 +2899,18 @@ Read-Only:
 
 Read-Only:
 
-- `mapped_values` (Boolean) Set to `true` to display the result of `color_label_mapping` instead of a field. Mutually exclusive with `observation_field`.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field))
-- `template_text` (String) Display text, which may reference variables declared in `template_variables`.
-- `template_variables` (Attributes List) Variables that `template_text` can reference. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables))
+- `mapped_values` (Boolean) Display the result of the color label mapping
+- `observation_field` (Attributes) A field from the query datashape to display (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field))
+- `template_text` (String) Optional display name template with variable support, e.g. 'pod count: {{$d.k8s.pods}}' or '{{$mapped}}'
+- `template_variables` (Attributes List) Variables available for use in the display name template, each referencing either a datashape field or mapped values (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables"></a>
@@ -2815,16 +2918,16 @@ Read-Only:
 
 Read-Only:
 
-- `mapped_values` (Boolean) Set to `true` to resolve the variable from the `color_label_mapping` result instead of a field. Mutually exclusive with `observation_field`.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field))
+- `mapped_values` (Boolean) Resolve the variable from the color label mapping result
+- `observation_field` (Attributes) Resolve the variable from a query datashape field (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2834,10 +2937,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value"></a>
@@ -2845,18 +2948,18 @@ Read-Only:
 
 Read-Only:
 
-- `mapped_values` (Boolean) Not supported here: the primary value is the source the color label mapping reads from, so it cannot itself display the mapping result.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field))
-- `template_text` (String) Display text, which may reference variables declared in `template_variables`.
-- `template_variables` (Attributes List) Variables that `template_text` can reference. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables))
+- `mapped_values` (Boolean) Display the result of the color label mapping
+- `observation_field` (Attributes) A field from the query datashape to display (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field))
+- `template_text` (String) Optional display name template with variable support, e.g. 'pod count: {{$d.k8s.pods}}' or '{{$mapped}}'
+- `template_variables` (Attributes List) Variables available for use in the display name template, each referencing either a datashape field or mapped values (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables"></a>
@@ -2864,16 +2967,16 @@ Read-Only:
 
 Read-Only:
 
-- `mapped_values` (Boolean) Set to `true` to resolve the variable from the `color_label_mapping` result instead of a field. Mutually exclusive with `observation_field`.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field))
+- `mapped_values` (Boolean) Resolve the variable from the color label mapping result
+- `observation_field` (Attributes) Resolve the variable from a query datashape field (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2883,18 +2986,18 @@ Read-Only:
 
 Read-Only:
 
-- `mapped_values` (Boolean) Set to `true` to display the result of `color_label_mapping` instead of a field. Mutually exclusive with `observation_field`.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field))
-- `template_text` (String) Display text, which may reference variables declared in `template_variables`.
-- `template_variables` (Attributes List) Variables that `template_text` can reference. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables))
+- `mapped_values` (Boolean) Display the result of the color label mapping
+- `observation_field` (Attributes) A field from the query datashape to display (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field))
+- `template_text` (String) Optional display name template with variable support, e.g. 'pod count: {{$d.k8s.pods}}' or '{{$mapped}}'
+- `template_variables` (Attributes List) Variables available for use in the display name template, each referencing either a datashape field or mapped values (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables"></a>
@@ -2902,16 +3005,16 @@ Read-Only:
 
 Read-Only:
 
-- `mapped_values` (Boolean) Set to `true` to resolve the variable from the `color_label_mapping` result instead of a field. Mutually exclusive with `observation_field`.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field))
+- `mapped_values` (Boolean) Resolve the variable from the color label mapping result
+- `observation_field` (Attributes) Resolve the variable from a query datashape field (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2921,8 +3024,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2931,24 +3034,24 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns))
-- `rules` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules))
-- `settings` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings))
+- `columns` (Attributes List) List of columns. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns))
+- `rules` (Attributes List) List of rules. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules))
+- `settings` (Attributes) Table settings. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.columns`
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field))
+- `field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.columns.field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -2957,50 +3060,50 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String)
-- `id` (String)
-- `name` (String)
-- `properties` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties))
-- `rule_scope` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope))
+- `description` (String) Human-readable description.
+- `id` (String) Unique identifier.
+- `name` (String) Display name.
+- `properties` (Attributes List) The properties. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties))
+- `rule_scope` (Attributes) Rule scope. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties`
 
 Read-Only:
 
-- `definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition))
-- `id` (String)
+- `definition` (Attributes) Property definition. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition))
+- `id` (String) Uuid.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition`
 
 Read-Only:
 
-- `alignment` (String) The text alignment. Valid values are: center, left, right, unspecified.
-- `column_display_name` (String)
-- `link` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link))
-- `regex_extract` (String)
-- `thresholds` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds))
-- `units` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--units))
-- `values_alias` (String)
-- `values_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping))
+- `alignment` (String) Text alignment. Valid values: ["center" "left" "right" "unspecified"].
+- `column_display_name` (String) Column display name property, allows renaming the column header name
+- `link` (Attributes) Link property (see PropertyLinks for full reference) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link))
+- `regex_extract` (String) Value of Regex Extract property, a regex string
+- `thresholds` (Attributes) Property thresholds. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds))
+- `units` (Attributes) Property units. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--units))
+- `values_alias` (String) Value alias property, used to give alias names to selected fields
+- `values_mapping` (Attributes) Property values mapping. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link`
 
 Read-Only:
 
-- `actions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions))
+- `actions` (Attributes List) Collection of link actions (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link.actions`
 
 Read-Only:
 
-- `id` (String)
-- `name` (String)
-- `should_open_in_new_window` (Boolean)
-- `url` (String)
+- `id` (String) Unique id of the link action
+- `name` (String) Name of the link action
+- `should_open_in_new_window` (Boolean) Defines if the link action should open in a new window or current window in the browser
+- `url` (String) Static URL that may contain variables using {{variable_name}} syntax
 
 
 
@@ -3009,19 +3112,19 @@ Read-Only:
 
 Read-Only:
 
-- `max` (Number)
-- `min` (Number)
-- `type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
-- `values` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values))
+- `max` (Number) A maximum value used in relative thresholds to calculate the threshold levels
+- `min` (Number) A minimum value used in relative thresholds to calculate the threshold levels
+- `type` (String) Type of the threshold, can be relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `values` (Attributes List) List of thresholds (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.thresholds.values`
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 
@@ -3030,12 +3133,12 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `max` (Number)
-- `min` (Number)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `custom_unit` (String) Custom unit (requires to set unit field as 'custom' to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `max` (Number) A maximum value used in percentage type unit (UNIT_PERCENT) for calculating displayed value
+- `min` (Number) A minimum value used in percentage type unit (UNIT_PERCENT) for calculating displayed value
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping"></a>
@@ -3043,16 +3146,16 @@ Read-Only:
 
 Read-Only:
 
-- `mappings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings))
+- `mappings` (Attributes List) The mappings. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.values_mapping.mappings`
 
 Read-Only:
 
-- `input_value` (String)
-- `replace_value` (String)
-- `type` (String) The values mapping type. Valid values are: regex, unspecified, value.
+- `input_value` (String) The input value.
+- `replace_value` (String) The replace value.
+- `type` (String) Values mapping type. Valid values: ["regex" "unspecified" "value"].
 
 
 
@@ -3063,17 +3166,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field))
-- `field_type` (String) The field data type. Valid values are: array, boolean, enum, number, object, regex, string, timestamp, union, unspecified.
-- `regex` (String)
+- `field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field))
+- `field_type` (String) Field data type. Valid values: ["array" "boolean" "enum" "number" "object" "regex" "string" "timestamp" "union" "unspecified"].
+- `regex` (String) Regular expression pattern used to scope the rule.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.rule_scope.field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3083,16 +3186,16 @@ Read-Only:
 
 Read-Only:
 
-- `column_widths` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths))
-- `row_style` (String) The row style. Valid values are: condensed, json, list, one_line, two_line, unspecified.
+- `column_widths` (Attributes List) List of configured column widths (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths))
+- `row_style` (String) Type of row view style in the table Valid values: ["condensed" "json" "list" "one_line" "two_line" "unspecified"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.settings.column_widths`
 
 Read-Only:
 
-- `column_name` (String)
-- `width` (Number) The column width in pixels. Must be at least 1.
+- `column_name` (String) The column name.
+- `width` (Number) The width.
 
 
 
@@ -3102,33 +3205,33 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields))
-- `color_scheme` (String)
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend))
-- `max_slices_per_bar` (Number)
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `series_name_template` (String)
-- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
-- `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--temporal_field))
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--tooltip))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--value_fields))
-- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `bar_value_display` (String) Specifies where to display the bar value Valid values: ["both" "inside" "top" "unspecified"].
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields))
+- `color_scheme` (String) Applied color scheme for this query, one of the predefined values
+- `custom_unit` (String) Custom unit (requires to have unit field as 'custom' to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend))
+- `max_slices_per_bar` (Number) How many slices can fit in a single bar
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `series_name_template` (String) Custom template for the series name
+- `sort_by` (String) Sort type, by name or by value Valid values: ["name" "unspecified" "value"].
+- `temporal_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--temporal_field))
+- `tooltip` (Attributes) Tooltip settings for the widget (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--tooltip))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_fields` (Attributes List) The value fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--value_fields))
+- `x_axis_time_format` (String) Time format for the X axis Valid values: ["auto" "dd_mm" "dd_mm_hh_mm" "hh_mm" "hh_mm_dd_mm" "hh_mm_mm_dd" "mm_dd" "mm_dd_hh_mm" "unspecified"].
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend"></a>
@@ -3136,10 +3239,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--temporal_field"></a>
@@ -3147,8 +3250,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--tooltip"></a>
@@ -3156,8 +3259,8 @@ Read-Only:
 
 Read-Only:
 
-- `show_all_series` (Boolean)
-- `show_labels` (Boolean)
+- `show_all_series` (Boolean) Type of the tooltip display, can be showing single series value or all series values at once
+- `show_labels` (Boolean) The show labels.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--value_fields"></a>
@@ -3165,8 +3268,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3175,34 +3278,34 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--category_fields))
-- `color_scheme` (String)
-- `connect_nulls` (Boolean)
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `series_count_limit` (Number)
-- `series_name_template` (String)
-- `stacked_line` (String) How lines are stacked. Valid values are: absolute, relative, unspecified.
-- `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field))
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--tooltip))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `use_data_time_range` (Boolean)
-- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--value_fields))
-- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--category_fields))
+- `color_scheme` (String) Applied color scheme for this query, one of the predefined values
+- `connect_nulls` (Boolean) Whether the line should remain connected instead of producing scattered points when null values are present in between
+- `custom_unit` (String) Custom unit (requires to have unit field as 'custom' to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `series_count_limit` (Number) Max count of the series per query
+- `series_name_template` (String) Custom template for the series name
+- `stacked_line` (String) Type of stacked line, can be undefined, absolute or relative Valid values: ["absolute" "relative" "unspecified"].
+- `temporal_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field))
+- `tooltip` (Attributes) Tooltip settings for the widget (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--tooltip))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `use_data_time_range` (Boolean) When used, dashboard or widget time frame is ignored and X axis will represent only dates present in received data which can differ significantly from time ranges that were requested.
+- `value_fields` (Attributes List) The value fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--value_fields))
+- `x_axis_time_format` (String) Time format for the X axis Valid values: ["auto" "dd_mm" "dd_mm_hh_mm" "hh_mm" "hh_mm_dd_mm" "hh_mm_mm_dd" "mm_dd" "mm_dd_hh_mm" "unspecified"].
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend"></a>
@@ -3210,10 +3313,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field"></a>
@@ -3221,8 +3324,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--tooltip"></a>
@@ -3230,8 +3333,8 @@ Read-Only:
 
 Read-Only:
 
-- `show_all_series` (Boolean)
-- `show_labels` (Boolean)
+- `show_all_series` (Boolean) Type of the tooltip display, can be showing single series value or all series values at once
+- `show_labels` (Boolean) The show labels.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--value_fields"></a>
@@ -3239,8 +3342,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3249,23 +3352,23 @@ Read-Only:
 
 Read-Only:
 
-- `connect_nulls` (Boolean)
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--legend))
-- `query_display_settings` (Attributes List) Per-query display settings. Each entry styles one query, named by `query_id`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings))
-- `stacked_line` (String) How lines are stacked. Valid values are: absolute, relative, unspecified.
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--tooltip))
-- `use_data_time_range` (Boolean)
-- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `connect_nulls` (Boolean) Whether the line should remain connected instead of producing scattered points when null values are present in between
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--legend))
+- `query_display_settings` (Attributes List) Definitions of widget queries (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings))
+- `stacked_line` (String) Type of stacked line, can be undefined, absolute or relative Valid values: ["absolute" "relative" "unspecified"].
+- `tooltip` (Attributes) Tooltip settings for the widget (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--tooltip))
+- `use_data_time_range` (Boolean) When used, dashboard or widget time frame is ignored and X axis will represent only dates present in received data which can differ significantly from time ranges that were requested.
+- `x_axis_time_format` (String) Time format for the X axis Valid values: ["auto" "dd_mm" "dd_mm_hh_mm" "hh_mm" "hh_mm_dd_mm" "hh_mm_mm_dd" "mm_dd" "mm_dd_hh_mm" "unspecified"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.legend`
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings"></a>
@@ -3273,29 +3376,29 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields))
-- `color_scheme` (String)
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `query_id` (String) The `id` of the query in `query_definitions` these settings style. Set that `id` explicitly, since a generated one is not known when the configuration is written.
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `series_count_limit` (Number)
-- `series_name_template` (String)
-- `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--temporal_field))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--value_fields))
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `category_fields` (Attributes List) A list of category fields for grouping the query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields))
+- `color_scheme` (String) Applied color scheme for this query, one of the predefined values
+- `custom_unit` (String) Custom unit (requires to have unit field as 'custom' to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `query_id` (String) Reference to the query id from Dynamic.query_display_settings
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `series_count_limit` (Number) Max count of the series per query
+- `series_name_template` (String) Custom template for the series name
+- `temporal_field` (Attributes) Temporal field for time series data (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--temporal_field))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_fields` (Attributes List) A list of numeric/value observation fields to display from the query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--value_fields))
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--temporal_field"></a>
@@ -3303,8 +3406,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--value_fields"></a>
@@ -3312,8 +3415,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3322,8 +3425,8 @@ Read-Only:
 
 Read-Only:
 
-- `show_all_series` (Boolean)
-- `show_labels` (Boolean)
+- `show_all_series` (Boolean) Type of the tooltip display, can be showing single series value or all series values at once
+- `show_labels` (Boolean) The show labels.
 
 
 
@@ -3332,34 +3435,34 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields))
-- `color_scheme` (String)
-- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend))
-- `max_bars_per_chart` (Number)
-- `max_slices_per_bar` (Number)
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
-- `stack_name_template` (String)
-- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field))
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `bar_value_display` (String) Specifies where to display the bar value Valid values: ["both" "inside" "top" "unspecified"].
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields))
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `colors_by` (String) How the bar colors should be organized Valid values: ["aggregation" "category" "group_by" "query" "stack"].
+- `custom_unit` (String) Custom unit (requires to have unit field set to custom to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `group_name_template` (String) Custom template name for a group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend))
+- `max_bars_per_chart` (Number) Maximum number of bars on a chart
+- `max_slices_per_bar` (Number) How many slices can fit in a single bar
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `sort_by` (String) Sort type, by name or by value Valid values: ["name" "unspecified" "value"].
+- `stack_name_template` (String) Custom template name of an individual stack
+- `sub_category_fields` (Attributes List) The sub category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `value_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field))
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend"></a>
@@ -3367,10 +3470,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields"></a>
@@ -3378,8 +3481,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field"></a>
@@ -3387,8 +3490,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3397,31 +3500,31 @@ Read-Only:
 
 Read-Only:
 
-- `allow_abbreviation` (Boolean)
-- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
-- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields))
-- `color_scheme` (String)
-- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend))
-- `max_bars_per_chart` (Number)
-- `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings))
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `sort_order` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `allow_abbreviation` (Boolean) Whether to render numeric value with abbreviation
+- `bar_value_display` (String) Specifies where to display the bar value Valid values: ["both" "inside" "top" "unspecified"].
+- `category_fields` (Attributes List) The category fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields))
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `colors_by` (String) How the bar colors should be organized Valid values: ["aggregation" "category" "group_by" "query" "stack"].
+- `custom_unit` (String) Custom unit (requires to have unit field set to custom to take effect)
+- `decimal_precision` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `group_name_template` (String) Custom template name for a group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend))
+- `max_bars_per_chart` (Number) Maximum number of bars on a chart
+- `query_field_settings` (Attributes List) Per-query field settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings))
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `sort_order` (Attributes) Sort order for bars - by category or by a specific observation field (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.category_fields`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend"></a>
@@ -3429,10 +3532,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings"></a>
@@ -3440,16 +3543,16 @@ Read-Only:
 
 Read-Only:
 
-- `query_id` (String)
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field))
+- `query_id` (String) Reference to the query id from Dynamic.query_display_settings
+- `value_field` (Attributes) Numeric field for this query - each bar gets one value column (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.value_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3458,24 +3561,24 @@ Read-Only:
 
 Read-Only:
 
-- `order_direction` (String) The sort order direction. Valid values are: asc, desc, unspecified.
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy))
+- `order_direction` (String) Order direction, ascending or descending Valid values: ["asc" "desc" "unspecified"].
+- `strategy` (Attributes) How to determine sort key - by category or by query value (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy`
 
 Read-Only:
 
-- `category` (Boolean) Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.
-- `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value))
-- `strategy_type` (String) Discriminator naming the chosen strategy. The backend stores whatever it is given and does not derive it, so leaving it unset reads back as an empty string. Set it only to match the arm above.
+- `category` (Boolean) Order by category (e.g. bar label)
+- `query_value` (Attributes) Order by values from a specific query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value))
+- `strategy_type` (String) Discriminator field - STRATEGY_TYPE_CATEGORY or STRATEGY_TYPE_QUERY_VALUE
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.query_value`
 
 Read-Only:
 
-- `query_id` (String) The `query_definitions` entry whose values order the bars. The API accepts this arm without one and stores it, but the result sorts by nothing, so set it.
+- `query_id` (String) Reference to the query id from Dynamic.query_display_settings
 
 
 
@@ -3488,32 +3591,32 @@ Read-Only:
 
 Read-Only:
 
-- `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--arc_display))
-- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
-- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
-- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
-- `display_series_name` (Boolean)
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--legend))
-- `legend_by` (String) What the legend lists. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: groups, thresholds, unspecified.
-- `max` (Number)
-- `min` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
-- `show_inner_arc` (Boolean)
-- `show_min_max` (Boolean) Whether to display the min and max range values on the gauge.
-- `show_outer_arc` (Boolean)
-- `threshold_by` (String) The threshold by. Can be one of ["background" "unspecified" "value"].
-- `threshold_type` (String) The threshold type. Can be one of ["absolute" "relative" "unspecified"].
-- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "none" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `arc_display` (Attributes) Arc display settings; set this object to show the gauge arcs and control the value and threshold arcs, or omit it to hide all arcs (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--arc_display))
+- `custom_unit` (String) Custom unit (requires to have unit field set as 'custom' to take effect)
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `decimal` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `decimal_precision` (Boolean) Whether to render numeric value without abbreviation
+- `display_series_name` (Boolean) (multigauge display only) Whether to show the series names above the value
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--legend))
+- `legend_by` (String) (multigauge display only) Indicates how to group the legend elements, either by thresholds or by standard groups Valid values: ["groups" "thresholds" "unspecified"].
+- `max` (Number) A maximum gauge value used in percentage threshold calculation and for visual value representation
+- `min` (Number) A minimum gauge value used in percentage threshold calculation and for visual value representation
+- `query` (Attributes) A query object containing query definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
+- `show_inner_arc` (Boolean) Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value
+- `show_min_max` (Boolean) Whether to display the min and max range values on the gauge
+- `show_outer_arc` (Boolean) Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range
+- `threshold_by` (String) Indicates which widget element should be colorized as the threshold, either the value or the background Valid values: ["background" "unspecified" "value"].
+- `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `thresholds` (Attributes List) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
+- `unit` (String) Unit of the value - one from a predefined list, or 'custom' Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "none" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--arc_display"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.arc_display`
 
 Read-Only:
 
-- `threshold_arc` (Boolean)
-- `value_arc` (Boolean)
+- `threshold_arc` (Boolean) Whether to show the threshold arc which graphically represents the threshold bands over the min/max range (replaces the deprecated showOuterArc)
+- `value_arc` (Boolean) Whether to show the value arc which graphically represents the current value (replaces the deprecated showInnerArc)
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--legend"></a>
@@ -3521,10 +3624,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query"></a>
@@ -3532,45 +3635,45 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters))
-- `query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters))
+- `query` (String) Dataprime query text
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator"></a>
@@ -3578,9 +3681,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -3589,18 +3692,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -3609,16 +3712,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--operator"></a>
@@ -3626,9 +3740,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -3638,16 +3752,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--relative"></a>
@@ -3655,7 +3769,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -3665,28 +3779,28 @@ Read-Only:
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters))
-- `group_by` (Attributes List) Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--group_by))
-- `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters))
+- `group_by` (Attributes List) A list of observation fields by which to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--group_by))
+- `logs_aggregation` (Attributes) Aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation))
+- `lucene_query` (String) A Lucene query string to search logs
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator"></a>
@@ -3694,9 +3808,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -3705,8 +3819,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation"></a>
@@ -3714,18 +3828,18 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -3734,16 +3848,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--relative"></a>
@@ -3751,7 +3865,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -3761,30 +3875,30 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["avg" "last" "max" "min" "sum" "unspecified"].
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
-- `promql_query` (String)
-- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame))
+- `aggregation` (String) Aggregation function Valid values: ["avg" "last" "max" "min" "sum" "unspecified"].
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder based Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -3793,16 +3907,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--relative"></a>
@@ -3810,7 +3924,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -3820,29 +3934,29 @@ Read-Only:
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_by))
-- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys))
-- `lucene_query` (String)
-- `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters))
+- `group_by` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_by))
+- `group_bys` (Attributes List) A list of observation fields to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys))
+- `lucene_query` (String) Lucene query string to search span records
+- `spans_aggregation` (Attributes) Span query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation))
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters`
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field"></a>
@@ -3850,9 +3964,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator"></a>
@@ -3860,9 +3974,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -3871,8 +3985,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys"></a>
@@ -3880,9 +3994,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation"></a>
@@ -3890,9 +4004,9 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame"></a>
@@ -3900,16 +4014,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--relative"></a>
@@ -3917,7 +4031,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -3928,9 +4042,9 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 
@@ -3939,28 +4053,28 @@ Read-Only:
 
 Read-Only:
 
-- `custom_unit` (String) A custom unit
-- `data_mode_type` (String)
-- `decimal` (Number)
-- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--legend))
-- `legend_by` (String) The legend by. Valid values are: groups, thresholds, unspecified.
-- `max` (Number)
-- `min` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query))
-- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
-- `thresholds` (Attributes Set) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `custom_unit` (String) Custom unit (requires to have unit field set as UNIT_CUSTOM to take effect)
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `decimal` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `decimal_precision` (Boolean) Whether to render numeric value without abbreviation
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--legend))
+- `legend_by` (String) Indicates how to group the legend elements, either by thresholds or by query groups Valid values: ["groups" "thresholds" "unspecified"].
+- `max` (Number) A maximum value used in percentage threshold calculation and for visual value representation
+- `min` (Number) A minimum value used in percentage threshold calculation and for visual value representation
+- `query` (Attributes) A query object containing query definition (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query))
+- `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
+- `thresholds` (Attributes Set) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds))
+- `unit` (String) Unit of the value - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.legend`
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query"></a>
@@ -3968,45 +4082,45 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters))
-- `query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters))
+- `query` (String) Dataprime query text
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator"></a>
@@ -4014,9 +4128,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4025,18 +4139,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4045,16 +4159,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--operator"></a>
@@ -4062,9 +4187,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4074,16 +4199,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--relative"></a>
@@ -4091,7 +4216,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4101,29 +4226,29 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--group_by))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame))
+- `aggregation` (Attributes) Aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters))
+- `group_by` (Attributes List) A list of observation fields by which to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--group_by))
+- `lucene_query` (String) A Lucene query string to search logs
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -4132,17 +4257,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator"></a>
@@ -4150,9 +4275,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4161,8 +4286,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame"></a>
@@ -4170,16 +4295,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--relative"></a>
@@ -4187,7 +4312,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4197,30 +4322,30 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String)
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters))
-- `promql_query` (String)
-- `promql_query_type` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame))
+- `aggregation` (String) Aggregation function Valid values: ["avg" "last" "max" "min" "sum" "unspecified"].
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder based Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters))
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4229,16 +4354,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--relative"></a>
@@ -4246,7 +4371,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4256,21 +4381,21 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by))
-- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_bys))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame))
+- `aggregation` (Attributes) Span query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters))
+- `group_by` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by))
+- `group_bys` (Attributes List) A list of observation fields to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_bys))
+- `lucene_query` (String) Lucene query string to search span records
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation`
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters"></a>
@@ -4278,17 +4403,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field"></a>
@@ -4296,9 +4421,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator"></a>
@@ -4306,9 +4431,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4317,8 +4442,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_bys"></a>
@@ -4326,9 +4451,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame"></a>
@@ -4336,16 +4461,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--relative"></a>
@@ -4353,7 +4478,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4364,9 +4489,9 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
-- `from` (Number)
-- `label` (String)
+- `color` (String) Color of the threshold
+- `from` (Number) Minimum bound value of the threshold
+- `label` (String) Optional label of the threshold
 
 
 
@@ -4375,35 +4500,35 @@ Read-Only:
 
 Read-Only:
 
-- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
-- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
-- `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
-- `display_on_bar` (Boolean)
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--legend))
-- `max_bars_per_chart` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query))
-- `scale_type` (String)
-- `sort_by` (String)
-- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
-- `y_axis_view_by` (String)
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `colors_by` (String) How the bar colors should be organized Valid values: ["aggregation" "category" "group_by" "query" "stack"].
+- `custom_unit` (String) Custom unit (requires to have unit field set to custom to take effect)
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `decimal` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `decimal_precision` (Boolean) Whether to render numeric value without abbreviation
+- `display_on_bar` (Boolean) Specifies where to display the bar value
+- `group_name_template` (String) Custom template name for a bar group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--legend))
+- `max_bars_per_chart` (Number) Maximum number of bars on a chart
+- `query` (Attributes) Query object (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query))
+- `scale_type` (String) Scale type - linear/logarithmic
+- `sort_by` (String) Sort type, by name or by value Valid values: ["name" "unspecified" "value"].
+- `stack_definition` (Attributes) Configuration of stacked bars (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
+- `y_axis_view_by` (String) Specifies how to organize the y-axis view Valid values: ["category" "value"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.legend`
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
@@ -4411,47 +4536,47 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters))
-- `group_names` (List of String)
-- `query` (String)
-- `stacked_group_name` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters))
+- `group_names` (List of String) List of field names by which results are grouped
+- `query` (String) Dataprime query text
+- `stacked_group_name` (String) Field name by which results in groups are divided into subgroups
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator"></a>
@@ -4459,9 +4584,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4470,18 +4595,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4490,16 +4615,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--operator"></a>
@@ -4507,9 +4643,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4519,16 +4655,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--relative"></a>
@@ -4536,7 +4672,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4546,32 +4682,32 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters))
-- `group_names` (List of String)
-- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--group_names_fields))
-- `lucene_query` (String)
-- `stacked_group_name` (String)
-- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame))
+- `aggregation` (Attributes) Query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters))
+- `group_names` (List of String) List of field names to group the query results
+- `group_names_fields` (Attributes List) List of observation fields to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--group_names_fields))
+- `lucene_query` (String) A Lucene query string to search logs
+- `stacked_group_name` (String) Field name by which results are stacked in individual group
+- `stacked_group_name_field` (Attributes) Observation field by results are stacked in a group (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time period for which the results should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -4580,17 +4716,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator"></a>
@@ -4598,9 +4734,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4609,8 +4745,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field"></a>
@@ -4618,8 +4754,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame"></a>
@@ -4627,16 +4763,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--relative"></a>
@@ -4644,7 +4780,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4654,32 +4790,32 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: avg, last, max, min, sum, unspecified.
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters))
-- `group_names` (List of String)
-- `promql_query` (String)
-- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
-- `stacked_group_name` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame))
+- `aggregation` (String) Aggregation function Valid values: ["avg" "last" "max" "min" "sum" "unspecified"].
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder mode Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters))
+- `group_names` (List of String) List of field names by which metric results are grouped
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `stacked_group_name` (String) Field name by which results in groups are divided into subgroups
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4688,16 +4824,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--relative"></a>
@@ -4705,7 +4841,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4715,23 +4851,23 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters))
-- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names))
-- `group_names_fields` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names_fields))
-- `lucene_query` (String)
-- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name))
-- `stacked_group_name_field` (Attributes) Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name_field))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame))
+- `aggregation` (Attributes) Span query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters))
+- `group_names` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names))
+- `group_names_fields` (Attributes List) A list of observation fields definitions to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names_fields))
+- `lucene_query` (String) A Lucene query string to search span records
+- `stacked_group_name` (Attributes) Field name by which results are stacked in individual group (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name))
+- `stacked_group_name_field` (Attributes) Observation field definition by which groups are divided into subgroups (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation`
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters"></a>
@@ -4739,17 +4875,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field"></a>
@@ -4757,9 +4893,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator"></a>
@@ -4767,9 +4903,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4778,8 +4914,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names_fields"></a>
@@ -4787,9 +4923,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name"></a>
@@ -4797,8 +4933,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name_field"></a>
@@ -4806,9 +4942,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame"></a>
@@ -4816,16 +4952,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--relative"></a>
@@ -4833,7 +4969,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -4844,8 +4980,8 @@ Read-Only:
 
 Read-Only:
 
-- `max_slices_per_bar` (Number)
-- `stack_name_template` (String)
+- `max_slices_per_bar` (Number) How many slices can fit in a single bar
+- `stack_name_template` (String) Custom template name of an individual stack
 
 
 
@@ -4854,23 +4990,23 @@ Read-Only:
 
 Read-Only:
 
-- `connect_nulls` (Boolean) When true, a line stays connected across null values instead of breaking into scattered points.
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--legend))
-- `query_definitions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions))
-- `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative, unspecified
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
-- `use_data_time_range` (Boolean) When true, the dashboard and widget time frames are ignored and the x-axis covers only the dates present in the returned data.
-- `x_axis_time_format` (String) The x-axis time format. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `connect_nulls` (Boolean) Whether the line should remain connected instead of producing scattered points when null values are present in between
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--legend))
+- `query_definitions` (Attributes List) Definitions of widget queries (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions))
+- `stacked_line` (String) Type of stacked line, can be undefined, absolute or relative Valid values: ["absolute" "relative" "unspecified"].
+- `tooltip` (Attributes) Tooltip settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
+- `use_data_time_range` (Boolean) When used, dashboard or widget time frame is ignored and X axis will represent only dates present in received data which can differ significantly from time ranges that were requested.
+- `x_axis_time_format` (String) Time format for the X axis Valid values: ["auto" "dd_mm" "dd_mm_hh_mm" "hh_mm" "hh_mm_dd_mm" "hh_mm_mm_dd" "mm_dd" "mm_dd_hh_mm" "unspecified"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.legend`
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions"></a>
@@ -4878,41 +5014,41 @@ Read-Only:
 
 Read-Only:
 
-- `color_scheme` (String)
-- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
-- `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `id` (String)
-- `interval_resolution` (Attributes) How time is grouped into buckets. Set at most one of `auto` and `manual`; omit both to leave the choice to the backend. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution))
-- `is_visible` (Boolean)
-- `name` (String)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query))
-- `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `series_count_limit` (Number)
-- `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
-- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `color_scheme` (String) Applied color scheme for this query, one of the predefined values
+- `custom_unit` (String) Custom unit (requires to have unit field as 'custom' to take effect)
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `decimal` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `decimal_precision` (Boolean) Whether to render numeric value without abbreviation
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `id` (String) Unique id of the query definition. If empty or omitted, it is auto-replaced with a generated UUID.
+- `interval_resolution` (Attributes) Interval resolution settings for time bucket calculations, supporting auto or manual modes (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution))
+- `is_visible` (Boolean) Is the query visible
+- `name` (String) Custom name of the query
+- `query` (Attributes) Query object (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query))
+- `resolution` (Attributes) Resolution settings of the query values (deprecated, use interval_resolution instead) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
+- `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
+- `series_count_limit` (Number) Max count of the series per query
+- `series_name_template` (String) Custom template for the series name
+- `unit` (String) Unit of the query results - one from a predefined list, or custom Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+- `y_axis_max` (Number) Number indicating the upper band for y axis
+- `y_axis_min` (Number) Number indicating the lower band for y axis
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution`
 
 Read-Only:
 
-- `auto` (Attributes) Let the backend choose the interval, within the constraints below. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--auto))
-- `manual` (Attributes) Set the interval yourself. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--manual))
-- `use_advanced_limit` (Boolean) Whether the maximum data points and minimum interval fields are editable in the Coralogix UI. It does not change how the interval is calculated.
+- `auto` (Attributes) Automatic interval resolution that calculates optimal time buckets based on the widget width, time range, and specified constraints. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--auto))
+- `manual` (Attributes) Manual interval resolution with a fixed, user-specified interval for time buckets. Optionally supports minimum interval and maximum data points constraints. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--manual))
+- `use_advanced_limit` (Boolean) Whether the max. data points and min. interval fields are user-editable. When true, users can modify these constraint fields; when false or unset, they are read-only.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--auto"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.auto`
 
 Read-Only:
 
-- `maximum_data_points` (Number) The most data points to display. The calculated interval keeps within this limit.
-- `minimum_interval` (String) The smallest interval the calculation may choose. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+- `maximum_data_points` (Number) Maximum number of data points to display. The calculated interval ensures this limit is not exceeded.
+- `minimum_interval` (String) Minimum interval duration. The calculated interval will not be smaller than this value.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--manual"></a>
@@ -4920,9 +5056,9 @@ Read-Only:
 
 Read-Only:
 
-- `interval` (String) The fixed interval for time buckets. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
-- `maximum_data_points` (Number) The most data points the selected interval may produce.
-- `minimum_interval` (String) The smallest interval the selected one may be. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+- `interval` (String) Fixed interval duration for time buckets, specified by the user.
+- `maximum_data_points` (Number) Maximum number of data points constraint.
+- `minimum_interval` (String) Minimum interval duration constraint. The selected interval will not be smaller than this value.
 
 
 
@@ -4931,45 +5067,45 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime))
+- `logs` (Attributes) Logs query. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs))
+- `metrics` (Attributes) Metrics query. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics))
+- `spans` (Attributes) Spans query. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters))
-- `query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters))
+- `query` (String) Dataprime query string to search
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator"></a>
@@ -4977,9 +5113,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -4988,18 +5124,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5008,16 +5144,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--operator"></a>
@@ -5025,9 +5172,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5037,16 +5184,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--relative"></a>
@@ -5054,7 +5201,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5064,30 +5211,30 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters))
-- `group_by` (List of String)
-- `group_bys` (Attributes List) Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--group_bys))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame))
+- `aggregations` (Attributes List) List of query aggregation functions, it should contain only one element (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters))
+- `group_by` (List of String) List of field names to group the query results
+- `group_bys` (Attributes List) A list of observation fields to group the query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--group_bys))
+- `lucene_query` (String) A Lucene query string to search logs
+- `time_frame` (Attributes) Specifies the time period for which the results should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -5096,17 +5243,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator"></a>
@@ -5114,9 +5261,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5125,8 +5272,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame"></a>
@@ -5134,16 +5281,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--relative"></a>
@@ -5151,7 +5298,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5161,30 +5308,30 @@ Read-Only:
 
 Read-Only:
 
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
-- `promql_query` (String)
-- `promql_query_type` (String)
-- `series_limit_type` (String) How the series limit is counted. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: by_point_count, by_series_count, unspecified.
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame))
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder based Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Not sent to the API; kept for compatibility.
+- `series_limit_type` (String) How to limit the result using series_count_limit parameter Valid values: ["by_point_count" "by_series_count" "unspecified"].
+- `time_frame` (Attributes) Specifies the time period for which the results should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5193,16 +5340,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--relative"></a>
@@ -5210,7 +5357,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5220,21 +5367,21 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by))
-- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys))
-- `lucene_query` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame))
+- `aggregations` (Attributes List) List of span query aggregation functions, it should contain only one element (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters))
+- `group_by` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by))
+- `group_bys` (Attributes List) A list of observation fields to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys))
+- `lucene_query` (String) Lucene query string to search span records
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations`
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters"></a>
@@ -5242,17 +5389,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field"></a>
@@ -5260,9 +5407,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator"></a>
@@ -5270,9 +5417,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5281,8 +5428,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys"></a>
@@ -5290,9 +5437,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame"></a>
@@ -5300,16 +5447,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--relative"></a>
@@ -5317,7 +5464,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5328,8 +5475,8 @@ Read-Only:
 
 Read-Only:
 
-- `buckets_presented` (Number)
-- `interval` (String)
+- `buckets_presented` (Number) How many buckets to present in the selected timeframe (deprecated)
+- `interval` (String) Interval of value sampling, i.e. every 5 minutes, every 1 second and so on (deprecated)
 
 
 
@@ -5338,8 +5485,8 @@ Read-Only:
 
 Read-Only:
 
-- `show_labels` (Boolean)
-- `type` (String) The tooltip type. Valid values are: all, single, unspecified.
+- `show_labels` (Boolean) The show labels.
+- `type` (String) Type of the tooltip display, can be showing single series value or all series values at once Valid values: ["all" "single" "unspecified"].
 
 
 
@@ -5348,8 +5495,8 @@ Read-Only:
 
 Read-Only:
 
-- `markdown_text` (String)
-- `tooltip_text` (String)
+- `markdown_text` (String) Markdown text
+- `tooltip_text` (String) Tooltip text to display on widget hover
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart"></a>
@@ -5357,33 +5504,33 @@ Read-Only:
 
 Read-Only:
 
-- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
-- `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
-- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
-- `group_name_template` (String)
-- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
-- `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--label_definition))
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--legend))
-- `max_slices_per_chart` (Number)
-- `min_slice_percentage` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
-- `show_legend` (Boolean)
-- `show_total` (Boolean) When true, the total of all slices is shown as the chart title.
-- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String)
+- `color_scheme` (String) Applied color scheme, one of the predefined values
+- `custom_unit` (String) Custom unit (requires the unit field to be set to custom to take effect)
+- `data_mode_type` (String) Data mode type, either high or archive Valid values: ["archive" "unspecified"].
+- `decimal` (Number) Number indicating the decimal precision of the numeric values, within range 0-15
+- `decimal_precision` (Boolean) Whether to render numeric value without abbreviation
+- `group_name_template` (String) Custom template name for a group, can contain variables
+- `hash_colors` (Boolean) Whether to ignore color scheme and derive colors from algorithm
+- `label_definition` (Attributes) Settings for slice labels (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--label_definition))
+- `legend` (Attributes) Widget's legend settings (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--legend))
+- `max_slices_per_chart` (Number) Maximum number of slices on a chart
+- `min_slice_percentage` (Number) Minimum percentage threshold for slices to be displayed
+- `query` (Attributes) Query object (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
+- `show_legend` (Boolean) Indicates whether to display the legend
+- `show_total` (Boolean) Whether to show the total amount as a title
+- `stack_definition` (Attributes) Configuration of stacked slices (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
+- `unit` (String) Unit of the value - one from a predefined list, or custom
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--label_definition"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.label_definition`
 
 Read-Only:
 
-- `is_visible` (Boolean)
-- `label_source` (String) The source of the label. Valid values are: inner, stack, unspecified
-- `show_name` (Boolean)
-- `show_percentage` (Boolean)
-- `show_value` (Boolean)
+- `is_visible` (Boolean) Are labels visible
+- `label_source` (String) Source of the label Valid values: ["inner" "stack" "unspecified"].
+- `show_name` (Boolean) Whether to show the name of slice in the label
+- `show_percentage` (Boolean) Whether to show percentage value of slice in the label
+- `show_value` (Boolean) Whether to show value of slice in the label
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--legend"></a>
@@ -5391,10 +5538,10 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
-- `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
+- `columns` (List of String) List of columns to display in legend Valid values: ["avg" "last" "max" "min" "name" "sum" "unspecified"].
+- `group_by_query` (Boolean) In case of multiple queries, whether legend items should be grouped by their respective queries
+- `is_visible` (Boolean) Is the legend visible in the widget
+- `placement` (String) Location of the legend in the widget Valid values: ["auto" "bottom" "hidden" "side" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -5402,47 +5549,47 @@ Read-Only:
 
 Read-Only:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans))
+- `data_prime` (Attributes) A Dataprime variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime))
+- `logs` (Attributes) A logs variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs))
+- `metrics` (Attributes) A metrics variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics))
+- `spans` (Attributes) A spans variant of the query (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime`
 
 Read-Only:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters))
-- `group_names` (List of String)
-- `query` (String)
-- `stacked_group_name` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame))
+- `filters` (Attributes List) List of query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters))
+- `group_names` (List of String) List of field names by which results are grouped
+- `query` (String) Dataprime query text
+- `stacked_group_name` (String) Field name by which results in groups are divided into subgroups
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans))
+- `logs` (Attributes) Filter configuration for logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs))
+- `metrics` (Attributes) Filter configuration for metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics))
+- `spans` (Attributes) Filter configuration for spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs`
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator"></a>
@@ -5450,9 +5597,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5461,18 +5608,18 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator))
+- `label` (String) The label associated with the metric.
+- `metric_name` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5481,16 +5628,27 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--operator"></a>
@@ -5498,9 +5656,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5510,16 +5668,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--relative"></a>
@@ -5527,7 +5685,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5537,32 +5695,32 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters))
-- `group_names` (List of String)
-- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--group_names_fields))
-- `lucene_query` (String)
-- `stacked_group_name` (String)
-- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame))
+- `aggregation` (Attributes) Query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation))
+- `filters` (Attributes List) List of filters that narrow down query results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters))
+- `group_names` (List of String) List of field names to group the query results
+- `group_names_fields` (Attributes List) List of observation fields to group the results (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--group_names_fields))
+- `lucene_query` (String) A Lucene query string to search logs
+- `stacked_group_name` (String) Field name by which results are stacked in individual group
+- `stacked_group_name_field` (Attributes) Observation field by results are stacked in a group (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time period for which the results should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation`
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field))
-- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+- `field` (String) The field.
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field))
+- `percent` (Number) The percent.
+- `type` (String) Which arm of the oneOf the object holds. One of "avg", "count", "count_distinct", "max", "min", "percentile", "sum".
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -5571,17 +5729,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator))
+- `field` (String) The log field to which the filter is applied.
+- `observation_field` (Attributes) The observation log field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the logs. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator"></a>
@@ -5589,9 +5747,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5600,8 +5758,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field"></a>
@@ -5609,8 +5767,8 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame"></a>
@@ -5618,16 +5776,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--relative"></a>
@@ -5635,7 +5793,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5645,32 +5803,32 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: avg, last, max, min, sum, unspecified.
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters))
-- `group_names` (List of String)
-- `promql_query` (String)
-- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
-- `stacked_group_name` (String)
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame))
+- `aggregation` (String) Aggregation function Valid values: ["avg" "last" "max" "min" "sum" "unspecified"].
+- `editor_mode` (String) Type of the query editor used to generate the query, can be text or builder mode Valid values: ["builder" "text" "unspecified"].
+- `filters` (Attributes List) List of metrics filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters))
+- `group_names` (List of String) List of field names by which metric results are grouped
+- `promql_query` (String) PromQL query string for querying metrics
+- `promql_query_type` (String) Type of the PromQL query, can be Range or Instant Valid values: ["instant" "range" "unspecified"].
+- `stacked_group_name` (String) Field name by which results in groups are divided into subgroups
+- `time_frame` (Attributes) Specifies the time period for which the result should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters`
 
 Read-Only:
 
-- `label` (String) Label associated with the metric.
-- `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters--operator))
+- `label` (String) The label associated with the metric.
+- `metric` (String) The name of the metric to which the filter is applied.
+- `operator` (Attributes) An operator used for filtering the metrics. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator`
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5679,16 +5837,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--relative"></a>
@@ -5696,7 +5854,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5706,23 +5864,23 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters))
-- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names))
-- `group_names_fields` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names_fields))
-- `lucene_query` (String)
-- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name))
-- `stacked_group_name_field` (Attributes) Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name_field))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame))
+- `aggregation` (Attributes) Span query aggregation function (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation))
+- `filters` (Attributes List) List of span query filters (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters))
+- `group_names` (Attributes List) List of field names to group the span records (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names))
+- `group_names_fields` (Attributes List) A list of observation fields definitions to group the records by (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names_fields))
+- `lucene_query` (String) A Lucene query string to search span records
+- `stacked_group_name` (Attributes) Field name by which results are stacked in individual group (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name))
+- `stacked_group_name_field` (Attributes) Observation field definition by which groups are divided into subgroups (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time period for which the records should be returned (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation`
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
-- `type` (String) Can be one of ["metric" "dimension"]
+- `aggregation_type` (String) Dimension aggregation type.
+- `field` (String) Dimension field.
+- `type` (String) Which arm of the oneOf the object holds. One of "dimension", "metric".
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters"></a>
@@ -5730,17 +5888,17 @@ Read-Only:
 
 Read-Only:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
-- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator))
+- `field` (Attributes) The span field to which the filter is applied. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
+- `observation_field` (Attributes) The observation span field to which the filter is applied. Relation type is only supported in spans widget filters. (Not supported in global dashboard filters) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field))
+- `operator` (Attributes) An operator used for filtering the spans. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field"></a>
@@ -5748,9 +5906,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator"></a>
@@ -5758,9 +5916,9 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
-- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
-- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+- `selected_values` (List of String) A list of selected values.
+- `selection_type` (String) Which arm of the oneOf the object holds. One of "all", "list". If it is left out, it is the first arm that has a field that is set, and else the arm without fields.
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 
 
@@ -5769,8 +5927,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names_fields"></a>
@@ -5778,9 +5936,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name"></a>
@@ -5788,8 +5946,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name_field"></a>
@@ -5797,9 +5955,9 @@ Read-Only:
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments identifying the span field.
-- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
-- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+- `keypath` (List of String) The keypath.
+- `relation_type` (String) Span relation type. Valid values: ["other" "parent" "root" "unspecified"].
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame"></a>
@@ -5807,16 +5965,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--relative))
+- `absolute` (Attributes) Time frame. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--relative))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--absolute"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--relative"></a>
@@ -5824,7 +5982,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame expressed as a duration offset from the current time (e.g., last 15 minutes).
 
 
 
@@ -5835,8 +5993,8 @@ Read-Only:
 
 Read-Only:
 
-- `max_slices_per_stack` (Number)
-- `stack_name_template` (String)
+- `max_slices_per_stack` (Number) How many slices can fit in a single slice stack
+- `stack_name_template` (String) Custom template name of an individual slice in the stack
 
 
 
@@ -5846,8 +6004,8 @@ Read-Only:
 
 Read-Only:
 
-- `dashboard_id` (String) ID of the dashboard that owns the source widget.
-- `widget_id` (String) ID of the source widget within the referenced dashboard.
+- `dashboard_id` (String) Dashboard ID containing the referenced widget (21-char NanoIds)
+- `widget_id` (String) Widget ID within the referenced dashboard
 
 
 
@@ -5859,16 +6017,16 @@ Read-Only:
 
 Read-Only:
 
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--time_frame--relative))
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time (see [below for nested schema](#nestedatt--time_frame--absolute))
+- `relative` (Attributes) (see [below for nested schema](#nestedatt--time_frame--relative))
 
 <a id="nestedatt--time_frame--absolute"></a>
 ### Nested Schema for `time_frame.absolute`
 
 Read-Only:
 
-- `end` (String)
-- `start` (String)
+- `end` (String) The to.
+- `start` (String) The from.
 
 
 <a id="nestedatt--time_frame--relative"></a>
@@ -5876,7 +6034,7 @@ Read-Only:
 
 Read-Only:
 
-- `duration` (String)
+- `duration` (String) Relative time frame specifying a duration from the current time
 
 
 
@@ -5885,9 +6043,10 @@ Read-Only:
 
 Read-Only:
 
-- `definition` (Attributes) (see [below for nested schema](#nestedatt--variables--definition))
-- `display_name` (String)
-- `name` (String)
+- `definition` (Attributes) Discriminated union defining the variable type: either a constant value or a multi-select query-driven variable. (see [below for nested schema](#nestedatt--variables--definition))
+- `description` (String) Human-readable description.
+- `display_name` (String) The display name.
+- `name` (String) Display name.
 
 <a id="nestedatt--variables--definition"></a>
 ### Nested Schema for `variables.definition`
@@ -5895,36 +6054,36 @@ Read-Only:
 Read-Only:
 
 - `constant_value` (String)
-- `multi_select` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select))
+- `multi_select` (Attributes) A dashboard variable that allows selecting one or more values from a dynamically or statically populated list. (see [below for nested schema](#nestedatt--variables--definition--multi_select))
 
 <a id="nestedatt--variables--definition--multi_select"></a>
 ### Nested Schema for `variables.definition.multi_select`
 
 Read-Only:
 
-- `selected_values` (List of String)
-- `selection_type` (String) Selection mode of the variable. Can be one of `multi`, `single`. Omit to use the API default (multi-select with an implicit "All" option).
-- `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
-- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
+- `selected_values` (List of String) Discriminated union defining the current selection state: all values or a specific list of values.
+- `selection_type` (String) Selection type. Valid values: ["multi" "single"].
+- `source` (Attributes) Source. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
+- `values_order_direction` (String) Order direction. Valid values: ["asc" "desc" "unspecified"].
 
 <a id="nestedatt--variables--definition--multi_select--source"></a>
 ### Nested Schema for `variables.definition.multi_select.source`
 
 Read-Only:
 
-- `constant_list` (List of String)
-- `logs_path` (String)
-- `metric_label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--metric_label))
-- `query` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query))
-- `span_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--span_field))
+- `constant_list` (List of String) Constant list source.
+- `logs_path` (String) Logs path source.
+- `metric_label` (Attributes) Metric label source. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--metric_label))
+- `query` (Attributes) Variable source that populates multi-select values by executing a query against logs, metrics, or spans. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query))
+- `span_field` (Attributes) Span field source. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--span_field))
 
 <a id="nestedatt--variables--definition--multi_select--source--metric_label"></a>
 ### Nested Schema for `variables.definition.multi_select.source.metric_label`
 
 Read-Only:
 
-- `label` (String)
-- `metric_name` (String)
+- `label` (String) The label.
+- `metric_name` (String) The metric name.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query"></a>
@@ -5932,33 +6091,33 @@ Read-Only:
 
 Read-Only:
 
-- `query` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query))
-- `refresh_strategy` (String)
-- `value_display_options` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options))
+- `query` (Attributes) Discriminated union specifying whether to query logs, metrics, or spans for variable values. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query))
+- `refresh_strategy` (String) Refresh strategy. Valid values: ["on_dashboard_load" "on_time_frame_change" "unspecified"].
+- `value_display_options` (Attributes) Value display options. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query`
 
 Read-Only:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans))
+- `logs` (Attributes) Logs query. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs))
+- `metrics` (Attributes) Variable query source that fetches metric names, label names, or label values from the metrics store. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics))
+- `spans` (Attributes) Spans query. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--logs"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.logs`
 
 Read-Only:
 
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_name))
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value))
+- `field_name` (Attributes) Fetches distinct log field names matching the given regex pattern. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_name))
+- `field_value` (Attributes) Fetches distinct values for a specific log observation field. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_name"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.logs.field_name`
 
 Read-Only:
 
-- `log_regex` (String)
+- `log_regex` (String) The log regex.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_value"></a>
@@ -5966,15 +6125,15 @@ Read-Only:
 
 Read-Only:
 
-- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field))
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.logs.field_value.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -5984,16 +6143,16 @@ Read-Only:
 
 Read-Only:
 
-- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_name))
-- `label_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value))
-- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--metric_name))
+- `label_name` (Attributes) Label name. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_name))
+- `label_value` (Attributes) Label value. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value))
+- `metric_name` (Attributes) The metric name. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--metric_name))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_name"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_name`
 
 Read-Only:
 
-- `metric_regex` (String)
+- `metric_regex` (String) The metric regex.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value"></a>
@@ -6001,26 +6160,26 @@ Read-Only:
 
 Read-Only:
 
-- `label_filters` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters))
-- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_name))
-- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--metric_name))
+- `label_filters` (Attributes List) The label filters. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters))
+- `label_name` (Attributes) String or variable. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_name))
+- `metric_name` (Attributes) The metric name. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--metric_name))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters`
 
 Read-Only:
 
-- `label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--label))
-- `metric` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--metric))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator))
+- `label` (Attributes) The label. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--label))
+- `metric` (Attributes) String or variable. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--metric))
+- `operator` (Attributes) Operator. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--label"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.label`
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--metric"></a>
@@ -6028,8 +6187,8 @@ Read-Only:
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator"></a>
@@ -6037,16 +6196,16 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator--selected_values))
-- `type` (String)
+- `selected_values` (Attributes List) Discriminated union of selection types for the filter operator. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator--selected_values))
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator--selected_values"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.operator.selected_values`
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 
@@ -6056,8 +6215,8 @@ Read-Only:
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--metric_name"></a>
@@ -6065,8 +6224,8 @@ Read-Only:
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 
@@ -6075,7 +6234,7 @@ Read-Only:
 
 Read-Only:
 
-- `metric_regex` (String)
+- `metric_regex` (String) The metric regex.
 
 
 
@@ -6084,15 +6243,15 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans--field_name))
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans--field_value))
+- `field_name` (Attributes) Fetches distinct span field names matching the given regex pattern. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans--field_name))
+- `field_value` (Attributes) Fetches distinct values for a specific span observation field. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans--field_value))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--spans--field_name"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.spans.field_name`
 
 Read-Only:
 
-- `span_regex` (String)
+- `span_regex` (String) The span regex.
 
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--spans--field_value"></a>
@@ -6100,8 +6259,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 
@@ -6111,8 +6270,8 @@ Read-Only:
 
 Read-Only:
 
-- `label_regex` (String)
-- `value_regex` (String)
+- `label_regex` (String) The label regex.
+- `value_regex` (String) The value regex.
 
 
 
@@ -6121,8 +6280,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 
@@ -6134,45 +6293,45 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String)
-- `display_full_row` (Boolean)
-- `display_name` (String)
-- `display_type` (String) Valid values are ["label_value" "nothing" "value"].
-- `id` (String) Variable UUID. The provider generates a UUID when this is omitted.
-- `name` (String) Variable name. Use letters, digits, and underscores for portability. The API does not enforce this format.
-- `source` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source))
-- `value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value))
+- `description` (String) Human-readable description.
+- `display_full_row` (Boolean) The display full row.
+- `display_name` (String) The display name.
+- `display_type` (String) How the variable is rendered in the dashboard header. A concrete value is required — VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED is rejected. Valid values: ["label_value" "nothing" "value"].
+- `id` (String) Variable's unique identifier. Assigned by the server. Dashboards created before this field existed return variables without it, so it must not be treated as always present when reading.
+- `name` (String) Variable name, used to reference the variable in widget queries. Should match ^[a-zA-Z0-9_]+$ and be unique within the dashboard.
+- `source` (Attributes) Variable source v2. (see [below for nested schema](#nestedatt--variables_v2--source))
+- `value` (Attributes) Discriminated union representing the current runtime value of a dashboard variable (string, numeric, regex, Lucene, or interval). (see [below for nested schema](#nestedatt--variables_v2--value))
 
 <a id="nestedatt--variables_v2--source"></a>
 ### Nested Schema for `variables_v2.source`
 
 Read-Only:
 
-- `query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query))
-- `static` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--static))
-- `textbox` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox))
+- `query` (Attributes) Variable source backed by a query against logs, metrics, spans, or Dataprime data. Exactly one of logsQuery, metricsQuery, spansQuery, or dataprimeQuery must be set — the service rejects an object with no query arm (this exactly-one rule is enforced by the API, not by the OpenAPI oneOf schema). valuesOrderDirection is required and must be a concrete value — ORDER_DIRECTION_UNSPECIFIED is rejected. PromQL (metricsQuery.type.promqlQuery) and Dataprime (dataprimeQuery.type.queryText) query text is syntax-checked only by POST /dashboards/check/v1 — create and replace accept it without compiling. (see [below for nested schema](#nestedatt--variables_v2--source--query))
+- `static` (Attributes) Static source — a fixed list of values defined directly on the variable. valuesOrderDirection is required and must be a concrete value — ORDER_DIRECTION_UNSPECIFIED is rejected. (see [below for nested schema](#nestedatt--variables_v2--source--static))
+- `textbox` (Attributes) Variable source backed by a free-text input box, with an optional default value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox))
 
 <a id="nestedatt--variables_v2--source--query"></a>
 ### Nested Schema for `variables_v2.source.query`
 
 Read-Only:
 
-- `all_option` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--all_option))
-- `dataprime_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query))
-- `logs_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query))
-- `metrics_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query))
-- `refresh_strategy` (String) Valid values are ["on_dashboard_load" "on_time_frame_change"].
-- `spans_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query))
-- `value_display_options` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--value_display_options))
-- `values_order_direction` (String) Valid values are ["asc" "desc" "none"].
+- `all_option` (Attributes) Synthetic 'All' option configuration. Required for static and query sources; never present for textbox sources. (see [below for nested schema](#nestedatt--variables_v2--source--query--all_option))
+- `dataprime_query` (Attributes) Variable query source that executes a Dataprime query to populate variable values. (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query))
+- `logs_query` (Attributes) Logs query. (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query))
+- `metrics_query` (Attributes) Variable query source that fetches metric names, label names, or label values from the metrics store. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query))
+- `refresh_strategy` (String) Refresh strategy. Valid values: ["on_dashboard_load" "on_time_frame_change"].
+- `spans_query` (Attributes) Spans query. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query))
+- `value_display_options` (Attributes) Value display options. (see [below for nested schema](#nestedatt--variables_v2--source--query--value_display_options))
+- `values_order_direction` (String) Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected. Valid values: ["asc" "desc" "none"].
 
 <a id="nestedatt--variables_v2--source--query--all_option"></a>
 ### Nested Schema for `variables_v2.source.query.all_option`
 
 Read-Only:
 
-- `include_all` (Boolean)
-- `label` (String)
+- `include_all` (Boolean) Whether the 'All' option is offered. Must be set explicitly — send false when the option is disabled, do not omit it.
+- `label` (String) The label.
 
 
 <a id="nestedatt--variables_v2--source--query--dataprime_query"></a>
@@ -6180,22 +6339,22 @@ Read-Only:
 
 Read-Only:
 
-- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query--type))
+- `type` (Attributes) Discriminated union specifying the type of Dataprime query used to fetch variable values. (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query--type))
 
 <a id="nestedatt--variables_v2--source--query--dataprime_query--type"></a>
 ### Nested Schema for `variables_v2.source.query.dataprime_query.type`
 
 Read-Only:
 
-- `query_text` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query--type--query_text))
+- `query_text` (Attributes) Query text. (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query--type--query_text))
 
 <a id="nestedatt--variables_v2--source--query--dataprime_query--type--query_text"></a>
 ### Nested Schema for `variables_v2.source.query.dataprime_query.type.query_text`
 
 Read-Only:
 
-- `data_mode_type` (String) Valid values are ["archive" "high"].
-- `query` (String) Dataprime query text.
+- `data_mode_type` (String) Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "high"].
+- `query` (String) Line chart.dataprime query.
 
 
 
@@ -6205,29 +6364,38 @@ Read-Only:
 
 Read-Only:
 
-- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type))
+- `type` (Attributes) Type. (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type))
 
 <a id="nestedatt--variables_v2--source--query--logs_query--type"></a>
 ### Nested Schema for `variables_v2.source.query.logs_query.type`
 
 Read-Only:
 
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value))
+- `field_name` (Attributes) Not implemented and unusable. Fetching log field names by regex is defined in the API but is not supported by the dashboards product: a dashboard whose variable uses fieldName cannot be created in the UI and fails to render when loaded. Use fieldValue instead. (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_name))
+- `field_value` (Attributes) Fetches distinct values for a specific log observation field. observationField is required and must be set. (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value))
+
+<a id="nestedatt--variables_v2--source--query--logs_query--type--field_name"></a>
+### Nested Schema for `variables_v2.source.query.logs_query.type.field_name`
+
+Read-Only:
+
+- `log_regex` (String) The log regex. Not implemented — see the parent schema.
+
 
 <a id="nestedatt--variables_v2--source--query--logs_query--type--field_value"></a>
 ### Nested Schema for `variables_v2.source.query.logs_query.type.field_value`
 
 Read-Only:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value--observation_field))
+- `observation_field` (Attributes) Observation field. (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value--observation_field))
 
 <a id="nestedatt--variables_v2--source--query--logs_query--type--field_value--observation_field"></a>
 ### Nested Schema for `variables_v2.source.query.logs_query.type.field_value.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 
@@ -6238,24 +6406,24 @@ Read-Only:
 
 Read-Only:
 
-- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type))
+- `type` (Attributes) Discriminated union specifying what kind of metric data to fetch: metric names, label names, or label values. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type))
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type"></a>
 ### Nested Schema for `variables_v2.source.query.metrics_query.type`
 
 Read-Only:
 
-- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_name))
-- `label_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value))
-- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--metric_name))
-- `promql_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--promql_query))
+- `label_name` (Attributes) Label name. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_name))
+- `label_value` (Attributes) Fetches distinct values of a metric label. labelName is required and must be non-empty; metricName selects the metric to read the label from. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value))
+- `metric_name` (Attributes) Query.metrics query.type.metric name. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--metric_name))
+- `promql_query` (Attributes) Variable query source that executes a PromQL query to populate variable values. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--promql_query))
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_name"></a>
 ### Nested Schema for `variables_v2.source.query.metrics_query.type.label_name`
 
 Read-Only:
 
-- `metric_regex` (String)
+- `metric_regex` (String) The metric regex.
 
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value"></a>
@@ -6263,26 +6431,26 @@ Read-Only:
 
 Read-Only:
 
-- `label_filters` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters))
-- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_name))
-- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--metric_name))
+- `label_filters` (Attributes List) The label filters. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters))
+- `label_name` (Attributes) Query.metrics query.string or variable. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_name))
+- `metric_name` (Attributes) Query.metrics query.string or variable. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--metric_name))
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters"></a>
 ### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters`
 
 Read-Only:
 
-- `label` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--label))
-- `metric` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--metric))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator))
+- `label` (Attributes) The label. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--label))
+- `metric` (Attributes) Query.metrics query.string or variable. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--metric))
+- `operator` (Attributes) Discriminated union of filter operators: equals or not equals. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator))
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--label"></a>
 ### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters.label`
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--metric"></a>
@@ -6290,8 +6458,8 @@ Read-Only:
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator"></a>
@@ -6299,16 +6467,16 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator--selected_values))
-- `type` (String)
+- `selected_values` (Attributes List) Selection. (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator--selected_values))
+- `type` (String) Which arm of the oneOf the object holds. One of "equals", "not_equals".
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator--selected_values"></a>
 ### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters.operator.selected_values`
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 
@@ -6318,8 +6486,8 @@ Read-Only:
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--metric_name"></a>
@@ -6327,8 +6495,8 @@ Read-Only:
 
 Read-Only:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `string_value` (String) A literal string value.
+- `variable_name` (String) The name of a dashboard variable whose current value will be substituted.
 
 
 
@@ -6337,7 +6505,7 @@ Read-Only:
 
 Read-Only:
 
-- `metric_regex` (String)
+- `metric_regex` (String) The metric regex.
 
 
 <a id="nestedatt--variables_v2--source--query--metrics_query--type--promql_query"></a>
@@ -6345,8 +6513,8 @@ Read-Only:
 
 Read-Only:
 
-- `promql_query_type` (String) Valid values are ["instant" "range"].
-- `query` (String)
+- `promql_query_type` (String) Whether to execute the PromQL query as an instant or a range query. Defaults to instant for variable use cases. Valid values: ["instant" "range"].
+- `query` (String) PromQL query string used to fetch the values for this dashboard variable
 
 
 
@@ -6356,30 +6524,39 @@ Read-Only:
 
 Read-Only:
 
-- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type))
+- `type` (Attributes) Discriminated union specifying whether to query span field names or span field values. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type))
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type`
 
 Read-Only:
 
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value))
+- `field_name` (Attributes) Not implemented and unusable. Fetching span field names by regex is defined in the API but is not supported by the dashboards product: a dashboard whose variable uses fieldName cannot be created in the UI and fails to render when loaded. Use fieldValue instead. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_name))
+- `field_value` (Attributes) Fetches distinct values for a specific span field. Exactly one of observationField or value must be set — setting both is rejected. The exclusivity is enforced when the request is validated, not by this schema: both properties are declared independently and are individually optional, so a both-set or neither-set object is only rejected once the request is sent. Prefer observationField; value is a deprecated legacy alternative. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value))
+
+<a id="nestedatt--variables_v2--source--query--spans_query--type--field_name"></a>
+### Nested Schema for `variables_v2.source.query.spans_query.type.field_name`
+
+Read-Only:
+
+- `span_regex` (String) The span regex. Not implemented — see the parent schema.
+
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type--field_value"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type.field_value`
 
 Read-Only:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field))
-- `value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--value))
+- `observation_field` (Attributes) The span observation field to fetch values for. Preferred over value. Setting both observationField and value is rejected. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field))
+- `value` (Attributes) Deprecated. Legacy span field addressing. Use observationField instead. Setting both value and observationField is rejected. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--value))
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type.field_value.observation_field`
 
 Read-Only:
 
-- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
-- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+- `keypath` (List of String) The keypath.
+- `scope` (String) Dataset scope. Valid values: ["label" "metadata" "unspecified" "user_data"].
 
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type--field_value--value"></a>
@@ -6387,8 +6564,8 @@ Read-Only:
 
 Read-Only:
 
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+- `type` (String) Which arm of the oneOf the object holds. One of "metadata", "process_tag", "tag".
+- `value` (String) Metadata field.
 
 
 
@@ -6399,8 +6576,8 @@ Read-Only:
 
 Read-Only:
 
-- `label_regex` (String)
-- `value_regex` (String)
+- `label_regex` (String) The label regex.
+- `value_regex` (String) The value regex.
 
 
 
@@ -6409,17 +6586,17 @@ Read-Only:
 
 Read-Only:
 
-- `all_option` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--static--all_option))
-- `values` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--source--static--values))
-- `values_order_direction` (String) Valid values are ["asc" "desc" "none"].
+- `all_option` (Attributes) Synthetic 'All' option configuration. Required for static and query sources; never present for textbox sources. (see [below for nested schema](#nestedatt--variables_v2--source--static--all_option))
+- `values` (Attributes List) List of values. (see [below for nested schema](#nestedatt--variables_v2--source--static--values))
+- `values_order_direction` (String) Values sort order. A concrete value is required — ORDER_DIRECTION_UNSPECIFIED is rejected. Valid values: ["asc" "desc" "none"].
 
 <a id="nestedatt--variables_v2--source--static--all_option"></a>
 ### Nested Schema for `variables_v2.source.static.all_option`
 
 Read-Only:
 
-- `include_all` (Boolean)
-- `label` (String)
+- `include_all` (Boolean) Whether the 'All' option is offered. Must be set explicitly — send false when the option is disabled, do not omit it.
+- `label` (String) The label.
 
 
 <a id="nestedatt--variables_v2--source--static--values"></a>
@@ -6427,9 +6604,9 @@ Read-Only:
 
 Read-Only:
 
-- `is_default` (Boolean)
-- `label` (String) Display label. When omitted, defaults to `value`. Setting `label` to the same string as `value` is allowed and does not drift.
-- `value` (String)
+- `is_default` (Boolean) The is default.
+- `label` (String) The label.
+- `value` (String) The value.
 
 
 
@@ -6438,25 +6615,27 @@ Read-Only:
 
 Read-Only:
 
-- `default_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value))
+- `default_value` (Attributes) Textbox default value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value))
 
 <a id="nestedatt--variables_v2--source--textbox--default_value"></a>
 ### Nested Schema for `variables_v2.source.textbox.default_value`
 
 Read-Only:
 
-- `default_interval_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_interval_value))
-- `default_lucene_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_lucene_value))
-- `default_numeric_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_numeric_value))
-- `default_regex_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_regex_value))
-- `default_string_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_string_value))
+- `default_interval_value` (Attributes) Textbox default interval value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_interval_value))
+- `default_lucene_value` (Attributes) Textbox default lucene value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_lucene_value))
+- `default_numeric_value` (Attributes) Textbox default numeric value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_numeric_value))
+- `default_regex_value` (Attributes) Textbox default regex value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_regex_value))
+- `default_string_value` (Attributes) Textbox default string value. (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_string_value))
+- `single_numeric` (Number) Deprecated. Default numeric value for the textbox variable.
+- `single_string` (String) Deprecated. Default string value for the textbox variable.
 
 <a id="nestedatt--variables_v2--source--textbox--default_value--default_interval_value"></a>
 ### Nested Schema for `variables_v2.source.textbox.default_value.default_interval_value`
 
 Read-Only:
 
-- `value` (String)
+- `value` (String) The value.
 
 
 <a id="nestedatt--variables_v2--source--textbox--default_value--default_lucene_value"></a>
@@ -6464,8 +6643,8 @@ Read-Only:
 
 Read-Only:
 
-- `data_mode_type` (String) Valid values are ["archive" "high"].
-- `value` (String)
+- `data_mode_type` (String) Data mode. Omitted or DATA_MODE_TYPE_HIGH_UNSPECIFIED queries high-priority ('Frequent Search') data; DATA_MODE_TYPE_ARCHIVE queries archive ('Monitoring') data. Valid values: ["archive" "high"].
+- `value` (String) The value.
 
 
 <a id="nestedatt--variables_v2--source--textbox--default_value--default_numeric_value"></a>
@@ -6473,10 +6652,10 @@ Read-Only:
 
 Read-Only:
 
-- `is_integer` (Boolean)
-- `max` (Number)
-- `min` (Number)
-- `value` (Number)
+- `is_integer` (Boolean) The is integer.
+- `max` (Number) Maximum value.
+- `min` (Number) Minimum value.
+- `value` (Number) The value.
 
 
 <a id="nestedatt--variables_v2--source--textbox--default_value--default_regex_value"></a>
@@ -6484,7 +6663,7 @@ Read-Only:
 
 Read-Only:
 
-- `value` (String)
+- `value` (String) The value.
 
 
 <a id="nestedatt--variables_v2--source--textbox--default_value--default_string_value"></a>
@@ -6492,7 +6671,7 @@ Read-Only:
 
 Read-Only:
 
-- `value` (String)
+- `value` (String) The value.
 
 
 
@@ -6503,20 +6682,20 @@ Read-Only:
 
 Read-Only:
 
-- `interval` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--interval))
-- `lucene` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--lucene))
-- `multi_string` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string))
-- `regex` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--regex))
-- `single_numeric` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--single_numeric))
-- `single_string` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--single_string))
+- `interval` (Attributes) Interval value. (see [below for nested schema](#nestedatt--variables_v2--value--interval))
+- `lucene` (Attributes) The lucene. (see [below for nested schema](#nestedatt--variables_v2--value--lucene))
+- `multi_string` (Attributes) A variable value representing multiple selected string values: all, a specific list, or selected-all. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string))
+- `regex` (Attributes) Regex value. (see [below for nested schema](#nestedatt--variables_v2--value--regex))
+- `single_numeric` (Attributes) Integration revision.single numeric value. (see [below for nested schema](#nestedatt--variables_v2--value--single_numeric))
+- `single_string` (Attributes) Single string value. (see [below for nested schema](#nestedatt--variables_v2--value--single_string))
 
 <a id="nestedatt--variables_v2--value--interval"></a>
 ### Nested Schema for `variables_v2.value.interval`
 
 Read-Only:
 
-- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
-- `value` (String)
+- `label` (String) The label.
+- `value` (String) The value.
 
 
 <a id="nestedatt--variables_v2--value--lucene"></a>
@@ -6524,8 +6703,8 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
-- `value` (String)
+- `label` (String) The label.
+- `value` (String) The value.
 
 
 <a id="nestedatt--variables_v2--value--multi_string"></a>
@@ -6533,9 +6712,9 @@ Read-Only:
 
 Read-Only:
 
-- `all` (Attributes) Select the synthetic All option from `all_option` (not every fetched value). (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--all))
-- `list` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list))
-- `selected_all` (Attributes) Select every value returned by the query. This is the usual default for query variables. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--selected_all))
+- `all` (Attributes) All value. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--all))
+- `list` (Attributes) List value. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list))
+- `selected_all` (Attributes) Selected all value. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--selected_all))
 
 <a id="nestedatt--variables_v2--value--multi_string--all"></a>
 ### Nested Schema for `variables_v2.value.multi_string.all`
@@ -6546,22 +6725,22 @@ Read-Only:
 
 Read-Only:
 
-- `values` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list--values))
+- `values` (Attributes List) List of values. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list--values))
 
 <a id="nestedatt--variables_v2--value--multi_string--list--values"></a>
 ### Nested Schema for `variables_v2.value.multi_string.list.values`
 
 Read-Only:
 
-- `value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list--values--value))
+- `value` (Attributes) The value. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list--values--value))
 
 <a id="nestedatt--variables_v2--value--multi_string--list--values--value"></a>
 ### Nested Schema for `variables_v2.value.multi_string.list.values.value`
 
 Read-Only:
 
-- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
-- `value` (String)
+- `label` (String) The label.
+- `value` (String) The value.
 
 
 
@@ -6576,8 +6755,8 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
-- `value` (String)
+- `label` (String) The label.
+- `value` (String) The value.
 
 
 <a id="nestedatt--variables_v2--value--single_numeric"></a>
@@ -6585,8 +6764,8 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
-- `value` (Number)
+- `label` (String) The label.
+- `value` (Number) The value.
 
 
 <a id="nestedatt--variables_v2--value--single_string"></a>
@@ -6594,5 +6773,5 @@ Read-Only:
 
 Read-Only:
 
-- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
-- `value` (String)
+- `label` (String) The label.
+- `value` (String) The value.

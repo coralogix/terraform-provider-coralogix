@@ -100,7 +100,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_scope | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: scope service unavailable\"}\noperation - Replace"
+      "error: Unable to update scope | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: scope service unavailable\"}"
     ],
     "state": {
       "default_expression": "<v1>true",

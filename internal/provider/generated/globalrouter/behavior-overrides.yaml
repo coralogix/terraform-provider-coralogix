@@ -125,7 +125,6 @@ enums:
   # OLLY_SCHEDULED_TASKS is not accepted: the backend refuses it for global routing.
   notification_center.EntityType:
     zero: unspecified
-    values: [ALERTS, CASES, TEST_NOTIFICATIONS]
     rejected: [OLLY_SCHEDULED_TASKS]
 
 # The data source reads a global router by id or by name. A name that more than one router has takes

@@ -1,0 +1,927 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "first",
+              "name": "{{NAME}}-a",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "roles": [
+              {
+                "description": "first",
+                "name": "{{NAME}}-a",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "first",
+              "name": "{{NAME}}-a2",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "second",
+              "name": "{{NAME}}-a2",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "second",
+              "name": "{{NAME}}-a2",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:ReadConfig",
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "second",
+              "name": "{{NAME}}-a2",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:ReadConfig",
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "second",
+              "name": "{{NAME}}-a2",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "second",
+              "name": "{{NAME}}-a2",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "",
+              "name": "",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "roles": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "create-variants",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-upper",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "SPANS.EVENTS2METRICS:UPDATECONFIG"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-by-id",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-no-permissions",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-empty-permissions",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-duplicate-permissions",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-permissions-reversed",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:ReadConfig",
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "",
+              "name": "{{NAME}}-no-description",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "",
+              "name": "{{NAME}}-empty-description",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-was-empty",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "roles": [
+              {
+                "description": "d",
+                "name": "{{NAME}}-by-id",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-duplicate-permissions",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "",
+                "name": "{{NAME}}-empty-description",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-empty-permissions",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "",
+                "name": "{{NAME}}-no-description",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-no-permissions",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-permissions-reversed",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-upper",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-was-empty",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "create-errors",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: Could not create custom role {{NAME}}-first for team \u003cteam-id\u003e as it already exists."
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Expression is not valid: nope:Nope"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Parent role is required"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Parent role not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Parent role not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:91): error parsing \"parentRoleName\", oneof com.coralogixapis.aaa.rbac.v2.CreateRoleRequest.parent_role is already set"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Parent role not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Parent role not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Parent role is required"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Expression is not valid: nope:Nope"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Expression is not valid: "
+          }
+        }
+      ]
+    },
+    {
+      "name": "update-errors",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: Could not update name of custom role {{NAME}}-a to {{NAME}}-b for team \u003cteam-id\u003e as it already exists."
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Expression is not valid: nope:Nope"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-a",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "SPANS.EVENTS2METRICS:READCONFIG"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-a",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "spans.events2metrics:ReadConfig",
+                "spans.events2metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "roles": [
+              {
+                "description": "d",
+                "name": "{{NAME}}-a",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              },
+              {
+                "description": "d",
+                "name": "{{NAME}}-b",
+                "parentRoleId": 103,
+                "parentRoleName": "Standard User",
+                "permissions": "\u003cpermissions of the role and of its parent role\u003e",
+                "roleId": "\u003crole-id\u003e",
+                "teamId": "\u003cteam-id\u003e"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "bad-ids",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: type mismatch, parameter: role_id, error: strconv.ParseUint: parsing \"abc\": invalid syntax"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: type mismatch, parameter: role_id, error: strconv.ParseUint: parsing \"-1\": invalid syntax"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: type mismatch, parameter: role_id, error: strconv.ParseUint: parsing \"abc\": invalid syntax"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: type mismatch, parameter: role_id, error: strconv.ParseUint: parsing \"abc\": invalid syntax"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Role not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "permission-case-twins",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-lower-upper",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "SPANS.EVENTS2METRICS:UPDATECONFIG"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-upper-lower",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "SPANS.EVENTS2METRICS:UPDATECONFIG"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-mixed-lower",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "Spans.Events2Metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003crole-id\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-lower-mixed",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "Spans.Events2Metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-lower-upper",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "SPANS.EVENTS2METRICS:UPDATECONFIG",
+                "spans.events2metrics:ReadConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "role": {
+              "description": "d",
+              "name": "{{NAME}}-lower-upper",
+              "parentRoleId": 103,
+              "parentRoleName": "Standard User",
+              "permissions": [
+                "Spans.Events2Metrics:UpdateConfig"
+              ],
+              "roleId": "\u003crole-id\u003e",
+              "teamId": "\u003cteam-id\u003e"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

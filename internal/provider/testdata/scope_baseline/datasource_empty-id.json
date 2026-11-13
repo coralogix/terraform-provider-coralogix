@@ -5,7 +5,7 @@
       "id": ""
     },
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | id must be set to a non-empty scope id."
+      "error: Unable to read coralogix_scope | id must be set to a non-empty scope id."
     ],
     "state": {
       "default_expression": null,

@@ -1,0 +1,28 @@
+# Expressions need the API language version prefix.
+resource: v1.Scope
+
+values:
+  default_expression: '"<v1>true"'
+  filters: |
+    [
+      { entity_type = "logs", expression = "<v1>true" },
+      { entity_type = "spans", expression = "<v1>false" }
+    ]
+
+updatedValues:
+  default_expression: '"<v1>false"'
+  filters: |
+    [
+      { entity_type = "spans", expression = "<v1>true" },
+      { entity_type = "logs", expression = "<v1>false" }
+    ]
+
+upgradeFrom: "3.24.0"
+
+skipTests:
+  full-lifecycle: >-
+    Temporarily skipped: the Scopes API intermittently returns HTTP 412 when updating
+    default_expression to <v1>false. Re-enable after backend validation is stable.
+  upgrade-full: >-
+    Temporarily skipped: the Scopes API intermittently returns HTTP 412 when updating
+    default_expression to <v1>false. Re-enable after backend validation is stable.

@@ -73,11 +73,9 @@ enums:
   ParseSeverityValue:
     zero: debug
     trimPrefix: SEVERITY_
-    values: [SEVERITY_INFO, SEVERITY_ERROR]
   ParsePickField:
     zero: category
     trimPrefix: PICK_FIELD_
-    values: [PICK_FIELD_THREADID, PICK_FIELD_TEXT]
     names: {PICK_FIELD_THREADID: threadID}
     # The released validator was OneOfCaseInsensitive: TEXT and Text are text.
     caseInsensitive: true

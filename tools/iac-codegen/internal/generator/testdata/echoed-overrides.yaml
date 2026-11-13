@@ -47,9 +47,7 @@ types:
 enums:
   MeasureKind:
     zero: unspecified
-    values: [MEASURE_KIND_MIN, MEASURE_KIND_SAMPLES]
     names: {MEASURE_KIND_MIN: min, MEASURE_KIND_SAMPLES: samples}
   Level:
     zero: Unspecified
-    values: [LEVEL_LOW, LEVEL_HIGH]
     names: {LEVEL_LOW: Low, LEVEL_HIGH: High}

@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/scope"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -102,25 +103,25 @@ func scopeCapturePanic(fn func()) (recovered any) {
 func scopeResourceSchema(t *testing.T, ctx context.Context) tfsdk.State {
 	t.Helper()
 	schemaResp := &resource.SchemaResponse{}
-	(&ScopeResource{}).Schema(ctx, resource.SchemaRequest{}, schemaResp)
+	NewScopeResource().Schema(ctx, resource.SchemaRequest{}, schemaResp)
 	return tfsdk.State{Schema: schemaResp.Schema}
 }
 
 func scopeDataSourceSchema(t *testing.T, ctx context.Context) datasource.SchemaResponse {
 	t.Helper()
 	schemaResp := datasource.SchemaResponse{}
-	(&ScopeDataSource{}).Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
+	NewScopeDataSource().Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
 	return schemaResp
 }
 
-func scopeStateModel(id string) *ScopeResourceModel {
-	return &ScopeResourceModel{
+func scopeStateModel(id string) *scopeResourceState {
+	return &scopeResourceState{
 		ID:                types.StringValue(id),
 		DisplayName:       types.StringValue("example scope"),
 		TeamId:            types.StringValue("1"),
 		Description:       types.StringNull(),
 		DefaultExpression: types.StringValue("<v1>true"),
-		Filters: []ScopeFilterModel{{
+		Filters: []scopeFilterState{{
 			EntityType: types.StringValue("logs"),
 			Expression: types.StringValue("<v1>true"),
 		}},
@@ -136,7 +137,7 @@ func readScopeResource(t *testing.T, ctx context.Context, client *scopess.Scopes
 
 // readScopeResourceWithState drives ScopeResource.Read against an arbitrary
 // prior state, and reports whether the resource was removed.
-func readScopeResourceWithState(t *testing.T, ctx context.Context, client *scopess.ScopesServiceAPIService, model *ScopeResourceModel) *resource.ReadResponse {
+func readScopeResourceWithState(t *testing.T, ctx context.Context, client *scopess.ScopesServiceAPIService, model *scopeResourceState) *resource.ReadResponse {
 	t.Helper()
 
 	state := scopeResourceSchema(t, ctx)
@@ -149,7 +150,7 @@ func readScopeResourceWithState(t *testing.T, ctx context.Context, client *scope
 		t.Fatalf("failed to seed response state: %v", diags)
 	}
 
-	r := &ScopeResource{client: client}
+	r := scope.NewResourceWithClient(client, scope.Hooks{})
 	if rec := scopeCapturePanic(func() {
 		r.Read(ctx, resource.ReadRequest{State: state}, resp)
 	}); rec != nil {
@@ -174,7 +175,7 @@ func readScopeDataSource(t *testing.T, ctx context.Context, client *scopess.Scop
 
 	resp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
 
-	d := &ScopeDataSource{client: client}
+	d := scope.NewDataSourceWithClient(client, scope.Hooks{})
 	if rec := scopeCapturePanic(func() {
 		d.Read(ctx, datasource.ReadRequest{Config: config}, resp)
 	}); rec != nil {
@@ -348,7 +349,7 @@ func TestScopeReadFlattensASuccessfulResponse(t *testing.T) {
 		`"defaultExpression":"<v1>true","teamId":7,` +
 		`"filters":[{"entityType":"ENTITY_TYPE_LOGS","expression":"<v1>true"}]}]}`
 
-	assertScope := func(t *testing.T, got ScopeResourceModel) {
+	assertScope := func(t *testing.T, got scopeResourceState) {
 		t.Helper()
 		if got.ID.ValueString() != scopeUnitTestID {
 			t.Errorf("id = %q, want %q", got.ID.ValueString(), scopeUnitTestID)
@@ -381,7 +382,7 @@ func TestScopeReadFlattensASuccessfulResponse(t *testing.T) {
 		if resp.Diagnostics.HasError() {
 			t.Fatalf("unexpected error: %v", resp.Diagnostics.Errors())
 		}
-		var got ScopeResourceModel
+		var got scopeResourceState
 		if diags := resp.State.Get(ctx, &got); diags.HasError() {
 			t.Fatalf("reading state back: %v", diags)
 		}
@@ -393,7 +394,7 @@ func TestScopeReadFlattensASuccessfulResponse(t *testing.T) {
 		if resp.Diagnostics.HasError() {
 			t.Fatalf("unexpected error: %v", resp.Diagnostics.Errors())
 		}
-		var got ScopeResourceModel
+		var got scopeResourceState
 		if diags := resp.State.Get(ctx, &got); diags.HasError() {
 			t.Fatalf("reading state back: %v", diags)
 		}
@@ -406,7 +407,7 @@ func TestScopeReadFlattensASuccessfulResponse(t *testing.T) {
 	t.Run("resource_import_shape_only_id_in_state", func(t *testing.T) {
 		resp := readScopeResourceWithState(t, ctx,
 			scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, body)),
-			&ScopeResourceModel{
+			&scopeResourceState{
 				ID:                types.StringValue(scopeUnitTestID),
 				DisplayName:       types.StringNull(),
 				TeamId:            types.StringNull(),
@@ -420,7 +421,7 @@ func TestScopeReadFlattensASuccessfulResponse(t *testing.T) {
 		if resp.State.Raw.IsNull() {
 			t.Fatal("import read removed the resource from state")
 		}
-		var got ScopeResourceModel
+		var got scopeResourceState
 		if diags := resp.State.Get(ctx, &got); diags.HasError() {
 			t.Fatalf("reading state back: %v", diags)
 		}
@@ -446,7 +447,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 
 	for _, tc := range bodies {
 		t.Run("create_"+tc.name, func(t *testing.T) {
-			r := &ScopeResource{client: scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, tc.body))}
+			r := scope.NewResourceWithClient(scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, tc.body)), scope.Hooks{})
 
 			schemaResp := &resource.SchemaResponse{}
 			r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
@@ -457,7 +458,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 
 			resp := &resource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
 			if rec := scopeCapturePanic(func() {
-				r.Create(ctx, resource.CreateRequest{Plan: plan}, resp)
+				r.Create(ctx, resource.CreateRequest{Plan: plan, Config: tfsdk.Config{Schema: plan.Schema, Raw: plan.Raw}}, resp)
 			}); rec != nil {
 				t.Fatalf("ScopeResource.Create panicked: %v", rec)
 			}
@@ -466,7 +467,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 				t.Error("create accepted a response with no scope id")
 			}
 			if !resp.State.Raw.IsNull() {
-				var m ScopeResourceModel
+				var m scopeResourceState
 				if diags := resp.State.Get(ctx, &m); !diags.HasError() && m.ID.ValueString() == "" {
 					t.Error("create wrote an empty id into state")
 				}
@@ -474,14 +475,16 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 		})
 
 		t.Run("update_"+tc.name, func(t *testing.T) {
-			r := &ScopeResource{client: scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, tc.body))}
+			r := scope.NewResourceWithClient(scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, tc.body)), scope.Hooks{})
 
 			schemaResp := &resource.SchemaResponse{}
 			r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
 			model := scopeStateModel(scopeUnitTestID)
 
 			plan := tfsdk.Plan{Schema: schemaResp.Schema}
-			if diags := plan.Set(ctx, model); diags.HasError() {
+			planned := *model
+			planned.DisplayName = types.StringValue("updated scope")
+			if diags := plan.Set(ctx, &planned); diags.HasError() {
 				t.Fatalf("failed to seed plan: %v", diags)
 			}
 			resp := &resource.UpdateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
@@ -490,7 +493,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 			}
 
 			if rec := scopeCapturePanic(func() {
-				r.Update(ctx, resource.UpdateRequest{Plan: plan}, resp)
+				r.Update(ctx, resource.UpdateRequest{Plan: plan, State: resp.State, Config: tfsdk.Config{Schema: plan.Schema, Raw: plan.Raw}}, resp)
 			}); rec != nil {
 				t.Fatalf("ScopeResource.Update panicked: %v", rec)
 			}
@@ -499,7 +502,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 				t.Error("update accepted a response with no scope id")
 			}
 			// Prior state must survive untouched rather than be overwritten.
-			var m ScopeResourceModel
+			var m scopeResourceState
 			if diags := resp.State.Get(ctx, &m); diags.HasError() {
 				t.Fatalf("reading state back: %v", diags)
 			}
@@ -518,7 +521,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 		if !resourceResp.Diagnostics.HasError() {
 			t.Error("resource read accepted a scope with no id")
 		}
-		var m ScopeResourceModel
+		var m scopeResourceState
 		if diags := resourceResp.State.Get(ctx, &m); diags.HasError() {
 			t.Fatalf("reading state back: %v", diags)
 		}
@@ -540,14 +543,16 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 func TestScopeUpdateOn404ErrorsAndKeepsState(t *testing.T) {
 	ctx := context.Background()
 
-	r := &ScopeResource{client: scopeClientForHandler(t, scopeTextResponseHandler(http.StatusNotFound, "Not Found: No scopes found"))}
+	r := scope.NewResourceWithClient(scopeClientForHandler(t, scopeTextResponseHandler(http.StatusNotFound, "Not Found: No scopes found")), scope.Hooks{})
 
 	schemaResp := &resource.SchemaResponse{}
 	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
 	model := scopeStateModel(scopeUnitTestID)
 
 	plan := tfsdk.Plan{Schema: schemaResp.Schema}
-	if diags := plan.Set(ctx, model); diags.HasError() {
+	planned := *model
+	planned.DisplayName = types.StringValue("updated scope")
+	if diags := plan.Set(ctx, &planned); diags.HasError() {
 		t.Fatalf("failed to seed plan: %v", diags)
 	}
 	resp := &resource.UpdateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
@@ -556,7 +561,7 @@ func TestScopeUpdateOn404ErrorsAndKeepsState(t *testing.T) {
 	}
 
 	if rec := scopeCapturePanic(func() {
-		r.Update(ctx, resource.UpdateRequest{Plan: plan}, resp)
+		r.Update(ctx, resource.UpdateRequest{Plan: plan, State: resp.State, Config: tfsdk.Config{Schema: plan.Schema, Raw: plan.Raw}}, resp)
 	}); rec != nil {
 		t.Fatalf("ScopeResource.Update panicked: %v", rec)
 	}
@@ -568,11 +573,27 @@ func TestScopeUpdateOn404ErrorsAndKeepsState(t *testing.T) {
 		t.Fatal("update removed the resource from state; the Framework rejects an update that leaves no state")
 	}
 
-	var m ScopeResourceModel
+	var m scopeResourceState
 	if diags := resp.State.Get(ctx, &m); diags.HasError() {
 		t.Fatalf("reading state back: %v", diags)
 	}
 	if m.ID.ValueString() != scopeUnitTestID {
 		t.Errorf("update clobbered the id in state: got %q, want %q", m.ID.ValueString(), scopeUnitTestID)
 	}
+}
+
+// These fixtures decode state using the released schema. They are independent of the generated
+// model, so the old lifecycle tests still check schema and state compatibility.
+type scopeResourceState struct {
+	ID                types.String       `tfsdk:"id"`
+	DisplayName       types.String       `tfsdk:"display_name"`
+	TeamId            types.String       `tfsdk:"team_id"`
+	Description       types.String       `tfsdk:"description"`
+	DefaultExpression types.String       `tfsdk:"default_expression"`
+	Filters           []scopeFilterState `tfsdk:"filters"`
+}
+
+type scopeFilterState struct {
+	EntityType types.String `tfsdk:"entity_type"`
+	Expression types.String `tfsdk:"expression"`
 }

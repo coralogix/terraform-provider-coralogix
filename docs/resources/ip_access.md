@@ -41,8 +41,8 @@ resource "coralogix_ip_access" "ip_access" {
 
 ### Optional
 
-- `enable_coralogix_customer_support_access` (String)
-- `ip_access` (Attributes Set) (see [below for nested schema](#nestedatt--ip_access))
+- `enable_coralogix_customer_support_access` (String) The Coralogix customer support access setting.
+- `ip_access` (Attributes Set) The list of IP access entries. (see [below for nested schema](#nestedatt--ip_access))
 
 ### Read-Only
 

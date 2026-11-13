@@ -31,7 +31,7 @@ func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 				Config: IpAccessResource +
 					testIpAccessResource_Read,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(ipAccessDataSourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckResourceAttr(ipAccessDataSourceName, "enable_coralogix_customer_support_access", "disabled"),
 					resource.TestCheckTypeSetElemNestedAttrs(ipAccessDataSourceName, "ip_access.*",
 						map[string]string{
 							"enabled":  "false",

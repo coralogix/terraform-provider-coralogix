@@ -307,6 +307,17 @@ func Flatten(ctx context.Context, v *retag_things_service.TagList) (*TagListMode
 	return flatten(ctx, v)
 }
 
+// Expand returns what Create sends in the place of the resource, for a hook that has to build the
+// request itself, such as a check of the plan before the write. It is the same conversion that
+// Create uses: a null or unknown value is left out, and a field that the generator adds later is
+// in it with no edit of the hook. When the Create body holds the resource in one field, Expand
+// returns that resource, as the API response has it, and not the body.
+func Expand(ctx context.Context, m *TagListModel) (*retag_things_service.RenameTagsRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	out := expandRenameTagsRequest(ctx, path.Empty(), m, &diags)
+	return out, diags
+}
+
 // stateID returns the id in the state.
 func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) {
 	var id types.String

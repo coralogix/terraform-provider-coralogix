@@ -63,17 +63,29 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
         "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
-        "status": 200
       }
     ],
     "applyDiagnostics": [
-      "warning: User \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply"
+      "error: Error reading User | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
     ],
-    "state": null
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
   },
   {
     "step": "apply the same config again: the user still exists but has no id",
@@ -86,36 +98,38 @@
     },
     "plan": {
       "active": true,
-      "emails": "(unknown)",
-      "groups": "(unknown)",
-      "id": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
-            "userTemplate": {
-              "firstName": "Test",
-              "lastName": "User",
-              "status": "USER_STATUS_ACTIVE",
-              "username": "tf-acc-user-1@coralogix.com"
-            }
-          }
-        ],
-        "status": 200
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error creating User | user \"tf-acc-user-1@coralogix.com\" already exists. Import it with `terraform import` instead of creating it: user already exists"
-    ],
-    "state": null
+    "noChange": true,
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
   }
 ]

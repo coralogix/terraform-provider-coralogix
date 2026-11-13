@@ -241,31 +241,6 @@ func LineChartSchema() schema.Attribute {
 	}
 }
 
-func LineChartType() types.ObjectType {
-	return types.ObjectType{
-		AttrTypes: map[string]attr.Type{
-			"legend": types.ObjectType{
-				AttrTypes: LegendAttr(),
-			},
-			"tooltip": types.ObjectType{
-				AttrTypes: map[string]attr.Type{
-					"show_labels": types.BoolType,
-					"type":        types.StringType,
-				},
-			},
-			"stacked_line":        types.StringType,
-			"connect_nulls":       types.BoolType,
-			"use_data_time_range": types.BoolType,
-			"x_axis_time_format":  types.StringType,
-			"query_definitions": types.ListType{
-				ElemType: types.ObjectType{
-					AttrTypes: lineChartQueryDefinitionModelAttr(),
-				},
-			},
-		},
-	}
-}
-
 func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"id": types.StringType,

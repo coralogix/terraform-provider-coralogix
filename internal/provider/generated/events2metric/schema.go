@@ -221,6 +221,36 @@ func Schema() schema.Schema {
 									},
 									MarkdownDescription: "",
 								},
+								"histogram": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseNonNullStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseNonNullStateForUnknown(),
+											},
+											MarkdownDescription: "",
+										},
+										"buckets": schema.ListAttribute{
+											Required:            true,
+											ElementType:         types.Float32Type,
+											MarkdownDescription: "",
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseNonNullStateForUnknown(),
+											},
+											MarkdownDescription: "",
+										},
+									},
+									MarkdownDescription: "",
+								},
 								"samples": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
@@ -242,36 +272,6 @@ func Schema() schema.Schema {
 												stringvalidator.OneOf("Max", "Min"),
 											},
 											MarkdownDescription: "Can be one of [\"Max\" \"Min\"].",
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseNonNullStateForUnknown(),
-											},
-											MarkdownDescription: "",
-										},
-									},
-									MarkdownDescription: "",
-								},
-								"histogram": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseNonNullStateForUnknown(),
-									},
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseNonNullStateForUnknown(),
-											},
-											MarkdownDescription: "",
-										},
-										"buckets": schema.ListAttribute{
-											Required:            true,
-											ElementType:         types.Float32Type,
-											MarkdownDescription: "",
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,

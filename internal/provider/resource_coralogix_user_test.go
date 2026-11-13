@@ -372,7 +372,7 @@ func testAccPutUserOutOfBand(t *testing.T, userName string, change func(template
 		t.Fatal(err)
 	}
 	if _, _, err := cs.Users().UsersMgmtServiceUpdateUsers(ctx).
-		UpdateUserRequest([]usersservice.UpdateUserRequest{{UserId: user.UserId, UserTemplate: template}}).
+		UpdateUserRequest([]usersservice.UpdateUserRequest{{UserId: &user.UserId, UserTemplate: template}}).
 		Execute(); err != nil {
 		t.Fatalf("updating %s: %s", userName, err)
 	}

@@ -19,9 +19,34 @@ paths:
             schema:
               title: CreateGroupSetThing
               type: object
+              oneOf:
+                - {required: [absoluteWindow], type: object}
+                - {required: [relativeWindow], type: object}
+                - type: object
+                  not:
+                    anyOf:
+                      - {required: [absoluteWindow], type: object}
+                      - {required: [relativeWindow], type: object}
+              allOf:
+                - oneOf:
+                    - {required: [off], type: object}
+                    - {required: [fiveMinutes], type: object}
+                    - {required: [oneHour], type: object}
+                    - type: object
+                      not:
+                        anyOf:
+                          - {required: [off], type: object}
+                          - {required: [fiveMinutes], type: object}
+                          - {required: [oneHour], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
-                groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+                groups: {type: array, items: {$ref: '#/components/schemas/InGroupThing'}}
+                schedule: {$ref: '#/components/schemas/Schedule'}
+                absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+                relativeWindow: {type: string, minLength: 1}
+                off: {$ref: '#/components/schemas/RefreshOff'}
+                fiveMinutes: {$ref: '#/components/schemas/RefreshFiveMinutes'}
+                oneHour: {$ref: '#/components/schemas/RefreshOneHour'}
       responses:
         '200':
           description: ok
@@ -50,9 +75,34 @@ paths:
             schema:
               title: UpdateGroupSetThing
               type: object
+              oneOf:
+                - {required: [absoluteWindow], type: object}
+                - {required: [relativeWindow], type: object}
+                - type: object
+                  not:
+                    anyOf:
+                      - {required: [absoluteWindow], type: object}
+                      - {required: [relativeWindow], type: object}
+              allOf:
+                - oneOf:
+                    - {required: [off], type: object}
+                    - {required: [fiveMinutes], type: object}
+                    - {required: [oneHour], type: object}
+                    - type: object
+                      not:
+                        anyOf:
+                          - {required: [off], type: object}
+                          - {required: [fiveMinutes], type: object}
+                          - {required: [oneHour], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
-                groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+                groups: {type: array, items: {$ref: '#/components/schemas/InGroupThing'}}
+                schedule: {$ref: '#/components/schemas/Schedule'}
+                absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+                relativeWindow: {type: string, minLength: 1}
+                off: {$ref: '#/components/schemas/RefreshOff'}
+                fiveMinutes: {$ref: '#/components/schemas/RefreshFiveMinutes'}
+                oneHour: {$ref: '#/components/schemas/RefreshOneHour'}
       responses:
         '200':
           description: ok
@@ -78,10 +128,35 @@ components:
     GroupSetThing:
       type: object
       required: [id, name, groups]
+      oneOf:
+        - {required: [absoluteWindow], type: object}
+        - {required: [relativeWindow], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [absoluteWindow], type: object}
+              - {required: [relativeWindow], type: object}
+      allOf:
+        - oneOf:
+            - {required: [off], type: object}
+            - {required: [fiveMinutes], type: object}
+            - {required: [oneHour], type: object}
+            - type: object
+              not:
+                anyOf:
+                  - {required: [off], type: object}
+                  - {required: [fiveMinutes], type: object}
+                  - {required: [oneHour], type: object}
       properties:
         id: {type: string, minLength: 1}
         name: {type: string, minLength: 1}
-        groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/OutGroupThing'}}
+        groups: {type: object, additionalProperties: {$ref: '#/components/schemas/OutGroupThing'}}
+        schedule: {$ref: '#/components/schemas/Schedule'}
+        absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+        relativeWindow: {type: string, minLength: 1}
+        off: {$ref: '#/components/schemas/RefreshOff'}
+        fiveMinutes: {$ref: '#/components/schemas/RefreshFiveMinutes'}
+        oneHour: {$ref: '#/components/schemas/RefreshOneHour'}
     InGroupThing:
       type: object
       required: [name]
@@ -113,3 +188,51 @@ components:
       properties:
         key: {type: string, minLength: 1}
         labels: {type: object, additionalProperties: {type: string}}
+    # A window that is absolute or relative. The released resource shows the relative arm, a plain
+    # duration, as an object: relative = { duration = "15m" }.
+    Schedule:
+      type: object
+      oneOf:
+        - {required: [absoluteWindow], type: object}
+        - {required: [relativeWindow], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [absoluteWindow], type: object}
+              - {required: [relativeWindow], type: object}
+      properties:
+        absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
+        relativeWindow: {type: string, minLength: 1}
+        mode: {$ref: '#/components/schemas/Mode'}
+    AbsoluteWindow:
+      type: object
+      required: [start]
+      properties:
+        start: {type: string, minLength: 1}
+        end: {type: string, x-coralogix-presence: true}
+    # A oneOf whose arms are objects without fields: Terraform shows the arm that is set as a
+    # string, mode = "fast".
+    Mode:
+      type: object
+      oneOf:
+        - {required: [fast], type: object}
+        - {required: [slow], type: object}
+        - {required: [balancedMode], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [fast], type: object}
+              - {required: [slow], type: object}
+              - {required: [balancedMode], type: object}
+      properties:
+        fast: {$ref: '#/components/schemas/ModeFast'}
+        slow: {$ref: '#/components/schemas/ModeSlow'}
+        balancedMode: {$ref: '#/components/schemas/ModeBalanced'}
+    ModeFast: {type: object, additionalProperties: false}
+    ModeSlow: {type: object, additionalProperties: false}
+    ModeBalanced: {type: object, additionalProperties: false}
+    # A oneOf of arms without fields at the top level, as an automatic refresh interval is: the released
+    # resource shows it as an object with a type, refresh = { type = "off" }.
+    RefreshOff: {type: object, additionalProperties: false}
+    RefreshFiveMinutes: {type: object, additionalProperties: false}
+    RefreshOneHour: {type: object, additionalProperties: false}

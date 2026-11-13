@@ -1,0 +1,15 @@
+(schema)  version=0
+    markdown: "Coralogix Custom Role. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-roles-and-permissions/."
+description  StringAttribute required
+    markdown: "Custom Role description."
+id  StringAttribute computed
+    markdown: "Custom Role ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+name  StringAttribute required
+    markdown: "Custom Role name."
+parent_role  StringAttribute required
+    markdown: "Parent role name"
+    plan modifier: stringplanmodifier.requiresReplaceIfModifier If the value of this attribute changes, Terraform will destroy and recreate the resource.
+permissions  SetAttribute required elem=basetypes.StringType
+    markdown: "Custom role permissions"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements

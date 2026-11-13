@@ -38,7 +38,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating User | user \"tf-acc-user-1@coralogix.com\" was created, but the response carries no user"
+      "error: Error creating User | error - no value given for required property userId — {\"results\":[{\"status\":\"CREATE_USER_STATUS_CREATED\",\"user\":{\"username\":\"tf-acc-user-1@coralogix.com\"},\"username\":\"tf-acc-user-1@coralogix.com\"}]}\noperation - CreateUsers"
     ],
     "state": null
   }

@@ -8,17 +8,21 @@ import (
 )
 
 type ConfigThingModel struct {
-	Id       types.String `tfsdk:"id"`
-	Name     types.String `tfsdk:"name"`
-	Settings types.String `tfsdk:"settings"`
-	Template types.String `tfsdk:"template"`
-	Version  types.String `tfsdk:"version"`
-	Remotes  types.List   `tfsdk:"remotes"`
-	Labels   types.List   `tfsdk:"labels"`
-	Metadata types.Map    `tfsdk:"metadata"`
-	Limits   types.Object `tfsdk:"limits"`
-	Policy   types.String `tfsdk:"policy"`
-	Schedule types.Object `tfsdk:"schedule"`
+	Id       types.String  `tfsdk:"id"`
+	Name     types.String  `tfsdk:"name"`
+	Settings types.String  `tfsdk:"settings"`
+	Template types.String  `tfsdk:"template"`
+	Version  types.String  `tfsdk:"version"`
+	Ratio    types.Float64 `tfsdk:"ratio"`
+	Retries  types.Number  `tfsdk:"retries"`
+	Scale    types.Number  `tfsdk:"scale"`
+	Marker   types.Bool    `tfsdk:"marker"`
+	Remotes  types.List    `tfsdk:"remotes"`
+	Labels   types.List    `tfsdk:"labels"`
+	Metadata types.Map     `tfsdk:"metadata"`
+	Limits   types.Object  `tfsdk:"limits"`
+	Policy   types.String  `tfsdk:"policy"`
+	Schedule types.Object  `tfsdk:"schedule"`
 }
 
 type ConfigSelectorResponseModel struct {

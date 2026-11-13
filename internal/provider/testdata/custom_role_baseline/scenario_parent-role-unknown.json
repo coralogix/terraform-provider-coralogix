@@ -1,0 +1,41 @@
+[
+  {
+    "step": "create with an unknown parent role",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Nope Role",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Nope Role",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Nope Role",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to create custom_role | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Parent role not found\"}"
+    ],
+    "state": null
+  }
+]

@@ -72,7 +72,7 @@ func flatten(ctx context.Context, v *metrics_data_archive_service.TenantConfigV2
 		diags.AddError("Missing resource", "The API response has no TenantConfigV2.")
 		return nil, diags
 	}
-	if v.Gcs != nil {
+	if v.Gcs != nil && !unsupportedAllowed(ctx) {
 		diags.AddError("Error reading coralogix_archive_metrics", "the tenant configuration uses an unsupported storage backend; only IBM and S3 are supported")
 		return nil, diags
 	}
@@ -551,4 +551,17 @@ func expandInt64(v types.Int64) *int64 {
 	}
 	n := v.ValueInt64()
 	return &n
+}
+
+type unsupportedAllowedKey struct{}
+
+// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
+// and arms of the resource (the AllowUnsupported hook).
+func withUnsupportedAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
+}
+
+func unsupportedAllowed(ctx context.Context) bool {
+	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
+	return allowed
 }

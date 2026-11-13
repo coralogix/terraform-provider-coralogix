@@ -4,10 +4,13 @@
 package alertsscheduler
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"context"
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -37,12 +40,12 @@ func Schema() schema.Schema {
 			},
 			"filter": schema.SingleNestedAttribute{
 				Required: true,
+				Validators: []validator.Object{
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"meta_labels", "alerts_unique_ids"}, Required: false}}},
+				},
 				Attributes: map[string]schema.Attribute{
 					"meta_labels": schema.SetNestedAttribute{
 						Optional: true,
-						Validators: []validator.Set{
-							setvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("alerts_unique_ids")),
-						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"key": schema.StringAttribute{
@@ -58,11 +61,8 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Meta labels.",
 					},
 					"alerts_unique_ids": schema.SetAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Validators: []validator.Set{
-							setvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("meta_labels")),
-						},
+						Optional:            true,
+						ElementType:         types.StringType,
 						MarkdownDescription: "Alert unique ids.",
 					},
 					"what_expression": schema.StringAttribute{
@@ -94,21 +94,21 @@ func Schema() schema.Schema {
 			},
 			"schedule": schema.SingleNestedAttribute{
 				Required: true,
+				Validators: []validator.Object{
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"one_time", "recurring"}, Required: true}}},
+				},
 				Attributes: map[string]schema.Attribute{
 					"one_time": schema.SingleNestedAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("recurring")),
-						},
 						Attributes: map[string]schema.Attribute{
 							"time_frame": schema.SingleNestedAttribute{
 								Required: true,
+								Validators: []validator.Object{
+									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "end_time"}, Required: true}}},
+								},
 								Attributes: map[string]schema.Attribute{
 									"duration": schema.SingleNestedAttribute{
 										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("end_time")),
-										},
 										Attributes: map[string]schema.Attribute{
 											"for_over": schema.Int64Attribute{
 												Required:            true,
@@ -125,10 +125,7 @@ func Schema() schema.Schema {
 										MarkdownDescription: "The duration from the start time to wait.",
 									},
 									"end_time": schema.StringAttribute{
-										Optional: true,
-										Validators: []validator.String{
-											stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("duration")),
-										},
+										Optional:            true,
 										MarkdownDescription: "The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.",
 									},
 									"start_time": schema.StringAttribute{
@@ -151,38 +148,29 @@ func Schema() schema.Schema {
 					"recurring": schema.SingleNestedAttribute{
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("one_time")),
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"always_active", "dynamic"}, Required: true}}},
 						},
 						Attributes: map[string]schema.Attribute{
 							"always_active": schema.BoolAttribute{
-								Optional: true,
-								Validators: []validator.Bool{
-									boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("dynamic")),
-								},
+								Optional:            true,
 								MarkdownDescription: "When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.",
 							},
 							"dynamic": schema.SingleNestedAttribute{
 								Optional: true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("always_active")),
-								},
 								Attributes: map[string]schema.Attribute{
 									"frequency": schema.SingleNestedAttribute{
 										Required: true,
+										Validators: []validator.Object{
+											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"daily", "monthly", "weekly"}, Required: true}}},
+										},
 										Attributes: map[string]schema.Attribute{
 											"daily": schema.SingleNestedAttribute{
-												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("weekly"), path.MatchRelative().AtParent().AtName("monthly")),
-												},
+												Optional:            true,
 												Attributes:          map[string]schema.Attribute{},
 												MarkdownDescription: "Daily.",
 											},
 											"monthly": schema.SingleNestedAttribute{
 												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("daily"), path.MatchRelative().AtParent().AtName("weekly")),
-												},
 												Attributes: map[string]schema.Attribute{
 													"days": schema.SetAttribute{
 														Required:            true,
@@ -194,9 +182,6 @@ func Schema() schema.Schema {
 											},
 											"weekly": schema.SingleNestedAttribute{
 												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("daily"), path.MatchRelative().AtParent().AtName("monthly")),
-												},
 												Attributes: map[string]schema.Attribute{
 													"days": schema.SetAttribute{
 														Required:    true,
@@ -224,12 +209,12 @@ func Schema() schema.Schema {
 									},
 									"time_frame": schema.SingleNestedAttribute{
 										Required: true,
+										Validators: []validator.Object{
+											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"duration", "end_time"}, Required: true}}},
+										},
 										Attributes: map[string]schema.Attribute{
 											"duration": schema.SingleNestedAttribute{
 												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("end_time")),
-												},
 												Attributes: map[string]schema.Attribute{
 													"for_over": schema.Int64Attribute{
 														Required:            true,
@@ -246,10 +231,7 @@ func Schema() schema.Schema {
 												MarkdownDescription: "The duration from the start time to wait.",
 											},
 											"end_time": schema.StringAttribute{
-												Optional: true,
-												Validators: []validator.String{
-													stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("duration")),
-												},
+												Optional:            true,
 												MarkdownDescription: "The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.",
 											},
 											"start_time": schema.StringAttribute{
@@ -297,4 +279,83 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its
+// attributes, so its cost does not depend on the rest of the configuration. A validator on each arm
+// that names its siblings by a path expression walks the whole configuration for every sibling.
+type oneOfArmsValidator struct {
+	Groups    []oneOfArmGroup
+	Conflicts []oneOfArmConflict
+}
+
+// oneOfArmGroup is the arms of one oneOf. At most one of them can be set, and exactly one when the
+// group is Required.
+type oneOfArmGroup struct {
+	Arms     []string
+	Required bool
+}
+
+// oneOfArmConflict is two sets of attributes: an attribute of Left cannot be set with an attribute
+// of Right.
+type oneOfArmConflict struct {
+	Left, Right []string
+}
+
+func (v oneOfArmsValidator) Description(context.Context) string {
+	return "At most one arm of each one-of group can be set, and exactly one when the group needs an arm."
+}
+
+func (v oneOfArmsValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+// armsSet returns the names of the arms that are set: not null, and known. unknown is true when an
+// arm is unknown, because it can still become set or stay null.
+func armsSet(attributes map[string]attr.Value, names []string) (set []string, unknown bool) {
+	for _, name := range names {
+		value, ok := attributes[name]
+		switch {
+		case !ok || value.IsNull():
+		case value.IsUnknown():
+			unknown = true
+		default:
+			set = append(set, name)
+		}
+	}
+	return set, unknown
+}
+
+// validate reports two arms that are set. With none set, it reports it for a group that needs one,
+// when every arm is known. An unknown arm is checked when it is known.
+func (g oneOfArmGroup) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	set, unknown := armsSet(attributes, g.Arms)
+	switch {
+	case len(set) > 1:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("Only one of these attributes can be configured: `%s`.", strings.Join(set, "`, `")))
+	case len(set) == 0 && g.Required && !unknown:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", "No attribute was configured in this one-of group. Configure exactly one value.")
+	}
+}
+
+// validate reports an attribute of each side that are both set.
+func (c oneOfArmConflict) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	left, _ := armsSet(attributes, c.Left)
+	right, _ := armsSet(attributes, c.Right)
+	if len(left) > 0 && len(right) > 0 {
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("These attributes cannot be configured together: `%s` and `%s`.", left[0], right[0]))
+	}
+}
+
+func (v oneOfArmsValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attributes := req.ConfigValue.Attributes()
+	for _, group := range v.Groups {
+		group.validate(req.Path, attributes, resp)
+	}
+	for _, conflict := range v.Conflicts {
+		conflict.validate(req.Path, attributes, resp)
+	}
 }

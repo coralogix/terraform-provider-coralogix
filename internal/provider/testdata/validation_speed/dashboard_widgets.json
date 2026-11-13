@@ -1,0 +1,682 @@
+[
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "line_chart": {
+    "connect_nulls": true,
+    "legend": {
+     "columns": [
+      "avg"
+     ],
+     "group_by_query": true,
+     "is_visible": true,
+     "placement": "auto"
+    },
+    "query_definitions": [
+     {
+      "color_scheme": "classic",
+      "custom_unit": "value-custom_unit",
+      "data_mode_type": "archive",
+      "decimal": 1,
+      "decimal_precision": true,
+      "hash_colors": true,
+      "interval_resolution": {
+       "auto": {
+        "maximum_data_points": 1,
+        "minimum_interval": "900s"
+       },
+       "use_advanced_limit": true
+      },
+      "is_visible": true,
+      "name": "value-name",
+      "query": {
+       "data_prime": {
+        "filters": [
+         {
+          "logs": {
+           "field": "value-field",
+           "observation_field": {
+            "keypath": [
+             "value-keypath"
+            ],
+            "scope": "label"
+           },
+           "operator": {
+            "selection_type": "all",
+            "type": "equals"
+           }
+          }
+         }
+        ],
+        "query": "value-query",
+        "time_frame": {
+         "absolute": {
+          "end": "2024-01-01T00:00:00Z",
+          "start": "2024-01-01T00:00:00Z"
+         }
+        }
+       }
+      },
+      "resolution": {
+       "buckets_presented": 1
+      },
+      "scale_type": "linear",
+      "series_count_limit": 1,
+      "series_name_template": "value-series_name_template",
+      "unit": "bytes",
+      "y_axis_max": 1,
+      "y_axis_min": 1
+     }
+    ],
+    "stacked_line": "absolute",
+    "tooltip": {
+     "show_labels": true,
+     "type": "all"
+    },
+    "use_data_time_range": true,
+    "x_axis_time_format": "auto"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "line_chart": {
+    "connect_nulls": true,
+    "legend": {
+     "columns": [
+      "avg"
+     ],
+     "group_by_query": true,
+     "is_visible": true,
+     "placement": "auto"
+    },
+    "query_definitions": [
+     {
+      "color_scheme": "classic",
+      "custom_unit": "value-custom_unit",
+      "data_mode_type": "archive",
+      "decimal": 1,
+      "decimal_precision": true,
+      "hash_colors": true,
+      "interval_resolution": {
+       "auto": {
+        "maximum_data_points": 1,
+        "minimum_interval": "900s"
+       },
+       "use_advanced_limit": true
+      },
+      "is_visible": true,
+      "name": "value-name",
+      "query": {
+       "logs": {
+        "aggregations": [
+         {
+          "type": "count"
+         }
+        ],
+        "filters": [
+         {
+          "field": "value-field",
+          "observation_field": {
+           "keypath": [
+            "value-keypath"
+           ],
+           "scope": "label"
+          },
+          "operator": {
+           "selection_type": "all",
+           "type": "equals"
+          }
+         }
+        ],
+        "group_by": [
+         "value-group_by"
+        ],
+        "group_bys": [
+         {
+          "keypath": [
+           "value-keypath"
+          ],
+          "scope": "label"
+         }
+        ],
+        "lucene_query": "value-lucene_query",
+        "time_frame": {
+         "absolute": {
+          "end": "2024-01-01T00:00:00Z",
+          "start": "2024-01-01T00:00:00Z"
+         }
+        }
+       }
+      },
+      "resolution": {
+       "buckets_presented": 1
+      },
+      "scale_type": "linear",
+      "series_count_limit": 1,
+      "series_name_template": "value-series_name_template",
+      "unit": "bytes",
+      "y_axis_max": 1,
+      "y_axis_min": 1
+     }
+    ],
+    "stacked_line": "absolute",
+    "tooltip": {
+     "show_labels": true,
+     "type": "all"
+    },
+    "use_data_time_range": true,
+    "x_axis_time_format": "auto"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "line_chart": {
+    "connect_nulls": true,
+    "legend": {
+     "columns": [
+      "avg"
+     ],
+     "group_by_query": true,
+     "is_visible": true,
+     "placement": "auto"
+    },
+    "query_definitions": [
+     {
+      "color_scheme": "classic",
+      "custom_unit": "value-custom_unit",
+      "data_mode_type": "archive",
+      "decimal": 1,
+      "decimal_precision": true,
+      "hash_colors": true,
+      "interval_resolution": {
+       "auto": {
+        "maximum_data_points": 1,
+        "minimum_interval": "900s"
+       },
+       "use_advanced_limit": true
+      },
+      "is_visible": true,
+      "name": "value-name",
+      "query": {
+       "metrics": {
+        "editor_mode": "builder",
+        "filters": [
+         {
+          "label": "value-label",
+          "metric": "value-metric",
+          "operator": {
+           "selection_type": "all",
+           "type": "equals"
+          }
+         }
+        ],
+        "promql_query": "value-promql_query",
+        "promql_query_type": "value-promql_query_type",
+        "series_limit_type": "by_point_count",
+        "time_frame": {
+         "absolute": {
+          "end": "2024-01-01T00:00:00Z",
+          "start": "2024-01-01T00:00:00Z"
+         }
+        }
+       }
+      },
+      "resolution": {
+       "buckets_presented": 1
+      },
+      "scale_type": "linear",
+      "series_count_limit": 1,
+      "series_name_template": "value-series_name_template",
+      "unit": "bytes",
+      "y_axis_max": 1,
+      "y_axis_min": 1
+     }
+    ],
+    "stacked_line": "absolute",
+    "tooltip": {
+     "show_labels": true,
+     "type": "all"
+    },
+    "use_data_time_range": true,
+    "x_axis_time_format": "auto"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "line_chart": {
+    "connect_nulls": true,
+    "legend": {
+     "columns": [
+      "avg"
+     ],
+     "group_by_query": true,
+     "is_visible": true,
+     "placement": "auto"
+    },
+    "query_definitions": [
+     {
+      "color_scheme": "classic",
+      "custom_unit": "value-custom_unit",
+      "data_mode_type": "archive",
+      "decimal": 1,
+      "decimal_precision": true,
+      "hash_colors": true,
+      "interval_resolution": {
+       "auto": {
+        "maximum_data_points": 1,
+        "minimum_interval": "900s"
+       },
+       "use_advanced_limit": true
+      },
+      "is_visible": true,
+      "name": "value-name",
+      "query": {
+       "spans": {
+        "aggregations": [
+         {
+          "aggregation_type": "avg",
+          "field": "duration",
+          "type": "metric"
+         }
+        ],
+        "filters": [
+         {
+          "field": {
+           "type": "metadata",
+           "value": "service_name"
+          },
+          "observation_field": {
+           "keypath": [
+            "value-keypath"
+           ],
+           "relation_type": "other",
+           "scope": "label"
+          },
+          "operator": {
+           "selection_type": "all",
+           "type": "equals"
+          }
+         }
+        ],
+        "group_by": [
+         {
+          "type": "metadata",
+          "value": "service_name"
+         }
+        ],
+        "group_bys": [
+         {
+          "keypath": [
+           "value-keypath"
+          ],
+          "relation_type": "other",
+          "scope": "label"
+         }
+        ],
+        "lucene_query": "value-lucene_query",
+        "time_frame": {
+         "absolute": {
+          "end": "2024-01-01T00:00:00Z",
+          "start": "2024-01-01T00:00:00Z"
+         }
+        }
+       }
+      },
+      "resolution": {
+       "buckets_presented": 1
+      },
+      "scale_type": "linear",
+      "series_count_limit": 1,
+      "series_name_template": "value-series_name_template",
+      "unit": "bytes",
+      "y_axis_max": 1,
+      "y_axis_min": 1
+     }
+    ],
+    "stacked_line": "absolute",
+    "tooltip": {
+     "show_labels": true,
+     "type": "all"
+    },
+    "use_data_time_range": true,
+    "x_axis_time_format": "auto"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "data_table": {
+    "columns": [
+     {
+      "field": "value-field",
+      "width": 1
+     }
+    ],
+    "data_mode_type": "archive",
+    "order_by": {
+     "field": "value-field",
+     "order_direction": "asc"
+    },
+    "query": {
+     "data_prime": {
+      "filters": [
+       {
+        "logs": {
+         "field": "value-field",
+         "observation_field": {
+          "keypath": [
+           "value-keypath"
+          ],
+          "scope": "label"
+         },
+         "operator": {
+          "selection_type": "all",
+          "type": "equals"
+         }
+        }
+       }
+      ],
+      "query": "value-query",
+      "time_frame": {
+       "absolute": {
+        "end": "2024-01-01T00:00:00Z",
+        "start": "2024-01-01T00:00:00Z"
+       }
+      }
+     }
+    },
+    "results_per_page": 1,
+    "row_style": "condensed"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "data_table": {
+    "columns": [
+     {
+      "field": "value-field",
+      "width": 1
+     }
+    ],
+    "data_mode_type": "archive",
+    "order_by": {
+     "field": "value-field",
+     "order_direction": "asc"
+    },
+    "query": {
+     "logs": {
+      "filters": [
+       {
+        "field": "value-field",
+        "observation_field": {
+         "keypath": [
+          "value-keypath"
+         ],
+         "scope": "label"
+        },
+        "operator": {
+         "selection_type": "all",
+         "type": "equals"
+        }
+       }
+      ],
+      "grouping": {
+       "aggregations": [
+        {
+         "aggregation": {
+          "type": "count"
+         },
+         "id": "22222222-2222-4222-8222-222222222222",
+         "is_visible": true,
+         "name": "value-name"
+        }
+       ],
+       "group_bys": [
+        {
+         "keypath": [
+          "value-keypath"
+         ],
+         "scope": "label"
+        }
+       ]
+      },
+      "lucene_query": "value-lucene_query",
+      "time_frame": {
+       "absolute": {
+        "end": "2024-01-01T00:00:00Z",
+        "start": "2024-01-01T00:00:00Z"
+       }
+      }
+     }
+    },
+    "results_per_page": 1,
+    "row_style": "condensed"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "data_table": {
+    "columns": [
+     {
+      "field": "value-field",
+      "width": 1
+     }
+    ],
+    "data_mode_type": "archive",
+    "order_by": {
+     "field": "value-field",
+     "order_direction": "asc"
+    },
+    "query": {
+     "metrics": {
+      "editor_mode": "builder",
+      "filters": [
+       {
+        "label": "value-label",
+        "metric": "value-metric",
+        "operator": {
+         "selection_type": "all",
+         "type": "equals"
+        }
+       }
+      ],
+      "promql_query": "value-promql_query",
+      "promql_query_type": "instant",
+      "time_frame": {
+       "absolute": {
+        "end": "2024-01-01T00:00:00Z",
+        "start": "2024-01-01T00:00:00Z"
+       }
+      }
+     }
+    },
+    "results_per_page": 1,
+    "row_style": "condensed"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ },
+ {
+  "custom_actions": [
+   {
+    "data_source": "dataprime",
+    "id": "22222222-2222-4222-8222-222222222222",
+    "name": "value-name",
+    "should_open_in_new_window": true,
+    "url": "value-url"
+   }
+  ],
+  "definition": {
+   "data_table": {
+    "columns": [
+     {
+      "field": "value-field",
+      "width": 1
+     }
+    ],
+    "data_mode_type": "archive",
+    "order_by": {
+     "field": "value-field",
+     "order_direction": "asc"
+    },
+    "query": {
+     "spans": {
+      "filters": [
+       {
+        "field": {
+         "type": "metadata",
+         "value": "service_name"
+        },
+        "observation_field": {
+         "keypath": [
+          "value-keypath"
+         ],
+         "relation_type": "other",
+         "scope": "label"
+        },
+        "operator": {
+         "selection_type": "all",
+         "type": "equals"
+        }
+       }
+      ],
+      "grouping": {
+       "aggregations": [
+        {
+         "aggregation": {
+          "aggregation_type": "avg",
+          "field": "duration",
+          "type": "metric"
+         },
+         "is_visible": true,
+         "name": "value-name"
+        }
+       ],
+       "group_by": [
+        {
+         "type": "metadata",
+         "value": "service_name"
+        }
+       ]
+      },
+      "lucene_query": "value-lucene_query",
+      "time_frame": {
+       "absolute": {
+        "end": "2024-01-01T00:00:00Z",
+        "start": "2024-01-01T00:00:00Z"
+       }
+      }
+     }
+    },
+    "results_per_page": 1,
+    "row_style": "condensed"
+   }
+  },
+  "description": "value-description",
+  "highlighted": true,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "value-title",
+  "width": 1
+ }
+]

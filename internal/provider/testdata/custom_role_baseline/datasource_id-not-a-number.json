@@ -1,0 +1,18 @@
+[
+  {
+    "step": "read an id that is no number",
+    "config": {
+      "id": "not-a-number"
+    },
+    "applyDiagnostics": [
+      "error: Invalid id [AttributeName(\"id\")] | The id \"not-a-number\" is not a valid int64."
+    ],
+    "state": {
+      "description": null,
+      "id": "not-a-number",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

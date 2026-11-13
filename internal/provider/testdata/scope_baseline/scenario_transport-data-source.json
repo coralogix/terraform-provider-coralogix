@@ -62,7 +62,7 @@
       "id": "00000000-0000-4000-8000-000000000001"
     },
     "applyDiagnostics": [
-      "error: Error reading coralogix_scope | error - Get \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001\": scope transport unavailable\noperation - Read"
+      "error: Unable to read coralogix_scope | id 00000000-0000-4000-8000-000000000001: Get \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001\": scope transport unavailable"
     ],
     "state": {
       "default_expression": null,

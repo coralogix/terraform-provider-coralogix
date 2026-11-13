@@ -1,0 +1,47 @@
+[
+  {
+    "step": "read by id: the role has no permissions",
+    "config": {
+      "id": "5001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "seeded",
+      "id": "5001",
+      "name": "seeded",
+      "parent_role": "Standard User",
+      "permissions": []
+    }
+  },
+  {
+    "step": "read by name: the role has no permissions",
+    "config": {
+      "name": "seeded"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "seeded",
+      "id": "5001",
+      "name": "seeded",
+      "parent_role": "Standard User",
+      "permissions": []
+    }
+  }
+]

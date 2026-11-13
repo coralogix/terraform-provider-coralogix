@@ -1,0 +1,723 @@
+{
+  "comment": "Live API requests used to validate the custom roles fake. Every role that a case creates has a name that starts with the run name, except the role with an empty name, and the recorder deletes only the roles that it created. {{A}} and the other capitals are the ids that an earlier Create returned. 4294967295 is an id that no role has. The list answer holds the roles of the whole team, so the test keeps only the roles of the run.",
+  "cases": [
+    {
+      "name": "lifecycle",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-a",
+            "description": "first",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "A"
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newName": "{{NAME}}-a2"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newDescription": "second"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "spans.events2metrics:ReadConfig",
+                "spans.events2metrics:UpdateConfig"
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {}
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {
+              "permissions": []
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "spans.events2metrics:UpdateConfig"
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {}
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newName": ""
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newDescription": ""
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newName": "{{NAME}}-gone"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "GET",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "create-variants",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-upper",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "SPANS.EVENTS2METRICS:UPDATECONFIG"
+            ]
+          },
+          "capture": "V0"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V0}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-by-id",
+            "description": "d",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ],
+            "parentRoleId": 103
+          },
+          "capture": "V1"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V1}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-no-permissions",
+            "description": "d",
+            "parentRoleName": "Standard User"
+          },
+          "capture": "V2"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V2}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-empty-permissions",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": []
+          },
+          "capture": "V3"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V3}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-duplicate-permissions",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig",
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "V4"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V4}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-permissions-reversed",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:ReadConfig",
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "V5"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V5}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-no-description",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "V6"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V6}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-empty-description",
+            "description": "",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "V7"
+        },
+        {
+          "method": "GET",
+          "path": "/{{V7}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "E"
+        },
+        {
+          "method": "GET",
+          "path": "/{{E}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{E}}",
+          "body": {
+            "newName": "{{NAME}}-was-empty"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{E}}"
+        },
+        {
+          "method": "GET",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "create-errors",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-first",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "A"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-first",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-unknown-permission",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "nope:Nope"
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-no-parent",
+            "description": "d",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-unknown-parent",
+            "description": "d",
+            "parentRoleName": "Nope Role",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-lower-parent",
+            "description": "d",
+            "parentRoleName": "standard user",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-both-parents",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ],
+            "parentRoleId": 103
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-unknown-parent-id",
+            "description": "d",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ],
+            "parentRoleId": 999999999
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-zero-parent-id",
+            "description": "d",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ],
+            "parentRoleId": 0
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {}
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "description": "d",
+            "parentRoleName": "Standard User"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-mixed-permissions",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig",
+              "nope:Nope"
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-empty-permission",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "update-errors",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-a",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "A"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-b",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "B"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newName": "{{NAME}}-b"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newName": "{{NAME}}-a"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "nope:Nope"
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "SPANS.EVENTS2METRICS:READCONFIG"
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{A}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "spans.events2metrics:UpdateConfig",
+                "spans.events2metrics:ReadConfig"
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{A}}"
+        },
+        {
+          "method": "GET",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "bad-ids",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/abc"
+        },
+        {
+          "method": "GET",
+          "path": "/4294967295"
+        },
+        {
+          "method": "GET",
+          "path": "/0"
+        },
+        {
+          "method": "GET",
+          "path": "/-1"
+        },
+        {
+          "method": "POST",
+          "path": "/abc",
+          "body": {
+            "newName": "x"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/4294967295",
+          "body": {
+            "newName": "x"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/abc"
+        },
+        {
+          "method": "DELETE",
+          "path": "/4294967295"
+        },
+        {
+          "method": "DELETE",
+          "path": "/0"
+        }
+      ]
+    },
+    {
+      "name": "permission-case-twins",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-lower-upper",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig",
+              "SPANS.EVENTS2METRICS:UPDATECONFIG"
+            ]
+          },
+          "capture": "T0"
+        },
+        {
+          "method": "GET",
+          "path": "/{{T0}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-upper-lower",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "SPANS.EVENTS2METRICS:UPDATECONFIG",
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "T1"
+        },
+        {
+          "method": "GET",
+          "path": "/{{T1}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-mixed-lower",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "Spans.Events2Metrics:UpdateConfig",
+              "spans.events2metrics:UpdateConfig"
+            ]
+          },
+          "capture": "T2"
+        },
+        {
+          "method": "GET",
+          "path": "/{{T2}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "{{NAME}}-lower-mixed",
+            "description": "d",
+            "parentRoleName": "Standard User",
+            "permissions": [
+              "spans.events2metrics:UpdateConfig",
+              "Spans.Events2Metrics:UpdateConfig"
+            ]
+          },
+          "capture": "T3"
+        },
+        {
+          "method": "GET",
+          "path": "/{{T3}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{T0}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "spans.events2metrics:UpdateConfig",
+                "SPANS.EVENTS2METRICS:UPDATECONFIG",
+                "spans.events2metrics:ReadConfig"
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{T0}}"
+        },
+        {
+          "method": "POST",
+          "path": "/{{T0}}",
+          "body": {
+            "newPermissions": {
+              "permissions": [
+                "Spans.Events2Metrics:UpdateConfig",
+                "spans.events2metrics:UpdateConfig"
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{T0}}"
+        }
+      ]
+    }
+  ]
+}

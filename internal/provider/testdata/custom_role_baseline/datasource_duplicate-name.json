@@ -1,0 +1,25 @@
+[
+  {
+    "step": "read a name that two roles have",
+    "config": {
+      "name": "seeded"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_custom_role with name \"seeded\" is not unique | 2 coralogix_custom_role resources have the name \"seeded\". Set the id instead of the name."
+    ],
+    "state": {
+      "description": null,
+      "id": null,
+      "name": "seeded",
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

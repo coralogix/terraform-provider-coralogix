@@ -1,0 +1,25 @@
+[
+  {
+    "step": "Get answers 500",
+    "config": {
+      "id": "5001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to read coralogix_custom_role | id 5001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
+    ],
+    "state": {
+      "description": null,
+      "id": "5001",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

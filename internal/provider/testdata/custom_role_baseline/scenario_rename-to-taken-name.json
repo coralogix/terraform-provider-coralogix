@@ -1,0 +1,100 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "made with Terraform",
+      "name": "mine",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "mine",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "mine",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5002",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5002",
+      "name": "mine",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename to a name that another role has",
+    "config": {
+      "description": "made with Terraform",
+      "name": "taken",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5002",
+      "name": "taken",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5002",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "taken",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to update custom_role | id 5002: 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not update name of custom role mine to taken for team 700001 as it already exists.\"}"
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5002",
+      "name": "mine",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    }
+  }
+]

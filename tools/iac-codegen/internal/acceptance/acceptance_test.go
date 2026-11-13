@@ -25,6 +25,8 @@ upgradeCases:
     values:
       token_wo: '{ secret = "x" }'
 leftovers: internal/acctest.RemoveLeftoverGlobalRouters
+skipTests:
+  full-lifecycle: the test tenant refuses this update
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +36,9 @@ leftovers: internal/acctest.RemoveLeftoverGlobalRouters
 	}
 	if f.LeftoversPackage() != "internal/acctest" || f.LeftoversFunc() != "RemoveLeftoverGlobalRouters" {
 		t.Fatalf("leftovers = %q, %q", f.LeftoversPackage(), f.LeftoversFunc())
+	}
+	if f.SkipTests["full-lifecycle"] != "the test tenant refuses this update" {
+		t.Fatalf("skipTests = %v", f.SkipTests)
 	}
 	if got := f.ValuePaths(); len(got) != 1 || got[0] != "rules[].targets[].connector_id" {
 		t.Fatalf("value paths = %v", got)
@@ -45,28 +50,37 @@ func TestParseRejectsWhatCannotWork(t *testing.T) {
 		text string
 		want string
 	}{
-		"empty":                {"", "is empty"},
-		"unknown key":          {"resource: R\nbogus: 1\n", "bogus"},
-		"no resource":          {"env: [A]\n", "resource is required"},
-		"bad env name":         {"resource: R\nenv: [lower]\n", "not an environment variable"},
-		"env twice":            {"resource: R\nenv: [A, A]\n", "listed twice"},
-		"unknown placeholder":  {"resource: R\nprerequisites: x @{foo}\n", "not @{run}"},
-		"env not listed":       {"resource: R\nprerequisites: x @{env.MISSING}\n", "not @{run}"},
-		"bad value path":       {"resource: R\nvalues:\n  Rules.x: y\n", "not a field path"},
-		"empty value":          {"resource: R\nvalues:\n  name: \"\"\n", "is empty"},
-		"bad skip path":        {"resource: R\nskip: [Bad]\n", "not a field path"},
-		"bad minimal path":     {"resource: R\nminimal: [a.B]\n", "not a field path"},
-		"bad upgradeMinimal":   {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeMinimal: [Bad]\n", "not a field path"},
-		"upgradeMinimal alone": {"resource: R\nupgradeMinimal: [description]\n", "upgradeMinimal needs upgradeFrom"},
-		"upgradeCases alone":   {"resource: R\nupgradeCases:\n  - name: write-only\n    values:\n      a: b\n", "upgradeCases needs upgradeFrom"},
-		"bad case name":        {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: WriteOnly\n    values:\n      a: b\n", "want a name such as write-only"},
-		"case twice":           {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n    values:\n      x: y\n  - name: a\n    values:\n      x: z\n", "listed twice"},
-		"empty case values":    {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n", "values is empty"},
-		"bad version":          {"resource: R\nupgradeFrom: latest\n", "want a release"},
-		"backtick":             {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
-		"leftovers no func":    {"resource: R\nleftovers: internal/acctest\n", "want <package directory>.<Func>"},
-		"leftovers unexported": {"resource: R\nleftovers: internal/acctest.remove\n", "want <package directory>.<Func>"},
-		"leftovers bad dir":    {"resource: R\nleftovers: ../acctest.Remove\n", "want <package directory>.<Func>"},
+		"empty":                  {"", "is empty"},
+		"unknown key":            {"resource: R\nbogus: 1\n", "bogus"},
+		"no resource":            {"env: [A]\n", "resource is required"},
+		"bad env name":           {"resource: R\nenv: [lower]\n", "not an environment variable"},
+		"env twice":              {"resource: R\nenv: [A, A]\n", "listed twice"},
+		"unknown placeholder":    {"resource: R\nprerequisites: x @{foo}\n", "not @{run}"},
+		"env not listed":         {"resource: R\nprerequisites: x @{env.MISSING}\n", "not @{run}"},
+		"bad value path":         {"resource: R\nvalues:\n  Rules.x: y\n", "not a field path"},
+		"empty value":            {"resource: R\nvalues:\n  name: \"\"\n", "is empty"},
+		"skip test no reason":    {"resource: R\nskipTests:\n  full-lifecycle:\n", "reason is required"},
+		"skip test blank reason": {"resource: R\nskipTests:\n  full-lifecycle: ' '\n", "reason is required"},
+		"skip test twice":        {"resource: R\nskipTests:\n  full-lifecycle: first\n  full-lifecycle: second\n", "already defined"},
+		"bad skip path":          {"resource: R\nskip: [Bad]\n", "not a field path"},
+		"bad minimal path":       {"resource: R\nminimal: [a.B]\n", "not a field path"},
+		"bad upgradeMinimal":     {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeMinimal: [Bad]\n", "not a field path"},
+		"upgradeMinimal alone":   {"resource: R\nupgradeMinimal: [description]\n", "upgradeMinimal needs upgradeFrom"},
+		"upgradeCases alone":     {"resource: R\nupgradeCases:\n  - name: write-only\n    values:\n      a: b\n", "upgradeCases needs upgradeFrom"},
+		"bad case name":          {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: WriteOnly\n    values:\n      a: b\n", "want a name such as write-only"},
+		"case twice":             {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n    values:\n      x: y\n  - name: a\n    values:\n      x: z\n", "listed twice"},
+		"empty case values":      {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n", "values is empty"},
+		"bad version":            {"resource: R\nupgradeFrom: latest\n", "want a release"},
+		"backtick":               {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
+		"leftovers no func":      {"resource: R\nleftovers: internal/acctest\n", "want <package directory>.<Func>"},
+		"leftovers unexported":   {"resource: R\nleftovers: internal/acctest.remove\n", "want <package directory>.<Func>"},
+		"leftovers bad dir":      {"resource: R\nleftovers: ../acctest.Remove\n", "want <package directory>.<Func>"},
+		"skipValues no reason":   {"resource: R\nskipValues:\n  Kind:\n    values: [KIND_A]\n", "skipValues.Kind.reason is required"},
+		"skipValues no values":   {"resource: R\nskipValues:\n  Kind:\n    reason: flag\n", "skipValues.Kind.values is empty"},
+		"skipValues twice":       {"resource: R\nskipValues:\n  Kind:\n    values: [KIND_A, KIND_A]\n    reason: flag\n", "twice or empty"},
+		"skipChoices no reason":  {"resource: R\nskipChoices:\n  Widget:\n    choices: [geomap]\n", "skipChoices.Widget.reason is required"},
+		"skipChoices no choices": {"resource: R\nskipChoices:\n  Widget:\n    reason: flag\n", "skipChoices.Widget.choices is empty"},
+		"skipValues unknown key": {"resource: R\nskipValues:\n  Kind:\n    values: [KIND_A]\n    reason: flag\n    why: x\n", "why"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

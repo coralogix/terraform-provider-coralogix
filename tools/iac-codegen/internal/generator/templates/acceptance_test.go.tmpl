@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
+	"{{.FailPathsImport}}"
 	"{{.ProviderImport}}"
 {{- if .LeftoversImport}}
 	"{{.LeftoversImport}}"
@@ -237,6 +238,9 @@ var importStep = resource.TestStep{
 func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	// full-lifecycle sets every attribute, imports,{{if .DataSource}} reads the data source,{{end}} changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
+{{- with index .SkipTests "full-lifecycle"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "fullConfig" "updatedConfig"}} },
@@ -256,6 +260,9 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	// minimal-lifecycle creates the resource with only the required attributes, imports it, sets every
 	// attribute, and removes them again.
 	t.Run("minimal-lifecycle", func(t *testing.T) {
+{{- with index .SkipTests "minimal-lifecycle"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "minimalConfig" "fullConfig"}} },
@@ -268,6 +275,97 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 				importStep,
 			},
 		})
+	})
+{{- if .Variants}}
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+{{- if .SplitSteps}}
+	//
+	// This resource splits the steps: each is a subtest that applies the full config and then the
+	// step, and CI runs them in jobs of their own.
+{{- range $v := .Variants}}
+	t.Run("values-and-choices-{{$v.N}}", func(t *testing.T) {
+{{- with index $.SkipTests (printf "values-and-choices-%d" $v.N)}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { {{$.PreCheck "fullConfig"}} },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant{{$v.N}}Config)},
+			},
+		})
+	})
+{{- end}}
+{{- else}}
+	t.Run("values-and-choices", func(t *testing.T) {
+{{- with index .SkipTests "values-and-choices"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { {{.PreCheck "fullConfig"}} },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+{{- range $v := .Variants}}
+				{Config: config(run, variant{{$v.N}}Config)},
+{{- end}}
+			},
+		})
+	})
+{{- end}}
+{{- end}}
+}
+
+// TestFailurePaths{{.Name}}Generated checks, without a tenant, what the resource does when the API
+// fails: a local server answers every request with an error (failpaths.Run). It needs no API key.
+func TestFailurePaths{{.Name}}Generated(t *testing.T) {
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Skipf("%s is not set: the test config reads it", name)
+		}
+	}
+	failpaths.Run(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       {{printf "%q" .TypeName}},
+		IDAttr:         {{printf "%q" .IDAttr}},
+{{- if .FailSingleton}}
+		Singleton:      true,
+{{- end}}
+{{- if .FailNoDelete}}
+		NoDelete:       true,
+{{- end}}
+		Config:         render("failure-paths", minimalConfig),
+	})
+}
+
+// TestConfigsValidate{{.Name}}Generated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidate{{.Name}}Generated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       {{printf "%q" .TypeName}},
+	}, map[string]string{
+		"full":    offline.Replace(fullConfig),
+		"updated": offline.Replace(updatedConfig),
+		"minimal": offline.Replace(minimalConfig),
+{{- range $v := .Variants}}
+		"variant{{$v.N}}": offline.Replace(variant{{$v.N}}Config),
+{{- end}}
 	})
 }
 {{if .UpgradeFrom}}
@@ -372,6 +470,9 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 	requireUpgradeAcceptance(t)
 
 	t.Run("upgrade-full", func(t *testing.T) {
+{{- with index .SkipTests "upgrade-full"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { {{.PreCheck (or (and .UpgradeFull "upgradeFullConfig") "fullConfig") (or (and .UpgradeUpdated "upgradeUpdatedConfig") "updatedConfig")}} },
@@ -383,6 +484,9 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 
 	// upgrade-minimal starts from the fewest attributes that the released provider accepts.
 	t.Run("upgrade-minimal", func(t *testing.T) {
+{{- with index .SkipTests "upgrade-minimal"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { {{.PreCheck "upgradeMinimalConfig" .UpgradeNextFullName}} },
@@ -393,6 +497,9 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 {{- range .UpgradeCases}}
 
 	t.Run("upgrade-{{.Name}}", func(t *testing.T) {
+{{- with index $.SkipTests (printf "upgrade-%s" .Name)}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { {{$.PreCheck (printf "upgrade%sConfig" .Ident)}} },
@@ -402,3 +509,12 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 {{- end}}
 }
 {{end}}
+{{- if .Variants}}
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+{{- range $v := .Variants}}
+
+const variant{{$v.N}}Config = `{{$v.Config}}`
+{{- end}}
+{{- end}}
