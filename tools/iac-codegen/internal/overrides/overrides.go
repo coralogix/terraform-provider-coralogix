@@ -1567,6 +1567,41 @@ func (f *File) checkTypes() error {
 			if line, ok := t.Fields[field]; ok && !line.Skip {
 				return fmt.Errorf("types.%s.extraAttributes.%s: the type already has a field override of that name", name, field)
 			}
+			if err := f.checkExtraOfResource(name, field, extra, t); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// maskPathPattern is a path of an update mask that no attribute shows: a plain API field name.
+var maskPathPattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// checkExtraOfResource checks the extra attributes that only the resource can have. The state keeps
+// the value of a set of objects, and the mask is the one of the resource, so neither works on a
+// nested component. A mask path names an API field that a skip line of the resource removed, and
+// there must be a mask to send it in.
+func (f *File) checkExtraOfResource(component, name string, extra ExtraAttribute, t Type) error {
+	location := fmt.Sprintf("types.%s.extraAttributes.%s", component, name)
+	if extra.IsSetOfObjects() && component != f.Resource {
+		return fmt.Errorf("%s: a set of objects applies to an attribute of the resource %s: the state keeps its value for the resource only", location, f.Resource)
+	}
+	if len(extra.MaskPaths) == 0 {
+		return nil
+	}
+	if component != f.Resource {
+		return fmt.Errorf("%s: maskPaths applies to an attribute of the resource %s", location, f.Resource)
+	}
+	if f.UpdateMask == UpdateMaskOmit {
+		return fmt.Errorf("%s: maskPaths needs an update mask, and updateMask: omit sends none", location)
+	}
+	for _, p := range extra.MaskPaths {
+		if !maskPathPattern.MatchString(p) {
+			return fmt.Errorf("%s: maskPaths has %q, which is no plain field name", location, p)
+		}
+		if line, ok := t.Fields[p]; !ok || !line.Skip {
+			return fmt.Errorf("%s: maskPaths names %q, which needs a line with skip: true on the field of the resource: the mask names a field that no attribute shows", location, p)
 		}
 	}
 	return nil
@@ -1923,6 +1958,12 @@ func (e ExtraAttribute) checkMode(nested bool) error {
 	}
 	if nested && (e.Dynamic || e.WriteOnly || e.InUpdate || len(e.MaskPaths) != 0 || e.Equality != "") {
 		return errors.New("an attribute inside an object cannot be dynamic, writeOnly, inUpdate, or have maskPaths or an equality line")
+	}
+	if nested && e.IsSetOfObjects() {
+		return errors.New("an attribute inside an object cannot be a set of objects")
+	}
+	if err := checkDefaultValue("default", e.Default); err != nil {
+		return err
 	}
 	if len(e.MaskPaths) != 0 {
 		if e.InUpdate || e.WriteOnly || e.Computed && !e.Optional {

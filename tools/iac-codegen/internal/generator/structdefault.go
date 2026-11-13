@@ -349,6 +349,8 @@ func checkStringValidator(validator overrides.Validator, v, path string) error {
 		return fmt.Errorf("%s: %q is shorter than the lengthAtLeast validator of the line (%d)", path, v, *validator.LengthAtLeast)
 	case validator.LengthAtMost != nil && length > *validator.LengthAtMost:
 		return fmt.Errorf("%s: %q is longer than the lengthAtMost validator of the line (%d)", path, v, *validator.LengthAtMost)
+	case len(validator.LengthBetween) == 2 && (length < validator.LengthBetween[0] || length > validator.LengthBetween[1]):
+		return fmt.Errorf("%s: %q is outside the lengthBetween validator of the line (%d to %d)", path, v, validator.LengthBetween[0], validator.LengthBetween[1])
 	case validator.RegexMatches != nil:
 		re, err := regexp.Compile(validator.RegexMatches.Pattern)
 		if err != nil {
