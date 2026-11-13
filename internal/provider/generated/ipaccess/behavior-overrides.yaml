@@ -36,4 +36,3 @@ enums:
   CoralogixCustomerSupportAccess:
     zero: unspecified
     trimPrefix: CORALOGIX_CUSTOMER_SUPPORT_ACCESS_
-    values: [CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED, CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED]
