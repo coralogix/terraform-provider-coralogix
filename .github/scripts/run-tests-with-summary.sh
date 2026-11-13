@@ -17,7 +17,8 @@ if [[ ${PRIVATE_ACC_OUTPUT:-} == true ]]; then
     trap 'rm -rf "$fixture_dir"' EXIT
     if ! PREPARE_CI_TEAM_OUTPUT_FILE="$fixture_dir/fixtures.json" \
       env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH -u GITHUB_STATE \
-      go -C sdk run ./tools/prepare-ci-team lookup >/dev/null 2>&1; then
+      go -C sdk run ./tools/prepare-ci-team lookup 2>&1 | \
+      python3 -u "$(dirname "$0")/redact-private-acceptance-output.py"; then
       echo 'Integration lookup failed'
       exit 1
     fi
@@ -46,9 +47,14 @@ PY
     IFS=$'\t' read -r TEST_TEAM_ID SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY <<< "$fields"
     export TEST_TEAM_ID SLACK_INTEGRATION_ID PD_INTEGRATION_ID PD_CONNECTOR_KEY
   fi
-  if env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH -u GITHUB_STATE "$@" >/dev/null 2>&1; then
+  if env -u GITHUB_OUTPUT -u GITHUB_STEP_SUMMARY -u GITHUB_ENV -u GITHUB_PATH -u GITHUB_STATE "$@" 2>&1 | \
+    PRIVATE_TEST_NAMES=true python3 -u "$(dirname "$0")/redact-private-acceptance-output.py"; then
     echo 'Acceptance test passed'
     exit 0
+  fi
+  if [[ -n ${FAILED_TESTS_FILE:-} && ! -s ${FAILED_TESTS_FILE} ]]; then
+    mkdir -p "$(dirname "$FAILED_TESTS_FILE")"
+    printf 'Test command failed before reporting a test name\n' > "$FAILED_TESTS_FILE"
   fi
   echo 'Acceptance test failed'
   exit 1
