@@ -238,6 +238,9 @@ var importStep = resource.TestStep{
 func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	// full-lifecycle sets every attribute, imports,{{if .DataSource}} reads the data source,{{end}} changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
+{{- with index .SkipTests "full-lifecycle"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "fullConfig" "updatedConfig"}} },
@@ -257,6 +260,9 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	// minimal-lifecycle creates the resource with only the required attributes, imports it, sets every
 	// attribute, and removes them again.
 	t.Run("minimal-lifecycle", func(t *testing.T) {
+{{- with index .SkipTests "minimal-lifecycle"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "minimalConfig" "fullConfig"}} },
@@ -283,6 +289,9 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	// step, and CI runs them in jobs of their own.
 {{- range $v := .Variants}}
 	t.Run("values-and-choices-{{$v.N}}", func(t *testing.T) {
+{{- with index $.SkipTests (printf "values-and-choices-%d" $v.N)}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{$.PreCheck "fullConfig"}} },
@@ -296,6 +305,9 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 {{- end}}
 {{- else}}
 	t.Run("values-and-choices", func(t *testing.T) {
+{{- with index .SkipTests "values-and-choices"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "fullConfig"}} },
@@ -458,6 +470,9 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 	requireUpgradeAcceptance(t)
 
 	t.Run("upgrade-full", func(t *testing.T) {
+{{- with index .SkipTests "upgrade-full"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { {{.PreCheck (or (and .UpgradeFull "upgradeFullConfig") "fullConfig") (or (and .UpgradeUpdated "upgradeUpdatedConfig") "updatedConfig")}} },
@@ -469,6 +484,9 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 
 	// upgrade-minimal starts from the fewest attributes that the released provider accepts.
 	t.Run("upgrade-minimal", func(t *testing.T) {
+{{- with index .SkipTests "upgrade-minimal"}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { {{.PreCheck "upgradeMinimalConfig" .UpgradeNextFullName}} },
@@ -479,6 +497,9 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 {{- range .UpgradeCases}}
 
 	t.Run("upgrade-{{.Name}}", func(t *testing.T) {
+{{- with index $.SkipTests (printf "upgrade-%s" .Name)}}
+		t.Skip({{printf "%q" .}})
+{{- end}}
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { {{$.PreCheck (printf "upgrade%sConfig" .Ident)}} },

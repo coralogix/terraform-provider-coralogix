@@ -1,6 +1,7 @@
 # Unreleased
 
 #### tools/iac-codegen
+- FEAT: `skipTests` in `acceptance.yaml` generates inline skips for named live subtests with required reasons. Unknown names fail generation; other tests stay active.
 - FEAT: A one-of group, a `typedArms` object, and a sibling `exactlyOneOf` or `conflictsWith` line are checked by one validator of the parent object. A validator on each arm walked the whole configuration for each sibling, so plan time grew with the number of objects.
 - FEAT: Keys `keepPriorArm` (group), `unsupportedArms` for a plain field with the hook `AllowUnsupported`, `unsupportedIfEmpty`, `durationFormat`, `enumAs`, the validator `unsupported`, `readNullAs` for an enum, a top-level `readEmptyAs`, place lines with every field key, `defaultFromSibling`, string extra attributes with a default inside list items, and `validators` on a `distributeTo` line.
 - FEAT: A new value of an enum in the API contract is accepted without a line in `behavior-overrides.yaml`. The accepted values are the contract values without the zero value and without `rejected`, so the `values` key is gone. A new value takes the style of the `names` entries of its enum, or the generator stops with `ENUM_NAME_UNDECIDED` and asks for a `names` entry.

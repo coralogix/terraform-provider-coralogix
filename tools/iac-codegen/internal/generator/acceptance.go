@@ -56,6 +56,7 @@ type acceptanceData struct {
 	IDAttr                      string
 	IDCustom                    bool // the id attribute is not "id": the import step names it
 	Env                         []string
+	SkipTests                   map[string]string
 	Prerequisites               string
 	Full, Updated, Minimal      *accStep
 	// Variants are the configs after the full config in the values-and-choices subtest: each sets
@@ -197,6 +198,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		IDAttr:          res.CRUD.IDAttr,
 		IDCustom:        res.CRUD.IDAttr != "id",
 		Env:             file.Env,
+		SkipTests:       file.SkipTests,
 		Prerequisites:   strings.TrimSpace(file.Prerequisites),
 		UpgradeFrom:     file.UpgradeFrom,
 	}
@@ -251,7 +253,37 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	if res.DataSource != nil {
 		out.DataSource = dataSourceStep(res.CRUD, res.DataSource.Name, out.Full.Checks, file.DataSourceSkip)
 	}
+	if err := out.checkSkipTests(); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// checkSkipTests rejects stale or mistyped names, including tests that this resource does not emit.
+func (d *acceptanceData) checkSkipTests() error {
+	names := map[string]bool{"full-lifecycle": true, "minimal-lifecycle": true}
+	for _, v := range d.Variants {
+		name := "values-and-choices"
+		if d.SplitSteps {
+			name = fmt.Sprintf("values-and-choices-%d", v.N)
+		}
+		names[name] = true
+	}
+	if d.UpgradeFrom != "" {
+		names["upgrade-full"] = true
+		if d.UpgradeMinimal != nil {
+			names["upgrade-minimal"] = true
+		}
+		for _, c := range d.UpgradeCases {
+			names["upgrade-"+c.Name] = true
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(d.SkipTests)) {
+		if !names[name] {
+			return fmt.Errorf("acceptance test: skipTests %q matches no generated live subtest", name)
+		}
+	}
+	return nil
 }
 
 // dataSourceStep reads the data source by the id of the resource, or with no input for a singleton,
