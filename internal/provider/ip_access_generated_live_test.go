@@ -29,7 +29,6 @@ import (
 )
 
 const (
-	ipAccessGeneratedLiveOptIn       = "IP_ACCESS_GENERATED_LIVE"
 	ipAccessGeneratedLiveAck         = "IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION"
 	ipAccessGeneratedLiveAckValue    = "I_UNDERSTAND_THIS_USES_A_DISPOSABLE_TEAM"
 	ipAccessGeneratedResourceAddress = "coralogix_ip_access.generated_live"
@@ -39,11 +38,11 @@ const (
 
 // TestIpAccessGeneratedLiveAcceptance creates the resource with released provider 3.25.0, checks
 // that the generated provider plans no change, then exercises generated update, import, data-source
-// reads, and cleanup against EU2. It is opt-in and requires an empty disposable team with support
-// access disabled; it creates only disabled documentation ranges.
+// reads, and cleanup against EU2. It runs in the serialized IP access acceptance shard and requires
+// an empty test team with support access disabled; it creates only disabled documentation ranges.
 func TestIpAccessGeneratedLiveAcceptance(t *testing.T) {
-	if os.Getenv(ipAccessGeneratedLiveOptIn) != "1" {
-		t.Skipf("set %s=1 to run against the disposable EU2 team", ipAccessGeneratedLiveOptIn)
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("requires TF_ACC=1")
 	}
 	if os.Getenv(ipAccessGeneratedLiveAck) != ipAccessGeneratedLiveAckValue {
 		t.Fatalf("set %s=%s only when using the disposable EU2 team", ipAccessGeneratedLiveAck, ipAccessGeneratedLiveAckValue)

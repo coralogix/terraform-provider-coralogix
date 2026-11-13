@@ -36,6 +36,8 @@ env:
   GLOBAL_ROUTER_MIGRATION_ACC_PATTERN: &global_router_migration_acc_pattern '^TestAccCoralogixResourceGlobalRouterMigration$'
   # Every generated resource has a test whose name ends in GeneratedUpgrade. One shard runs them all.
   GENERATED_UPGRADE_ACC_PATTERN: &generated_upgrade_acc_pattern 'GeneratedUpgrade$'
+  # These tests mutate the singleton IP access setting. Keep them in one serial shard.
+  IP_ACCESS_ACC_PATTERN: &ip_access_acc_pattern '^Test(AccCoralogixDataSourceIpAccess|IpAccessResource|IpAccessGeneratedLiveAcceptance)$'
   # The archive logs target, the metrics archive, and the retention tags are one per company each,
   # so their tests must not run at the same time. The archive-logs shard runs all of them
   # (handwritten, generated, and generated upgrade) with -p 1; every other job skips them.
@@ -102,8 +104,8 @@ env:
   NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(Enrichments?|DataSet)'
   # The user tests run one after another and are the slowest non-dashboard tests.
   # Three shards keep each job near three minutes.
-  # Tests that change team-wide state (archives, global router, IP access) stay
-  # together in the catch-all, so they still run one after another.
+  # Tests that change team-wide state (archives and global router) stay together
+  # in the catch-all. IP access has its own serial provider-migration shard.
   NON_DASHBOARD_SHARD_USER_GROUP_MEMBERSHIP: &non_dashboard_shard_user_group_membership '^TestAccCoralogixResourceUserGroupMembership$'
   NON_DASHBOARD_SHARD_USER_DATA_SOURCE: &non_dashboard_shard_user_data_source '^TestAccCoralogixDataSourceUser'
   NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive)$'
@@ -288,7 +290,7 @@ jobs:
             "$NON_DASHBOARD_SHARD_ACCESS_CONTROL"
             "$NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES"
           )
-          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN|$TCO_ACC_PATTERN|$TEAM_ACC_PATTERN"
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN|$TCO_ACC_PATTERN|$TEAM_ACC_PATTERN|$IP_ACCESS_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
@@ -527,6 +529,9 @@ jobs:
             pattern: *user_migration_acc_pattern
           - shard: global-router-v3.19.0
             pattern: *global_router_migration_acc_pattern
+          - shard: ip-access
+            pattern: *ip_access_acc_pattern
+            procs: 1
           - shard: generated-upgrade
             pattern: *generated_upgrade_acc_pattern
             skip: *generated_upgrade_skip_pattern
@@ -585,6 +590,7 @@ jobs:
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
           # The coralogix_api_key upgrade test creates keys that the team of the CI key owns.
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
+          IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION: ${{ matrix.shard == 'ip-access' && 'I_UNDERSTAND_THIS_USES_A_DISPOSABLE_TEAM' || '' }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=${{ !matrix.paused && '1' || '' }} TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
