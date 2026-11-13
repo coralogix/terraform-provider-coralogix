@@ -250,8 +250,9 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Ordered maintenance window starts, in UTC.",
 			},
 			"paused": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:           true,
+				Computed:           true,
+				DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 				PlanModifiers: []planmodifier.Bool{
 					serverDefaultModifier{value: types.BoolValue(false)},
 				},

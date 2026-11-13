@@ -81,14 +81,11 @@ types:
 enums:
   Delivery:
     zero: unspecified
-    values: [DISABLED, ERRORS_ONLY]
   notification_center.ConnectorType:
     zero: unspecified
-    values: [SLACK, GENERIC_HTTPS, PAGERDUTY, SERVICE_NOW, EMAIL, PAGERDUTY_INCIDENTS, MICROSOFT_TEAMS, EVENTBRIDGE, INCIDENT_IO]
     rejected: [IBM_EVENT_NOTIFICATIONS]
   notification_center.EntityType:
     zero: unspecified
-    values: [ALERTS, CASES, TEST_NOTIFICATIONS]
     rejected: [OLLY_SCHEDULED_TASKS]
 
 # The data source reads a connector by id or by name. A name that more than one connector has takes

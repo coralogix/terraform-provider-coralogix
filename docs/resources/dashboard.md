@@ -2130,7 +2130,7 @@ Optional:
 - `custom_actions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--custom_actions))
 - `definition` (Attributes) Definition of the widget type and details (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Short description of the widget
-- `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.
+- `highlighted` (Boolean, Deprecated) Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.
 - `id` (String) Widget unique identifier
 - `reference` (Attributes) Reference to a widget from another dashboard (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
 - `title` (String) Name of the widget
@@ -3618,7 +3618,7 @@ Optional:
 - `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
 - `thresholds` (Attributes List) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds))
 - `unit` (String) Unit of the value - one from a predefined list, or 'custom' Valid values: ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_field))
+- `value_field` (Attributes, Deprecated) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_field))
 - `value_fields` (Attributes List) The value fields. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_fields))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display"></a>
@@ -5174,9 +5174,9 @@ Optional:
 - `legend_by` (String) (multigauge display only) Indicates how to group the legend elements, either by thresholds or by standard groups Valid values: ["groups" "thresholds" "unspecified"].
 - `max` (Number) A maximum gauge value used in percentage threshold calculation and for visual value representation
 - `min` (Number) A minimum gauge value used in percentage threshold calculation and for visual value representation
-- `show_inner_arc` (Boolean) Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value
+- `show_inner_arc` (Boolean, Deprecated) Deprecated: use arcDisplay.valueArc instead. Whether to show the inner arc of gauge which graphically represents the value
 - `show_min_max` (Boolean) Whether to display the min and max range values on the gauge
-- `show_outer_arc` (Boolean) Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range
+- `show_outer_arc` (Boolean, Deprecated) Deprecated: use arcDisplay.thresholdArc instead. Whether to show the outer arc of gauge which graphically represents the min/max range
 - `threshold_by` (String) Indicates which widget element should be colorized as the threshold, either the value or the background Valid values: ["background" "unspecified" "value"].
 - `threshold_type` (String) Type of the threshold, relative or absolute Valid values: ["absolute" "relative" "unspecified"].
 - `thresholds` (Attributes List) List of value thresholds, each with a certain color and an optional name label (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
@@ -6765,7 +6765,7 @@ Optional:
 - `interval_resolution` (Attributes) Interval resolution settings for time bucket calculations, supporting auto or manual modes (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution))
 - `is_visible` (Boolean) Is the query visible
 - `name` (String) Custom name of the query
-- `resolution` (Attributes) Resolution settings of the query values (deprecated, use interval_resolution instead) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
+- `resolution` (Attributes, Deprecated) Resolution settings of the query values (deprecated, use interval_resolution instead) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
 - `scale_type` (String) Scale type - linear/logarithmic Valid values: ["linear" "logarithmic" "unspecified"].
 - `series_count_limit` (Number) Max count of the series per query
 - `series_name_template` (String) Custom template for the series name
@@ -8453,7 +8453,7 @@ Optional:
 Optional:
 
 - `observation_field` (Attributes) The span observation field to fetch values for. Preferred over value. Setting both observationField and value is rejected. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field))
-- `value` (Attributes) Deprecated. Legacy span field addressing. Use observationField instead. Setting both value and observationField is rejected. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--value))
+- `value` (Attributes, Deprecated) Deprecated. Legacy span field addressing. Use observationField instead. Setting both value and observationField is rejected. (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--value))
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type.field_value.observation_field`

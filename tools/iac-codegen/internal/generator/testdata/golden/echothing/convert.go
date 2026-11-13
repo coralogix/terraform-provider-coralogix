@@ -30,6 +30,7 @@ var levelToAPI = map[string]echo_things_service.Level{
 	"Unspecified": echo_things_service.Level("LEVEL_UNSPECIFIED"),
 	"Low":         echo_things_service.Level("LEVEL_LOW"),
 	"High":        echo_things_service.Level("LEVEL_HIGH"),
+	"Medium":      echo_things_service.Level("LEVEL_MEDIUM"),
 }
 
 // levelFromAPI maps the API values of the enum to its Terraform values.
@@ -37,6 +38,7 @@ var levelFromAPI = map[echo_things_service.Level]string{
 	echo_things_service.Level("LEVEL_UNSPECIFIED"): "Unspecified",
 	echo_things_service.Level("LEVEL_LOW"):         "Low",
 	echo_things_service.Level("LEVEL_HIGH"):        "High",
+	echo_things_service.Level("LEVEL_MEDIUM"):      "Medium",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is

@@ -107,6 +107,7 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	if line.Infer {
 		inferTypeAttribute(attrs[0], arms, values, has)
 	}
+	attrs[0].Typed = &typedInfo{Has: has, Required: required, Checked: checked, Rules: m.rules}
 	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked, m.rules))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
 	name := typeModelName(t)
@@ -118,6 +119,40 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
 	}
 	return attrs, nil
+}
+
+// typedInfo is what each arm of a typedArms object has. Every map is keyed by the value of the type.
+type typedInfo struct {
+	Has      map[string][]string            // the attributes of the arm
+	Required map[string][]string            // the attributes that the arm needs
+	Checked  map[string]map[string][]string // the validators of an attribute that run for the arm
+	Rules    map[string][]typedRule         // the rules over attributes of the arm
+}
+
+// fields are the attributes that a config sets for the arm of the type value: the attributes of the
+// arm, without the ones that a rule of the arm excludes. A rule that wants exactly one of some
+// attributes keeps the first, and a conflict keeps the attribute that the rule names first.
+func (t *typedInfo) fields(value string) map[string]bool {
+	out := map[string]bool{}
+	for _, name := range t.Has[value] {
+		out[name] = true
+	}
+	for _, rule := range t.Rules[value] {
+		switch rule.Kind {
+		case "exactlyOneOf", "conflictsWith":
+			kept := false
+			for _, name := range rule.Names {
+				switch {
+				case !out[name]:
+				case kept:
+					delete(out, name)
+				default:
+					kept = true
+				}
+			}
+		}
+	}
+	return out
 }
 
 // typedMerge collects the merged attributes and model fields of a typedArms object, with what each

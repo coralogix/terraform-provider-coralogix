@@ -1,6 +1,7 @@
 package overrides
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -8,7 +9,27 @@ import (
 	"testing"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/enumtest"
 )
+
+// parseFilled parses a file like Parse. A test may write the accepted values of an enum on its
+// enums line: they stand for the contract, so the helper fills each line as the generator does.
+func parseFilled(data []byte) (*File, error) {
+	text, contracts, err := enumtest.Split(string(data))
+	if err != nil {
+		return nil, err
+	}
+	f, err := Parse([]byte(text))
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range sortedKeys(contracts) {
+		if err := f.FillEnum(name, contracts[name]); err != nil {
+			return nil, err
+		}
+	}
+	return f, nil
+}
 
 const valid = `
 resource: Thing
@@ -30,7 +51,7 @@ enums:
 `
 
 func TestParseAndPolicy(t *testing.T) {
-	f, err := Parse([]byte(valid))
+	f, err := parseFilled([]byte(valid))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +80,7 @@ func TestParseAndPolicy(t *testing.T) {
 // something, and both reach the policy of the iac module.
 func TestUpdateAsAndItemNameAreFieldLines(t *testing.T) {
 	data := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      name: {updateAs: newName}\n      presets: {itemName: name, computed: false}\n"
-	f, err := Parse([]byte(data))
+	f, err := parseFilled([]byte(data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +98,7 @@ func TestUpdateAsAndItemNameAreFieldLines(t *testing.T) {
 	if got := strings.Join(lines, ","); !strings.Contains(got, "types.Thing.fields.name") || !strings.Contains(got, "types.Thing.fields.presets") {
 		t.Errorf("lines = %s, want both field lines", got)
 	}
-	if _, err := Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      name: {updateAs: \"a..b\"}\n")); err == nil || !strings.Contains(err.Error(), "updateAs") {
+	if _, err := parseFilled([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      name: {updateAs: \"a..b\"}\n")); err == nil || !strings.Contains(err.Error(), "updateAs") {
 		t.Errorf("a bad updateAs path: err = %v, want an updateAs error", err)
 	}
 }
@@ -91,7 +112,7 @@ validators:
 api:
   updateMaskInBody: true
 `
-	f, err := Parse([]byte(text))
+	f, err := parseFilled([]byte(text))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +211,7 @@ func TestParseIsStrict(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte(test.text))
+			_, err := parseFilled([]byte(test.text))
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
@@ -201,7 +222,7 @@ func TestParseIsStrict(t *testing.T) {
 // A name line renames the Terraform attribute of a field, and idProperty names the field that
 // holds the id. The policy keeps both.
 func TestNameAndIDPropertyPolicy(t *testing.T) {
-	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\napi:\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  R:\n    fields:\n      uniqueIdentifier: {name: id}\n      scheduleOperation: {name: operation, markdownDescription: The operation.}\n"))
+	f, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\napi:\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  R:\n    fields:\n      uniqueIdentifier: {name: id}\n      scheduleOperation: {name: operation, markdownDescription: The operation.}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,15 +239,114 @@ func TestNameAndIDPropertyPolicy(t *testing.T) {
 	}
 }
 
-func TestAValueIsAcceptedOrRejectedNotBoth(t *testing.T) {
-	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  e.Kind: {values: [A, B], rejected: [B]}\n"))
-	if err == nil || !strings.Contains(err.Error(), "values and in rejected") {
-		t.Fatalf("err = %v, want an error about a value in both lists", err)
+// The accepted values of an enum are the contract values without the zero value and without the
+// rejected ones, in the order of the contract. A rejected value is never accepted.
+func TestFillEnumTakesTheContractWithoutZeroAndRejected(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  e.Kind: {zero: unspecified, rejected: [E_C]}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.FillEnum("e.Kind", []string{"E_UNSPECIFIED", "E_B", "E_C", "E_A"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := f.Enums["e.Kind"].Values, []string{"E_B", "E_A"}; !slices.Equal(got, want) {
+		t.Fatalf("Values = %v, want %v", got, want)
+	}
+	// A new value of the contract is accepted at once, with the plain name.
+	if err := f.FillEnum("e.Kind", []string{"E_UNSPECIFIED", "E_B", "E_C", "E_A", "E_NEW"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := f.Enums["e.Kind"].Values, []string{"E_B", "E_A", "E_NEW"}; !slices.Equal(got, want) {
+		t.Fatalf("Values = %v, want %v", got, want)
+	}
+	if got := f.Enums["e.Kind"].TFValue("E_NEW"); got != "e_new" {
+		t.Fatalf("TFValue = %q, want e_new", got)
+	}
+}
+
+func TestParseRefusesAValuesKey(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  e.Kind: {values: [A, B]}\n"))
+	if err == nil || !strings.Contains(err.Error(), "values key is not read any more") {
+		t.Fatalf("err = %v, want the values key to be refused", err)
+	}
+}
+
+// A new value of an enum that has names entries and no trimPrefix takes the style of the entries
+// (lower, UPPER, or Title, after the prefix of the enum name). With no single style, the generator
+// asks for a names entry. A line with trimPrefix names the entries that differ from the plain rule,
+// so a new value takes the plain rule.
+func TestNewValueTakesTheStyleOfTheNames(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n"
+	tests := map[string]struct {
+		line      string
+		contract  []string
+		value     string
+		want      string
+		undecided bool
+	}{
+		"Title": {"  DayOfWeek:\n    zero: Monday\n    names: {DAY_OF_WEEK_TUESDAY: Tuesday, DAY_OF_WEEK_SUNDAY: Sunday}\n",
+			[]string{"DAY_OF_WEEK_UNSPECIFIED", "DAY_OF_WEEK_TUESDAY", "DAY_OF_WEEK_SUNDAY", "DAY_OF_WEEK_HOLIDAY"}, "DAY_OF_WEEK_HOLIDAY", "Holiday", false},
+		"UPPER": {"  e.LogFilterOperationType:\n    zero: IS\n    names: {LOG_FILTER_OPERATION_TYPE_INCLUDES: INCLUDES, LOG_FILTER_OPERATION_TYPE_ENDS_WITH: ENDS_WITH}\n",
+			[]string{"LOG_FILTER_OPERATION_TYPE_UNSPECIFIED", "LOG_FILTER_OPERATION_TYPE_INCLUDES", "LOG_FILTER_OPERATION_TYPE_ENDS_WITH", "LOG_FILTER_OPERATION_TYPE_MATCHES"}, "LOG_FILTER_OPERATION_TYPE_MATCHES", "MATCHES", false},
+		"two styles that agree": {"  AlertDefPriority:\n    zero: P5\n    names: {ALERT_DEF_PRIORITY_P4: P4, ALERT_DEF_PRIORITY_P3: P3}\n",
+			[]string{"ALERT_DEF_PRIORITY_UNSPECIFIED", "ALERT_DEF_PRIORITY_P4", "ALERT_DEF_PRIORITY_P3", "ALERT_DEF_PRIORITY_P2"}, "ALERT_DEF_PRIORITY_P2", "P2", false},
+		"two styles that disagree": {"  AlertDefPriority:\n    zero: P5\n    names: {ALERT_DEF_PRIORITY_P4: P4, ALERT_DEF_PRIORITY_P3: P3}\n",
+			[]string{"ALERT_DEF_PRIORITY_UNSPECIFIED", "ALERT_DEF_PRIORITY_P4", "ALERT_DEF_PRIORITY_P3", "ALERT_DEF_PRIORITY_URGENT"}, "ALERT_DEF_PRIORITY_URGENT", "", true},
+		"no style": {"  NotifyOn:\n    zero: Triggered Only\n    names: {NOTIFY_ON_TRIGGERED_AND_RESOLVED: Triggered and Resolved}\n",
+			[]string{"NOTIFY_ON_UNSPECIFIED", "NOTIFY_ON_TRIGGERED_AND_RESOLVED", "NOTIFY_ON_NEVER"}, "NOTIFY_ON_NEVER", "", true},
+		"trimPrefix keeps the plain rule": {"  Unit:\n    trimPrefix: UNIT_\n    zero: unspecified\n    names: {UNIT_BYTES_IEC: bytes_iec_odd}\n",
+			[]string{"UNIT_UNSPECIFIED", "UNIT_BYTES_IEC", "UNIT_FOO"}, "UNIT_FOO", "foo", false},
+		"no names keeps the plain rule": {"  Plain:\n    zero: unspecified\n",
+			[]string{"PLAIN_UNSPECIFIED", "PLAIN_ONE"}, "PLAIN_ONE", "plain_one", false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			f, err := Parse([]byte(head + test.line))
+			if err != nil {
+				t.Fatal(err)
+			}
+			enum := ""
+			for k := range f.Enums {
+				enum = k
+			}
+			err = f.FillEnum(enum, test.contract)
+			var undecided *UndecidedNames
+			if test.undecided {
+				if !errors.As(err, &undecided) || !slices.Contains(undecided.Values, test.value) {
+					t.Fatalf("err = %v, want UndecidedNames for %s", err, test.value)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := f.Enums[enum].TFValue(test.value); got != test.want {
+				t.Fatalf("TFValue(%s) = %q, want %q", test.value, got, test.want)
+			}
+		})
+	}
+}
+
+// The prefix is the name of the enum in upper snake case, without its package.
+func TestEnumNamePrefix(t *testing.T) {
+	for component, want := range map[string]string{
+		"DayOfWeek":                      "DAY_OF_WEEK_",
+		"v3.AutoRetireTimeframe":         "AUTO_RETIRE_TIMEFRAME_",
+		"notification_center.EntityType": "ENTITY_TYPE_",
+		"LogsRatioTimeWindowValue":       "LOGS_RATIO_TIME_WINDOW_VALUE_",
+	} {
+		value := want + "X"
+		if got := enumNamePrefix(component, []string{value}); got != want {
+			t.Errorf("enumNamePrefix(%q) = %q, want %q", component, got, want)
+		}
+	}
+	if got := enumNamePrefix("DayOfWeek", []string{"DAY_OF_WEEK_X", "OTHER_X"}); got != "" {
+		t.Errorf("a value without the prefix: got %q, want none", got)
 	}
 }
 
 func TestAValidatorSetsExactlyOneKey(t *testing.T) {
-	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {validators: [{enum: true, oneOf: [a]}]}\n"))
+	_, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {validators: [{enum: true, oneOf: [a]}]}\n"))
 	if err == nil || !strings.Contains(err.Error(), "exactly one") {
 		t.Fatalf("err = %v, want an error about the validator keys", err)
 	}
@@ -235,7 +355,7 @@ func TestAValidatorSetsExactlyOneKey(t *testing.T) {
 // A resource without a released version may keep the limits of the contract as validators.
 func TestInferredValidatorsOfAnUnreleasedResource(t *testing.T) {
 	for _, inferred := range []bool{true, false} {
-		file, err := Parse([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: %t\n", inferred)))
+		file, err := parseFilled([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: %t\n", inferred)))
 		if err != nil {
 			t.Fatalf("inferred %t: %v", inferred, err)
 		}
@@ -246,7 +366,7 @@ func TestInferredValidatorsOfAnUnreleasedResource(t *testing.T) {
 }
 
 func TestARequiredFieldCannotBeComputed(t *testing.T) {
-	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {required: true, computed: true}\n"))
+	_, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {required: true, computed: true}\n"))
 	if err == nil || !strings.Contains(err.Error(), "cannot be computed") {
 		t.Fatalf("err = %v, want an error about a required and computed field", err)
 	}
@@ -254,7 +374,7 @@ func TestARequiredFieldCannotBeComputed(t *testing.T) {
 
 // A released number field, such as an Int64 with a static 0, states its default as a number.
 func TestADefaultCanBeANumber(t *testing.T) {
-	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      count: {computed: true, default: 0}\n      ratio: {computed: true, default: 0.5}\n"))
+	f, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      count: {computed: true, default: 0}\n      ratio: {computed: true, default: 0.5}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +391,7 @@ func TestADefaultCanBeANumber(t *testing.T) {
 // finds it in the YAML tree. The line with it is a line with a default, as one with a value is.
 func TestADefaultCanBeNullOrAnObject(t *testing.T) {
 	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n"
-	f, err := Parse([]byte(head + "      a: {computed: true, default: null}\n      b: {computed: true, default: ~}\n      c: {computed: true, default: {}}\n      d: {computed: true, default: {x: 1, y: {z: [], w: null}}}\n      e: {computed: true, default: []}\n"))
+	f, err := parseFilled([]byte(head + "      a: {computed: true, default: null}\n      b: {computed: true, default: ~}\n      c: {computed: true, default: {}}\n      d: {computed: true, default: {x: 1, y: {z: [], w: null}}}\n      e: {computed: true, default: []}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,14 +424,14 @@ func TestANullDefaultOutsideAFieldLineIsAnError(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte(test.text))
+			_, err := parseFilled([]byte(test.text))
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
 	}
 	// A field that is named default is no key of a line.
-	if _, err := Parse([]byte(head + "types:\n  R:\n    fields:\n      default: {computed: true, default: null}\n")); err != nil {
+	if _, err := parseFilled([]byte(head + "types:\n  R:\n    fields:\n      default: {computed: true, default: null}\n")); err != nil {
 		t.Fatalf("a field named default: %v", err)
 	}
 }
@@ -320,7 +440,7 @@ func TestANullDefaultOutsideAFieldLineIsAnError(t *testing.T) {
 // a default, no computed value, or a key that states what an omitted value plans and sends.
 // Another line keeps it.
 func TestLinesThatReplaceTheServerDefault(t *testing.T) {
-	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
+	f, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
 		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
 		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n" +
 		"      g: {computed: true, sendUnknownAsZero: true}\n      h: {computed: true, useNonNullStateForUnknown: true}\n" +
@@ -339,7 +459,7 @@ func TestPolicyReleasesOnlyLinesThatStatePresence(t *testing.T) {
 	text := valid + "  Words:\n    fields:\n      text: {description: A text.}\n      order: {keepPriorOrder: true}\n      mode: {computed: true}\n      zero: {default: false}\n      empty: {readEmptyAs: \"null\"}\n"
 	text = strings.Replace(text, "enums:\n  Kind: {zero: unspecified}\n  Words:", "  Words:", 1)
 	text += "enums:\n  Kind: {zero: unspecified}\n"
-	f, err := Parse([]byte(text))
+	f, err := parseFilled([]byte(text))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +471,7 @@ func TestPolicyReleasesOnlyLinesThatStatePresence(t *testing.T) {
 
 func TestDeleteOperation(t *testing.T) {
 	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\napi:\n"
-	f, err := Parse([]byte(head + "  delete:\n    operation: Service_ArchiveR\n"))
+	f, err := parseFilled([]byte(head + "  delete:\n    operation: Service_ArchiveR\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +493,7 @@ func TestDeleteOperation(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte(test.text))
+			_, err := parseFilled([]byte(test.text))
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
@@ -383,7 +503,7 @@ func TestDeleteOperation(t *testing.T) {
 
 func TestEquality(t *testing.T) {
 	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n"
-	f, err := Parse([]byte(head + "      config: {equality: yaml}\n      settings: {equality: json, description: A JSON object.}\n"))
+	f, err := parseFilled([]byte(head + "      config: {equality: yaml}\n      settings: {equality: json, description: A JSON object.}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -409,7 +529,7 @@ func TestEquality(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte(head + "      config: " + test.line + "\n"))
+			_, err := parseFilled([]byte(head + "      config: " + test.line + "\n"))
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
@@ -418,7 +538,7 @@ func TestEquality(t *testing.T) {
 }
 
 func TestUnwrapPolicy(t *testing.T) {
-	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [Query, UUID]\ntypes:\n  R:\n    fields:\n      label: {unwrap: true}\n      raw: {unwrap: false}\n"))
+	f, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [Query, UUID]\ntypes:\n  R:\n    fields:\n      label: {unwrap: true}\n      raw: {unwrap: false}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,7 +563,7 @@ func TestUnwrapPolicy(t *testing.T) {
 // name, groups of top-level fields, and enum values with their prefix removed.
 func TestReleasedShapeKeys(t *testing.T) {
 	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
-	f, err := Parse([]byte(head + "typeName: r_v2\ngroups:\n  sli:\n    fields: [a, b]\n    requireOne: true\n  window: {fields: [c]}\nenums:\n  E: {trimPrefix: E_, values: [E_ONE_DAY]}\n"))
+	f, err := parseFilled([]byte(head + "typeName: r_v2\ngroups:\n  sli:\n    fields: [a, b]\n    requireOne: true\n  window: {fields: [c]}\nenums:\n  E: {trimPrefix: E_, values: [E_ONE_DAY]}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -465,7 +585,7 @@ func TestReleasedShapeKeys(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+			if _, err := parseFilled([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
@@ -474,7 +594,7 @@ func TestReleasedShapeKeys(t *testing.T) {
 
 func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 	for _, reject := range []bool{false, true} {
-		file, err := Parse([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: true\n  rejectUnknown: %t\n", reject)))
+		file, err := parseFilled([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: true\n  rejectUnknown: %t\n", reject)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -485,7 +605,7 @@ func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 }
 
 func TestOptionalAndCreateAsPolicy(t *testing.T) {
-	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n  Quota:\n    fields:\n      limit: {computed: true}\n  Item:\n    fields:\n      values: {optional: true}\n"))
+	f, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n  Quota:\n    fields:\n      limit: {computed: true}\n  Item:\n    fields:\n      values: {optional: true}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -515,7 +635,7 @@ func TestOptionalAndCreateAsAreChecked(t *testing.T) {
 		"createAs names a field twice": "{createAs: {limit: limitValue, max: limitValue}}",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
+			if _, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
 				t.Fatalf("%s: want an error", field)
 			}
 		})
@@ -542,7 +662,7 @@ func TestCollectionAndNameAreChecked(t *testing.T) {
 		"regexMatches that Go cannot compile":       "{validators: [{regexMatches: {pattern: '(?=x)'}}]}",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
+			if _, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
 				t.Fatalf("%s: want an error", field)
 			}
 		})
@@ -557,7 +677,7 @@ func TestEnumNamesAreChecked(t *testing.T) {
 		"a name equal to the zero value": "{zero: Unspecified, values: [A_ONE], names: {A_ONE: Unspecified}}",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: " + enum + "\n")); err == nil {
+			if _, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: " + enum + "\n")); err == nil {
 				t.Fatalf("%s: want an error", enum)
 			}
 		})
@@ -570,25 +690,25 @@ func TestCreateAsAndNamesAreCheckedAcrossLines(t *testing.T) {
 		"two fields with one name":       "  R:\n    fields:\n      applicationFilters: {name: apps}\n      appFilters: {name: apps}\n",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n" + types)); err == nil {
+			if _, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n" + types)); err == nil {
 				t.Fatal("want an error")
 			}
 		})
 	}
-	if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n")); err != nil {
+	if _, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n")); err != nil {
 		t.Fatalf("createAs on the resource component: %v", err)
 	}
 }
 
 func TestRequiresReplaceCannotBeComputed(t *testing.T) {
-	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
+	_, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
 	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be combined with computed: true") {
 		t.Fatalf("err = %v, want an error about requiresReplace and computed", err)
 	}
 }
 
 func TestRequiresReplaceCannotBeFixed(t *testing.T) {
-	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, requestValue: X}\n"))
+	_, err := parseFilled([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, requestValue: X}\n"))
 	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be set") {
 		t.Fatalf("err = %v, want an error about requiresReplace and requestValue", err)
 	}
@@ -604,12 +724,12 @@ func TestUnsupportedArmsKeys(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+			if _, err := parseFilled([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
 	}
-	if _, err := Parse([]byte(head + "    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n")); err != nil {
+	if _, err := parseFilled([]byte(head + "    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n")); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -620,12 +740,12 @@ func TestReadRejectedLower(t *testing.T) {
 		"    verbatim: true\n    readRejected: lower\n": "readRejected: lower excludes verbatim",
 		"    readRejected: upper\n":                     `readRejected is "upper", want true, false, or lower`,
 	} {
-		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), want) {
+		if _, err := parseFilled([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), want) {
 			t.Fatalf("%q: err = %v, want %q", extra, err, want)
 		}
 	}
 	for extra, want := range map[string]string{"    readRejected: lower\n": "b", "    readRejected: true\n": "B"} {
-		f, err := Parse([]byte(base + extra))
+		f, err := parseFilled([]byte(base + extra))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -637,20 +757,20 @@ func TestReadRejectedLower(t *testing.T) {
 
 func TestUpdateMaskOmit(t *testing.T) {
 	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
-	if _, err := Parse([]byte(head + "updateMask: omit\n")); err == nil || !strings.Contains(err.Error(), "needs api.updateMaskInBody") {
+	if _, err := parseFilled([]byte(head + "updateMask: omit\n")); err == nil || !strings.Contains(err.Error(), "needs api.updateMaskInBody") {
 		t.Fatalf("err = %v, want an error that asks for a body mask", err)
 	}
-	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: send\n")); err == nil || !strings.Contains(err.Error(), `want "omit"`) {
+	if _, err := parseFilled([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: send\n")); err == nil || !strings.Contains(err.Error(), `want "omit"`) {
 		t.Fatalf("err = %v, want an error about the value", err)
 	}
-	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
+	if _, err := parseFilled([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestEnumAliasesAreChecked(t *testing.T) {
 	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: "
-	if _, err := Parse([]byte(base + "{zero: unspecified, values: [A_ONE], trimPrefix: A_, aliases: {unspecified: one}}\n")); err != nil {
+	if _, err := parseFilled([]byte(base + "{zero: unspecified, values: [A_ONE], trimPrefix: A_, aliases: {unspecified: one}}\n")); err != nil {
 		t.Fatalf("the zero value as an alias: %v", err)
 	}
 	for name, enum := range map[string]struct{ text, want string }{
@@ -661,7 +781,7 @@ func TestEnumAliasesAreChecked(t *testing.T) {
 		"a chain":                         {"{values: [A_ONE, A_TWO], aliases: {a_one: a_two, a_two: a_one}}", "is an alias itself"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte(base + enum.text + "\n"))
+			_, err := parseFilled([]byte(base + enum.text + "\n"))
 			if err == nil || !strings.Contains(err.Error(), enum.want) {
 				t.Fatalf("err = %v, want %q", err, enum.want)
 			}
@@ -685,7 +805,7 @@ types:
       s3: {inline: true}
       isActive: {name: active, optional: true, computed: true, default: true}
 `
-	f, err := Parse([]byte(text))
+	f, err := parseFilled([]byte(text))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -715,7 +835,7 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+			if _, err := parseFilled([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want %q", err, test.want)
 			}
 		})
@@ -726,7 +846,7 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 // list that can say so.
 func TestParseInlineWithRequired(t *testing.T) {
 	text := "resource: Target\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Target:\n    fields:\n      s3: {inline: true, required: true}\n"
-	f, err := Parse([]byte(text))
+	f, err := parseFilled([]byte(text))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,7 +906,7 @@ types:
     fields:
       name: {split: ",", name: names}
 `
-	f, err := Parse([]byte(text))
+	f, err := parseFilled([]byte(text))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -811,7 +931,7 @@ func TestParseRejectsOverwriteAndItemShapeMistakes(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+			if _, err := parseFilled([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want %q", err, test.want)
 			}
 		})
@@ -862,7 +982,7 @@ func TestReleasedShapeKeysAreChecked(t *testing.T) {
 		"a readNullAs with a value": {lines: "types:\n  Thing:\n    fields:\n      mode: {computed: true, readNullAs: unspecified}\n"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n" + test.lines))
+			_, err := parseFilled([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n" + test.lines))
 			switch {
 			case test.wantErr == "" && err != nil:
 				t.Fatalf("Parse() = %v, want no error", err)

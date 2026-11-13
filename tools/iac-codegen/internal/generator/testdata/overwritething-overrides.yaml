@@ -50,7 +50,6 @@ enums:
   ThingPriority:
     zeroNull: true
     trimPrefix: THING_PRIORITY_
-    values: [THING_PRIORITY_LOW, THING_PRIORITY_HIGH]
 
 # The data source reads the things of kind A.
 dataSource: {}

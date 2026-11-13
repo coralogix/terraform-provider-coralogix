@@ -38,18 +38,20 @@ var formatGenerated = formatSource
 // render returns the generated files of the resource, by file name.
 // renderWith is render for a resource with a behavior-overrides file (nil for a new resource).
 func renderWith(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrides.File) (map[string][]byte, error) {
-	return renderAll(r, refs, pkg, file, nil, nil, "")
+	return renderAll(r, refs, pkg, file, nil, nil, "", nil)
 }
 
 // renderAll is renderWith that also writes the acceptance test, when acc is not nil, and the upgrade
 // attributes file of its upgrade test. prior is that file of the last run, or nil. providerModule
-// is the module path of the provider; the test imports its provider package. For a new resource,
+// is the module path of the provider; the test imports its provider package. deprecated are the API
+// fields that the contract marks deprecated (contractDeprecations): the schema warns about each. For a new resource,
 // it also writes the docs example and import command under exampleKey and importKey.
-func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrides.File, acc *acceptance.File, prior *acceptance.UpgradeAttributes, providerModule string) (map[string][]byte, error) {
+func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrides.File, acc *acceptance.File, prior *acceptance.UpgradeAttributes, providerModule string, deprecated map[string]bool) (map[string][]byte, error) {
 	data, err := buildTFResourceWith(r, pkg, file)
 	if err != nil {
 		return nil, err
 	}
+	markDeprecations(data.Attributes, deprecated, file)
 	if data.Conv, err = buildConvWith(r, refs, file); err != nil {
 		return nil, err
 	}

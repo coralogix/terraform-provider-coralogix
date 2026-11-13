@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
@@ -328,6 +329,60 @@ func TestAccCoralogixResourceSloV2Generated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
+}
+
+// TestFailurePathsSloV2Generated checks, without a tenant, what the resource does when the API
+// fails: a local server answers every request with an error (failpaths.Run). It needs no API key.
+func TestFailurePathsSloV2Generated(t *testing.T) {
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Skipf("%s is not set: the test config reads it", name)
+		}
+	}
+	failpaths.Run(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_slo_v2",
+		IDAttr:         "id",
+		Config:         render("failure-paths", minimalConfig),
+	})
+}
+
+// TestConfigsValidateSloV2Generated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidateSloV2Generated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_slo_v2",
+	}, map[string]string{
+		"full":     offline.Replace(fullConfig),
+		"updated":  offline.Replace(updatedConfig),
+		"minimal":  offline.Replace(minimalConfig),
+		"variant1": offline.Replace(variant1Config),
+	})
 }
 
 const (
@@ -419,3 +474,98 @@ func TestAccCoralogixResourceSloV2GeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_slo_v2" "test" {
+  sli = {
+    apm_sli = {
+      filters = [
+        {
+          key = "http.status_code"
+          match_operator = "is"
+          values = ["@{run}-values"]
+        },
+        {
+          key = "http.status_code"
+          match_operator = "starts_with"
+          values = ["@{run}-values"]
+        },
+        {
+          key = "http.status_code"
+          match_operator = "includes"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["http_method"]
+      latency_config = {
+        average = {}
+        threshold = 1.5
+        time_window = "1_minute"
+      }
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
+    }
+  }
+  description = "@{run}-description"
+  labels = { team = "payments" }
+  name = "@{run}-slo"
+  ownership_tags = {
+    environment = {
+      static_values = ["production"]
+    }
+    service = {
+      label_keys = ["service_name"]
+    }
+    team = {
+      static_values = ["payments"]
+    }
+  }
+  product_type = "apm"
+  window = {
+    slo_time_frame = "7_days"
+  }
+  target_threshold_percentage = 99.5
+}
+
+resource "coralogix_slo_v2" "test_2" {
+  sli = {
+    apm_sli = {
+      filters = [
+        {
+          key = "http.status_code"
+          match_operator = "ends_with"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["http_method"]
+      latency_config = {
+        quantile = {
+          percentile = 0.9
+        }
+        threshold = 1.5
+        time_window = "5_minutes"
+      }
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
+    }
+  }
+  description = "@{run}-description-2"
+  labels = { team = "payments" }
+  name = "@{run}-slo"
+  ownership_tags = {
+    environment = {
+      static_values = ["production"]
+    }
+    service = {
+      label_keys = ["service_name"]
+    }
+    team = {
+      static_values = ["payments"]
+    }
+  }
+  product_type = "apm"
+  window = {
+    slo_time_frame = "7_days"
+  }
+  target_threshold_percentage = 99.5
+}`
