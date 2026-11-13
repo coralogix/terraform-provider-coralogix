@@ -10,13 +10,13 @@
       ]
     },
     "plan": {
-      "enable_coralogix_customer_support_access": "unspecified",
+      "enable_coralogix_customer_support_access": "(unknown)",
       "id": "(unknown)",
       "ip_access": [
         {
           "enabled": false,
           "ip_range": "not-a-cidr",
-          "name": null
+          "name": "(unknown)"
         }
       ]
     },
@@ -25,7 +25,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
         "body": {
-          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
           "ipAccess": [
             {
               "enabled": false,
@@ -37,7 +36,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_ip_access | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid IP range format\"}\noperation - Create"
+      "error: Unable to create ip_access | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid IP range format\"}"
     ],
     "state": null
   }

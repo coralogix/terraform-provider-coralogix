@@ -92,7 +92,7 @@ func (f *ipAccessFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer f.mu.Unlock()
 
 	raw, _ := io.ReadAll(r.Body)
-	rec := grRequest{Method: r.Method, Path: r.URL.Path}
+	rec := grRequest{Method: r.Method, Path: r.URL.RequestURI()}
 	if len(raw) > 0 {
 		_ = json.Unmarshal(raw, &rec.Body)
 	}

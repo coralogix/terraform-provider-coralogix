@@ -63,6 +63,21 @@
 #### data-source/coralogix_tco_policies_logs, data-source/coralogix_tco_policies_traces, data-source/coralogix_tco_policies_rum
 - DOCS: `names` of a rule has a description.
 
+#### resource/coralogix_ip_access
+- CHORE: Generate the resource from the API contract while keeping the existing set schema and enum values. API descriptions now appear on the matching resource and data-source attributes. Replace omits the optional `id` body field; Get flattens API map values into the Terraform set.
+- FIX: An omitted `ip_access[].name` now round-trips the API's empty-string default without inconsistent results or a non-empty plan.
+- FIX: An omitted customer-support access setting retains the value returned by Get instead of planning `unspecified` and drifting to `disabled`.
+- FIX: Omitting `ip_access` no longer causes a Terraform value-conversion error. Create omits the field; Replace omits it and clears the rules, as the API does.
+- FIX: An Update 404 returns an error and keeps prior state. Before, the handwritten resource removed state and Terraform followed with `Missing Resource State After Update`.
+- FIX: A generic endpoint 404 during Delete is an error and keeps state. Before, the handwritten resource treated every 404 as successful deletion, including a missing API route.
+
+#### data-source/coralogix_ip_access
+- CHORE: Generate the data source with the resource. An optional `id` is passed to the API's optional Get query parameter when configured.
+
+#### tools/iac-codegen
+- FEAT: `collection: set` supports a map-of-objects Get response with list-of-objects write requests, preserving each API operation's wire shape while exposing one Terraform set.
+- CHORE: Bump the generator to `v0.1.0-beta.85`; its map-to-set generation is covered by a golden fixture.
+
 # Release 3.25.0
 
 #### provider

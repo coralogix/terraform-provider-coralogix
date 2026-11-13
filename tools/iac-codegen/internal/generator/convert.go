@@ -324,6 +324,7 @@ const (
 	// convJoin shows a list of strings as one string with the elements joined (join).
 	convJoin    = "join"    // types.String ↔ []string
 	convObjects = "objects" // types.List ↔ []<SDK type>
+	convMapSet  = "mapset"  // types.Set ← map[string]<SDK type>, discarding response keys
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
@@ -2283,6 +2284,9 @@ func checkFieldType(cf *convField, ref sdkcheck.Ref, want string) (*convField, e
 // fieldConv sets the conversion of cf for t. It returns the SDK Go type that
 // the conversion needs. computed is true for a field that only the response has.
 func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (string, error) {
+	if t.Kind == model.Set && t.WireKind == model.Map {
+		return b.mapSetConv(cf, t)
+	}
 	if len(t.Wrappers) != 0 {
 		return b.wrappedConv(cf, t, computed)
 	}
@@ -2331,6 +2335,23 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 		return b.mapConv(cf, t)
 	}
 	return "", fmt.Errorf("kind %s is not supported", t.Kind)
+}
+
+// mapSetConv reads values from an API map into the released Terraform set. The
+// API's keys are deliberately discarded; writes use the request list shape.
+func (b *convBuilder) mapSetConv(cf *convField, t *model.Type) (string, error) {
+	if t.Elem == nil || t.Elem.Kind != model.Object || len(t.Elem.Fields) == 0 {
+		return "", fmt.Errorf("map-to-set conversion needs object values")
+	}
+	obj, err := b.nested(t.Elem)
+	if err != nil {
+		return "", err
+	}
+	if !contains(b.listed, obj) {
+		b.listed = append(b.listed, obj)
+	}
+	cf.Collection, cf.Conv, cf.Object, cf.SDKType = "Set", convMapSet, obj, b.qualify(obj.SDK)
+	return "map[string]" + obj.SDK, nil
 }
 
 // keyedConv sets the conversion of a map that the API holds as a list of items keyed by a
@@ -2896,7 +2917,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		switch {
 		case f.Conv == convTime && expand && !f.FlattenOnly:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects || f.Conv == convDistributed:
+		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convMapSet || f.Conv == convGroup || f.Conv == convKeyedObjects || f.Conv == convDistributed:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -2983,7 +3004,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.Int64Type}", nil
 	case convKeyedValues:
 		return "types.MapType{ElemType: types.StringType}", nil
-	case convObj, convObjects, convObjectMap, convGroup, convKeyedObjects, convDistributed:
+	case convObj, convObjects, convObjectMap, convMapSet, convGroup, convKeyedObjects, convDistributed:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}
@@ -2991,7 +3012,11 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		switch f.Conv {
 		case convObjects, convDistributed:
 			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
-		case convObjectMap, convKeyedObjects:
+		case convObjectMap:
+			expr = "types.MapType{ElemType: " + expr + "}"
+		case convMapSet:
+			expr = "types.SetType{ElemType: " + expr + "}"
+		case convKeyedObjects:
 			expr = "types.MapType{ElemType: " + expr + "}"
 		}
 		return expr, nil
@@ -3322,7 +3347,7 @@ var errPriorContainer = errors.New("equality, keepPriorOrder, and readEmptyAs on
 func checkPriorContainers(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set" && !f.SetPrior) {
+			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.Conv == convMapSet || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set" && !f.SetPrior) {
 				return fmt.Errorf("%s.%s holds %s: %w", obj.Model, f.TFName, f.Object.Model, errPriorContainer)
 			}
 		}

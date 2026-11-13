@@ -1558,7 +1558,7 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	return l
 }
 
-{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap") (.Conv.Uses "keyedobjects") (.Conv.Uses "keyedvalues")}}
+{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "mapset") (.Conv.Uses "scalarmap") (.Conv.Uses "keyedobjects") (.Conv.Uses "keyedvalues")}}
 
 // expandMap returns the values of v. It returns nil for a null value, and a
 // non-nil map for an empty value.
@@ -2794,6 +2794,16 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
 		}
 		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "mapset"}}
+	out.{{.Model}} = types.SetNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if {{.Src}} != nil {
+		items := make([]{{.Object.Model}}, 0, len({{.Src}}))
+		for _, k := range slices.Sorted(maps.Keys({{.Src}})) {
+			item := {{.Src}}[k]
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &item, diags))
+		}
+		out.{{.Model}} = flattenSet(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
 {{- else if eq .Conv "keyedobjects"}}
 	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})

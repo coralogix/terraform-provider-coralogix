@@ -11,7 +11,7 @@
       ]
     },
     "plan": {
-      "enable_coralogix_customer_support_access": "unspecified",
+      "enable_coralogix_customer_support_access": "(unknown)",
       "id": "(unknown)",
       "ip_access": [
         {
@@ -26,7 +26,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
         "body": {
-          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
           "ipAccess": [
             {
               "enabled": false,
@@ -61,7 +60,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting coralogix_ip_access | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Delete"
+      "error: Unable to delete ip_access | id <settings-id>: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "enable_coralogix_customer_support_access": "unspecified",

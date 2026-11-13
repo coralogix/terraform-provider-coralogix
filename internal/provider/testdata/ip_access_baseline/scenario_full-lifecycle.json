@@ -22,7 +22,7 @@
         {
           "enabled": false,
           "ip_range": "198.51.100.0/24",
-          "name": null
+          "name": "(unknown)"
         },
         {
           "enabled": true,
@@ -52,9 +52,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "ip_access"
-    ],
     "state": {
       "enable_coralogix_customer_support_access": "enabled",
       "id": "<settings-id>",
@@ -71,15 +68,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>)",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"enabled\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"ip_range\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"name\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<null>>)"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -125,7 +114,7 @@
         {
           "enabled": false,
           "ip_range": "203.0.113.0/24",
-          "name": null
+          "name": "(unknown)"
         }
       ]
     },
@@ -145,9 +134,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "ip_access"
-    ],
     "state": {
       "enable_coralogix_customer_support_access": "disabled",
       "id": "<settings-id>",
@@ -159,15 +145,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>)",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"enabled\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"ip_range\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"name\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<null>>)"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh after replace",
@@ -196,7 +174,7 @@
       "ip_access": []
     },
     "plan": {
-      "enable_coralogix_customer_support_access": "unspecified",
+      "enable_coralogix_customer_support_access": "(unknown)",
       "id": "(unknown)",
       "ip_access": []
     },
@@ -205,7 +183,6 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
         "body": {
-          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
           "ipAccess": []
         },
         "status": 200
@@ -235,11 +212,7 @@
     "drift": [
       "AttributeName(\"enable_coralogix_customer_support_access\")"
     ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"enable_coralogix_customer_support_access\")",
-      "AttributeName(\"id\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

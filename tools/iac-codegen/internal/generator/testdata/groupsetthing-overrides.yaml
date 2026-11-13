@@ -49,7 +49,7 @@ types:
   GroupSetThing:
     fields:
       name: {computed: true, useStateForUnknown: true}
-      groups: {computed: true, useStateForUnknown: true}
+      groups: {collection: set, computed: true, useStateForUnknown: true}
       absoluteWindow: {name: absolute}
       relativeWindow: {name: duration, required: true}
     extraAttributes:
