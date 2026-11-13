@@ -4,6 +4,9 @@ These goldens record the handwritten `coralogix_custom_role` resource and its da
 the plugin protocol, against the fake in `custom_role_baseline_fake_test.go`. When the resource
 switches to generated code, the golden diff must show only message wording or proven bug fixes.
 
+The resource is generated now. The tables below describe the handwritten behavior that these goldens
+recorded first. The current goldens show the generated resource, and the fixes are in `CHANGELOG.md`.
+
 ```sh
 UPDATE_GOLDEN=1 go test ./internal/provider -run 'TestCustomRoleBaseline|TestDataSourceBaseline.*/custom_role'
 ```
