@@ -25,6 +25,75 @@ type ArmC struct {
 	Label *string
 }
 
+type ItemExtra struct {
+	Note *string
+}
+
+type Labelled struct {
+	Value *string
+	Label *string
+}
+
+type CustomOptions struct {
+	Title     *string
+	Collapsed *bool
+}
+
+// ItemOptions is a oneOf: Custom, or Internal, which has no fields.
+type ItemOptions struct {
+	Custom   *CustomOptions
+	Internal map[string]interface{}
+}
+
+// ItemAction holds its definition, a oneOf of a link and a target, in a pointer.
+type ItemAction struct {
+	Label      *string
+	Definition *ActionDefinition
+}
+
+type ActionDefinition struct {
+	Link   *ActionLink
+	Target *ActionTarget
+}
+
+// UnionReminder requires the name of its item, so the SDK holds it as a value.
+type UnionReminder struct {
+	ItemName   string
+	Label      *string
+	Definition *ActionDefinition
+}
+
+type ActionLink struct {
+	Url *string
+}
+
+type ActionTarget struct {
+	PageId *string
+}
+
+type Tag struct {
+	Label *string
+}
+
+// Pick holds a value in an object, in one place and in the items of a list.
+type Pick struct {
+	Value *Labelled
+	Note  *string
+}
+
+type UnionItem struct {
+	Name     string
+	Extra    *ItemExtra
+	Value    *Labelled
+	Options  *ItemOptions
+	First    *Tag
+	Second   *Tag
+	Choice   *Pick
+	Choices  []Pick
+	Action   *ItemAction
+	Behavior *ActionDefinition
+}
+
 // Thing holds the common fields and the arms of the oneOf. The requests and the response hold it
 // in a pointer, because the contract does not require it.
 type Thing struct {
@@ -34,6 +103,8 @@ type Thing struct {
 	ArmA        *ArmA
 	ArmB        *ArmB
 	ArmC        *ArmC
+	Items       []UnionItem
+	Reminders   []UnionReminder
 }
 
 type UnionWrapThing struct {

@@ -2,6 +2,7 @@ package overwritething
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"slices"
 	"strings"
@@ -241,17 +242,21 @@ func TestDataSourceReadsTheKind(t *testing.T) {
 	}
 }
 
-// The description conflicts with the rule values and has at most 50 characters.
+// The description has at most 50 characters, and the conflict with the rule values is checked by the
+// validator of the item: it reads the item, so the cost does not grow with the configuration.
 func TestDescriptionValidators(t *testing.T) {
 	_, s, _ := setup(t)
 	things := s.Schema.Attributes["things"].(schema.ListNestedAttribute)
 	validators := things.NestedObject.Attributes["description"].(schema.StringAttribute).Validators
-	var got []string
-	for _, v := range validators {
-		got = append(got, v.Description(context.Background()))
+	if len(validators) != 1 {
+		t.Fatalf("description has %d validators, want the length only", len(validators))
 	}
-	if len(got) != 2 {
-		t.Fatalf("description validators = %v, want the length and the conflict", got)
+	var found bool
+	for _, v := range things.NestedObject.Validators {
+		found = found || strings.Contains(fmt.Sprintf("%T", v), "oneOfArmsValidator")
+	}
+	if !found {
+		t.Fatalf("the item has no oneOfArmsValidator for the conflict: %v", things.NestedObject.Validators)
 	}
 }
 

@@ -15,90 +15,13 @@
 package alerts
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-
-	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
 )
 
-var _ datasource.DataSourceWithConfigure = &AlertDataSource{}
-
+// NewAlertDataSource returns coralogix_alert, the generated data source of the resource. It runs
+// the BeforeFlatten and AfterFlatten hooks of the resource.
 func NewAlertDataSource() datasource.DataSource {
-	return &AlertDataSource{}
-}
-
-type AlertDataSource struct {
-	client *alerts.AlertDefinitionsServiceAPIService
-}
-
-func (d *AlertDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_alert"
-}
-
-func (d *AlertDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.Alerts()
-}
-
-func (d *AlertDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r AlertResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *alerttypes.AlertResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get refreshed Alert value from Coralogix
-	id := data.ID.ValueString()
-	getAlertResp, httpResponse, err := d.client.AlertDefsServiceGetAlertDef(ctx, id).IncludeAccessPermissions(true).Execute()
-	if err != nil && httpResponse != nil && httpResponse.StatusCode == http.StatusForbidden {
-		// The key lacks alerts:ReadAccessPolicy and the backend rejects the
-		// include flag instead of omitting the field. Retry without it; the
-		// policy reads back null.
-		getAlertResp, httpResponse, err = d.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
-	}
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading alert",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", id),
-		)
-		return
-	}
-
-	policy, readable := alertAccessFromGetResponse(getAlertResp)
-	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil, types.StringNull(), policy, readable)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	return alert.NewDataSource(alertHooks())
 }

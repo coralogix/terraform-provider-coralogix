@@ -104,8 +104,8 @@ var serverAttrs = map[string]bool{
 	"metric_fields.aggregations.count.target_metric_name":     true,
 	"metric_fields.aggregations.avg.target_metric_name":       true,
 	"metric_fields.aggregations.sum.target_metric_name":       true,
-	"metric_fields.aggregations.samples.target_metric_name":   true,
 	"metric_fields.aggregations.histogram.target_metric_name": true,
+	"metric_fields.aggregations.samples.target_metric_name":   true,
 	"permutations.has_exceed_limit":                           true,
 }
 
@@ -230,12 +230,12 @@ var computedAttrs = map[string]bool{
 	"metric_fields.aggregations.sum":                          true,
 	"metric_fields.aggregations.sum.enable":                   true,
 	"metric_fields.aggregations.sum.target_metric_name":       true,
-	"metric_fields.aggregations.samples":                      true,
-	"metric_fields.aggregations.samples.enable":               true,
-	"metric_fields.aggregations.samples.target_metric_name":   true,
 	"metric_fields.aggregations.histogram":                    true,
 	"metric_fields.aggregations.histogram.enable":             true,
 	"metric_fields.aggregations.histogram.target_metric_name": true,
+	"metric_fields.aggregations.samples":                      true,
+	"metric_fields.aggregations.samples.enable":               true,
+	"metric_fields.aggregations.samples.target_metric_name":   true,
 	"permutations":                  true,
 	"permutations.has_exceed_limit": true,
 	"permutations.limit":            true,
@@ -244,8 +244,8 @@ var computedAttrs = map[string]bool{
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"metric_fields.aggregations.samples.type":      true,
 	"metric_fields.aggregations.histogram.buckets": true,
+	"metric_fields.aggregations.samples.type":      true,
 	"metric_fields.source_field":                   true,
 	"name":                                         true,
 }
@@ -552,15 +552,15 @@ func expandV2AggregationKeyed(ctx context.Context, p path.Path, m *V2Aggregation
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
 		out.Sum = expandV2AggregationSum(ctx, p.AtName("sum"), &nested, diags)
 	}
-	if v := m.Samples; !v.IsNull() && !v.IsUnknown() {
-		var nested V2AggregationSamplesModel
-		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
-		out.Samples = expandV2AggregationSamples(ctx, p.AtName("samples"), &nested, diags)
-	}
 	if v := m.Histogram; !v.IsNull() && !v.IsUnknown() {
 		var nested V2AggregationHistogramModel
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
 		out.Histogram = expandV2AggregationHistogram(ctx, p.AtName("histogram"), &nested, diags)
+	}
+	if v := m.Samples; !v.IsNull() && !v.IsUnknown() {
+		var nested V2AggregationSamplesModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Samples = expandV2AggregationSamples(ctx, p.AtName("samples"), &nested, diags)
 	}
 	return out
 }
@@ -600,17 +600,17 @@ func flattenV2AggregationKeyed(ctx context.Context, p path.Path, v *v2Aggregatio
 		diags.Append(valueDiags...)
 		out.Sum = value
 	}
-	out.Samples = types.ObjectNull(v2AggregationSamplesAttrTypes())
-	if nested := flattenV2AggregationSamples(ctx, p.AtName("samples"), v.Samples, diags); nested != nil {
-		value, valueDiags := types.ObjectValueFrom(ctx, v2AggregationSamplesAttrTypes(), *nested)
-		diags.Append(valueDiags...)
-		out.Samples = value
-	}
 	out.Histogram = types.ObjectNull(v2AggregationHistogramAttrTypes())
 	if nested := flattenV2AggregationHistogram(ctx, p.AtName("histogram"), v.Histogram, diags); nested != nil {
 		value, valueDiags := types.ObjectValueFrom(ctx, v2AggregationHistogramAttrTypes(), *nested)
 		diags.Append(valueDiags...)
 		out.Histogram = value
+	}
+	out.Samples = types.ObjectNull(v2AggregationSamplesAttrTypes())
+	if nested := flattenV2AggregationSamples(ctx, p.AtName("samples"), v.Samples, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, v2AggregationSamplesAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Samples = value
 	}
 	return out
 }
@@ -622,8 +622,8 @@ func v2AggregationKeyedAttrTypes() map[string]attr.Type {
 		"count":     types.ObjectType{AttrTypes: v2AggregationCountAttrTypes()},
 		"avg":       types.ObjectType{AttrTypes: v2AggregationAvgAttrTypes()},
 		"sum":       types.ObjectType{AttrTypes: v2AggregationSumAttrTypes()},
-		"samples":   types.ObjectType{AttrTypes: v2AggregationSamplesAttrTypes()},
 		"histogram": types.ObjectType{AttrTypes: v2AggregationHistogramAttrTypes()},
+		"samples":   types.ObjectType{AttrTypes: v2AggregationSamplesAttrTypes()},
 	}
 }
 
@@ -757,42 +757,6 @@ func v2AggregationSumAttrTypes() map[string]attr.Type {
 	}
 }
 
-func expandV2AggregationSamples(ctx context.Context, p path.Path, m *V2AggregationSamplesModel, diags *diag.Diagnostics) *events2metrics_service.V2Aggregation {
-	if m == nil {
-		return nil
-	}
-	out := &events2metrics_service.V2Aggregation{}
-	out.Enabled = expandBool(m.Enabled)
-	{
-		var inner *events2metrics_service.SampleType
-		inner = expandEnumMapped(p.AtName("type"), m.Samples, sampleTypeToAPI, diags)
-		out.Samples = wrapE2MAggSamples(inner)
-	}
-	return out
-}
-
-func flattenV2AggregationSamples(ctx context.Context, p path.Path, v *events2metrics_service.V2Aggregation, diags *diag.Diagnostics) *V2AggregationSamplesModel {
-	if v == nil {
-		return nil
-	}
-	out := &V2AggregationSamplesModel{}
-	out.Enabled = types.BoolPointerValue(v.Enabled)
-	{
-		inner := unwrapE2MAggSamples(v.Samples)
-		out.Samples = flattenEnumMapped(p.AtName("type"), inner, sampleTypeFromAPI, diags)
-	}
-	out.TargetMetricName = types.StringPointerValue(&v.TargetMetricName)
-	return out
-}
-
-func v2AggregationSamplesAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"enable":             types.BoolType,
-		"type":               types.StringType,
-		"target_metric_name": types.StringType,
-	}
-}
-
 func expandV2AggregationHistogram(ctx context.Context, p path.Path, m *V2AggregationHistogramModel, diags *diag.Diagnostics) *events2metrics_service.V2Aggregation {
 	if m == nil {
 		return nil
@@ -825,6 +789,42 @@ func v2AggregationHistogramAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"enable":             types.BoolType,
 		"buckets":            types.ListType{ElemType: types.Float32Type},
+		"target_metric_name": types.StringType,
+	}
+}
+
+func expandV2AggregationSamples(ctx context.Context, p path.Path, m *V2AggregationSamplesModel, diags *diag.Diagnostics) *events2metrics_service.V2Aggregation {
+	if m == nil {
+		return nil
+	}
+	out := &events2metrics_service.V2Aggregation{}
+	out.Enabled = expandBool(m.Enabled)
+	{
+		var inner *events2metrics_service.SampleType
+		inner = expandEnumMapped(p.AtName("type"), m.Samples, sampleTypeToAPI, diags)
+		out.Samples = wrapE2MAggSamples(inner)
+	}
+	return out
+}
+
+func flattenV2AggregationSamples(ctx context.Context, p path.Path, v *events2metrics_service.V2Aggregation, diags *diag.Diagnostics) *V2AggregationSamplesModel {
+	if v == nil {
+		return nil
+	}
+	out := &V2AggregationSamplesModel{}
+	out.Enabled = types.BoolPointerValue(v.Enabled)
+	{
+		inner := unwrapE2MAggSamples(v.Samples)
+		out.Samples = flattenEnumMapped(p.AtName("type"), inner, sampleTypeFromAPI, diags)
+	}
+	out.TargetMetricName = types.StringPointerValue(&v.TargetMetricName)
+	return out
+}
+
+func v2AggregationSamplesAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enable":             types.BoolType,
+		"type":               types.StringType,
 		"target_metric_name": types.StringType,
 	}
 }
@@ -1008,8 +1008,8 @@ type v2AggregationKeyed struct {
 	Count     *events2metrics_service.V2Aggregation
 	Avg       *events2metrics_service.V2Aggregation
 	Sum       *events2metrics_service.V2Aggregation
-	Samples   *events2metrics_service.V2Aggregation
 	Histogram *events2metrics_service.V2Aggregation
+	Samples   *events2metrics_service.V2Aggregation
 }
 
 // wrapV2AggregationKeyed returns the API items, each with its AggType and its TargetMetricName, the attribute name.
@@ -1058,19 +1058,19 @@ func wrapV2AggregationKeyed(v *v2AggregationKeyed) []events2metrics_service.V2Ag
 		item.TargetMetricName = name
 		out = append(out, item)
 	}
-	if v.Samples != nil {
-		item := *v.Samples
-		key := events2metrics_service.AggType("AGG_TYPE_SAMPLES")
-		item.AggType = key
-		name := "samples"
-		item.TargetMetricName = name
-		out = append(out, item)
-	}
 	if v.Histogram != nil {
 		item := *v.Histogram
 		key := events2metrics_service.AggType("AGG_TYPE_HISTOGRAM")
 		item.AggType = key
 		name := "histogram"
+		item.TargetMetricName = name
+		out = append(out, item)
+	}
+	if v.Samples != nil {
+		item := *v.Samples
+		key := events2metrics_service.AggType("AGG_TYPE_SAMPLES")
+		item.AggType = key
+		name := "samples"
 		item.TargetMetricName = name
 		out = append(out, item)
 	}
@@ -1097,29 +1097,13 @@ func unwrapV2AggregationKeyed(w []events2metrics_service.V2Aggregation) *v2Aggre
 			out.Avg = &item
 		case "AGG_TYPE_SUM":
 			out.Sum = &item
-		case "AGG_TYPE_SAMPLES":
-			out.Samples = &item
 		case "AGG_TYPE_HISTOGRAM":
 			out.Histogram = &item
+		case "AGG_TYPE_SAMPLES":
+			out.Samples = &item
 		}
 	}
 	return out
-}
-
-// wrapE2MAggSamples puts the value in its API wrapper objects. A nil value sends no wrapper.
-func wrapE2MAggSamples(v *events2metrics_service.SampleType) *events2metrics_service.E2MAggSamples {
-	if v == nil {
-		return nil
-	}
-	return &events2metrics_service.E2MAggSamples{SampleType: *v}
-}
-
-// unwrapE2MAggSamples takes the value out of its API wrapper objects. A missing wrapper is nil.
-func unwrapE2MAggSamples(w *events2metrics_service.E2MAggSamples) *events2metrics_service.SampleType {
-	if w == nil {
-		return nil
-	}
-	return &w.SampleType
 }
 
 // wrapE2MAggHistogram puts the value in its API wrapper objects. A nil value sends no wrapper.
@@ -1136,6 +1120,22 @@ func unwrapE2MAggHistogram(w *events2metrics_service.E2MAggHistogram) []float32 
 		return nil
 	}
 	return w.Buckets
+}
+
+// wrapE2MAggSamples puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapE2MAggSamples(v *events2metrics_service.SampleType) *events2metrics_service.E2MAggSamples {
+	if v == nil {
+		return nil
+	}
+	return &events2metrics_service.E2MAggSamples{SampleType: *v}
+}
+
+// unwrapE2MAggSamples takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapE2MAggSamples(w *events2metrics_service.E2MAggSamples) *events2metrics_service.SampleType {
+	if w == nil {
+		return nil
+	}
+	return &w.SampleType
 }
 
 // elements is a types.Set or a types.List.

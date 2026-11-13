@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"sort"
 	"strconv"
 	"time"
@@ -34,6 +35,20 @@ var typedModeFromAPI = map[typed_things_service.TypedMode]string{
 	typed_things_service.TypedMode("MODE_EXACT"):       "exact",
 }
 
+// typedRoundingToAPI maps the Terraform values of the enum to its API values.
+var typedRoundingToAPI = map[string]typed_things_service.TypedRounding{
+	"unspecified": typed_things_service.TypedRounding("ROUNDING_UNSPECIFIED"),
+	"up":          typed_things_service.TypedRounding("ROUNDING_UP"),
+	"down":        typed_things_service.TypedRounding("ROUNDING_DOWN"),
+}
+
+// typedRoundingFromAPI maps the API values of the enum to its Terraform values.
+var typedRoundingFromAPI = map[typed_things_service.TypedRounding]string{
+	typed_things_service.TypedRounding("ROUNDING_UNSPECIFIED"): "unspecified",
+	typed_things_service.TypedRounding("ROUNDING_UP"):          "up",
+	typed_things_service.TypedRounding("ROUNDING_DOWN"):        "down",
+}
+
 // typedMetadataFieldToAPI maps the Terraform values of the enum to its API values.
 var typedMetadataFieldToAPI = map[string]typed_things_service.TypedMetadataField{
 	"unspecified":      typed_things_service.TypedMetadataField("METADATA_FIELD_UNSPECIFIED"),
@@ -59,8 +74,10 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "aggregation", serverDefault: false},
 	{attr: "selection", serverDefault: false},
+	{attr: "picked_values", serverDefault: false},
 	{attr: "operator", serverDefault: false},
 	{attr: "fields", serverDefault: false},
+	{attr: "span_value", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -118,6 +135,8 @@ var oneOfArms = map[string]bool{
 	"aggregation.percentile":         true,
 	"selection.all":                  true,
 	"selection.list":                 true,
+	"picked_values.all":              true,
+	"picked_values.list":             true,
 	"operator.equals":                true,
 	"operator.equals.selection.all":  true,
 	"operator.equals.selection.list": true,
@@ -125,6 +144,9 @@ var oneOfArms = map[string]bool{
 	"fields.metadata_field":          true,
 	"fields.tag_field":               true,
 	"fields.process_tag_field":       true,
+	"span_value.metadata_field":      true,
+	"span_value.tag_field":           true,
+	"span_value.process_tag_field":   true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
@@ -133,6 +155,7 @@ var computedAttrs = map[string]bool{
 	"id":                        true,
 	"selection.selection_type":  true,
 	"selection.selected_values": true,
+	"picked_values":             true,
 	"operator.selection_type":   true,
 	"operator.selected_values":  true,
 }
@@ -142,6 +165,7 @@ var requiredAttrs = map[string]bool{
 	"aggregation.type": true,
 	"operator.type":    true,
 	"fields.type":      true,
+	"span_value.type":  true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -291,6 +315,16 @@ func expandCreateTypedThingBody(ctx context.Context, p path.Path, m *TypedThingM
 	out.Name = expandString(m.Name)
 	out.Aggregation = expandTypedAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
 	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	if v := m.Pick; !v.IsNull() && !v.IsUnknown() {
+		// No values select the arm without fields. Some values are the list arm.
+		fold := &typed_things_service.TypedPick{}
+		if values := expandElements[string](ctx, p.AtName("picked_values"), v, diags); len(values) == 0 {
+			fold.All = map[string]interface{}{}
+		} else {
+			fold.List = &typed_things_service.TypedPickList{Values: values}
+		}
+		out.Pick = fold
+	}
 	out.Operator = expandTypedOperator(ctx, p.AtName("operator"), m.Operator, diags)
 	if items := expandElements[TypedSpanFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]typed_things_service.TypedSpanField, 0, len(items))
@@ -298,6 +332,7 @@ func expandCreateTypedThingBody(ctx context.Context, p path.Path, m *TypedThingM
 			out.Fields = append(out.Fields, *expandTypedSpanField(ctx, p.AtName("fields").AtListIndex(i), &items[i], diags))
 		}
 	}
+	out.SpanValue = expandTypedSpanValue(ctx, p.AtName("span_value"), m.SpanValue, diags)
 	return out
 }
 
@@ -314,17 +349,21 @@ func expandTypedAggregation(ctx context.Context, p path.Path, m *TypedAggregatio
 		out.Count = map[string]interface{}{}
 	case "avg":
 		out.Average = expandTypedAverage(ctx, p, &TypedAverageModel{
-			Field:  m.Field,
-			Mode:   m.Mode,
-			Weight: m.Weight,
+			Field:       m.Field,
+			Mode:        m.Mode,
+			Weight:      m.Weight,
+			AverageUnit: m.AverageUnit,
+			Rounding:    m.Rounding,
 		}, diags)
 	case "percentile":
 		out.Percentile = expandTypedPercentile(ctx, p, &TypedPercentileModel{
-			Field:   m.Field,
-			Mode:    m.Mode,
-			Weight:  m.Weight,
-			Percent: m.Percent,
-			Bucket:  m.Bucket,
+			Field:          m.Field,
+			Mode:           m.Mode,
+			Weight:         m.Weight,
+			Percent:        m.Percent,
+			PercentileUnit: m.AverageUnit,
+			Rounding:       m.Rounding,
+			Bucket:         m.Bucket,
 		}, diags)
 	default:
 		diags.AddAttributeError(p.AtName("type"), "Unknown type", fmt.Sprintf("The type %q is not one of count, avg, percentile.", m.Type.ValueString()))
@@ -343,6 +382,8 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		out.Field = empty.Field
 		out.Mode = empty.Mode
 		out.Weight = empty.Weight
+		out.AverageUnit = empty.AverageUnit
+		out.Rounding = empty.Rounding
 	}
 	// A field that the selected arm does not have reads as an absent value.
 	if empty := flattenTypedPercentile(ctx, p, &typed_things_service.TypedPercentile{}, nil, diags); empty != nil {
@@ -358,6 +399,8 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 			out.Field = arm.Field
 			out.Mode = arm.Mode
 			out.Weight = arm.Weight
+			out.AverageUnit = arm.AverageUnit
+			out.Rounding = arm.Rounding
 		}
 	case v.Percentile != nil:
 		out.Type = types.StringValue("percentile")
@@ -365,11 +408,13 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 		var priorArm *TypedPercentileModel
 		if prior != nil && prior.Type.ValueString() == "percentile" {
 			priorArm = &TypedPercentileModel{
-				Field:   prior.Field,
-				Mode:    prior.Mode,
-				Weight:  prior.Weight,
-				Percent: prior.Percent,
-				Bucket:  prior.Bucket,
+				Field:          prior.Field,
+				Mode:           prior.Mode,
+				Weight:         prior.Weight,
+				Percent:        prior.Percent,
+				PercentileUnit: prior.AverageUnit,
+				Rounding:       prior.Rounding,
+				Bucket:         prior.Bucket,
 			}
 		}
 		if arm := flattenTypedPercentile(ctx, p, v.Percentile, priorArm, diags); arm != nil {
@@ -377,6 +422,8 @@ func flattenTypedAggregation(ctx context.Context, p path.Path, v *typed_things_s
 			out.Mode = arm.Mode
 			out.Weight = arm.Weight
 			out.Percent = arm.Percent
+			out.AverageUnit = arm.PercentileUnit
+			out.Rounding = arm.Rounding
 			out.Bucket = arm.Bucket
 		}
 	default:
@@ -393,6 +440,8 @@ func expandTypedAverage(ctx context.Context, p path.Path, m *TypedAverageModel, 
 	out.Field = expandString(m.Field)
 	out.Mode = expandEnumMapped(p.AtName("mode"), m.Mode, typedModeToAPI, diags)
 	out.Weight = expandFloat64(m.Weight)
+	out.AverageUnit = expandString(m.AverageUnit)
+	out.Rounding = expandEnumMapped(p.AtName("rounding"), m.Rounding, typedRoundingToAPI, diags)
 	return out
 }
 
@@ -404,6 +453,8 @@ func flattenTypedAverage(ctx context.Context, p path.Path, v *typed_things_servi
 	out.Field = types.StringPointerValue(v.Field)
 	out.Mode = flattenEnumMapped(p.AtName("mode"), v.Mode, typedModeFromAPI, diags)
 	out.Weight = types.Float64PointerValue(v.Weight)
+	out.AverageUnit = types.StringPointerValue(v.AverageUnit)
+	out.Rounding = flattenEnumMapped(p.AtName("rounding"), v.Rounding, typedRoundingFromAPI, diags)
 	return out
 }
 
@@ -416,6 +467,8 @@ func expandTypedPercentile(ctx context.Context, p path.Path, m *TypedPercentileM
 	out.Mode = expandString(m.Mode)
 	out.Weight = expandFloat64(m.Weight)
 	out.Percent = expandFloat64(m.Percent)
+	out.PercentileUnit = expandString(m.PercentileUnit)
+	out.Rounding = expandString(m.Rounding)
 	out.Bucket = expandTypedBucket(ctx, p.AtName("bucket"), m.Bucket, diags)
 	return out
 }
@@ -437,6 +490,8 @@ func flattenTypedPercentile(ctx context.Context, p path.Path, v *typed_things_se
 	out.Mode = types.StringPointerValue(v.Mode)
 	out.Weight = types.Float64PointerValue(v.Weight)
 	out.Percent = types.Float64PointerValue(v.Percent)
+	out.PercentileUnit = types.StringPointerValue(v.PercentileUnit)
+	out.Rounding = types.StringPointerValue(v.Rounding)
 	out.Bucket = flattenTypedBucket(ctx, p.AtName("bucket"), v.Bucket, diags)
 	return out
 }
@@ -814,6 +869,61 @@ func typedSpanFieldAttrTypes() map[string]attr.Type {
 	}
 }
 
+// expandTypedSpanValue sends the arm that the type attribute names, with the merged fields that the arm
+// holds in the API.
+func expandTypedSpanValue(ctx context.Context, p path.Path, m *TypedSpanValueModel, diags *diag.Diagnostics) *typed_things_service.TypedSpanValue {
+	if m == nil {
+		return nil
+	}
+	out := &typed_things_service.TypedSpanValue{}
+	out.Value = &typed_things_service.TypedSpanField{} // an inlined object: its arms are the arms of this object
+	kind := m.Type.ValueString()
+	switch kind {
+	case "metadata":
+		out.Value.MetadataField = expandEnumMapped(p.AtName("value"), m.Value, typedMetadataFieldToAPI, diags)
+	case "tag":
+		out.Value.TagField = expandString(m.Value)
+	case "process_tag":
+		out.Value.ProcessTagField = expandString(m.Value)
+	default:
+		diags.AddAttributeError(p.AtName("type"), "Unknown type", fmt.Sprintf("The type %q is not one of metadata, tag, process_tag.", m.Type.ValueString()))
+	}
+	return out
+}
+
+// flattenTypedSpanValue reads the arm of TypedSpanValue as the type attribute and the merged fields.
+func flattenTypedSpanValue(ctx context.Context, p path.Path, v *typed_things_service.TypedSpanValue, diags *diag.Diagnostics) *TypedSpanValueModel {
+	if v == nil {
+		return nil
+	}
+	// A response without the inlined object has no arm, which the switch below reports.
+	copied := *v
+	v = &copied
+	if v.Value == nil {
+		v.Value = &typed_things_service.TypedSpanField{}
+	}
+	out := &TypedSpanValueModel{}
+	{
+		v := &typed_things_service.TypedSpanValue{}
+		v.Value = &typed_things_service.TypedSpanField{}
+		out.Value = flattenEnumMapped(p.AtName("value"), v.Value.MetadataField, typedMetadataFieldFromAPI, diags)
+	}
+	switch {
+	case v.Value.MetadataField != nil:
+		out.Type = types.StringValue("metadata")
+		out.Value = flattenEnumMapped(p.AtName("value"), v.Value.MetadataField, typedMetadataFieldFromAPI, diags)
+	case v.Value.TagField != nil:
+		out.Type = types.StringValue("tag")
+		out.Value = types.StringPointerValue(v.Value.TagField)
+	case v.Value.ProcessTagField != nil:
+		out.Type = types.StringValue("process_tag")
+		out.Value = types.StringPointerValue(v.Value.ProcessTagField)
+	default:
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of Value.MetadataField Value.TagField Value.ProcessTagField; it must have one.")
+	}
+	return out
+}
+
 func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThingModel, diags *diag.Diagnostics) *typed_things_service.ReplaceTypedThingBody {
 	if m == nil {
 		return nil
@@ -822,6 +932,16 @@ func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThing
 	out.Name = expandString(m.Name)
 	out.Aggregation = expandTypedAggregation(ctx, p.AtName("aggregation"), m.Aggregation, diags)
 	out.Selection = expandTypedSelection(ctx, p.AtName("selection"), m.Selection, diags)
+	if v := m.Pick; !v.IsNull() && !v.IsUnknown() {
+		// No values select the arm without fields. Some values are the list arm.
+		fold := &typed_things_service.TypedPick{}
+		if values := expandElements[string](ctx, p.AtName("picked_values"), v, diags); len(values) == 0 {
+			fold.All = map[string]interface{}{}
+		} else {
+			fold.List = &typed_things_service.TypedPickList{Values: values}
+		}
+		out.Pick = fold
+	}
 	out.Operator = expandTypedOperator(ctx, p.AtName("operator"), m.Operator, diags)
 	if items := expandElements[TypedSpanFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]typed_things_service.TypedSpanField, 0, len(items))
@@ -829,6 +949,7 @@ func expandReplaceTypedThingBody(ctx context.Context, p path.Path, m *TypedThing
 			out.Fields = append(out.Fields, *expandTypedSpanField(ctx, p.AtName("fields").AtListIndex(i), &items[i], diags))
 		}
 	}
+	out.SpanValue = expandTypedSpanValue(ctx, p.AtName("span_value"), m.SpanValue, diags)
 	return out
 }
 
@@ -849,6 +970,15 @@ func flattenTypedThing(ctx context.Context, p path.Path, v *typed_things_service
 		priorSelection = prior.Selection
 	}
 	out.Selection = flattenTypedSelection(ctx, p.AtName("selection"), v.Selection, priorSelection, diags)
+	out.Pick = types.ListNull(types.StringType)
+	if fold := v.Pick; fold != nil {
+		switch {
+		case fold.List != nil:
+			out.Pick = flattenStringsList(ctx, append([]string{}, fold.List.Values...), diags)
+		case fold.All != nil:
+			out.Pick = flattenStringsList(ctx, []string{}, diags)
+		}
+	}
 	var priorOperator *TypedOperatorModel
 	if prior != nil {
 		priorOperator = prior.Operator
@@ -871,6 +1001,7 @@ func flattenTypedThing(ctx context.Context, p path.Path, v *typed_things_service
 		}
 		out.Fields = flattenList(ctx, types.ObjectType{AttrTypes: typedSpanFieldAttrTypes()}, items, diags)
 	}
+	out.SpanValue = flattenTypedSpanValue(ctx, p.AtName("span_value"), v.SpanValue, diags)
 	return out
 }
 
@@ -959,6 +1090,19 @@ func expandBool(v types.Bool) *bool {
 	}
 	b := v.ValueBool()
 	return &b
+}
+
+// modelNull reports whether the configuration leaves a model field out: a null value, or a nil
+// object, list, or map.
+func modelNull(v any) bool {
+	if a, ok := v.(attr.Value); ok {
+		return a.IsNull()
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return rv.IsNil()
+	}
+	return false
 }
 
 func expandFloat64(v types.Float64) *float64 {

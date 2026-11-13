@@ -1,10 +1,40 @@
 # Unreleased
 
-#### provider
-- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
-
 #### tools/iac-codegen
-- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
+- FEAT: A one-of group, a `typedArms` object, and a sibling `exactlyOneOf` or `conflictsWith` line are checked by one validator of the parent object. A validator on each arm walked the whole configuration for each sibling, so plan time grew with the number of objects.
+- FEAT: Keys `keepPriorArm` (group), `unsupportedArms` for a plain field with the hook `AllowUnsupported`, `unsupportedIfEmpty`, `durationFormat`, `enumAs`, the validator `unsupported`, `readNullAs` for an enum, a top-level `readEmptyAs`, place lines with every field key, `defaultFromSibling`, string extra attributes with a default inside list items, and `validators` on a `distributeTo` line.
+- FEAT: A new value of an enum in the API contract is accepted without a line in `behavior-overrides.yaml`. The accepted values are the contract values without the zero value and without `rejected`, so the `values` key is gone. A new value takes the style of the `names` entries of its enum, or the generator stops with `ENUM_NAME_UNDECIDED` and asks for a `names` entry.
+- FEAT: Each generated acceptance test has a `values-and-choices` subtest. It sends every enum value and every `oneOf` arm to the API, in few steps with copies of the resource and several list elements. `skipValues` and `skipChoices` in `acceptance.yaml` leave out what the tenant refuses, each with a reason.
+- FEAT: Each generated acceptance test file has a `TestFailurePaths<Name>Generated` test that needs no tenant. A local server answers every request with an error, and the test checks create, read, update, and delete of the resource: no state after a failed create, a resource that the API says is gone leaves the state on read, and every other failure is an error.
+- FEAT: Each generated acceptance test file has a `TestConfigsValidate<Name>Generated` test that needs no tenant and no API key. It checks that every config of the file passes the validators of the schema. A `maxElements` key in `acceptance.yaml` limits the elements of a list in the `values-and-choices` subtest, and the subtest sets only the fields that the type of a `typedArms` object names.
+- FIX: The `values-and-choices` subtest sets every enum value of a field that only one arm of a `typedArms` object has, such as `aggregation_type` of a spans metric. Before, it set the first value only. It also fails when such a value is in no config.
+- FEAT: A field that the API contract marks `deprecated: true` gets a deprecation warning in the schema without a `deprecation` line. A `deprecation` line wins. A Required attribute gets no warning.
+- FEAT: Support a released API whose Create is a PUT and whose Update is a POST (`api.methods`; an Update by POST has no update mask and needs `updateMask: omit`), a Create response that holds only an integer id, a `oneOf` of the Create request that a `skip` line reduces to one arm, and `equality: caseInsensitive` on a list or set of strings.
+
+#### provider
+- FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
+
+#### resource/coralogix_alert
+- FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
+
+#### resource/coralogix_dashboard
+- FEAT: Show a deprecation warning for attributes that the API deprecates: `highlighted` of a widget, `show_inner_arc` and `show_outer_arc` of a gauge, `value_field` of the gauge of a dynamic widget, `resolution` of a line chart query definition, and `value` of a spans field value in a variable query.
+- CHORE: The resource is generated from the API contract. The schema, the import, the state versions 1 to 3, and the requests are the same, except as listed below. A plan of a dashboard that 3.25.0 created from the same configuration is empty.
+- FIX: Plan and validate time of a dashboard is not slower than in 3.25.0. The generated one-of checks run once for each object.
+- FIX: A 404 for a missing API route is an error. Before, a refresh removed the dashboard from state.
+- FIX: A state upgrade of a dashboard that the API no longer has fails with an error that names `terraform state rm`. Before, it warned and wrote no state.
+- FIX: Removing a widget or a section from the configuration no longer ends with an inconsistent result.
+- CHORE: API errors read `Unable to create dashboard`, `Unable to update dashboard`, and so on. A missing dashboard on refresh reads `Resource disappeared during read`.
+- CHORE: An invalid combination of arms, such as `definition` with `reference` on a widget, reports `Invalid Attribute Combination` on the object that holds them.
+- CHORE: A `not_equals` operator with an empty `selected_values` is accepted at plan and fails at apply, in the provider, with `The selection_type "all" is not one of list`. Before, it failed at plan.
+- CHORE: These invalid configs fail at apply, with the text of the API, instead of at plan: `highlighted = true` on a widget that has only a `reference`, `display_full_row = true` on a variable that is not a textbox, and a `value_display_options` without `value_regex` or `label_regex`.
+- FIX: A dashboard that `content_json` manages reads even when the typed schema cannot show a value in it, such as a dashboard without a time frame or a legend column that the schema does not accept. Before, the typed read ran first and failed.
+- CHORE: A failed read after a create leaves the new dashboard in state as tainted. Before, the provider deleted it. The next apply replaces it.
+- FEAT: New optional attributes: `query_id` of a custom action, `description` of a legacy variable, `data_mode_type` of a logs and a spans annotation, `interval_resolution` of a metrics annotation, `observation_field` of a spans filter, `group_by` and `group_bys` of a table grouping, `all_region_config` and `ibm_region_config` of a geomap, `field_name` of a logs and a spans variable query, and the deprecated `single_string` and `single_numeric` defaults of a textbox variable.
+- FEAT: The resource has a generated acceptance test.
+
+#### data-source/coralogix_dashboard
+- CHORE: The data source is generated with the resource and has the same attributes.
 
 #### resource/coralogix_scope
 - CHORE: Generate the resource from the API contract. Keep the schema, state version, string `team_id`, ordered filters, import by id, and API-key permissions.
@@ -16,6 +46,14 @@
 #### data-source/coralogix_scope
 - CHORE: Generate the data source with the resource. Keep lookup by id, the shared schema, and the same scopes API call.
 
+# Release 3.25.0
+
+#### provider
+- FIX: Reject empty string response IDs, including required IDs, before writing or recovering state in generated resources.
+
+#### tools/iac-codegen
+- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
+
 #### resource/coralogix_archive_retentions
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.
@@ -25,6 +63,8 @@
 - FIX: Importing with any id stores the fixed id `archive-retention-settings`.
 - FIX: An update that cannot find a retention tag keeps the state and asks for a refresh and a retry. Before, the error said that the refresh removes the retentions and the plan creates them again.
 - CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
+- CHORE: A flow group that lists the same alert twice with the same `not` value (an omitted `not` is false) is rejected at plan with `Duplicate Set Element`. The released provider rejected it at apply, before it called the API.
+- FIX: A key without `alerts:ReadAccessPolicy` keeps the `access_policy` of the state when the alert is read. The API answers such a key with the access block, `canReadAccessPolicy: false`, and no policy (checked on EU2: no 403), and the provider read that as an alert without a policy and cleared the value, so every refresh showed a change that the key could not apply. The data source reads the same way.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. CI runs it in the archive shard, one test at a time.
 
 #### data-source/coralogix_archive_retentions
@@ -40,6 +80,51 @@
 
 #### data-source/coralogix_team
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
+
+#### resource/coralogix_api_key
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the state upgrade from schema version 0 are the same, except as listed below. A plan of a key that 3.24.0 created from the same configuration shows no change.
+- FIX: A key created with `active = false` is created inactive. Create cannot set `active`, so the key was active and the apply failed with `Provider produced inconsistent result after apply`; Create now follows with an Update when the configuration sets another value than `true`, so the key is active for a moment first.
+- FIX: An `access_policy` that differs from the stored policy only by white space or key order plans no change. Before, it planned an update, and `hashed` and `value` showed as known after apply.
+- FIX: An update of a key that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, the resource removed itself from state during the update, and Terraform failed with `Missing Resource State After Update`.
+- FIX: A key that version 0 of the provider created as hashed can be updated, and keeps its `value`. Before, every update failed with `ApiKey hashing can not be updated`, because `hashed` is computed and the plan held an unknown value.
+- FIX: A 404 of a gateway that has no route for the key (`Not Found: Not Found`) is an error. Before, a refresh and an update read it as "the key is gone" and removed the key from state, and a destroy succeeded without deleting the key.
+- FIX: When the read after an Update fails, the apply fails with the error. Before, the error was dropped and the state kept the old values.
+- FIX: When Create succeeds but the read after it fails, the state keeps the id, so Terraform marks the key tainted and the next apply replaces it. Before, the state was empty, and the key and its secret were lost.
+- CHORE: Update sends every attribute, not only the changed ones, as a full replace, except `access_policy`: it is sent only when the plan changes it, as the released resource did. A caller whose key may change a key but holds no permission on its access policy gets a 403 for any request that carries `access_policy`, also an empty one (recorded on EU2), so it can still rename a key, change its `active`, presets or permissions while the policy stays the same, and needs that permission only for a change of the policy.
+- CHORE: `value` is read from the answer of Get, which returns it for every key that is not hashed (recorded on EU2), not from the answer of Create. The state keeps a `value` that it has when Get returns none, on refresh and update.
+- CHORE: Create no longer sends `hashed = false`: `hashed` is computed, and the API reads an omitted value as `false` (recorded on EU2).
+- CHORE: A change of any `owner` id replaces the key through one plan modifier on `owner`, not one on each id, so the plan names `owner` as the reason. The key is replaced in the same cases. The owner ids have a description.
+- CHORE: An `access_policy` that no configuration states (an import, the data source) shows the text that the API returns, not the same JSON with sorted keys.
+- CHORE: API errors read `Unable to create api_key`, `Unable to update api_key`, `Unable to delete api_key`, and `Unable to read api_key` instead of `Error creating coralogix_api_key`, and so on. A refresh that finds the key gone warns `Resource disappeared during read`. A `team_id` that is not an integer reads `Invalid id`.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0.
+
+#### data-source/coralogix_api_key
+- CHORE: The data source is generated with the resource. It reads a key by `id`, and a hashed key is still an error (`Key value is required`). `access_policy` has the description of the resource, which also says how to clear a policy, and the owner ids have a description. API errors read `Unable to read coralogix_api_key`, and a key that is gone reads `coralogix_api_key not found`.
+
+#### resource/coralogix_archive_logs
+- FIX: A response without the `s3` object no longer crashes the read. The fields of the object read as null, as the generator now reads any inlined object that the API leaves out.
+
+#### resource/coralogix_alert
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of an alert that 3.24.0 created from the same configuration shows no change. The handwritten code stays only for what the contract cannot state: the schedule (stored in UTC), `access_policy`, the `group_by` and `override.priority` plans, and the validations that the schema no longer holds.
+- CHORE: Types that differ: `type_definition.logs_anomaly.percentage_of_deviation` and `type_definition.metric_anomaly.percentage_of_deviation` are 32-bit floats, `latency_threshold_ms` of `tracing_immediate` and `tracing_threshold` is an integer (a fraction or a negative value fails at validation, where the API refused it before). The descriptions come from the API contract, and the lists of valid values that some of them carried are gone. `type_definition` rejects a missing or a second type with one error per type instead of one error, and a webhook with both `integration_id` and `recipients` fails twice.
+- CHORE: API errors read `Unable to create alert`, `Unable to update alert`, `Unable to delete alert`, and `Unable to read alert`, and a refresh that finds the alert gone warns `Resource disappeared during read`. A request omits the empty lists, the empty strings, and the zero enums that it sent before (`group_by`, `notification_payload_filter`, `priority = P5`, `lucene_query = ""`), which the API stores the same.
+- CHORE: Read and Delete treat only the 404 of the alert itself (`Not Found: <message>`, which the alert API answers for an unknown, a malformed, and a deleted id) as "the alert is gone". A 404 of a route that does not exist, for example in a region without the service, is an error. Before, any 404 meant that the alert was gone.
+- CHORE: `of_the_last = ""` of a metric alert is refused by the API (400) when the apply runs. Before, the apply succeeded and then failed as inconsistent.
+- CHORE: An empty or doubled `type_definition` reports one error for each alert type (15), where the released resource reported one or two. A flow stage that lists the same alert twice in `alert_defs` is applied and then reported as inconsistent; before, it failed with `Duplicate Set Element`.
+- CHORE: A state upgrade from schema version 1 or 2 reads the alert with the access policy (`include_access_permissions=true`, retried without it on a 403), so the upgraded state also has `access_policy`.
+- FIX: An explicit empty collection (`group_by = []`, `notification_payload_filter`, label filters, tracing label filters, flow `stages`, groups, and `alert_defs`) round-trips. Before, the apply failed with `Provider produced inconsistent result after apply` and the next plan was not empty.
+- FIX: `percentage_of_deviation` of a logs or metric anomaly alert reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, `0.1` read back as `0.10000000149011612` and failed the apply.
+- FIX: A span field in `tracing_label_filters.span_fields` without `filter_type` works. Before, the apply failed with a value conversion error.
+- FIX: `no_data_policy.state` of a `logs_threshold` or `metric_threshold` alert keeps its value when only `auto_retire_seconds` is configured. Before, the plan showed the state as unknown, the API answered `UNSPECIFIED`, and every later plan showed a change.
+- FIX: An update of an alert that was deleted outside Terraform fails with `Resource no longer exists` and the advice to refresh. Before, it failed with `Missing Resource State After Update`.
+- FIX: The webhook `retriggering_period` that the configuration leaves out comes from the state webhook with the same `integration_id` or `recipients`. Before, it came from the webhook at the same position in the set, which gave a webhook the period of its neighbour.
+- FIX: Removing `description` from the configuration clears it on the alert. The API keeps a stored description that an update omits, so an update now sends `description: ""` when the configuration has none, and an empty description reads back as null (a configured `description = ""` stays). Before, the apply failed with `Provider produced inconsistent result after apply` and the alert kept the old text.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0 (also for a schedule with a UTC offset).
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview). It sets how often the alert is evaluated. When it is omitted, the API uses the smaller of 10 and `timeframe_minutes`, and the state keeps it null. The API checks the range and that the value does not exceed `timeframe_minutes`.
+
+#### data-source/coralogix_alert
+- CHORE: The data source is generated with the resource. It reads an alert by `id` with the schema of the resource, shows `access_policy` for a key that may read it, and fails with `coralogix_alert not found` for an id that does not exist.
+- FEAT: Add `evaluation_period_minutes` to `type_definition.analytics_immediate` and `type_definition.analytics_threshold` (preview), the same attribute as on the resource.
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
@@ -58,6 +143,8 @@
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that has `updateAs`, `updateDefault`, the request-only wrapper, and `itemName`.
 - CHORE: Bump the generator to `v0.1.0-beta.76`. The generated packages are the same; only `versions.yaml` changes.
 - CHORE: Bump the generator to `v0.1.0-beta.77`. The generated files of every resource are the same.
+- CHORE: Bump the generator to `v0.1.0-beta.78`.
+- FIX: The generated flatten reads an inlined object that the API leaves out (a field moved out of an optional object with `inline`) as an empty object, so its fields are null. Before, it read through the missing pointer and the provider crashed on refresh and import.
 - FEAT: `inline` accepts an object that holds a `oneOf`. Its arms become top-level fields of the resource, and a `groups` line collects them as for any top-level `oneOf`. `required: true` on an `inline` line states that the API always has the object, for a contract that cannot write it (a message field of a request has no `required` list). Before, the generator stopped with `INLINE_UNSUPPORTED`.
 - FEAT: `modifyPlan: true` adds a `ModifyPlan` hook to an existing resource. It runs after the generated plan steps (enum aliases, plan equals state, equality), is skipped on destroy and when a generated step failed, and sees the final plan, so a rule that no attribute modifier expresses, such as a planned value inside a set of objects, can be set there.
 - FEAT: `extraAttributes` can be a `bool`, a `list`, or an `object` with nested `attributes`, and can be Optional+Computed (`optional: true` with `computed: true`) with a static `default`, `useStateForUnknown`, and, on a string, `equality: json` or `yaml`. They are Terraform-only: expand sends nothing, flatten starts them as a typed null, and a hook converts them. Before, an extra attribute was a plain optional string, set of strings, map, or dynamic value.

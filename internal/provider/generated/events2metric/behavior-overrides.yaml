@@ -161,15 +161,12 @@ types:
 enums:
   logs2metrics.v2.Severity:
     zero: Unspecified
-    values: [SEVERITY_DEBUG, SEVERITY_VERBOSE, SEVERITY_INFO, SEVERITY_WARNING, SEVERITY_ERROR, SEVERITY_CRITICAL]
     names: {SEVERITY_DEBUG: Debug, SEVERITY_VERBOSE: Verbose, SEVERITY_INFO: Info, SEVERITY_WARNING: Warning, SEVERITY_ERROR: Error, SEVERITY_CRITICAL: Critical}
   SampleType:
     zero: unspecified
-    values: [SAMPLE_TYPE_MIN, SAMPLE_TYPE_MAX]
     names: {SAMPLE_TYPE_MIN: Min, SAMPLE_TYPE_MAX: Max}
   AggType:
     zero: unspecified
-    values: [AGG_TYPE_MIN, AGG_TYPE_MAX, AGG_TYPE_COUNT, AGG_TYPE_AVG, AGG_TYPE_SUM, AGG_TYPE_SAMPLES, AGG_TYPE_HISTOGRAM]
     names: {AGG_TYPE_MIN: min, AGG_TYPE_MAX: max, AGG_TYPE_COUNT: count, AGG_TYPE_AVG: avg, AGG_TYPE_SUM: sum, AGG_TYPE_HISTOGRAM: histogram, AGG_TYPE_SAMPLES: samples}
 
 # The data source reads an events2metric by id. It shows the description that the API stores, also

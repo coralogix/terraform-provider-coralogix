@@ -5,10 +5,12 @@ package provider
 // them all. The CI version check of the generator reads these lines to know what to compare.
 
 //go:generate make -C ../.. codegen RESOURCE=AiEvaluation OUT=aievaluation
+//go:generate make -C ../.. codegen RESOURCE=AlertDef OUT=alert
 //go:generate make -C ../.. codegen RESOURCE=AlertSchedulerRule OUT=alertsscheduler
 //go:generate make -C ../.. codegen RESOURCE=ConfigurationGroup OUT=configurationgroup
 //go:generate make -C ../.. codegen RESOURCE=Connector OUT=connector
 //go:generate make -C ../.. codegen RESOURCE=DashboardFolder OUT=dashboardsfolder
+//go:generate make -C ../.. codegen RESOURCE=Dashboard OUT=dashboard
 //go:generate make -C ../.. codegen RESOURCE=DeployedIntegrationInformation OUT=integration
 //go:generate make -C ../.. codegen RESOURCE=E2M OUT=events2metric
 //go:generate make -C ../.. codegen RESOURCE=GlobalRouter OUT=globalrouter
@@ -17,6 +19,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=RuleGroup OUT=parsingrules
 //go:generate make -C ../.. codegen RESOURCE=OutRuleGroupSet OUT=recordingrulesgroupsset
 //go:generate make -C ../.. codegen RESOURCE=GetTeamResponse OUT=team
+//go:generate make -C ../.. codegen RESOURCE=KeyInfo OUT=apikey
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder

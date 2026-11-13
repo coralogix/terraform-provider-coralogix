@@ -1,0 +1,127 @@
+[
+  {
+    "step": "create with two permissions",
+    "config": {
+      "description": "made with Terraform",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "auditors",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig",
+            "spans.events2metrics:ReadConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig",
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove one permission",
+    "config": {
+      "description": "made with Terraform",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "auditors",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:ReadConfig"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "auditors",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:ReadConfig"
+      ]
+    },
+    "replanEmpty": true
+  }
+]

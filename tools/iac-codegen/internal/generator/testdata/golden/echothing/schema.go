@@ -4,12 +4,16 @@
 package echothing
 
 import (
+	"context"
+	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
@@ -84,15 +88,12 @@ func Schema() schema.Schema {
 							Optional:    true,
 							ElementType: types.StringType,
 							Validators: []validator.Set{
-								setvalidator.ValueStringsAre(stringvalidator.OneOf("High", "Low", "Unspecified")),
+								setvalidator.ValueStringsAre(stringvalidator.OneOf("High", "Low", "Medium", "Unspecified")),
 							},
 							MarkdownDescription: "",
 						},
 						"detail": schema.SingleNestedAttribute{
 							Optional: true,
-							Validators: []validator.Object{
-								objectvalidator.ConflictsWith(),
-							},
 							Attributes: map[string]schema.Attribute{
 								"text": schema.StringAttribute{
 									Required:            true,
@@ -110,6 +111,9 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+					},
+					Validators: []validator.Object{
+						oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"detail"}, Required: false}}},
 					},
 				},
 				MarkdownDescription: "",
@@ -178,4 +182,83 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its
+// attributes, so its cost does not depend on the rest of the configuration. A validator on each arm
+// that names its siblings by a path expression walks the whole configuration for every sibling.
+type oneOfArmsValidator struct {
+	Groups    []oneOfArmGroup
+	Conflicts []oneOfArmConflict
+}
+
+// oneOfArmGroup is the arms of one oneOf. At most one of them can be set, and exactly one when the
+// group is Required.
+type oneOfArmGroup struct {
+	Arms     []string
+	Required bool
+}
+
+// oneOfArmConflict is two sets of attributes: an attribute of Left cannot be set with an attribute
+// of Right.
+type oneOfArmConflict struct {
+	Left, Right []string
+}
+
+func (v oneOfArmsValidator) Description(context.Context) string {
+	return "At most one arm of each one-of group can be set, and exactly one when the group needs an arm."
+}
+
+func (v oneOfArmsValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+// armsSet returns the names of the arms that are set: not null, and known. unknown is true when an
+// arm is unknown, because it can still become set or stay null.
+func armsSet(attributes map[string]attr.Value, names []string) (set []string, unknown bool) {
+	for _, name := range names {
+		value, ok := attributes[name]
+		switch {
+		case !ok || value.IsNull():
+		case value.IsUnknown():
+			unknown = true
+		default:
+			set = append(set, name)
+		}
+	}
+	return set, unknown
+}
+
+// validate reports two arms that are set. With none set, it reports it for a group that needs one,
+// when every arm is known. An unknown arm is checked when it is known.
+func (g oneOfArmGroup) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	set, unknown := armsSet(attributes, g.Arms)
+	switch {
+	case len(set) > 1:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("Only one of these attributes can be configured: `%s`.", strings.Join(set, "`, `")))
+	case len(set) == 0 && g.Required && !unknown:
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", "No attribute was configured in this one-of group. Configure exactly one value.")
+	}
+}
+
+// validate reports an attribute of each side that are both set.
+func (c oneOfArmConflict) validate(at path.Path, attributes map[string]attr.Value, resp *validator.ObjectResponse) {
+	left, _ := armsSet(attributes, c.Left)
+	right, _ := armsSet(attributes, c.Right)
+	if len(left) > 0 && len(right) > 0 {
+		resp.Diagnostics.AddAttributeError(at, "Invalid Attribute Combination", fmt.Sprintf("These attributes cannot be configured together: `%s` and `%s`.", left[0], right[0]))
+	}
+}
+
+func (v oneOfArmsValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attributes := req.ConfigValue.Attributes()
+	for _, group := range v.Groups {
+		group.validate(req.Path, attributes, resp)
+	}
+	for _, conflict := range v.Conflicts {
+		conflict.validate(req.Path, attributes, resp)
+	}
 }

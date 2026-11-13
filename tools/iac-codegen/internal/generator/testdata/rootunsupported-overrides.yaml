@@ -57,7 +57,6 @@ enums:
   SharedFrame:
     zero: unspecified
     trimPrefix: SHARED_FRAME_
-    values: [SHARED_FRAME_ONE_DAY, SHARED_FRAME_SEVEN_DAYS]
 
 # The data source finds the resource by id or by name. A name that more than one resource has
 # takes the first one, as the released data source did. It shows the note that the API stores,

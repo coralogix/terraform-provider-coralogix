@@ -1,0 +1,18 @@
+[
+  {
+    "step": "read the empty name",
+    "config": {
+      "name": ""
+    },
+    "applyDiagnostics": [
+      "error: Invalid Id or Name | coralogix_custom_role id or name must be provided"
+    ],
+    "state": {
+      "description": null,
+      "id": null,
+      "name": "",
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

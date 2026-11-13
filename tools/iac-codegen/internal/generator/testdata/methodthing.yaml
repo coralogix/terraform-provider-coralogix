@@ -1,0 +1,115 @@
+# A resource that users already have, whose HTTP methods are not the standard ones: Create is a PUT
+# of the collection and Update is a POST of the thing. Create returns only the id, as an integer;
+# Get wraps the thing; Update holds the permissions in a one-property object. Create takes the
+# parent by id or by name (a oneOf), and the resource shows the name only.
+openapi: 3.1.0
+info: {title: methodthing, version: 1.0.0}
+paths:
+  /method/v1/things:
+    put:
+      tags: [Method Things Service]
+      operationId: MethodThingsService_CreateMethodThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Method Thing Request
+              type: object
+              oneOf:
+                - required: [parentId]
+                  type: object
+                - required: [parentName]
+                  type: object
+                - type: object
+                  not:
+                    anyOf:
+                      - required: [parentId]
+                        type: object
+                      - required: [parentName]
+                        type: object
+              properties:
+                name: {type: string, minLength: 0}
+                description: {type: string, minLength: 0}
+                parentId: {type: integer, minimum: 0, format: int64}
+                parentName: {type: string, minLength: 0}
+                permissions: {type: array, items: {type: string, minLength: 0}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateMethodThingResponse'}
+  /method/v1/things/{thing_id}:
+    get:
+      tags: [Method Things Service]
+      operationId: MethodThingsService_GetMethodThing
+      parameters:
+        - {name: thing_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 0}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetMethodThingResponse'}
+    post:
+      tags: [Method Things Service]
+      operationId: MethodThingsService_UpdateMethodThing
+      parameters:
+        - {name: thing_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 0}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Update Method Thing Request
+              type: object
+              properties:
+                newName: {type: string, minLength: 0, x-coralogix-presence: true}
+                newDescription: {type: string, minLength: 0, x-coralogix-presence: true}
+                newPermissions: {$ref: '#/components/schemas/MethodThingPermissions'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UpdateMethodThingResponse'}
+    delete:
+      tags: [Method Things Service]
+      operationId: MethodThingsService_DeleteMethodThing
+      parameters:
+        - {name: thing_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 0}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteMethodThingResponse'}
+components:
+  schemas:
+    CreateMethodThingResponse:
+      type: object
+      properties:
+        id: {type: integer, format: int64, minimum: 0}
+    GetMethodThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/MethodThing'}
+    MethodThing:
+      type: object
+      required: [thingId, name, description, parentId, parentName, permissions]
+      properties:
+        thingId: {type: integer, format: int64, minimum: 0}
+        name: {type: string, minLength: 0}
+        description: {type: string, minLength: 0}
+        parentId: {type: integer, format: int64, minimum: 0}
+        parentName: {type: string, minLength: 0}
+        permissions: {type: array, items: {type: string, minLength: 0}}
+    MethodThingPermissions:
+      type: object
+      properties:
+        permissions: {type: array, items: {type: string, minLength: 0}}
+    UpdateMethodThingResponse:
+      type: object
+    DeleteMethodThingResponse:
+      type: object

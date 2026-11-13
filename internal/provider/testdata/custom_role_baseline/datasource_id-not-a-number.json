@@ -1,0 +1,18 @@
+[
+  {
+    "step": "read an id that is no number",
+    "config": {
+      "id": "not-a-number"
+    },
+    "applyDiagnostics": [
+      "error: Invalid Id or Name | coralogix_custom_role id or name must be provided"
+    ],
+    "state": {
+      "description": null,
+      "id": "not-a-number",
+      "name": null,
+      "parent_role": null,
+      "permissions": null
+    }
+  }
+]

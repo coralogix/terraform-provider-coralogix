@@ -7,7 +7,7 @@ replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-g
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261109164433-cc939add503e
+	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261111130057-08894b81764a
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0

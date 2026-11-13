@@ -1,0 +1,1828 @@
+resource: Dashboard
+mode: existing
+markdownDescription: "Coralogix Custom Dashboard. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/introduction/."
+enumValuesInDescription: true
+typeName: dashboard
+readEmptyAs: "null"
+schema:
+  version: 4
+  upgrade:
+    1: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema.V1, strategy: refresh}
+    2: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema.V2, strategy: refresh}
+    3: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema.V3, strategy: refresh}
+validators:
+  inferred: false
+modifyPlan: true
+getHooks: true
+dataSource: {}
+api:
+  operations:
+    create: DashboardsService_CreateDashboard
+    get: DashboardsService_GetDashboard
+    update: DashboardsService_ReplaceDashboard
+    delete: DashboardsService_DeleteDashboard
+  requestWrapper: dashboard
+  updateIDInBody: true
+  idProperty: id
+  createResponseOnlyIDProperty: dashboardId
+  serverSetID: true
+enums:
+  ActionDataSourceType:
+    trimPrefix: ACTION_DATA_SOURCE_TYPE_
+    zeroNull: true
+  widgets.common.DataModeType:
+    trimPrefix: DATA_MODE_TYPE_
+    zero: unspecified
+  v1.common.DataModeType:
+    trimPrefix: DATA_MODE_TYPE_
+    zero: high
+  AnnotationOrientation:
+    trimPrefix: ANNOTATION_ORIENTATION_
+    zero: vertical
+  SpanRelationType:
+    trimPrefix: SPAN_RELATION_TYPE_
+    zero: unspecified
+  AnnotationColor:
+    trimPrefix: ANNOTATION_COLOR_
+    zeroNull: true
+  widgets.BarValueDisplay:
+    trimPrefix: BAR_VALUE_DISPLAY_
+    zero: unspecified
+  SortByType:
+    trimPrefix: SORT_BY_TYPE_
+    zero: unspecified
+  common.Unit:
+    trimPrefix: UNIT_
+    names: {UNIT_EUR: euro, UNIT_EUR_CENTS: euro_cents, UNIT_PERCENT_ZERO_ONE: percent01, UNIT_PERCENT_ZERO_HUNDRED: percent100}
+    zero: unspecified
+  XAxisTimeFormat:
+    trimPrefix: X_AXIS_TIME_FORMAT_
+    zero: unspecified
+  common.Aggregation:
+    trimPrefix: AGGREGATION_
+    zero: unspecified
+  MetricsQueryEditorMode:
+    trimPrefix: METRICS_QUERY_EDITOR_MODE_
+    zero: unspecified
+  PromQLQueryType:
+    trimPrefix: PROM_QL_QUERY_TYPE_
+    zero: unspecified
+  ColorApplyTarget:
+    trimPrefix: COLOR_APPLY_TARGET_
+    zero: unspecified
+  RowStyle:
+    trimPrefix: ROW_STYLE_
+    zero: unspecified
+  Gauge.Aggregation:
+    trimPrefix: AGGREGATION_
+    zero: unspecified
+  ColorGradientType:
+    trimPrefix: COLOR_GRADIENT_TYPE_
+    zero: unspecified
+  ColorSolidType:
+    trimPrefix: COLOR_SOLID_TYPE_
+    zero: unspecified
+  HeatmapHistogramBucketUnit:
+    trimPrefix: HEATMAP_HISTOGRAM_BUCKET_UNIT_
+    zero: unspecified
+  HeatmapColorPreset:
+    trimPrefix: HEATMAP_COLOR_PRESET_
+    zero: unspecified
+  ScaleType:
+    trimPrefix: SCALE_TYPE_
+    zero: unspecified
+  LegendBy:
+    trimPrefix: LEGEND_BY_
+    zero: unspecified
+  ThresholdType:
+    trimPrefix: THRESHOLD_TYPE_
+    zero: unspecified
+  HorizontalBars.YAxisViewBy:
+    trimPrefix: Y_AXIS_VIEW_BY_
+    zero: unspecified
+  HorizontalBarsMulti.YAxisViewBy:
+    trimPrefix: Y_AXIS_VIEW_BY_
+    zero: unspecified
+  LegendColumn:
+    trimPrefix: LEGEND_COLUMN_
+    zero: unspecified
+    rejected: [LEGEND_COLUMN_SIMPLE_VALUE]
+    readRejectedAs: unspecified
+  LegendPlacement:
+    trimPrefix: LEGEND_PLACEMENT_
+    zero: unspecified
+  LineChart.StackedLine:
+    trimPrefix: STACKED_LINE_
+    zero: unspecified
+  MetricsSeriesLimitType:
+    trimPrefix: METRICS_SERIES_LIMIT_TYPE_
+    zero: unspecified
+  OrderDirection:
+    trimPrefix: ORDER_DIRECTION_
+    zero: unspecified
+  MultiSelect.RefreshStrategy:
+    trimPrefix: REFRESH_STRATEGY_
+    zero: unspecified
+  DatasetScope:
+    trimPrefix: DATASET_SCOPE_
+    zero: unspecified
+  TextAlignment:
+    trimPrefix: TEXT_ALIGNMENT_
+    zero: unspecified
+  ValuesMappingType:
+    trimPrefix: VALUES_MAPPING_TYPE_
+    zero: unspecified
+  FieldDataType:
+    trimPrefix: FIELD_DATA_TYPE_
+    zero: unspecified
+  common.ThresholdBy:
+    trimPrefix: THRESHOLD_BY_
+    zero: unspecified
+  Visualization.BarValueDisplay:
+    trimPrefix: BAR_VALUE_DISPLAY_
+    zero: unspecified
+  Visualization.StackedLine:
+    trimPrefix: STACKED_LINE_
+    zero: unspecified
+  TooltipType:
+    trimPrefix: TOOLTIP_TYPE_
+    zero: unspecified
+  VariableSourceV2.RefreshStrategy:
+    trimPrefix: REFRESH_STRATEGY_
+    zeroNull: true
+  VariableDisplayTypeV2:
+    trimPrefix: VARIABLE_DISPLAY_TYPE_V2_
+    zero: unspecified
+  Visualization.PieChart.LabelSource:
+    trimPrefix: LABEL_SOURCE_
+    zero: unspecified
+  Weekday:
+    trimPrefix: WEEKDAY_
+    zero: unspecified
+  Interpretation:
+    trimPrefix: INTERPRETATION_
+    zero: unspecified
+  Gauge.ThresholdBy:
+    trimPrefix: THRESHOLD_BY_
+    zero: unspecified
+  Gauge.Unit:
+    trimPrefix: UNIT_
+    names: {UNIT_NUMBER: none, UNIT_EUR: euro, UNIT_EUR_CENTS: euro_cents, UNIT_PERCENT_ZERO_ONE: percent01, UNIT_PERCENT_ZERO_HUNDRED: percent100}
+    zero: unspecified
+  widgets.PieChart.LabelSource:
+    trimPrefix: LABEL_SOURCE_
+    zero: unspecified
+  MetricAggregationType:
+    zero: unspecified
+    trimPrefix: METRIC_AGGREGATION_TYPE_
+    names: {METRIC_AGGREGATION_TYPE_AVERAGE: avg}
+  DimensionAggregationType:
+    zero: unspecified
+    trimPrefix: DIMENSION_AGGREGATION_TYPE_
+  MetadataField:
+    zero: unspecified
+    trimPrefix: METADATA_FIELD_
+  VariableDisplayType:
+    zeroNull: true
+    trimPrefix: VARIABLE_DISPLAY_TYPE_
+  SectionPredefinedColor:
+    trimPrefix: SECTION_PREDEFINED_COLOR_
+    zeroNull: true
+  DimensionField:
+    trimPrefix: DIMENSION_FIELD_
+    zero: unspecified
+  MetricAggregation.MetricField:
+    trimPrefix: METRIC_FIELD_
+    zero: unspecified
+  SelectionType:
+    trimPrefix: SELECTION_TYPE_
+    zeroNull: true
+    rejected: [SELECTION_TYPE_MULTI_ALL]
+    readRejectedAs: "null"
+  v1.common.DataModeType@annotation:
+    trimPrefix: DATA_MODE_TYPE_
+    zero: unspecified
+# Metrics operators: unwrap Selection + ListSelection, so each arm is an object with one list (risk 1).
+unwrap: [LogsPathSource, FolderPath, LuceneQuery, UUID, SectionColor, Constant, ConstantListSource, SpanFieldSource, PromQlQuery, common.DataprimeQuery, Query.MetricsQuery.Selection, Query.MetricsQuery.Selection.ListSelection, QuerySource.MetricsQuery.Selection, QuerySource.MetricsQuery.Selection.ListSelection]
+
+groups:
+  folder:
+    fields: [folderId, folderPath]
+    optional: true
+    keepPriorArm: true
+    markdownDescription: The dashboards folder this dashboard belongs to. Exactly one of `id` or `path` is set.
+  time_frame:
+    fields: [absoluteTimeFrame]
+    optional: true
+    requireOne: true
+    markdownDescription: Specifies the time frame. Can be either absolute or relative.
+    groups:
+      relative: {fields: [relativeTimeFrame], optional: true}
+  auto_refresh:
+    fields: [off, oneMinute, twoMinutes, fiveMinutes, fifteenMinutes]
+    optional: true
+    computed: true
+    typedArms: {field: type, default: off}
+
+types:
+  Dashboard:
+    fields:
+      id: {readOnly: true}
+      absoluteTimeFrame: {name: absolute}
+      relativeTimeFrame: {name: duration, required: true, durationFormat: protoText}
+      actions:
+        distributeTo:
+          item: Widget
+          as: custom_actions
+          by: {listField: widgetId, itemField: id}
+          keep: definition.customAction
+        validators:
+        - {sizeAtLeast: 1}
+      name: {schemaOptional: true}
+      layout: {schemaOptional: true}
+      annotations:
+        validators:
+        - {sizeAtLeast: 1}
+        readEmptyAs: 'null'
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+        readEmptyAs: 'null'
+      variables:
+        validators:
+        - {sizeAtLeast: 1}
+        deprecation: Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration.
+        readEmptyAs: 'null'
+      variablesV2:
+        validators:
+        - {sizeAtLeast: 1}
+        readEmptyAs: 'null'
+      folderId:
+        name: id
+        validators:
+        - exactlyOneOf: [path]
+        markdownDescription: 'ID of the dashboards folder this dashboard belongs to. When authoring a `coralogix_dashboard` resource, this is the lifecycle-safe choice: reference a `coralogix_dashboards_folder` resource''s `id` so the folder is created and destroyed by Terraform alongside the dashboard.'
+      folderPath: {name: path}
+      slugName: {skip: true}
+    extraAttributes:
+      content_json:
+        type: string
+        inUpdate: true
+        markdownDescription: An option to set the dashboard content from a json file. It excludes every other attribute of the dashboard, except `folder`, `auto_refresh`, and `access_policy`.
+        validators:
+        - conflictsWith: [id, name, description, layout, variables, variables_v2, filters, time_frame, annotations]
+        - exactlyOneOf: [layout]
+      access_policy: {type: string, optional: true, computed: true, equality: json, useStateForUnknown: true, markdownDescription: JSON-encoded access policy for this dashboard., inUpdate: true}
+  LogsAggregation: {typedArms: {names: {average: avg}}}
+  SpansAggregation: {typedArms: {names: {metricAggregation: metric, dimensionAggregation: dimension}}}
+  Filter.Operator: {typedArms: {names: {notEquals: not_equals}}}
+  Equals.Selection: {typedArms: {field: selection_type, infer: true}}
+  NotEquals.Selection: {typedArms: {field: selection_type, infer: true}}
+  Equals.Selection.ListSelection: {fields: {values: {name: selected_values, computed: true, default: []}}}
+  NotEquals.Selection.ListSelection: {fields: {values: {name: selected_values, computed: true, default: []}}}
+  SpanField: {typedArms: {names: {metadataField: metadata, tagField: tag, processTagField: process_tag}}, fields: {metadataField: {required: true}}}
+  Query.MetricsQuery.Operator: {typedArms: {names: {notEquals: not_equals}}}
+  Query.MetricsQuery.NotEquals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: 'null'}}}
+  QuerySource.MetricsQuery.Operator: {typedArms: {names: {notEquals: not_equals}}}
+  QuerySource.MetricsQuery.NotEquals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: 'null'}}}
+  Query.MetricsQuery.Equals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: 'null'}}}
+  QuerySource.MetricsQuery.Equals: {fields: {selection: {name: selected_values, requireOne: true, readEmptyAs: 'null'}}}
+  Query.MetricsQuery.Type.LabelValue: {fields: {labelFilters: {readEmptyAs: 'null'}, labelName: {requireOne: true}, metricName: {requireOne: true}}}
+  QuerySource.MetricsQuery.Type.LabelValue: {fields: {labelFilters: {readEmptyAs: 'null'}, labelName: {requireOne: true}, metricName: {requireOne: true}}}
+  TimeFrame: {fields: {from: {name: start, required: true}, to: {name: end, required: true}}}
+  # R25: the relative arm, a plain duration, is an object: relative = { duration }.
+  TimeFrameSelect:
+    groups:
+      relative:
+        fields: [relativeTimeFrame]
+        optional: true
+    fields:
+      absoluteTimeFrame: {name: absolute}
+      relativeTimeFrame: {name: duration, required: true, durationFormat: protoText}
+  BarChart.Query: {fields: {dataprime: {name: data_prime}}}
+  BarChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query, required: true}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  DataTable.Query: {fields: {dataprime: {name: data_prime}}}
+  DataTable.DataprimeQuery: {fields: {dataprimeQuery: {name: query}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  Gauge.Query: {fields: {dataprime: {name: data_prime}}}
+  Gauge.DataprimeQuery: {fields: {dataprimeQuery: {name: query}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  Hexagon.Query: {fields: {dataprime: {name: data_prime}}}
+  Hexagon.DataprimeQuery: {fields: {dataprimeQuery: {name: query}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  HorizontalBarChart.Query: {fields: {dataprime: {name: data_prime}}}
+  HorizontalBarChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query, required: true}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  LineChart.Query: {fields: {dataprime: {name: data_prime}}}
+  LineChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  PieChart.Query: {fields: {dataprime: {name: data_prime}}}
+  PieChart.DataprimeQuery: {fields: {dataprimeQuery: {name: query, required: true}, filters: {requireOne: true}, timeFrame: {requireOne: true}}}
+  Dynamic.Query: {fields: {dataprime: {name: data_prime}}}
+  Dataprime: {fields: {dataprimeQuery: {name: query}, dataModeType: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  widgets.Dynamic:
+    fields:
+      queryDefinitions:
+        required: true
+        validators:
+        - {sizeAtLeast: 1}
+      interpretation:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+        deprecation: 'Deprecated: superseded by the visualization block.'
+      timeFrame: {requireOne: true}
+      visualization:
+        requireOne: true
+        unsupportedIfEmpty: {summary: Unsupported Dashboard Widget Definition, detail: The dynamic widget uses a visualization variant this provider version cannot represent as typed HCL. Manage this dashboard with `content_json` until that visualization is supported.}
+    unsupportedArms: [query]
+    unsupportedSummary: Unsupported Dashboard Widget Definition
+    unsupportedDetail: The dynamic widget uses the deprecated top-level `query`, which this provider cannot represent as typed HCL. Manage this dashboard with `content_json`, or move the widget to `query_definitions`, which holds the same queries.
+  Gauge.LogsQuery:
+    fields:
+      aggregation: {skip: true}
+      logsAggregation: {required: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBy:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  Gauge.SpansQuery:
+    fields:
+      aggregation: {skip: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBy:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBys:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  Hexagon.LogsQuery: {fields: {logsAggregation: {name: aggregation, required: true}, filters: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  Hexagon.SpansQuery:
+    fields:
+      spansAggregation: {name: aggregation}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBys:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  Logs:
+    fields:
+      aggregation:
+        name: aggregations
+        validators:
+        - {sizeAtLeast: 1}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBy:
+        validators:
+        - {sizeAtLeast: 1}
+  Spans:
+    fields:
+      aggregation:
+        name: aggregations
+        validators:
+        - {sizeAtLeast: 1}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBy:
+        validators:
+        - {sizeAtLeast: 1}
+  BarChart:
+    fields:
+      xAxis: {name: xaxis, requireOne: true}
+      colorsBy:
+        asString: true
+        validators:
+        - oneOf: [aggregation, category, group_by, query, stack]
+      decimal: {terraformType: Number}
+      maxBarsPerChart: {terraformType: Int64}
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      barValueDisplay:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      scaleType: {computed: true, default: unspecified}
+      sortBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      xAxisTimeFormat:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      colorScheme:
+        validators:
+        - oneOf: [blue, classic, cold, green, negative, red, severity]
+      query: {requireOne: true}
+  MetricsSource.Strategy: {fields: {startTimeMetric: {name: start_time}}}
+  Row:
+    fields:
+      appearance: {inline: true, required: true}
+      height:
+        terraformType: Int64
+        required: true
+        validators:
+        - {atLeast: 1}
+      id: {clientID: uuid}
+      widgets:
+        validators:
+        - {sizeAtLeast: 1}
+  Widget:
+    fields:
+      appearance: {inline: true}
+      width: {terraformType: Int64, computed: true, useNonNullStateForUnknown: true, deprecation: Widget appearance.width is ignored by the API and has no effect.}
+      id: {clientID: uuid}
+      definition:
+        requireOne: true
+        validators:
+        - exactlyOneOf: [reference]
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+      highlighted: {computed: true, useNonNullStateForUnknown: true, markdownDescription: 'Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.'}
+      layoutColumns: {skip: true}
+  Variable.Definition:
+    fields:
+      constant: {name: constant_value, deprecation: '`constant_value` is deprecated and rejected by the Coralogix API. Use a `multi_select` variable with a `constant_list` source and a single `selected_values` entry instead, e.g. `multi_select = { source = { constant_list = ["value"] }, selected_values = ["value"], values_order_direction = "asc" }`.'}
+  MultiSelect.Query: {fields: {logsQuery: {name: logs, requireOne: true}, metricsQuery: {name: metrics, requireOne: true}, spansQuery: {name: spans, requireOne: true}}}
+  Query.LogsQuery: {fields: {type: {inline: true, required: true}}}
+  Query.MetricsQuery: {fields: {type: {inline: true, required: true}}}
+  Query.SpansQuery: {fields: {type: {inline: true, required: true}}}
+  LineChart.MetricsQuery:
+    extraAttributes:
+      promql_query_type: {type: string, optional: true, computed: true, default: unspecified, markdownDescription: Not sent to the API; kept for compatibility.}
+    fields:
+      promqlQuery: {required: true}
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      seriesLimitType:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  # R32: two arms call their field by different API names and show it as one.
+  MetricAggregation: {fields: {metricField: {name: field}}}
+  DimensionAggregation: {fields: {dimensionField: {name: field, required: true}, aggregationType: {required: true}}}
+  # R34: one component, two names by place (metric_name in filters, metric in widget metric filters).
+  MetricsFilter:
+    at:
+      Filter.Source.metrics:
+        fields:
+          metric: {name: metric_name}
+      BarChart.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+      DataTable.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+      Gauge.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+      Hexagon.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+      HorizontalBarChart.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+      LineChart.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+      PieChart.MetricsQuery.filters:
+        fields:
+          metric: {required: true}
+    fields:
+      operator: {required: true}
+  # R29: the custom arm of a section's options joins the options, beside the internal arm.
+  SectionOptions:
+    fields:
+      custom: {inline: true}
+      color:
+        validators:
+        - oneOf: [blue, cyan, green, magenta, orange, pink, purple]
+      name:
+        validators:
+        - exactlyOneOf: [internal]
+  # R30: the object of a variable value holds a field named value.
+  IntervalValue: {fields: {value: {inline: true, required: true}}}
+  LuceneQueryValue: {fields: {value: {inline: true, required: true}}}
+  RegexValue: {fields: {value: {inline: true, required: true}}}
+  SingleStringValue: {at: {VariableValueV2.singleString: {fields: {value: {inline: true, required: true}}}}}
+  VariableValueV2.SingleNumericValue: {fields: {value: {inline: true, terraformType: Float64, required: true}}}
+  # R31: the selection options are an optional object.
+  MultiSelect:
+    fields:
+      selected: {skip: true}
+      selectionOptions: {inline: true}
+      selection:
+        name: selected_values
+        computed: true
+        default: []
+      valuesOrderDirection:
+        required: true
+        validators:
+        - oneOf: [asc, desc, unspecified]
+      selectionType:
+        validators:
+        - oneOf: [multi, single]
+      source: {requireOne: true}
+  # R33: the legacy selected_values is the list of the selection.
+  MultiSelect.Selection: {typedArms: {asList: true}}
+  MultiSelect.Selection.ListSelection: {fields: {labels: {skip: true}}}
+  Query.SpansQuery.Type.FieldValue: {fields: {value: {inline: true}, observationField: {skip: true}, metadataField: {required: true}}}
+  DashboardAction:
+    fields:
+      definition: {inline: true}
+      dataSource:
+        required: true
+        validators:
+        - {enum: true}
+      name: {required: true}
+      id: {clientID: uuid}
+      url: {required: true}
+  ActionDefinition: {fields: {customAction: {inline: true, required: true}, goToDashboardAction: {skip: true}}}
+  EventRecurrenceSource.Strategy.Duration: {fields: {startTimeHour: {terraformType: Int64, required: true}, duration: {required: true}}}
+  EventRecurrenceSource.Strategy.Instant: {fields: {startTimeHour: {terraformType: Int64, required: true}}}
+  BarChart.StackDefinition: {fields: {maxSlicesPerBar: {terraformType: Int64}}}
+  XAxisByTime:
+    fields:
+      bucketsPresented: {terraformType: Int64}
+      interval:
+        required: true
+        validators:
+        - regexMatches: {pattern: "^([-+]?0|[-+]?(([0-9]+(\\.[0-9]*)?|\\.[0-9]+)(ns|us|\xB5s|\u03BCs|ms|s|m|h))+)$", message: 'A duration string, such as 1s or 1m.'}
+        durationFormat: goDuration
+  AutoIntervalResolution:
+    fields:
+      maximumDataPoints:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      minimumInterval:
+        validators:
+        - regexMatches: {pattern: '^-?[0-9]+(\.[0-9]+)?s$', message: 'must be a duration in seconds, such as 900s, 15s or 1.500s'}
+        - regexMatches: {pattern: '^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$', message: 'must be written as the API stores it: 1.5s is stored by the API as "1.500s"'}
+  ManualIntervalResolution:
+    fields:
+      maximumDataPoints:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      interval:
+        validators:
+        - regexMatches: {pattern: '^-?[0-9]+(\.[0-9]+)?s$', message: 'must be a duration in seconds, such as 900s, 15s or 1.500s'}
+        - regexMatches: {pattern: '^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$', message: 'must be written as the API stores it: 1.5s is stored by the API as "1.500s"'}
+      minimumInterval:
+        validators:
+        - regexMatches: {pattern: '^-?[0-9]+(\.[0-9]+)?s$', message: 'must be a duration in seconds, such as 900s, 15s or 1.500s'}
+        - regexMatches: {pattern: '^-?(0|[1-9][0-9]*)(\.([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{3}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2})|\.[0-9]{6}([0-9]{2}[1-9]|[0-9][1-9][0-9]|[1-9][0-9]{2}))?s$', message: 'must be written as the API stores it: 1.5s is stored by the API as "1.500s"'}
+  DataTable.Column: {fields: {width: {terraformType: Int64, computed: true, useStateForUnknown: true}, field: {required: true}}}
+  DataTable:
+    fields:
+      resultsPerPage: {terraformType: Int64, required: true}
+      query: {required: true, requireOne: true}
+      rowStyle:
+        required: true
+        validators:
+        - {enum: true}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      columns:
+        validators:
+        - {sizeAtLeast: 1}
+  Visualization.Gauge:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      legendBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholdType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      thresholds:
+        validators:
+        - {sizeAtLeast: 1}
+      valueFields:
+        validators:
+        - {sizeAtLeast: 1}
+      showInnerArc: {deprecation: Use `arc_display.value_arc` instead.}
+      showOuterArc: {deprecation: Use `arc_display.threshold_arc` instead.}
+  GeomapAggregation: {fields: {count: {asBool: true, validators: [{equals: true}]}}}
+  Geomap:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      aggregation: {requireOne: true}
+      color: {requireOne: true}
+      config: {requireOne: true}
+      minMax: {requireOne: true}
+  MinMax: {fields: {auto: {asBool: true, validators: [{equals: true}]}}}
+  Heatmap:
+    fields:
+      colorAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      colorAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      histogramBucketUnit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      xAxisTimeFormat:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      colorRange:
+        validators:
+        - {enum: true}
+      preset:
+        validators:
+        - {enum: true}
+      xAxisFields:
+        validators:
+        - {sizeAtLeast: 1}
+      yAxisFields:
+        validators:
+        - {sizeAtLeast: 1}
+  HexagonBins:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      legendBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholdType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      thresholds:
+        validators:
+        - {sizeAtLeast: 1}
+  HorizontalBars:
+    fields:
+      colorsBy:
+        asString: true
+        validators:
+        - oneOf: [aggregation, category, group_by, query, stack]
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      maxBarsPerChart:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      maxSlicesPerBar:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      sortBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      yAxisViewBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      subCategoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+  HorizontalBarsMulti:
+    fields:
+      colorsBy:
+        asString: true
+        validators:
+        - oneOf: [aggregation, category, group_by, query, stack]
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      maxBarsPerChart:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      yAxisViewBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      queryFieldSettings:
+        validators:
+        - {sizeAtLeast: 1}
+  SortStrategy: {fields: {category: {asBool: true, validators: [{equals: true}]}, strategyType: {computed: true}}}
+  Visualization.PieChart:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      maxSlicesPerChart:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      maxSlicesPerStack:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      minSlicePercentage:
+        terraformType: Int64
+        validators:
+        - between: [0, 100]
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      subCategoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+  Stat:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      legendBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholdBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholdType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      thresholds:
+        validators:
+        - {sizeAtLeast: 1}
+      valueFields:
+        validators:
+        - {sizeAtLeast: 1}
+      valueField: {deprecation: 'Deprecated: superseded by value_fields.'}
+  StatCard:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      legendBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      valueFields:
+        validators:
+        - {sizeAtLeast: 1}
+      colorLabelMapping: {requireOne: true}
+  StatVisualElement:
+    fields:
+      mappedValues:
+        asBool: true
+        validators:
+        - {equals: true}
+      templateVariables:
+        validators:
+        - {sizeAtLeast: 1}
+    at:
+      StatCard.primaryValue:
+        fields:
+          mappedValues:
+            validators:
+            - {unsupported: 'primary_value cannot use mapped_values, because the primary value is the source the color label mapping reads from. Use observation_field or template_text instead.'}
+  DisplayNameTemplateVariable: {fields: {mappedValues: {asBool: true, validators: [{equals: true}]}}}
+  PropertyUnits:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+  ColumnWidthEntry: {fields: {width: {terraformType: Int64, validators: [{between: [1, 2147483647]}]}}}
+  TimeSeriesBars:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      maxSlicesPerBar:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      barValueDisplay:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      sortBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      xAxisTimeFormat:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      valueFields:
+        validators:
+        - {sizeAtLeast: 1}
+  TimeSeriesLines:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      seriesCountLimit: {terraformType: Int64}
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      stackedLine:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      xAxisTimeFormat:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      valueFields:
+        validators:
+        - {sizeAtLeast: 1}
+  QueryDisplaySettings:
+    fields:
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      seriesCountLimit: {terraformType: Int64}
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      valueFields:
+        validators:
+        - {sizeAtLeast: 1}
+  VerticalBars:
+    fields:
+      colorsBy:
+        asString: true
+        validators:
+        - oneOf: [aggregation, category, group_by, query, stack]
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      maxBarsPerChart:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      maxSlicesPerBar:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      barValueDisplay:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      sortBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      subCategoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+  VerticalBarsMulti:
+    fields:
+      colorsBy:
+        asString: true
+        validators:
+        - oneOf: [aggregation, category, group_by, query, stack]
+      decimalPrecision:
+        terraformType: Int64
+        validators:
+        - between: [-2147483648, 2147483647]
+      maxBarsPerChart:
+        terraformType: Int64
+        validators:
+        - between: [1, 2147483647]
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      barValueDisplay:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      categoryFields:
+        validators:
+        - {sizeAtLeast: 1}
+      queryFieldSettings:
+        validators:
+        - {sizeAtLeast: 1}
+  widgets.Gauge:
+    fields:
+      decimal: {terraformType: Number}
+      query: {required: true, requireOne: true}
+      unit:
+        required: true
+        validators:
+        - {enum: true}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      displaySeriesName: {computed: true, default: true}
+      legendBy:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      max: {computed: true, useStateForUnknown: true}
+      min: {computed: true, useStateForUnknown: true}
+      showInnerArc: {computed: true, default: false}
+      showOuterArc: {computed: true, default: true}
+      thresholdBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholdType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+  Hexagon:
+    fields:
+      decimal: {terraformType: Number}
+      max: {terraformType: Number}
+      min: {terraformType: Number}
+      thresholds: {collection: set, computed: true}
+      query: {required: true, requireOne: true}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      legendBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholdType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+  HorizontalBarChart:
+    fields:
+      colorsBy:
+        asString: true
+        validators:
+        - oneOf: [aggregation, category, group_by, query, stack]
+      decimal: {terraformType: Number}
+      maxBarsPerChart: {terraformType: Int64}
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisViewBy:
+        asString: true
+        validators:
+        - oneOf: [category, value]
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      displayOnBar: {computed: true, default: false}
+      scaleType: {computed: true, default: unspecified}
+      sortBy:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      colorScheme:
+        validators:
+        - oneOf: [blue, classic, cold, green, negative, red, severity]
+      query: {requireOne: true}
+  HorizontalBarChart.StackDefinition: {fields: {maxSlicesPerBar: {terraformType: Int64}}}
+  LineChart.QueryDefinition:
+    fields:
+      decimal: {terraformType: Number}
+      seriesCountLimit: {terraformType: Int64}
+      yAxisMax:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      yAxisMin:
+        terraformType: Float64
+        validators:
+        - between: [-3.4028234663852886e+38, 3.4028234663852886e+38]
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      isVisible: {computed: true, default: true}
+      scaleType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      unit:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      id: {clientID: uuid}
+      colorScheme:
+        validators:
+        - oneOf: [blue, classic, cold, green, negative, red, severity]
+      query: {requireOne: true}
+  LineChart.Resolution: {fields: {bucketsPresented: {terraformType: Int64}, interval: {durationFormat: protoText}}}
+  widgets.PieChart:
+    fields:
+      decimal: {terraformType: Number}
+      maxSlicesPerChart: {terraformType: Int64}
+      minSlicePercentage: {terraformType: Int64}
+      labelDefinition: {required: true}
+      query: {required: true, requireOne: true}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      showLegend: {computed: true, default: true}
+      unit: {computed: true, default: unspecified}
+      colorScheme:
+        validators:
+        - oneOf: [blue, classic, cold, green, negative, red, severity]
+  PieChart.StackDefinition: {fields: {maxSlicesPerStack: {terraformType: Int64}}}
+  TextboxDefaultNumericValue: {fields: {max: {terraformType: Float64}, min: {terraformType: Float64}, value: {terraformType: Float64, required: true}}}
+  Annotation:
+    fields:
+      name: {required: true}
+      source: {required: true, requireOne: true}
+      enabled: {computed: true, default: true}
+      id: {clientID: uuid}
+      color:
+        validators:
+        - {enum: true}
+      scope: {requireOne: true}
+  Annotation.WidgetScope.SpecificWidgets: {fields: {widgetIds: {required: true}}}
+  BarChart.LogsQuery: {fields: {aggregation: {required: true}, filters: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  BarChart.MetricsQuery:
+    fields:
+      promqlQuery: {required: true}
+      aggregation:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      promqlQueryType:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  DataTable.MetricsQuery:
+    fields:
+      promqlQuery: {required: true}
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      promqlQueryType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  DataprimeQuery.Type: {fields: {queryText: {required: true}}}
+  DataprimeSource:
+    fields:
+      query: {required: true}
+      strategy: {required: true, requireOne: true}
+      dataModeType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+        enumAs: annotation
+      orientation:
+        computed: true
+        default: vertical
+        validators:
+        - {enum: true}
+  DataprimeSource.Strategy.Duration: {fields: {durationField: {required: true}, startTimestampField: {required: true}}}
+  DataprimeSource.Strategy.Instant: {fields: {timestampField: {required: true}}}
+  DataprimeSource.Strategy.Range: {fields: {endTimestampField: {required: true}, startTimestampField: {required: true}}}
+  EventRecurrenceSource: {fields: {recurrence: {required: true}, strategy: {required: true, requireOne: true}}}
+  Filter.LogsFilter: {fields: {operator: {required: true}}}
+  Filter.WidgetScope.SpecificWidgets: {fields: {widgetIds: {required: true}}}
+  Gauge.MetricsQuery:
+    fields:
+      promqlQuery: {required: true}
+      aggregation:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      promqlQueryType:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  Hexagon.MetricsQuery:
+    fields:
+      promqlQuery: {required: true}
+      aggregation:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      promqlQueryType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  HorizontalBarChart.LogsQuery:
+    fields:
+      aggregation: {required: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupNames:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  HorizontalBarChart.MetricsQuery:
+    fields:
+      promqlQuery: {required: true}
+      aggregation:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      promqlQueryType:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  LineChart.LogsQuery:
+    fields:
+      aggregations:
+        required: true
+        validators:
+        - {sizeAtLeast: 1}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupBys:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  ListValue: {fields: {values: {required: true}}}
+  LogsQuery.Aggregation: {fields: {aggregation: {required: true}, id: {computed: true, useNonNullStateForUnknown: true}, isVisible: {computed: true, default: true}}}
+  LogsSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, useNonNullStateForUnknown: true, validators: [{enum: true}], enumAs: annotation, markdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."}}}
+  LogsSource.Strategy.Duration: {fields: {durationField: {required: true}, startTimestampField: {required: true}}}
+  LogsSource.Strategy.Instant: {fields: {timestampField: {required: true}}}
+  LogsSource.Strategy.Range: {fields: {endTimestampField: {required: true}, startTimestampField: {required: true}}}
+  ManualSource: {fields: {strategy: {required: true, requireOne: true}, orientation: {computed: true, default: vertical, validators: [{enum: true}]}}}
+  MetricLabelSource: {fields: {label: {required: true}}}
+  Metrics:
+    fields:
+      promqlQuery: {required: true}
+      editorMode:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      promqlQueryType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      seriesLimitType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+  MetricsSource: {fields: {promqlQuery: {required: true}, strategy: {required: true}, orientation: {computed: true, default: vertical, validators: [{enum: true}]}}}
+  MultiSelect.QuerySource: {fields: {query: {required: true, requireOne: true}, refreshStrategy: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  ObservationField:
+    fields:
+      scope:
+        required: true
+        validators:
+        - {enum: true}
+      keypath:
+        validators:
+        - {sizeAtLeast: 1}
+        required: true
+    at:
+      RuleScope.field:
+        fields:
+          keypath: {optional: true}
+      Table.Column.field:
+        fields:
+          keypath: {optional: true}
+  PieChart.LogsQuery:
+    fields:
+      aggregation: {required: true}
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      groupNames:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  PieChart.MetricsQuery:
+    fields:
+      promqlQuery: {required: true}
+      aggregation:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      editorMode:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      promqlQueryType:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      filters:
+        validators:
+        - {sizeAtLeast: 1}
+      timeFrame: {requireOne: true}
+  PromqlQuery: {fields: {query: {required: true}, promqlQueryType: {computed: true, default: instant, validators: [{oneOf: [instant, range]}]}}}
+  Query.LogsQuery.Type.FieldName: {fields: {logRegex: {required: true}}}
+  Query.LogsQuery.Type.FieldValue: {fields: {observationField: {required: true}}}
+  Query.MetricsQuery.Type.LabelName: {fields: {metricRegex: {required: true}}}
+  Query.MetricsQuery.Type.MetricName: {fields: {metricRegex: {required: true}}}
+  Query.SpansQuery.Type.FieldName: {fields: {spanRegex: {required: true}}}
+  QuerySource.DataprimeQuery: {fields: {type: {required: true}}}
+  QuerySource.LogsQuery: {fields: {type: {required: true}}}
+  QuerySource.LogsQuery.Type: {fields: {fieldValue: {required: true}}}
+  QuerySource.MetricsQuery: {fields: {type: {required: true, requireOne: true}}}
+  QuerySource.MetricsQuery.Type.LabelName: {fields: {metricRegex: {required: true}}}
+  QuerySource.MetricsQuery.Type.MetricName: {fields: {metricRegex: {required: true}}}
+  QuerySource.SpansQuery: {fields: {type: {required: true}}}
+  QuerySource.SpansQuery.Type: {fields: {fieldValue: {required: true}}}
+  QueryText: {fields: {query: {required: true}, dataModeType: {computed: true, default: high, validators: [{enum: true}]}}}
+  Recurrence: {fields: {weekly: {required: true}}}
+  RepetitiveVar: {fields: {name: {required: true}}}
+  StringValueLabel: {fields: {value: {required: true}}}
+  SpanObservationField:
+    fields:
+      keypath:
+        required: true
+        validators:
+        - {sizeAtLeast: 1}
+        readEmptyAs: 'null'
+      scope:
+        required: true
+        validators:
+        - {enum: true}
+      relationType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+  SpansFilter: {fields: {operator: {required: true}}}
+  SpansSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, useNonNullStateForUnknown: true, validators: [{enum: true}], enumAs: annotation, markdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."}}}
+  SpansSource.Strategy.Duration: {fields: {durationField: {required: true}, startTimestampField: {required: true}}}
+  SpansSource.Strategy.Instant: {fields: {timestampField: {required: true}}}
+  SpansSource.Strategy.Range: {fields: {endTimestampField: {required: true}, startTimestampField: {required: true}}}
+  TextboxDefaultIntervalValue: {fields: {value: {required: true}}}
+  TextboxDefaultLuceneValue: {fields: {value: {required: true}, dataModeType: {computed: true, default: high, validators: [{enum: true}]}}}
+  TextboxDefaultRegexValue: {fields: {value: {required: true}}}
+  TextboxDefaultStringValue: {fields: {value: {required: true}}}
+  Variable: {fields: {definition: {required: true, requireOne: true}, displayName: {required: true}, displayType: {skip: true}}}
+  WeeklyRecurrence: {fields: {daysOfWeek: {required: true, validators: [{enum: true}]}}}
+  WidgetReference: {fields: {dashboardId: {required: true}, widgetId: {required: true}}}
+  filters.Filter:
+    fields:
+      source: {required: true, requireOne: true}
+      collapsed: {computed: true, default: false}
+      enabled: {computed: true, default: true}
+      id: {clientID: uuid}
+  ColorLabelMapping: {fields: {colorBy: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  Legend:
+    fields:
+      groupByQuery: {computed: true, default: false}
+      isVisible: {computed: true, default: true}
+      placement:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+      columns:
+        validators:
+        - {enum: true}
+        - {sizeAtLeast: 1}
+  LineChart:
+    fields:
+      stackedLine:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      xAxisTimeFormat:
+        computed: true
+        useNonNullStateForUnknown: true
+        validators:
+        - {enum: true}
+        readNullAs: unspecified
+  LinkAction: {fields: {id: {clientID: uuid}}}
+  ManualSource.Strategy.Instant: {fields: {unit: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  ManualSource.Strategy.Range: {fields: {unit: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  MappingSection: {fields: {color: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  OrderingField: {fields: {orderDirection: {computed: true, default: unspecified, validators: [{oneOf: [asc, desc, unspecified]}]}}}
+  Property: {fields: {id: {clientID: uuid}, definition: {requireOne: true}}}
+  PropertyThresholds: {fields: {type: {computed: true, default: unspecified, validators: [{enum: true}]}, values: {validators: [{sizeAtLeast: 1}]}}}
+  PropertyValuesMapping.ValueMapping: {fields: {type: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  RangeMapping:
+    fields:
+      thresholdType:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      thresholds:
+        validators:
+        - {sizeAtLeast: 1}
+      minMax: {requireOne: true}
+  Section: {fields: {id: {clientID: uuid}, rows: {validators: [{sizeAtLeast: 1}]}}}
+  SpansQuery.Aggregation: {fields: {id: {computed: true, useNonNullStateForUnknown: true, readOnly: true}, isVisible: {computed: true, default: true}}}
+  Table.Rule: {fields: {id: {clientID: uuid}, properties: {validators: [{sizeAtLeast: 1}]}, ruleScope: {requireOne: true}}}
+  TableSettings: {fields: {rowStyle: {computed: true, default: unspecified, validators: [{enum: true}]}, columnWidths: {validators: [{sizeAtLeast: 1}]}}}
+  TimeSeriesLinesMulti:
+    fields:
+      stackedLine:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      xAxisTimeFormat:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      queryDisplaySettings:
+        validators:
+        - {sizeAtLeast: 1}
+  Tooltip: {fields: {showLabels: {computed: true, default: false}, type: {validators: [{enum: true}]}}}
+  VariableV2:
+    fields:
+      id: {clientID: uuid}
+      displayType:
+        optional: true
+        computed: true
+        default: label_value
+        validators:
+        - oneOf: [label_value, nothing, value]
+      source: {requireOne: true}
+      value: {requireOne: true}
+  Visualization.PieChart.LabelDefinition: {fields: {labelSource: {computed: true, default: unspecified, validators: [{enum: true}]}}}
+  Visualization.SortOrder: {fields: {orderDirection: {computed: true, default: unspecified, validators: [{oneOf: [asc, desc, unspecified]}]}, strategy: {requireOne: true}}}
+  widgets.PieChart.LabelDefinition:
+    fields:
+      isVisible: {computed: true, default: true}
+      labelSource:
+        computed: true
+        default: unspecified
+        validators:
+        - {enum: true}
+      showName: {computed: true, default: true}
+      showPercentage: {computed: true, default: true}
+      showValue: {computed: true, default: true}
+  Dynamic.QueryDefinition: {fields: {id: {clientID: uuid}, query: {requireOne: true}}}
+  VariableSourceV2.QuerySource:
+    fields:
+      valuesOrderDirection:
+        optional: true
+        computed: true
+        default: asc
+        validators:
+        - oneOf: [asc, desc, none]
+      refreshStrategy:
+        validators:
+        - {enum: true}
+  StaticSource:
+    fields:
+      valuesOrderDirection:
+        optional: true
+        computed: true
+        default: none
+        validators:
+        - oneOf: [asc, desc, none]
+      values:
+        validators:
+        - {sizeAtLeast: 1}
+  GeomapColor: {fields: {colorRange: {validators: [{enum: true}]}, size: {validators: [{enum: true}]}}}
+  PropertyDefinition: {fields: {alignment: {validators: [{enum: true}]}}}
+  RuleScope: {fields: {fieldType: {validators: [{enum: true}]}}}
+  BarChart.SpansQuery: {fields: {filters: {validators: [{sizeAtLeast: 1}]}, groupNamesFields: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  ColorLabelMapping.ValueMapping: {fields: {sections: {validators: [{sizeAtLeast: 1}]}}}
+  DataTable.LogsQuery: {fields: {filters: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  DataTable.SpansQuery: {fields: {filters: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  GeomapTooltip: {fields: {labels: {validators: [{sizeAtLeast: 1}]}}}
+  HeatmapTooltip: {fields: {labels: {validators: [{sizeAtLeast: 1}]}}}
+  HorizontalBarChart.SpansQuery: {fields: {filters: {validators: [{sizeAtLeast: 1}]}, groupNamesFields: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  LineChart.SpansQuery: {fields: {filters: {validators: [{sizeAtLeast: 1}]}, groupBys: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  PieChart.SpansQuery: {fields: {filters: {validators: [{sizeAtLeast: 1}]}, groupNamesFields: {validators: [{sizeAtLeast: 1}]}, timeFrame: {requireOne: true}}}
+  PropertyLinks: {fields: {actions: {validators: [{sizeAtLeast: 1}]}}}
+  PropertyValuesMapping: {fields: {mappings: {validators: [{sizeAtLeast: 1}]}}}
+  RegexMapping: {fields: {sections: {validators: [{sizeAtLeast: 1}]}}}
+  Table: {fields: {columns: {validators: [{sizeAtLeast: 1}]}, rules: {validators: [{sizeAtLeast: 1}]}}}
+  Query.MetricsQuery.MetricsLabelFilter: {fields: {label: {requireOne: true}, metric: {requireOne: true}}}
+  QuerySource.MetricsQuery.MetricsLabelFilter: {fields: {label: {requireOne: true}, metric: {requireOne: true}}}
+  TextboxSource: {fields: {defaultValue: {requireOne: true}}}
+  VariableSourceV2: {fields: {query: {requireOne: true}}}
+  VariableValueV2: {fields: {multiString: {requireOne: true}}}
+  Widget.Definition:
+    fields:
+      barChart:
+        validators:
+        - alsoRequires: [../title]
+      dataTable:
+        validators:
+        - alsoRequires: [../title]
+      dynamic:
+        validators:
+        - alsoRequires: [../title]
+      gauge:
+        validators:
+        - alsoRequires: [../title]
+      hexagon:
+        validators:
+        - alsoRequires: [../title]
+      horizontalBarChart:
+        validators:
+        - alsoRequires: [../title]
+      lineChart:
+        validators:
+        - alsoRequires: [../title]
+  Average: {fields: {field: {validators: [{exactlyOneOf: [observation_field]}]}}}
+  Min: {fields: {field: {validators: [{exactlyOneOf: [observation_field]}]}}}
+  Max: {fields: {field: {validators: [{exactlyOneOf: [observation_field]}]}}}
+  Sum: {fields: {field: {validators: [{exactlyOneOf: [observation_field]}]}}}
+  Percentile: {fields: {field: {validators: [{exactlyOneOf: [observation_field]}]}}}
+  CountDistinct: {fields: {field: {validators: [{exactlyOneOf: [observation_field]}]}}}
+  LogsQuery.Grouping: {fields: {groupBy: {readEmptyAs: 'null'}}}
+  SpansQuery.Grouping: {fields: {groupBys: {readEmptyAs: 'null'}}}
+  FolderPath: {fields: {segments: {join: /}}}
+  common.Threshold: {at: {Hexagon.thresholds: {fields: {from: {terraformType: Number, required: true}}}}}
+  LogsPathSource: {at: {MultiSelect.Source.logsPath: {fields: {observationField: {skip: true}}}}}
+  ValueLabel: {fields: {label: {schemaOptional: true, computed: true, defaultFromSibling: value}}}
+  XAxis:
+    fields:
+      time: {deprecation: 'The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration using `time` can stop matching the dashboard it manages. Use `time_buckets` instead.'}
+  Visualization: {fields: {timeSeriesLines: {deprecation: 'Deprecated: use time_series_lines_multi instead.'}}}
+  TextboxDefaultValue:
+    fields:
+      singleNumeric: {deprecation: 'Deprecated: the Coralogix UI no longer writes this default. Use `default_string_value` or `default_numeric_value` instead.'}
+      singleString: {deprecation: 'Deprecated: the Coralogix UI no longer writes this default. Use `default_string_value` or `default_numeric_value` instead.'}

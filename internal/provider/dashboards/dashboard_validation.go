@@ -16,6 +16,7 @@ package dashboards
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -24,14 +25,18 @@ import (
 	"time"
 	"unicode"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
-	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	gendashboard "github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/dashboard"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
@@ -80,9 +85,14 @@ func dashboardValidationSettingsFromEnv() dashboardValidationSettings {
 	return settings
 }
 
-var _ resource.ResourceWithModifyPlan = &DashboardResource{}
+// planCheck runs the plan-time check of the backend. client is nil until the provider configures the
+// resource.
+type planCheck struct {
+	client *dashboardservice.DashboardServiceAPIService
+}
 
-// ModifyPlan reports backend validation issues as plan-time warnings.
+// modifyPlan is the ModifyPlan hook of the resource: it plans null for auto_refresh when content_json
+// manages the dashboard, and reports backend validation issues as plan-time warnings.
 //
 // The create and replace endpoints apply structural validation only, so a
 // dashboard that carries a stale variable reference or a duplicate widget id is
@@ -92,17 +102,46 @@ var _ resource.ResourceWithModifyPlan = &DashboardResource{}
 //
 // Validation is advisory. Every failure path warns and continues, so a plan is
 // never blocked because validation was disabled, unavailable, slow, or unhappy.
-func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (c *planCheck) modifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.Plan.Raw.IsNull() {
-		// Destroy plan. There is no dashboard left to validate.
+		// A destroy plan has nothing to check.
 		return
 	}
+	planNullWhenContentJSONManages(ctx, req, resp)
+	c.report(ctx, req, resp)
+}
+
+// planNullWhenContentJSONManages plans a null value for auto_refresh when content_json manages the
+// dashboard: the read path writes null into it whatever the API returns, so the unknown value that
+// the framework plans for an omitted computed attribute would resolve back to null, and the plan
+// would never be empty. Planning null states the outcome of the apply. A configured value is the
+// practitioner's, and there is no prior plan to stabilize while the resource is created.
+func planNullWhenContentJSONManages(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Config.Raw.IsNull() {
+		return
+	}
+	var configured types.Object
+	if resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auto_refresh"), &configured)...); resp.Diagnostics.HasError() || !configured.IsNull() {
+		return
+	}
+	var contentJSON types.String
+	if resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("content_json"), &contentJSON)...); resp.Diagnostics.HasError() || contentJSON.IsNull() || contentJSON.IsUnknown() {
+		return
+	}
+	var planned types.Object
+	if resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("auto_refresh"), &planned)...); resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("auto_refresh"), types.ObjectNull(planned.AttributeTypes(ctx)))...)
+}
+
+func (c *planCheck) report(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if !req.State.Raw.IsNull() && req.State.Raw.Equal(req.Plan.Raw) {
 		// Nothing is changing, so there is nothing new to tell the user. This
 		// keeps a plan over unchanged dashboards free of validation calls.
 		return
 	}
-	if r.openAPIClient == nil {
+	if c.client == nil {
 		return
 	}
 
@@ -111,7 +150,7 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 		return
 	}
 
-	planSchema := dashboardschema.V4()
+	planSchema := gendashboard.Schema()
 	isComputed := func(attributePath *tftypes.AttributePath) bool {
 		attribute, err := planSchema.AttributeAtTerraformPath(ctx, attributePath)
 		if err != nil {
@@ -129,13 +168,10 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 		return
 	}
 
-	var plan DashboardResourceModel
-	if diags := req.Plan.Get(ctx, &plan); diags.HasError() {
-		log.Printf("[DEBUG] Skipping Dashboard validation: %v", diags.Errors())
-		return
+	dashboard, shape, diags := dashboardToCheck(ctx, req.Plan)
+	if !diags.HasError() {
+		setCheckID(ctx, req.Plan, dashboard)
 	}
-
-	dashboard, diags := extractDashboard(ctx, plan)
 	if diags.HasError() {
 		// Create and Update report extraction failures as errors. Doing the
 		// same here would fail the plan, so this only logs.
@@ -146,7 +182,7 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 	checkCtx, cancel := context.WithTimeout(ctx, settings.Timeout)
 	defer cancel()
 
-	issues, err := r.openAPIClient.Check(checkCtx, dashboard)
+	issues, err := c.check(checkCtx, dashboard)
 	if err != nil {
 		log.Printf("[WARN] Dashboard validation failed: %s", err)
 		resp.Diagnostics.AddWarning(
@@ -158,12 +194,75 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 		return
 	}
 
-	log.Printf("[DEBUG] Dashboard validation returned %d issue(s) for %q", len(issues), plan.Name.ValueString())
-	shape := dashboardConfigShape{
-		ContentJSON:      !plan.ContentJson.IsNull(),
-		FolderConfigured: !utils.ObjIsNullOrUnknown(plan.Folder),
-	}
+	log.Printf("[DEBUG] Dashboard validation returned %d issue(s)", len(issues))
 	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths, resolves, shape)
+}
+
+// dashboardToCheck returns the dashboard that a write of the plan would send, and how the user wrote
+// it. It is the generated conversion that Create uses, or the dashboard of content_json with the
+// folder of the plan laid over it.
+func dashboardToCheck(ctx context.Context, plan tfsdk.Plan) (*dashboardservice.Dashboard, dashboardConfigShape, diag.Diagnostics) {
+	var shape dashboardConfigShape
+	var contentJSON types.String
+	var folder types.Object
+	var diags diag.Diagnostics
+	diags.Append(plan.GetAttribute(ctx, path.Root("content_json"), &contentJSON)...)
+	diags.Append(plan.GetAttribute(ctx, path.Root("folder"), &folder)...)
+	if diags.HasError() {
+		return nil, shape, diags
+	}
+	shape.FolderConfigured = !utils.ObjIsNullOrUnknown(folder)
+	if !contentJSON.IsNull() {
+		shape.ContentJSON = true
+		parsed := new(dashboardservice.Dashboard)
+		if err := dashboardjson.Unmarshal([]byte(contentJSON.ValueString()), parsed); err != nil {
+			diags.AddError("Error unmarshalling dashboard content json", err.Error())
+			return nil, shape, diags
+		}
+		applyFolder(parsed, folder)
+		return parsed, shape, diags
+	}
+	var model gendashboard.DashboardModel
+	diags.Append(plan.Get(ctx, &model)...)
+	if diags.HasError() {
+		return nil, shape, diags
+	}
+	dashboard, expandDiags := gendashboard.Expand(ctx, &model)
+	diags.Append(expandDiags...)
+	return dashboard, shape, diags
+}
+
+// setCheckID gives the dashboard the id of the plan when the plan knows it: a dashboard that exists
+// is checked by its id, and a new one has none.
+func setCheckID(ctx context.Context, plan tfsdk.Plan, dashboard *dashboardservice.Dashboard) {
+	var id types.String
+	if dashboard == nil || plan.GetAttribute(ctx, path.Root("id"), &id).HasError() || id.IsNull() || id.IsUnknown() {
+		return
+	}
+	dashboard.Id = id.ValueStringPointer()
+}
+
+// check asks the backend to report validation issues for a dashboard without persisting anything.
+// The create and replace endpoints only apply structural validation, so this reports semantic
+// problems - stale variable references, duplicate widget ids, queries that do not compile - that a
+// create would accept and that only show up when the dashboard is rendered.
+func (c *planCheck) check(ctx context.Context, dashboard *dashboardservice.Dashboard) ([]dashboardservice.Issue, error) {
+	if dashboard == nil {
+		return nil, fmt.Errorf("dashboard is required")
+	}
+	requestID := newDashboardRequestID("Check")
+	request := dashboardservice.CheckDashboardRequestDataStructure{Dashboard: dashboard, RequestId: &requestID}
+	response, httpResponse, err := c.client.
+		DashboardsServiceCheckDashboard(ctx).
+		CheckDashboardRequestDataStructure(request).
+		Execute()
+	if err != nil {
+		return nil, errors.New(utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Check", request))
+	}
+	if response == nil {
+		return nil, fmt.Errorf("check response is required")
+	}
+	return response.Issues, nil
 }
 
 // addDashboardIssueWarnings turns validation issues into plan warnings.

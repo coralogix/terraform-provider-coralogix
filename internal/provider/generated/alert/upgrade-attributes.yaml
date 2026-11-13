@@ -1,0 +1,371 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.24.0
+attributes:
+    access_policy: {type: String}
+    case_settings: {type: SingleNested}
+    case_settings.auto_resolve_mode: {type: String}
+    case_settings.destinations: {type: ListNested}
+    case_settings.destinations[].condition: {type: String, required: true}
+    case_settings.destinations[].connector_id: {type: String, required: true}
+    case_settings.destinations[].preset_id: {type: String}
+    case_settings.enrichment_queries: {type: ListNested}
+    case_settings.enrichment_queries[].query: {type: String, required: true}
+    case_settings.enrichment_queries[].type: {type: String}
+    data_sources: {type: ListNested}
+    data_sources[].data_set: {type: String, required: true}
+    data_sources[].data_space: {type: String, required: true}
+    deleted: {type: Bool}
+    description: {type: String}
+    enabled: {type: Bool}
+    group_by: {type: List(String)}
+    id: {type: String}
+    incidents_settings: {type: SingleNested}
+    incidents_settings.notify_on: {type: String, required: true}
+    incidents_settings.retriggering_period: {type: SingleNested, required: true}
+    incidents_settings.retriggering_period.minutes: {type: Int64, required: true}
+    labels: {type: Map(String)}
+    name: {type: String, required: true}
+    notification_group: {type: SingleNested}
+    notification_group.destinations: {type: ListNested}
+    notification_group.destinations[].connector_id: {type: String, required: true}
+    notification_group.destinations[].notify_on: {type: String}
+    notification_group.destinations[].preset_id: {type: String, required: true}
+    notification_group.destinations[].resolved_routing_overrides: {type: SingleNested}
+    notification_group.destinations[].resolved_routing_overrides.connector_overrides: {type: ListNested}
+    notification_group.destinations[].resolved_routing_overrides.connector_overrides[].field_name: {type: String, required: true}
+    notification_group.destinations[].resolved_routing_overrides.connector_overrides[].template: {type: String, required: true}
+    notification_group.destinations[].resolved_routing_overrides.payload_type: {type: String, required: true}
+    notification_group.destinations[].resolved_routing_overrides.preset_overrides: {type: ListNested}
+    notification_group.destinations[].resolved_routing_overrides.preset_overrides[].field_name: {type: String, required: true}
+    notification_group.destinations[].resolved_routing_overrides.preset_overrides[].template: {type: String, required: true}
+    notification_group.destinations[].retriggering_period_minutes: {type: Int64}
+    notification_group.destinations[].triggered_routing_overrides: {type: SingleNested}
+    notification_group.destinations[].triggered_routing_overrides.connector_overrides: {type: ListNested}
+    notification_group.destinations[].triggered_routing_overrides.connector_overrides[].field_name: {type: String, required: true}
+    notification_group.destinations[].triggered_routing_overrides.connector_overrides[].template: {type: String, required: true}
+    notification_group.destinations[].triggered_routing_overrides.payload_type: {type: String, required: true}
+    notification_group.destinations[].triggered_routing_overrides.preset_overrides: {type: ListNested}
+    notification_group.destinations[].triggered_routing_overrides.preset_overrides[].field_name: {type: String, required: true}
+    notification_group.destinations[].triggered_routing_overrides.preset_overrides[].template: {type: String, required: true}
+    notification_group.group_by_keys: {type: List(String)}
+    notification_group.router: {type: SingleNested}
+    notification_group.router.id: {type: String}
+    notification_group.router.notify_on: {type: String}
+    notification_group.webhooks_settings: {type: SetNested}
+    notification_group.webhooks_settings[].integration_id: {type: Int64}
+    notification_group.webhooks_settings[].notify_on: {type: String}
+    notification_group.webhooks_settings[].recipients: {type: Set(String)}
+    notification_group.webhooks_settings[].retriggering_period: {type: SingleNested}
+    notification_group.webhooks_settings[].retriggering_period.minutes: {type: Int64, required: true}
+    phantom_mode: {type: Bool}
+    priority: {type: String}
+    schedule: {type: SingleNested}
+    schedule.active_on: {type: SingleNested, required: true}
+    schedule.active_on.days_of_week: {type: Set(String), required: true}
+    schedule.active_on.end_time: {type: String, required: true}
+    schedule.active_on.start_time: {type: String, required: true}
+    schedule.active_on.utc_offset: {type: String}
+    type_definition: {type: SingleNested, required: true}
+    type_definition.analytics_immediate: {type: SingleNested}
+    type_definition.analytics_immediate.custom_evaluation_delay: {type: Int32}
+    type_definition.analytics_immediate.dataprime_query: {type: SingleNested, required: true}
+    type_definition.analytics_immediate.dataprime_query.query: {type: String, required: true}
+    type_definition.analytics_immediate.no_data_policy: {type: SingleNested}
+    type_definition.analytics_immediate.no_data_policy.auto_retire_seconds: {type: Int64}
+    type_definition.analytics_immediate.no_data_policy.state: {type: String}
+    type_definition.analytics_immediate.timeframe_minutes: {type: Int32, required: true}
+    type_definition.analytics_immediate.use_rows_as_permutations: {type: Bool}
+    type_definition.analytics_threshold: {type: SingleNested}
+    type_definition.analytics_threshold.custom_evaluation_delay: {type: Int32}
+    type_definition.analytics_threshold.dataprime_query: {type: SingleNested, required: true}
+    type_definition.analytics_threshold.dataprime_query.query: {type: String, required: true}
+    type_definition.analytics_threshold.no_data_policy: {type: SingleNested}
+    type_definition.analytics_threshold.no_data_policy.auto_retire_seconds: {type: Int64}
+    type_definition.analytics_threshold.no_data_policy.state: {type: String}
+    type_definition.analytics_threshold.operator: {type: String, required: true}
+    type_definition.analytics_threshold.rules: {type: ListNested, required: true}
+    type_definition.analytics_threshold.rules[].condition: {type: SingleNested, required: true}
+    type_definition.analytics_threshold.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.analytics_threshold.rules[].override: {type: SingleNested, required: true}
+    type_definition.analytics_threshold.rules[].override.priority: {type: String}
+    type_definition.analytics_threshold.target_column: {type: String, required: true}
+    type_definition.analytics_threshold.timeframe_minutes: {type: Int32, required: true}
+    type_definition.analytics_threshold.use_rows_as_permutations: {type: Bool}
+    type_definition.flow: {type: SingleNested}
+    type_definition.flow.enforce_suppression: {type: Bool}
+    type_definition.flow.stages: {type: ListNested, required: true}
+    type_definition.flow.stages[].flow_stages_groups: {type: ListNested, required: true}
+    type_definition.flow.stages[].flow_stages_groups[].alert_defs: {type: SetNested, required: true}
+    type_definition.flow.stages[].flow_stages_groups[].alert_defs[].id: {type: String, required: true}
+    type_definition.flow.stages[].flow_stages_groups[].alert_defs[].not: {type: Bool}
+    type_definition.flow.stages[].flow_stages_groups[].alerts_op: {type: String, required: true}
+    type_definition.flow.stages[].flow_stages_groups[].next_op: {type: String, required: true}
+    type_definition.flow.stages[].timeframe_ms: {type: Int64}
+    type_definition.flow.stages[].timeframe_type: {type: String, required: true}
+    type_definition.logs_anomaly: {type: SingleNested}
+    type_definition.logs_anomaly.custom_evaluation_delay: {type: Int32}
+    type_definition.logs_anomaly.logs_filter: {type: SingleNested}
+    type_definition.logs_anomaly.logs_filter.simple_filter: {type: SingleNested}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_anomaly.logs_filter.simple_filter.lucene_query: {type: String}
+    type_definition.logs_anomaly.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_anomaly.percentage_of_deviation: {type: Float32}
+    type_definition.logs_anomaly.rules: {type: SetNested, required: true}
+    type_definition.logs_anomaly.rules[].condition: {type: SingleNested, required: true}
+    type_definition.logs_anomaly.rules[].condition.condition_type: {type: String}
+    type_definition.logs_anomaly.rules[].condition.minimum_threshold: {type: Float64, required: true}
+    type_definition.logs_anomaly.rules[].condition.time_window: {type: String, required: true}
+    type_definition.logs_immediate: {type: SingleNested}
+    type_definition.logs_immediate.logs_filter: {type: SingleNested}
+    type_definition.logs_immediate.logs_filter.simple_filter: {type: SingleNested}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_immediate.logs_filter.simple_filter.lucene_query: {type: String}
+    type_definition.logs_immediate.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_new_value: {type: SingleNested}
+    type_definition.logs_new_value.logs_filter: {type: SingleNested}
+    type_definition.logs_new_value.logs_filter.simple_filter: {type: SingleNested}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_new_value.logs_filter.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_new_value.logs_filter.simple_filter.lucene_query: {type: String}
+    type_definition.logs_new_value.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_new_value.rules: {type: SetNested, required: true}
+    type_definition.logs_new_value.rules[].condition: {type: SingleNested, required: true}
+    type_definition.logs_new_value.rules[].condition.keypath_to_track: {type: String, required: true}
+    type_definition.logs_new_value.rules[].condition.time_window: {type: String, required: true}
+    type_definition.logs_ratio_threshold: {type: SingleNested}
+    type_definition.logs_ratio_threshold.custom_evaluation_delay: {type: Int32}
+    type_definition.logs_ratio_threshold.denominator: {type: SingleNested}
+    type_definition.logs_ratio_threshold.denominator.simple_filter: {type: SingleNested}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_ratio_threshold.denominator.simple_filter.lucene_query: {type: String}
+    type_definition.logs_ratio_threshold.denominator_alias: {type: String, required: true}
+    type_definition.logs_ratio_threshold.group_by_for: {type: String}
+    type_definition.logs_ratio_threshold.ignore_infinity: {type: Bool}
+    type_definition.logs_ratio_threshold.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_ratio_threshold.numerator: {type: SingleNested}
+    type_definition.logs_ratio_threshold.numerator.simple_filter: {type: SingleNested}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_ratio_threshold.numerator.simple_filter.lucene_query: {type: String}
+    type_definition.logs_ratio_threshold.numerator_alias: {type: String, required: true}
+    type_definition.logs_ratio_threshold.rules: {type: SetNested, required: true}
+    type_definition.logs_ratio_threshold.rules[].condition: {type: SingleNested, required: true}
+    type_definition.logs_ratio_threshold.rules[].condition.condition_type: {type: String, required: true}
+    type_definition.logs_ratio_threshold.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.logs_ratio_threshold.rules[].condition.time_window: {type: String, required: true}
+    type_definition.logs_ratio_threshold.rules[].override: {type: SingleNested, required: true}
+    type_definition.logs_ratio_threshold.rules[].override.priority: {type: String}
+    type_definition.logs_ratio_threshold.undetected_values_management: {type: SingleNested}
+    type_definition.logs_ratio_threshold.undetected_values_management.auto_retire_timeframe: {type: String}
+    type_definition.logs_ratio_threshold.undetected_values_management.trigger_undetected_values: {type: Bool}
+    type_definition.logs_threshold: {type: SingleNested}
+    type_definition.logs_threshold.custom_evaluation_delay: {type: Int32}
+    type_definition.logs_threshold.logs_filter: {type: SingleNested}
+    type_definition.logs_threshold.logs_filter.simple_filter: {type: SingleNested}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_threshold.logs_filter.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_threshold.logs_filter.simple_filter.lucene_query: {type: String}
+    type_definition.logs_threshold.no_data_policy: {type: SingleNested}
+    type_definition.logs_threshold.no_data_policy.auto_retire_seconds: {type: Int64}
+    type_definition.logs_threshold.no_data_policy.state: {type: String}
+    type_definition.logs_threshold.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_threshold.rules: {type: SetNested, required: true}
+    type_definition.logs_threshold.rules[].condition: {type: SingleNested, required: true}
+    type_definition.logs_threshold.rules[].condition.condition_type: {type: String, required: true}
+    type_definition.logs_threshold.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.logs_threshold.rules[].condition.time_window: {type: String, required: true}
+    type_definition.logs_threshold.rules[].override: {type: SingleNested, required: true}
+    type_definition.logs_threshold.rules[].override.priority: {type: String}
+    type_definition.logs_threshold.undetected_values_management: {type: SingleNested}
+    type_definition.logs_threshold.undetected_values_management.auto_retire_timeframe: {type: String}
+    type_definition.logs_threshold.undetected_values_management.trigger_undetected_values: {type: Bool}
+    type_definition.logs_time_relative_threshold: {type: SingleNested}
+    type_definition.logs_time_relative_threshold.custom_evaluation_delay: {type: Int32}
+    type_definition.logs_time_relative_threshold.ignore_infinity: {type: Bool}
+    type_definition.logs_time_relative_threshold.logs_filter: {type: SingleNested}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter: {type: SingleNested}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_time_relative_threshold.logs_filter.simple_filter.lucene_query: {type: String}
+    type_definition.logs_time_relative_threshold.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_time_relative_threshold.rules: {type: SetNested, required: true}
+    type_definition.logs_time_relative_threshold.rules[].condition: {type: SingleNested, required: true}
+    type_definition.logs_time_relative_threshold.rules[].condition.compared_to: {type: String, required: true}
+    type_definition.logs_time_relative_threshold.rules[].condition.condition_type: {type: String, required: true}
+    type_definition.logs_time_relative_threshold.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.logs_time_relative_threshold.rules[].override: {type: SingleNested, required: true}
+    type_definition.logs_time_relative_threshold.rules[].override.priority: {type: String}
+    type_definition.logs_time_relative_threshold.undetected_values_management: {type: SingleNested}
+    type_definition.logs_time_relative_threshold.undetected_values_management.auto_retire_timeframe: {type: String}
+    type_definition.logs_time_relative_threshold.undetected_values_management.trigger_undetected_values: {type: Bool}
+    type_definition.logs_unique_count: {type: SingleNested}
+    type_definition.logs_unique_count.logs_filter: {type: SingleNested}
+    type_definition.logs_unique_count.logs_filter.simple_filter: {type: SingleNested}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters: {type: SingleNested}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.application_name: {type: SetNested}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.application_name[].operation: {type: String}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.application_name[].value: {type: String, required: true}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.severities: {type: Set(String)}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.subsystem_name: {type: SetNested}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.subsystem_name[].operation: {type: String}
+    type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.subsystem_name[].value: {type: String, required: true}
+    type_definition.logs_unique_count.logs_filter.simple_filter.lucene_query: {type: String}
+    type_definition.logs_unique_count.max_unique_count_per_group_by_key: {type: Int64}
+    type_definition.logs_unique_count.notification_payload_filter: {type: Set(String)}
+    type_definition.logs_unique_count.rules: {type: SetNested, required: true}
+    type_definition.logs_unique_count.rules[].condition: {type: SingleNested, required: true}
+    type_definition.logs_unique_count.rules[].condition.max_unique_count: {type: Int64, required: true}
+    type_definition.logs_unique_count.rules[].condition.time_window: {type: String, required: true}
+    type_definition.logs_unique_count.unique_count_keypath: {type: String, required: true}
+    type_definition.metric_anomaly: {type: SingleNested}
+    type_definition.metric_anomaly.custom_evaluation_delay: {type: Int32}
+    type_definition.metric_anomaly.metric_filter: {type: SingleNested, required: true}
+    type_definition.metric_anomaly.metric_filter.promql: {type: String, required: true}
+    type_definition.metric_anomaly.percentage_of_deviation: {type: Float32}
+    type_definition.metric_anomaly.rules: {type: SetNested, required: true}
+    type_definition.metric_anomaly.rules[].condition: {type: SingleNested, required: true}
+    type_definition.metric_anomaly.rules[].condition.condition_type: {type: String, required: true}
+    type_definition.metric_anomaly.rules[].condition.for_over_pct: {type: Int64, required: true}
+    type_definition.metric_anomaly.rules[].condition.min_non_null_values_pct: {type: Int64, required: true}
+    type_definition.metric_anomaly.rules[].condition.of_the_last: {type: String, required: true}
+    type_definition.metric_anomaly.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.metric_threshold: {type: SingleNested}
+    type_definition.metric_threshold.custom_evaluation_delay: {type: Int32}
+    type_definition.metric_threshold.metric_filter: {type: SingleNested, required: true}
+    type_definition.metric_threshold.metric_filter.promql: {type: String, required: true}
+    type_definition.metric_threshold.missing_values: {type: SingleNested, required: true}
+    type_definition.metric_threshold.missing_values.min_non_null_values_pct: {type: Int64}
+    type_definition.metric_threshold.missing_values.replace_with_zero: {type: Bool}
+    type_definition.metric_threshold.no_data_policy: {type: SingleNested}
+    type_definition.metric_threshold.no_data_policy.auto_retire_seconds: {type: Int64}
+    type_definition.metric_threshold.no_data_policy.state: {type: String}
+    type_definition.metric_threshold.rules: {type: SetNested, required: true}
+    type_definition.metric_threshold.rules[].condition: {type: SingleNested, required: true}
+    type_definition.metric_threshold.rules[].condition.condition_type: {type: String, required: true}
+    type_definition.metric_threshold.rules[].condition.for_over_pct: {type: Int64, required: true}
+    type_definition.metric_threshold.rules[].condition.of_the_last: {type: String, required: true}
+    type_definition.metric_threshold.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.metric_threshold.rules[].override: {type: SingleNested, required: true}
+    type_definition.metric_threshold.rules[].override.priority: {type: String}
+    type_definition.metric_threshold.undetected_values_management: {type: SingleNested}
+    type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe: {type: String}
+    type_definition.metric_threshold.undetected_values_management.trigger_undetected_values: {type: Bool}
+    type_definition.slo_threshold: {type: SingleNested}
+    type_definition.slo_threshold.burn_rate: {type: SingleNested}
+    type_definition.slo_threshold.burn_rate.dual: {type: SingleNested}
+    type_definition.slo_threshold.burn_rate.dual.time_duration: {type: SingleNested, required: true}
+    type_definition.slo_threshold.burn_rate.dual.time_duration.duration: {type: Int64, required: true}
+    type_definition.slo_threshold.burn_rate.dual.time_duration.unit: {type: String, required: true}
+    type_definition.slo_threshold.burn_rate.rules: {type: ListNested, required: true}
+    type_definition.slo_threshold.burn_rate.rules[].condition: {type: SingleNested, required: true}
+    type_definition.slo_threshold.burn_rate.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.slo_threshold.burn_rate.rules[].override: {type: SingleNested, required: true}
+    type_definition.slo_threshold.burn_rate.rules[].override.priority: {type: String}
+    type_definition.slo_threshold.burn_rate.single: {type: SingleNested}
+    type_definition.slo_threshold.burn_rate.single.time_duration: {type: SingleNested, required: true}
+    type_definition.slo_threshold.burn_rate.single.time_duration.duration: {type: Int64, required: true}
+    type_definition.slo_threshold.burn_rate.single.time_duration.unit: {type: String, required: true}
+    type_definition.slo_threshold.error_budget: {type: SingleNested}
+    type_definition.slo_threshold.error_budget.rules: {type: ListNested, required: true}
+    type_definition.slo_threshold.error_budget.rules[].condition: {type: SingleNested, required: true}
+    type_definition.slo_threshold.error_budget.rules[].condition.threshold: {type: Float64, required: true}
+    type_definition.slo_threshold.error_budget.rules[].override: {type: SingleNested, required: true}
+    type_definition.slo_threshold.error_budget.rules[].override.priority: {type: String}
+    type_definition.slo_threshold.slo_definition: {type: SingleNested, required: true}
+    type_definition.slo_threshold.slo_definition.slo_id: {type: String, required: true}
+    type_definition.tracing_immediate: {type: SingleNested}
+    type_definition.tracing_immediate.notification_payload_filter: {type: Set(String)}
+    type_definition.tracing_immediate.tracing_filter: {type: SingleNested, required: true}
+    type_definition.tracing_immediate.tracing_filter.latency_threshold_ms: {type: Int64, required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters: {type: SingleNested, required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.application_name: {type: SetNested}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.application_name[].operation: {type: String}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.application_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.operation_name: {type: SetNested}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.operation_name[].operation: {type: String}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.operation_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.service_name: {type: SetNested}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.service_name[].operation: {type: String}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.service_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields: {type: SetNested}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields[].filter_type: {type: SingleNested}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields[].filter_type.operation: {type: String}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields[].filter_type.values: {type: Set(String), required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields[].key: {type: String, required: true}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.subsystem_name: {type: SetNested}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.subsystem_name[].operation: {type: String}
+    type_definition.tracing_immediate.tracing_filter.tracing_label_filters.subsystem_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_threshold: {type: SingleNested}
+    type_definition.tracing_threshold.notification_payload_filter: {type: Set(String)}
+    type_definition.tracing_threshold.rules: {type: SetNested, required: true}
+    type_definition.tracing_threshold.rules[].condition: {type: SingleNested, required: true}
+    type_definition.tracing_threshold.rules[].condition.condition_type: {type: String}
+    type_definition.tracing_threshold.rules[].condition.span_amount: {type: Float64, required: true}
+    type_definition.tracing_threshold.rules[].condition.time_window: {type: String, required: true}
+    type_definition.tracing_threshold.tracing_filter: {type: SingleNested, required: true}
+    type_definition.tracing_threshold.tracing_filter.latency_threshold_ms: {type: Int64, required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters: {type: SingleNested, required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name: {type: SetNested}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name[].operation: {type: String}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.operation_name: {type: SetNested}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.operation_name[].operation: {type: String}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.operation_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.service_name: {type: SetNested}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.service_name[].operation: {type: String}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.service_name[].values: {type: Set(String), required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields: {type: SetNested}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields[].filter_type: {type: SingleNested}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields[].filter_type.operation: {type: String}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields[].filter_type.values: {type: Set(String), required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields[].key: {type: String, required: true}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.subsystem_name: {type: SetNested}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.subsystem_name[].operation: {type: String}
+    type_definition.tracing_threshold.tracing_filter.tracing_label_filters.subsystem_name[].values: {type: Set(String), required: true}

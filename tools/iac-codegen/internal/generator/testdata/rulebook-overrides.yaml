@@ -21,5 +21,4 @@ enums:
   RulebookMode:
     zero: unspecified
     trimPrefix: RULEBOOK_MODE_
-    values: [RULEBOOK_MODE_ONE, RULEBOOK_MODE_TWO]
     aliases: {unspecified: one}

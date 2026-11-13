@@ -1,0 +1,109 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change parent_role",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Read-Only User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "n",
+      "parent_role": "Read-Only User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "body": {
+          "newDescription": "made with Terraform",
+          "newName": "n",
+          "newPermissions": {
+            "permissions": [
+              "spans.events2metrics:UpdateConfig"
+            ]
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "parent_role"
+    ],
+    "state": {
+      "description": "made with Terraform",
+      "id": "5001",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"parent_role\")"
+    ]
+  }
+]

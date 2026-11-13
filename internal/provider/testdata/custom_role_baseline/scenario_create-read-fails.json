@@ -1,0 +1,85 @@
+[
+  {
+    "step": "create: Get after Create answers 500",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1/5001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error refreshing updated coralogix_custom_role. State was not updated | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+    ],
+    "state": null
+  },
+  {
+    "step": "apply again",
+    "config": {
+      "description": "made with Terraform",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "plan": {
+      "description": "made with Terraform",
+      "id": "(unknown)",
+      "name": "n",
+      "parent_role": "Standard User",
+      "permissions": [
+        "spans.events2metrics:UpdateConfig"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/custom-roles/v1",
+        "body": {
+          "description": "made with Terraform",
+          "name": "n",
+          "parentRoleName": "Standard User",
+          "permissions": [
+            "spans.events2metrics:UpdateConfig"
+          ]
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_custom_role | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role n for team 700001 as it already exists.\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

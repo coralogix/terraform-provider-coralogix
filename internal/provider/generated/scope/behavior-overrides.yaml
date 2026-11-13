@@ -56,7 +56,6 @@ types:
 enums:
   v1.EntityType:
     zero: unspecified
-    values: [ENTITY_TYPE_LOGS, ENTITY_TYPE_SPANS]
     names:
       ENTITY_TYPE_LOGS: logs
       ENTITY_TYPE_SPANS: spans

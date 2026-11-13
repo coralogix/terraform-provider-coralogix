@@ -25,19 +25,34 @@ const (
 	TYPEDMODE_MODE_EXACT       TypedMode = "MODE_EXACT"
 )
 
+type TypedRounding string
+
+const (
+	TYPEDROUNDING_ROUNDING_UNSPECIFIED TypedRounding = "ROUNDING_UNSPECIFIED"
+	TYPEDROUNDING_ROUNDING_UP          TypedRounding = "ROUNDING_UP"
+	TYPEDROUNDING_ROUNDING_DOWN        TypedRounding = "ROUNDING_DOWN"
+)
+
 // Mode is an enum here and free text in TypedPercentile: the two arms share the attribute.
 type TypedAverage struct {
 	Field  *string
 	Mode   *TypedMode
 	Weight *float64
+	// AverageUnit and PercentileUnit are one attribute, unit.
+	AverageUnit *string
+	// Rounding is a second enum in the same arm as Mode: both are checked when the type is avg.
+	Rounding *TypedRounding
 }
 
 type TypedPercentile struct {
-	Field   *string
-	Mode    *string
-	Weight  *float64
-	Percent *float64
-	Bucket  *TypedBucket
+	Field          *string
+	Mode           *string
+	Weight         *float64
+	Percent        *float64
+	Bucket         *TypedBucket
+	PercentileUnit *string
+	// Rounding is free text here and an enum in TypedAverage: two shared fields with checks in one arm.
+	Rounding *string
 }
 
 // A oneOf: one arm is set. Count is an arm with no fields.
@@ -52,6 +67,11 @@ type TypedSpanField struct {
 	MetadataField   *TypedMetadataField
 	TagField        *string
 	ProcessTagField *string
+}
+
+// An object that holds one span field, as the field value of a query does.
+type TypedSpanValue struct {
+	Value *TypedSpanField
 }
 
 type TypedList struct {
@@ -88,29 +108,46 @@ type TypedOperator struct {
 	NotEquals *TypedNotEquals
 }
 
+type TypedPickList struct {
+	Values []string
+	Labels []string
+}
+
+// A oneOf: All has no fields, List has a list of values.
+type TypedPick struct {
+	All  map[string]interface{}
+	List *TypedPickList
+}
+
 type TypedThing struct {
+	Pick        *TypedPick
 	Id          *string
 	Name        *string
 	Aggregation *TypedAggregation
 	Selection   *TypedSelection
 	Operator    *TypedOperator
 	Fields      []TypedSpanField
+	SpanValue   *TypedSpanValue
 }
 
 type CreateTypedThingBody struct {
+	Pick        *TypedPick
 	Name        *string
 	Aggregation *TypedAggregation
 	Selection   *TypedSelection
 	Operator    *TypedOperator
 	Fields      []TypedSpanField
+	SpanValue   *TypedSpanValue
 }
 
 type ReplaceTypedThingBody struct {
+	Pick        *TypedPick
 	Name        *string
 	Aggregation *TypedAggregation
 	Selection   *TypedSelection
 	Operator    *TypedOperator
 	Fields      []TypedSpanField
+	SpanValue   *TypedSpanValue
 }
 
 type CreateTypedThingResponse struct {
@@ -177,16 +214,16 @@ func (r ApiTypedThingsServiceReplaceTypedThingRequest) ReplaceTypedThingBody(rep
 	return r
 }
 
-func store(name *string, aggregation *TypedAggregation, selection *TypedSelection, operator *TypedOperator, fields []TypedSpanField) *TypedThing {
+func store(name *string, aggregation *TypedAggregation, selection *TypedSelection, pick *TypedPick, operator *TypedOperator, fields []TypedSpanField, spanValue *TypedSpanValue) *TypedThing {
 	id := "thing-1"
-	Stored = TypedThing{Id: &id, Name: name, Aggregation: aggregation, Selection: selection, Operator: operator, Fields: fields}
+	Stored = TypedThing{Id: &id, Name: name, Aggregation: aggregation, Selection: selection, Pick: pick, Operator: operator, Fields: fields, SpanValue: spanValue}
 	stored := Stored
 	return &stored
 }
 
 func (r ApiTypedThingsServiceCreateTypedThingRequest) Execute() (*CreateTypedThingResponse, *http.Response, error) {
 	Created = append(Created, r.body)
-	return &CreateTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Selection, r.body.Operator, r.body.Fields)}, nil, nil
+	return &CreateTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Selection, r.body.Pick, r.body.Operator, r.body.Fields, r.body.SpanValue)}, nil, nil
 }
 
 func (r ApiTypedThingsServiceGetTypedThingRequest) Execute() (*GetTypedThingResponse, *http.Response, error) {
@@ -196,7 +233,7 @@ func (r ApiTypedThingsServiceGetTypedThingRequest) Execute() (*GetTypedThingResp
 
 func (r ApiTypedThingsServiceReplaceTypedThingRequest) Execute() (*ReplaceTypedThingResponse, *http.Response, error) {
 	Replaced = append(Replaced, r.body)
-	return &ReplaceTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Selection, r.body.Operator, r.body.Fields)}, nil, nil
+	return &ReplaceTypedThingResponse{Thing: store(r.body.Name, r.body.Aggregation, r.body.Selection, r.body.Pick, r.body.Operator, r.body.Fields, r.body.SpanValue)}, nil, nil
 }
 
 func (ApiTypedThingsServiceDeleteTypedThingRequest) Execute() (map[string]interface{}, *http.Response, error) {

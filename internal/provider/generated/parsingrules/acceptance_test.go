@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
@@ -316,6 +317,60 @@ func TestAccCoralogixResourceParsingRulesGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
+}
+
+// TestFailurePathsParsingRulesGenerated checks, without a tenant, what the resource does when the API
+// fails: a local server answers every request with an error (failpaths.Run). It needs no API key.
+func TestFailurePathsParsingRulesGenerated(t *testing.T) {
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Skipf("%s is not set: the test config reads it", name)
+		}
+	}
+	failpaths.Run(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_parsing_rules",
+		IDAttr:         "id",
+		Config:         render("failure-paths", minimalConfig),
+	})
+}
+
+// TestConfigsValidateParsingRulesGenerated checks, without a tenant and without an API key, that the
+// schema accepts every config of this file: the values of an enum, the fields that a oneOf holds
+// together, and the rules between fields (failpaths.ValidateConfigs). The API is not called, so a
+// value that only the API refuses fails in the acceptance tests.
+func TestConfigsValidateParsingRulesGenerated(t *testing.T) {
+	pairs := []string{"@{run}", "acc-offline"}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", "offline")
+	}
+	offline := strings.NewReplacer(pairs...)
+	failpaths.ValidateConfigs(t, failpaths.Spec{
+		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
+		TypeName:       "coralogix_parsing_rules",
+	}, map[string]string{
+		"full":     offline.Replace(fullConfig),
+		"updated":  offline.Replace(updatedConfig),
+		"minimal":  offline.Replace(minimalConfig),
+		"variant1": offline.Replace(variant1Config),
+	})
 }
 
 const (
@@ -407,3 +462,271 @@ func TestAccCoralogixResourceParsingRulesGeneratedUpgrade(t *testing.T) {
 		})
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_parsing_rules" "test" {
+  creator = "@{run}-creator"
+  description = "@{run}-description"
+  active = false
+  hidden = true
+  name = "@{run}-name"
+  applications = ["@{run}-applications"]
+  severities = ["verbose"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          extract_timestamp = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            time_format = "@{run}-time_format"
+            field_format_standard = "javaSDF"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-2"
+            active = true
+            name = "@{run}-name-2"
+            destination_field = "class"
+            json_key = "@{run}-json_key-2"
+          }
+        },
+        {
+          extract = {
+            description = "@{run}-description-3"
+            active = true
+            name = "@{run}-name-3"
+            source_field = "text"
+            regular_expression = "@{run}-regular_expression-3"
+          }
+        },
+        {
+          parse_json_field = {
+            description = "@{run}-description-4"
+            active = true
+            name = "@{run}-name-4"
+            source_field = "text"
+            keep_source_field = true
+            destination_field = "text"
+            keep_destination_field = true
+          }
+        },
+        {
+          json_stringify = {
+            description = "@{run}-description-5"
+            active = true
+            name = "@{run}-name-5"
+            source_field = "text"
+            keep_source_field = true
+            destination_field = "text"
+          }
+        },
+        {
+          parse = {
+            description = "@{run}-description-6"
+            active = true
+            name = "@{run}-name-6"
+            source_field = "text"
+            destination_field = "text"
+            regular_expression = "@{run}-regular_expression-6"
+          }
+        },
+        {
+          remove_fields = {
+            description = "@{run}-description-7"
+            active = true
+            name = "@{run}-name-7"
+            excluded_fields = ["@{run}-excluded_fields"]
+          }
+        },
+        {
+          replace = {
+            description = "@{run}-description-8"
+            active = true
+            name = "@{run}-name-8"
+            source_field = "text"
+            destination_field = "text"
+            replacement_string = "@{run}-replacement_string-8"
+            regular_expression = "@{run}-regular_expression-8"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-9"
+            active = true
+            name = "@{run}-name-9"
+            source_field = "text"
+            time_format = "@{run}-time_format-9"
+            field_format_standard = "golang"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-10"
+            active = true
+            name = "@{run}-name-10"
+            source_field = "text"
+            time_format = "@{run}-time_format-10"
+            field_format_standard = "secondTS"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-11"
+            active = true
+            name = "@{run}-name-11"
+            source_field = "text"
+            time_format = "@{run}-time_format-11"
+            field_format_standard = "milliTS"
+          }
+        },
+        {
+          extract_timestamp = {
+            description = "@{run}-description-12"
+            active = true
+            name = "@{run}-name-12"
+            source_field = "text"
+            time_format = "@{run}-time_format-12"
+            field_format_standard = "microTS"
+          }
+        },
+      ]
+    },
+    {
+      active = true
+      rules = [
+        {
+          extract_timestamp = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            time_format = "@{run}-time_format"
+            field_format_standard = "nanoTS"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-2"
+            active = true
+            name = "@{run}-name-2"
+            destination_field = "method"
+            json_key = "@{run}-json_key-2"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-3"
+            active = true
+            name = "@{run}-name-3"
+            destination_field = "threadID"
+            json_key = "@{run}-json_key-3"
+          }
+        },
+        {
+          json_extract = {
+            description = "@{run}-description-4"
+            active = true
+            name = "@{run}-name-4"
+            destination_field = "severity"
+            json_key = "@{run}-json_key-4"
+          }
+        },
+      ]
+    },
+  ]
+}
+
+resource "coralogix_parsing_rules" "test_2" {
+  creator = "@{run}-creator-2"
+  description = "@{run}-description-2"
+  active = false
+  hidden = true
+  name = "@{run}-name-2"
+  applications = ["@{run}-applications"]
+  severities = ["info"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          block = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            keep_blocked_logs = false
+            regular_expression = "@{run}-regular_expression"
+            block_all_matching_blocks = true
+          }
+        },
+      ]
+    },
+  ]
+}
+
+resource "coralogix_parsing_rules" "test_3" {
+  creator = "@{run}-creator-3"
+  description = "@{run}-description-3"
+  active = false
+  hidden = true
+  name = "@{run}-name-3"
+  applications = ["@{run}-applications"]
+  severities = ["warning"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          block = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            keep_blocked_logs = false
+            regular_expression = "@{run}-regular_expression"
+            block_all_matching_blocks = true
+          }
+        },
+      ]
+    },
+  ]
+}
+
+resource "coralogix_parsing_rules" "test_4" {
+  creator = "@{run}-creator-4"
+  description = "@{run}-description-4"
+  active = false
+  hidden = true
+  name = "@{run}-name-4"
+  applications = ["@{run}-applications"]
+  severities = ["error"]
+  subsystems = ["@{run}-subsystems"]
+  rule_subgroups = [
+    {
+      active = true
+      rules = [
+        {
+          block = {
+            description = "@{run}-description"
+            active = true
+            name = "@{run}-name"
+            source_field = "text"
+            keep_blocked_logs = false
+            regular_expression = "@{run}-regular_expression"
+            block_all_matching_blocks = true
+          }
+        },
+      ]
+    },
+  ]
+}`

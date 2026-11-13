@@ -3,6 +3,7 @@ package configthing
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -965,6 +967,199 @@ func TestExtraObjectKeepsTheObjectOfThePlan(t *testing.T) {
 		}
 		if got := at(t, state.Raw, "schedule"); !got.Equal(test.want) {
 			t.Errorf("%s: schedule = %v, want %v", name, got, test.want)
+		}
+	}
+}
+
+func number(v float64) types.Number { return types.NumberValue(big.NewFloat(v)) }
+
+// A float32 field is a Float64 attribute, and an int32 and a double field are Number attributes, as
+// the released resource had them. Each value goes to the API as the type that the API holds and
+// reads back as the value that the configuration has: set, change, remove, and import.
+func TestFloatAndNumberAttributesKeepTheReleasedTypes(t *testing.T) {
+	ctx := context.Background()
+	var schemaResp frameworkresource.SchemaResponse
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	for name, want := range map[string]tftypes.Type{"ratio": tftypes.Number, "retries": tftypes.Number, "scale": tftypes.Number} {
+		if got := objectType.AttributeTypes[name]; !got.Equal(want) {
+			t.Fatalf("%s has the type %v, want %v", name, got, want)
+		}
+	}
+	if _, ok := schemaResp.Schema.Attributes["ratio"].(schema.Float64Attribute); !ok {
+		t.Fatalf("ratio is %T, want a Float64Attribute", schemaResp.Schema.Attributes["ratio"])
+	}
+
+	set := &ConfigThingModel{Ratio: types.Float64Value(0.3), Retries: number(5), Scale: number(2.5)}
+	req, diags := expandCreate(ctx, set)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if req.Ratio == nil || *req.Ratio != float32(0.3) || req.Retries == nil || *req.Retries != 5 || req.Scale == nil || *req.Scale != 2.5 {
+		t.Fatalf("request = %+v, want 0.3, 5, 2.5", req)
+	}
+
+	// The API holds the float32 0.3, which is 0.30000001192092896 as a float64: it reads back as 0.3.
+	api := &config_things_service.ConfigThing{Id: "thing-1", Ratio: req.Ratio, Retries: req.Retries, Scale: req.Scale}
+	for name, prior := range map[string]*ConfigThingModel{"with the prior": set, "import, no prior": nil} {
+		got, diags := flatten(ctx, api, prior)
+		if diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		if !got.Ratio.Equal(set.Ratio) || !got.Retries.Equal(set.Retries) || !got.Scale.Equal(set.Scale) {
+			t.Errorf("%s: read %v, %v, %v, want %v, %v, %v", name, got.Ratio, got.Retries, got.Scale, set.Ratio, set.Retries, set.Scale)
+		}
+	}
+
+	// A configured value that the API stores as another float32 stays as configured.
+	long := float32(0.123456789)
+	got, diags := flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1", Ratio: &long}, &ConfigThingModel{Ratio: types.Float64Value(0.123456789)})
+	if diags.HasError() || got.Ratio.ValueFloat64() != 0.123456789 {
+		t.Errorf("ratio = %v, %v, want the configured 0.123456789 to stay", got.Ratio, diags)
+	}
+
+	// Remove: a null value sends nothing, and an absent value reads as null. So does an unknown one.
+	for name, m := range map[string]*ConfigThingModel{
+		"null":    {Ratio: types.Float64Null(), Retries: types.NumberNull(), Scale: types.NumberNull()},
+		"unknown": {Ratio: types.Float64Unknown(), Retries: types.NumberUnknown(), Scale: types.NumberUnknown()},
+	} {
+		req, diags := expandCreate(ctx, m)
+		if diags.HasError() || req.Ratio != nil || req.Retries != nil || req.Scale != nil {
+			t.Errorf("%s: request = %+v, %v, want no value", name, req, diags)
+		}
+	}
+	got, diags = flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1"}, set)
+	if diags.HasError() || !got.Ratio.IsNull() || !got.Retries.IsNull() || !got.Scale.IsNull() {
+		t.Errorf("read = %v, %v, %v, %v, want null", got.Ratio, got.Retries, got.Scale, diags)
+	}
+}
+
+// Terraform parses a decimal such as 0.1 with more bits than a double holds. The API stores the
+// double, and reading it back as a double would plan one number and store another, which fails the
+// apply (inconsistent result) and shows a diff on every plan. A Number that rounds to the stored
+// double stays as configured. The test builds the number from text, as Terraform does, and not
+// from a double.
+func TestDoubleNumberKeepsTheConfiguredDecimal(t *testing.T) {
+	ctx := context.Background()
+	decimal := func(text string) types.Number {
+		f, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return types.NumberValue(f)
+	}
+	for _, text := range []string{"0.1", "2.5", "0.123456789012345678901"} {
+		configured := decimal(text)
+		req, diags := expandCreate(ctx, &ConfigThingModel{Scale: configured})
+		if diags.HasError() || req.Scale == nil {
+			t.Fatalf("%s: expand = %v, %v", text, req, diags)
+		}
+		api := &config_things_service.ConfigThing{Id: "thing-1", Scale: req.Scale}
+		got, diags := flatten(ctx, api, &ConfigThingModel{Scale: configured})
+		if diags.HasError() {
+			t.Fatalf("%s: %v", text, diags)
+		}
+		if !got.Scale.Equal(configured) {
+			t.Errorf("%s: read %v, want the configured %v to stay", text, got.Scale.ValueBigFloat().Text('g', 30), configured.ValueBigFloat().Text('g', 30))
+		}
+		// Import has no prior: the state takes the double of the API, which the next plan shows.
+		imported, diags := flatten(ctx, api, nil)
+		if diags.HasError() || imported.Scale.IsNull() {
+			t.Fatalf("%s: import read = %v, %v", text, imported.Scale, diags)
+		}
+	}
+
+	// A configured value that is another double than the API's changes the state.
+	other := 0.2
+	got, diags := flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1", Scale: &other}, &ConfigThingModel{Scale: decimal("0.1")})
+	if diags.HasError() || got.Scale.Equal(decimal("0.1")) {
+		t.Errorf("read = %v, %v, want the API value 0.2, not the prior", got.Scale, diags)
+	}
+}
+
+// An int32 Number holds a whole number in the int32 range. Another value is an error at apply, not
+// a cut value that reads back as another number.
+func TestNumberOverAnInt32RejectsWhatTheAPICannotHold(t *testing.T) {
+	for name, v := range map[string]float64{"a fraction": 2.5, "too large": 3e10, "too small": -3e10} {
+		if _, diags := expandCreate(context.Background(), &ConfigThingModel{Retries: number(v)}); !diags.HasError() {
+			t.Errorf("%s: no error for %v", name, v)
+		}
+	}
+}
+
+// validationErrors validates the config of the resource and returns the errors as one text.
+func validationErrors(t *testing.T, objectType tftypes.Object, server tfprotov6.ProviderServer, config tftypes.Value) string {
+	t.Helper()
+	resp, err := server.ValidateResourceConfig(context.Background(), &tfprotov6.ValidateResourceConfigRequest{
+		TypeName: "test_config_thing", Config: encodeValue(t, objectType, config),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got string
+	for _, d := range resp.Diagnostics {
+		if d.Severity == tfprotov6.DiagnosticSeverityError {
+			got += d.Summary + " " + d.Detail + " " + fmt.Sprint(d.Attribute)
+		}
+	}
+	return got
+}
+
+// A marker bool accepts true, and rejects a configured false at plan. A value that is not set is
+// no error.
+func TestEqualsTrueRejectsFalseAtPlan(t *testing.T) {
+	server, objectType := protocolServer(t)
+	tests := map[string]struct {
+		marker tftypes.Value
+		bad    bool
+	}{
+		"true":    {tftypes.NewValue(tftypes.Bool, true), false},
+		"false":   {tftypes.NewValue(tftypes.Bool, false), true},
+		"not set": {tftypes.NewValue(tftypes.Bool, nil), false},
+		"unknown": {tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue), false},
+	}
+	for name, test := range tests {
+		got := validationErrors(t, objectType, server, withNulls(objectType, map[string]tftypes.Value{"name": str("n"), "marker": test.marker}))
+		if (got != "") != test.bad {
+			t.Errorf("%s: errors %q, want an error: %v", name, got, test.bad)
+		}
+	}
+	// The bool reads back as set, so the second plan has no change.
+	true_ := true
+	got, diags := flatten(context.Background(), &config_things_service.ConfigThing{Id: "thing-1", Marker: &true_}, &ConfigThingModel{Marker: types.BoolValue(true)})
+	if diags.HasError() || !got.Marker.ValueBool() {
+		t.Errorf("marker = %v, %v, want true", got.Marker, diags)
+	}
+}
+
+// The selector attributes need the name of their remote, which is an attribute of the object above
+// the selector: the target "../name" goes up one level.
+func TestAlsoRequiresReachesAnAttributeAboveTheParent(t *testing.T) {
+	server, objectType := protocolServer(t)
+	remoteType := objectType.AttributeTypes["remotes"].(tftypes.List).ElementType.(tftypes.Object)
+	selectorType := remoteType.AttributeTypes["selector"].(tftypes.Object)
+	remote := func(name tftypes.Value, attributes tftypes.Value) tftypes.Value {
+		return withNulls(objectType, map[string]tftypes.Value{"name": str("n"), "remotes": tftypes.NewValue(tftypes.List{ElementType: remoteType}, []tftypes.Value{
+			tftypes.NewValue(remoteType, map[string]tftypes.Value{
+				"name": name, "raw_configuration": str(inlineYAML), "id": tftypes.NewValue(tftypes.String, nil), "hash": tftypes.NewValue(tftypes.String, nil),
+				"selector": tftypes.NewValue(selectorType, map[string]tftypes.Value{"attributes": attributes}),
+			}),
+		})})
+	}
+	attrs := tftypes.NewValue(selectorType.AttributeTypes["attributes"], map[string]tftypes.Value{"app": str("web")})
+	noAttrs := tftypes.NewValue(selectorType.AttributeTypes["attributes"], nil)
+	tests := map[string]struct {
+		config tftypes.Value
+		bad    bool
+	}{
+		"both set":         {remote(str("collector"), attrs), false},
+		"attributes alone": {remote(tftypes.NewValue(tftypes.String, nil), attrs), true},
+		"name alone":       {remote(str("collector"), noAttrs), false},
+	}
+	for name, test := range tests {
+		got := validationErrors(t, objectType, server, test.config)
+		if (got != "") != test.bad || test.bad && !strings.Contains(got, "name") {
+			t.Errorf("%s: errors %q, want an error naming the remote name: %v", name, got, test.bad)
 		}
 	}
 }

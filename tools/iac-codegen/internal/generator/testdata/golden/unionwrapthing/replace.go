@@ -28,6 +28,7 @@ var updateFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "description", serverDefault: false},
 	{attr: "kind", serverDefault: false},
+	{attr: "items", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

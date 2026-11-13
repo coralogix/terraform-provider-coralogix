@@ -359,6 +359,17 @@ func Flatten(ctx context.Context, v *group_set_things_service.GroupSetThing) (*G
 	return flatten(ctx, v)
 }
 
+// Expand returns what Create sends in the place of the resource, for a hook that has to build the
+// request itself, such as a check of the plan before the write. It is the same conversion that
+// Create uses: a null or unknown value is left out, and a field that the generator adds later is
+// in it with no edit of the hook. When the Create body holds the resource in one field, Expand
+// returns that resource, as the API response has it, and not the body.
+func Expand(ctx context.Context, m *GroupSetThingModel) (*group_set_things_service.CreateGroupSetThing, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	out := expandCreateGroupSetThing(ctx, path.Empty(), m, &diags)
+	return out, diags
+}
+
 // UpgradeState upgrades the state of an older schema version. The prior schema only decodes the
 // old state. The upgrader reads the resource from the API, so it does not translate any value.
 func (r *Resource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {

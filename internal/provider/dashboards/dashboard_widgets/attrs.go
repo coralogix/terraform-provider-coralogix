@@ -26,17 +26,6 @@ func SpansFieldModelAttr() map[string]attr.Type {
 	}
 }
 
-func GroupingAggregationModelAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"id":         types.StringType,
-		"name":       types.StringType,
-		"is_visible": types.BoolType,
-		"aggregation": types.ObjectType{
-			AttrTypes: AggregationModelAttr(),
-		},
-	}
-}
-
 func AggregationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"type":              types.StringType,
@@ -52,13 +41,6 @@ func FilterSourceModelAttr() map[string]attr.Type {
 		"metrics": types.ObjectType{AttrTypes: filterSourceMetricsModelAttr()},
 		"spans":   types.ObjectType{AttrTypes: filterSourceSpansModelAttr()},
 	}
-}
-
-// TopLevelFilterSourceModelAttr matches TopLevelFilterSourceSchema.
-func TopLevelFilterSourceModelAttr() map[string]attr.Type {
-	attributes := FilterSourceModelAttr()
-	attributes["spans"] = types.ObjectType{AttrTypes: SpansObservationFilterModelAttr()}
-	return attributes
 }
 
 func LogsFilterModelAttr() map[string]attr.Type {
