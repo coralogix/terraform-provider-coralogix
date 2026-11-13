@@ -163,7 +163,7 @@ func (h inliner) inlineCreateAndUpdate(root *yaml.Node, component string, ids mo
 			return nil, issue.Report{inlineIssue(component, op.name+": "+errs[op.id].Error())}
 		}
 	}
-	if !r.Replace {
+	if !r.Replace && len(parents[r.Update.OperationID]) != 0 {
 		return nil, issue.Report{inlineIssue(component, fmt.Sprintf("inline needs an Update that sends the whole resource, a PUT or the Set call of an upsert, but %s is %s with an update mask: the mask names API fields, and an inlined field is inside its object in the API", r.Update.OperationID, r.Update.Method))}
 	}
 	shape.Create, shape.Update = parents[r.Create.OperationID], parents[r.Update.OperationID]

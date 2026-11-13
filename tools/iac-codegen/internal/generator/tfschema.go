@@ -984,6 +984,13 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return expr, nil
 	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
+	case v.SizeAtMost != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
+		return fmt.Sprintf("%s.SizeAtMost(%d)", pkg, *v.SizeAtMost), nil
+	case v.ValuesAre != nil && (a.ValueKind == "List" || a.ValueKind == "Set") && a.ElementType == "types.StringType":
+		// Each element of a list or set of strings must satisfy the length limits.
+		return fmt.Sprintf("%s.ValueStringsAre(stringvalidator.LengthBetween(%d, %d))", pkg, v.ValuesAre.LengthBetween[0], v.ValuesAre.LengthBetween[1]), nil
+	case len(v.LengthBetween) == 2 && a.ValueKind == "String":
+		return fmt.Sprintf("stringvalidator.LengthBetween(%d, %d)", v.LengthBetween[0], v.LengthBetween[1]), nil
 	case v.LengthAtLeast != nil && a.ValueKind == "String":
 		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
 	case v.LengthAtMost != nil && a.ValueKind == "String":
