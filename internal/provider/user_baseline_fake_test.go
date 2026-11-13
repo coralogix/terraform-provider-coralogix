@@ -66,6 +66,8 @@ type userFake struct {
 	createMode string
 	// updateOmitUsers makes a successful update answer without the users.
 	updateOmitUsers bool
+	// deactivateWithoutResponse deactivates users, then answers without the users field.
+	deactivateWithoutResponse bool
 }
 
 func newUserFake(t *testing.T) *userFake {
@@ -373,6 +375,9 @@ func (f *userFake) update(body any) (int, any) {
 		}
 		accountIDs = append(accountIDs, user["userAccountId"])
 		updated = append(updated, copyUser(user))
+	}
+	if f.deactivateWithoutResponse {
+		return http.StatusOK, map[string]any{"userAccountIds": accountIDs}
 	}
 	if f.updateOmitUsers {
 		return http.StatusOK, map[string]any{}

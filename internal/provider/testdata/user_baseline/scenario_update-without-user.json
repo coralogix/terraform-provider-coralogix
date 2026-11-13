@@ -120,5 +120,82 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     }
+  },
+  {
+    "step": "refresh after the failed update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "drift": [
+      "AttributeName(\"name\").AttributeName(\"family_name\")",
+      "AttributeName(\"name\").AttributeName(\"given_name\")"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "apply the rename again after refresh",
+    "config": {
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "noChange": true,
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
   }
 ]

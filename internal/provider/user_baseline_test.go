@@ -371,7 +371,8 @@ var userScenarios = map[string]func(h *grHarness){
 		if !h.users().omitID(idOf(s)) {
 			h.t.Fatal("the fake did not have the created user")
 		}
-		h.RefreshPlan("refresh: SearchUsers returns the user without userId", s)
+		s = h.RefreshPlan("refresh: SearchUsers returns the user without userId", s)
+		h.Apply("apply the same config again: the user still exists but has no id", s, userConfig(userA, j{"name": userTestName}))
 	},
 	"update-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
@@ -440,11 +441,20 @@ var userScenarios = map[string]func(h *grHarness){
 		h.users().updateStatus = 500
 		h.Destroy("destroy: the PUT answers 500", s)
 	},
+	"delete-deactivates-without-response-user": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().deactivateWithoutResponse = true
+		// Destroy never recovers: it errors even when the user is already inactive.
+		h.Destroy("destroy: the PUT deactivates but omits the user response", s)
+		h.Destroy("destroy again: the user is already inactive", s)
+	},
 	"update-without-user": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		// The PUT answers 200 but not with the user, so the write may or may not have happened.
 		h.users().updateOmitUsers = true
-		h.Apply("update: the PUT answers 200 without the user", s, userConfig(userA, j{"name": userRenamedName}))
+		s = h.Apply("update: the PUT answers 200 without the user", s, userConfig(userA, j{"name": userRenamedName}))
+		s = h.RefreshPlan("refresh after the failed update", s)
+		h.Apply("apply the rename again after refresh", s, userConfig(userA, j{"name": userRenamedName}))
 	},
 	"create-already-exists": func(h *grHarness) {
 		h.users().seed(j{"username": userA, "firstName": "Existing"})
