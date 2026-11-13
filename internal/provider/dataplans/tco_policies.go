@@ -53,7 +53,7 @@ func NewTCOPoliciesLogsDataSource() datasource.DataSource {
 // NewTCOPoliciesTracesResource returns coralogix_tco_policies_traces, which is generated from the
 // API contract (internal/provider/generated/tcopoliciestraces).
 func NewTCOPoliciesTracesResource() resource.Resource {
-	return tcopoliciestraces.NewResource(tcopoliciestraces.Hooks{ValidateConfig: warnMultiValueRules})
+	return tcopoliciestraces.NewResource(tcopoliciestraces.Hooks{ValidateConfig: rejectMultiValueRules})
 }
 
 func NewTCOPoliciesTracesDataSource() datasource.DataSource {
@@ -63,7 +63,7 @@ func NewTCOPoliciesTracesDataSource() datasource.DataSource {
 // NewTCOPoliciesRumResource returns coralogix_tco_policies_rum, which is generated from the API
 // contract (internal/provider/generated/tcopoliciesrum).
 func NewTCOPoliciesRumResource() resource.Resource {
-	return tcopoliciesrum.NewResource(tcopoliciesrum.Hooks{ValidateConfig: warnMultiValueRules})
+	return tcopoliciesrum.NewResource(tcopoliciesrum.Hooks{ValidateConfig: rejectMultiValueRules})
 }
 
 func NewTCOPoliciesRumDataSource() datasource.DataSource {
@@ -75,7 +75,7 @@ func NewTCOPoliciesRumDataSource() datasource.DataSource {
 // the policy or on its targets, never both. A policy with its own priority or override therefore
 // has targets that the API made, which the released resource reads as null.
 var tcoPoliciesLogsHooks = tcopolicieslogs.Hooks{
-	ValidateConfig: warnMultiValueRules,
+	ValidateConfig: rejectMultiValueRules,
 	BeforeFlatten: func(_ context.Context, v *tcoPolicys.GetCompanyPoliciesResponse) diag.Diagnostics {
 		for i := range v.Policies {
 			p := &v.Policies[i]
@@ -87,9 +87,10 @@ var tcoPoliciesLogsHooks = tcopolicieslogs.Hooks{
 	},
 }
 
-// warnMultiValueRules warns about an applications or subsystems rule of type starts_with or
-// includes with more than one name: the API matches only one value for those types.
-func warnMultiValueRules(ctx context.Context, config tfsdk.Config) diag.Diagnostics {
+// rejectMultiValueRules rejects an applications or subsystems rule of type starts_with or includes
+// with more than one name. The API matches one value for those types, so it would receive the names
+// joined with commas as one literal value, which is not what the configuration says.
+func rejectMultiValueRules(ctx context.Context, config tfsdk.Config) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var policies types.List
 	diags.Append(config.GetAttribute(ctx, path.Root("policies"), &policies)...)
@@ -110,10 +111,10 @@ func warnMultiValueRules(ctx context.Context, config tfsdk.Config) diag.Diagnost
 			names, _ := rule.Attributes()["names"].(types.Set)
 			kind := ruleType.ValueString()
 			if (kind == "starts_with" || kind == "includes") && len(names.Elements()) > 1 {
-				diags.AddAttributeWarning(
+				diags.AddAttributeError(
 					path.Root("policies").AtListIndex(i).AtName(attribute),
-					"Conflicting Attributes Values Configuration",
-					fmt.Sprintf("Currently, rule_type \"%s\" supports only one value, but \"names\" has %d elements. Remove all but one to remove this warning.", kind, len(names.Elements())),
+					"Invalid Attribute Combination",
+					fmt.Sprintf("rule_type %q matches a single value, but \"names\" has %d elements: the API would receive them joined with commas as one value. Keep one element, or use rule_type \"is\" or \"is_not\" to match several values.", kind, len(names.Elements())),
 				)
 			}
 		}

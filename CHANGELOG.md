@@ -57,10 +57,11 @@
 - FIX: The data source accepts `name = ""` and finds the role with the empty name, which the API allows. Before, it failed with `id or name must be provided`.
 
 #### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
-- DOCS: `names` of a rule now has a description. With the rule types `starts_with` and `includes` the API matches one value, so set one element: more elements reach the API as one comma-joined value. The provider still only warns about this, as before.
+- BREAKING: An `applications` or `subsystems` rule of type `starts_with` or `includes` with more than one element in `names` is an error at plan time. Before, it was a warning, and the API got the names joined with commas as one value (`one,two`), so the policy matched that literal text and not `one` or `two`. Keep one element, or use `is` or `is_not` to match several values. Rules of `services`, `actions`, and `tags` are not checked.
+- DOCS: `names` of a rule has a description.
 
 #### data-source/coralogix_tco_policies_logs, data-source/coralogix_tco_policies_traces, data-source/coralogix_tco_policies_rum
-- DOCS: Same description for `names` as on the resources.
+- DOCS: `names` of a rule has a description.
 
 # Release 3.25.0
 
