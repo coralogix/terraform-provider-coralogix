@@ -91,7 +91,14 @@ func TestFlatThingNewKeysAreChecked(t *testing.T) {
 		replacements []string
 		want         string
 	}{
-		{"a mask path that an attribute has already", []string{"maskPaths: [allowed, denied, samples]", "maskPaths: [name]"}, `puts in the update mask already`},
+		{"a mask path that an attribute has already", []string{"maskPaths: [allowed, denied, samples]", "maskPaths: [name]"}, "needs a line with skip: true"},
+		{"a mask path that is not a field of the resource", []string{"maskPaths: [allowed, denied, samples]", "maskPaths: [allowed, denied, sampless]"}, `names "sampless"`},
+		{"a mask path that is no plain field name", []string{"maskPaths: [allowed, denied, samples]", "maskPaths: [allowed.x]"}, "no plain field name"},
+		{"a mask path with no update mask", []string{"afterFlatten: true\n", "afterFlatten: true\nupdateMask: omit\n"}, "updateMask: omit sends none"},
+		{"a set of objects on a nested type", []string{"types:\n  FlatThing:\n", "types:\n  FlatThingSample:\n    extraAttributes:\n      more:\n        type: set\n        optional: true\n        computed: true\n        default: []\n        markdownDescription: x\n        attributes:\n          n: {type: string, required: true, markdownDescription: x}\n  FlatThing:\n"}, "applies to an attribute of the resource"},
+		{"a set of objects inside an object", []string{"          accepted:\n            type: object\n", "          inner:\n            type: set\n            optional: true\n            computed: true\n            default: []\n            markdownDescription: x\n            attributes:\n              n: {type: string, required: true, markdownDescription: x}\n          accepted:\n            type: object\n"}, "cannot be a set of objects"},
+		{"a set default with an element", []string{"        default: []\n        validators:\n          - sizeAtMost: 1024", "        default: [x]\n        validators:\n          - sizeAtMost: 1024"}, "must be empty"},
+		{"a default outside lengthBetween", []string{"lengthBetween: [0, 65536]", "lengthBetween: [1, 65536]"}, "lengthBetween"},
 		{"a repeated mask path", []string{"maskPaths: [allowed, denied, samples]", "maskPaths: [allowed, allowed]"}, "empty or repeated path"},
 		{"a mask path with inUpdate", []string{"maskPaths: [allowed, denied, samples]", "maskPaths: [allowed]\n        inUpdate: true"}, "cannot be combined with inUpdate"},
 		{"a mask path inside an object", []string{"            markdownDescription: \"Accepted criteria.\"", "            maskPaths: [allowed]\n            markdownDescription: \"Accepted criteria.\""}, "cannot be dynamic, writeOnly, inUpdate, or have maskPaths"},

@@ -78,6 +78,9 @@ func attachOneExtra(out *tfResource, file *overrides.File, component string, mod
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", location, err)
 	}
+	if extra.IsSetOfObjects() && component != file.Resource {
+		return false, fmt.Errorf("%s: a set of objects applies to an attribute of the resource %s", location, file.Resource)
+	}
 	computed := extra.Computed || extra.Type == "object" || extra.IsSetOfObjects()
 	if component == file.Resource {
 		out.Attributes = append(out.Attributes, attribute)
@@ -155,6 +158,15 @@ func configureExtraAttribute(attribute *tfAttr, extra overrides.ExtraAttribute, 
 			quoted[i] = fmt.Sprintf("%q", value)
 		}
 		attribute.Validators = append(attribute.Validators, "setvalidator.ValueStringsAre(stringvalidator.OneOf("+strings.Join(quoted, ", ")+"))")
+	}
+	if text, ok := extra.Default.(string); ok && extra.Type == "string" {
+		// The released default must pass the released validators, or no configuration that omits
+		// the attribute would validate.
+		for _, validator := range extra.Validators {
+			if err := checkStringValidator(validator, text, "default"); err != nil {
+				return err
+			}
+		}
 	}
 	if extra.Default != nil {
 		attribute.DefaultRaw = extra.Default
@@ -237,8 +249,8 @@ func attachExtraBehavior(out *tfResource, resource, component, name string, extr
 		if component != resource {
 			return fmt.Errorf("%s: maskPaths applies to an attribute of the resource %s", location, resource)
 		}
-		if out.Conv == nil || out.Conv.Replace || out.Conv.LeafMask {
-			return fmt.Errorf("%s: maskPaths needs an Update that is a PATCH with an update mask of plain field names", location)
+		if out.Conv == nil || out.Conv.Replace || out.Conv.LeafMask || out.CRUD != nil && out.CRUD.OmitMask {
+			return fmt.Errorf("%s: maskPaths needs an Update that is a PATCH with an update mask of plain field names (not `updateMask: omit`)", location)
 		}
 		for _, p := range extra.MaskPaths {
 			if slices.ContainsFunc(out.Conv.MaskFields, func(f *maskField) bool { return f.API == p }) {
