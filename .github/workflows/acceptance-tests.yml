@@ -191,11 +191,11 @@ jobs:
           CORALOGIX_SEND_YOUR_DATA_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_SEND_YOUR_DATA_API_KEY }}
           PAGERDUTY_REST_API_KEY: ${{ secrets.CI_PREP_PAGERDUTY_REST_API_KEY }}
           PAGERDUTY_USER_EMAIL: ${{ secrets.CI_PREP_PAGERDUTY_USER_EMAIL }}
-          AWS_TEST_ROLE: ${{ secrets.CI_PREP_AWS_TEST_ROLE }}
-          ARCHIVE_LOGS_BUCKET: ${{ secrets.CI_PREP_ARCHIVE_LOGS_BUCKET }}
-          ARCHIVE_METRICS_BUCKET: ${{ secrets.CI_PREP_ARCHIVE_METRICS_BUCKET }}
-          SLACK_INTEGRATION_CHANNEL: ${{ secrets.CI_PREP_SLACK_INTEGRATION_CHANNEL }}
-          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.CI_PREP_SLACK_INTEGRATION_CHANNEL_UPDATED }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
         run: |
           set -euo pipefail
           set +x
@@ -221,7 +221,7 @@ jobs:
           CORALOGIX_SEND_YOUR_DATA_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_SEND_YOUR_DATA_API_KEY }}
           PAGERDUTY_REST_API_KEY: ${{ secrets.CI_PREP_PAGERDUTY_REST_API_KEY }}
           PAGERDUTY_USER_EMAIL: ${{ secrets.CI_PREP_PAGERDUTY_USER_EMAIL }}
-          ARCHIVE_LOGS_BUCKET: ${{ secrets.CI_PREP_ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
         run: |
           set -euo pipefail
           set +x
@@ -306,14 +306,14 @@ jobs:
           CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
           TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
-          AWS_TEST_ROLE: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_AWS_TEST_ROLE' || 'AWS_TEST_ROLE'] }}
-          ARCHIVE_LOGS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_LOGS_BUCKET' || 'ARCHIVE_LOGS_BUCKET'] }}
-          ARCHIVE_METRICS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_METRICS_BUCKET' || 'ARCHIVE_METRICS_BUCKET'] }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
           # The experiment's ID secret names are intentionally unset. The
           # read-only SDK lookup exports these values inside this test job.
           SLACK_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_ID' || 'SLACK_INTEGRATION_ID'] }}
-          SLACK_INTEGRATION_CHANNEL: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_CHANNEL' || 'SLACK_INTEGRATION_CHANNEL'] }}
-          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_CHANNEL_UPDATED' || 'SLACK_INTEGRATION_CHANNEL_UPDATED'] }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           PD_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_INTEGRATION_ID' || 'PD_INTEGRATION_ID'] }}
           PD_CONNECTOR_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_CONNECTOR_KEY' || 'PD_INTEGRATION_ID'] }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'ci-acceptance-apm' || secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
@@ -382,12 +382,12 @@ jobs:
           CORALOGIX_ENV: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'EU2' || secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_CORALOGIX_API_KEY' || 'CORALOGIX_API_KEY'] }}
           TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
-          AWS_TEST_ROLE: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_AWS_TEST_ROLE' || 'AWS_TEST_ROLE'] }}
-          ARCHIVE_LOGS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_LOGS_BUCKET' || 'ARCHIVE_LOGS_BUCKET'] }}
-          ARCHIVE_METRICS_BUCKET: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_ARCHIVE_METRICS_BUCKET' || 'ARCHIVE_METRICS_BUCKET'] }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
           SLACK_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_ID' || 'SLACK_INTEGRATION_ID'] }}
-          SLACK_INTEGRATION_CHANNEL: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_CHANNEL' || 'SLACK_INTEGRATION_CHANNEL'] }}
-          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_SLACK_INTEGRATION_CHANNEL_UPDATED' || 'SLACK_INTEGRATION_CHANNEL_UPDATED'] }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           PD_INTEGRATION_ID: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_INTEGRATION_ID' || 'PD_INTEGRATION_ID'] }}
           PD_CONNECTOR_KEY: ${{ secrets[env.CI_PREP_EXPERIMENT == 'true' && 'CI_PREP_PD_CONNECTOR_KEY' || 'PD_INTEGRATION_ID'] }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ env.CI_PREP_EXPERIMENT == 'true' && 'ci-acceptance-apm' || secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
@@ -726,10 +726,10 @@ jobs:
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
           # The coralogix_api_key upgrade test creates keys that the team of the CI key owns.
-          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
+          TEST_TEAM_ID: ${{ env.CI_PREP_EXPERIMENT != 'true' && secrets.TEST_TEAM_ID || '' }}
           IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION: ${{ matrix.shard == 'ip-access' && 'I_UNDERSTAND_THIS_USES_A_DISPOSABLE_TEAM' || '' }}
-          SLACK_INTEGRATION_CHANNEL: ${{ env.CI_PREP_EXPERIMENT == 'true' && secrets.CI_PREP_SLACK_INTEGRATION_CHANNEL || '' }}
-          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ env.CI_PREP_EXPERIMENT == 'true' && secrets.CI_PREP_SLACK_INTEGRATION_CHANNEL_UPDATED || '' }}
+          SLACK_INTEGRATION_CHANNEL: ${{ env.CI_PREP_EXPERIMENT == 'true' && secrets.SLACK_INTEGRATION_CHANNEL || '' }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ env.CI_PREP_EXPERIMENT == 'true' && secrets.SLACK_INTEGRATION_CHANNEL_UPDATED || '' }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=${{ !matrix.paused && '1' || '' }} TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
