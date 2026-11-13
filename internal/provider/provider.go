@@ -40,6 +40,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/archivelogs"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/ipaccess"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/integrations"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/logs"
@@ -435,7 +436,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		aaa.NewUserDataSource,
 		aaa.NewScopeDataSource,
 		aaa.NewTeamDataSource,
-		aaa.NewIpAccessDataSource,
+		func() datasource.DataSource { return ipaccess.NewDataSource(ipaccess.Hooks{}) },
 		integrations.NewIntegrationDataSource,
 		alerts.NewAlertDataSource,
 		notifications.NewConnectorDataSource,
@@ -476,7 +477,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		aaa.NewGroupAttachmentResource,
 		aaa.NewUserResource,
 		aaa.NewScopeResource,
-		aaa.NewIpAccessResource,
+		func() resource.Resource { return ipaccess.NewResource(ipaccess.Hooks{}) },
 		aaa.NewTeamResource,
 		integrations.NewIntegrationResource,
 		alerts.NewAlertResource,

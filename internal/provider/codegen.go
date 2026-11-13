@@ -7,6 +7,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=AiEvaluation OUT=aievaluation
 //go:generate make -C ../.. codegen RESOURCE=AlertDef OUT=alert
 //go:generate make -C ../.. codegen RESOURCE=AlertSchedulerRule OUT=alertsscheduler
+//go:generate make -C ../.. codegen RESOURCE=CompanyIpAccessSettings OUT=ipaccess
 //go:generate make -C ../.. codegen RESOURCE=ConfigurationGroup OUT=configurationgroup
 //go:generate make -C ../.. codegen RESOURCE=Connector OUT=connector
 //go:generate make -C ../.. codegen RESOURCE=DashboardFolder OUT=dashboardsfolder

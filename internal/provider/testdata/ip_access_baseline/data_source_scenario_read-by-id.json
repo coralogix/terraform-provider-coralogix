@@ -7,13 +7,13 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1?id=configured-id",
         "status": 200
       }
     ],
     "state": {
       "enable_coralogix_customer_support_access": "enabled",
-      "id": "<settings-id>",
+      "id": "configured-id",
       "ip_access": [
         {
           "enabled": false,

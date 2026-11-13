@@ -11,7 +11,7 @@
       ]
     },
     "plan": {
-      "enable_coralogix_customer_support_access": "unspecified",
+      "enable_coralogix_customer_support_access": "(unknown)",
       "id": "(unknown)",
       "ip_access": [
         {
@@ -26,7 +26,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
         "body": {
-          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
           "ipAccess": [
             {
               "enabled": false,
@@ -61,20 +60,22 @@
       "id": "(unknown)",
       "ip_access": "(unknown)"
     },
-    "applyDiagnostics": [
-      "error: Value Conversion Error [AttributeName(\"ip_access\")] | An unexpected error was encountered trying to build a value. This is always an error in the provider. Please report the following to the provider developer:\n\nReceived unknown value, however the target type cannot handle unknown values. Use the corresponding `types` package type or a custom type that handles unknown values.\n\nPath: ip_access\nTarget Type: []aaa.IpAccessRuleModel\nSuggested Type: basetypes.SetValue"
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED"
+        },
+        "status": 200
+      }
     ],
     "state": {
-      "enable_coralogix_customer_support_access": "unspecified",
+      "enable_coralogix_customer_support_access": "disabled",
       "id": "<settings-id>",
-      "ip_access": [
-        {
-          "enabled": false,
-          "ip_range": "192.0.2.0/24",
-          "name": "first"
-        }
-      ]
-    }
+      "ip_access": []
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan after omitted ip_access",
@@ -88,25 +89,8 @@
     "state": {
       "enable_coralogix_customer_support_access": "disabled",
       "id": "<settings-id>",
-      "ip_access": [
-        {
-          "enabled": false,
-          "ip_range": "192.0.2.0/24",
-          "name": "first"
-        }
-      ]
+      "ip_access": []
     },
-    "drift": [
-      "AttributeName(\"enable_coralogix_customer_support_access\")"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"ip_access\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>)",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>).AttributeName(\"enabled\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>).AttributeName(\"ip_range\")",
-      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>).AttributeName(\"name\")"
-    ]
+    "replanEmpty": true
   }
 ]

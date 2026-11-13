@@ -7,12 +7,12 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1?id=configured-id",
         "status": 404
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_ip_access | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found\"}\noperation - Read"
+      "error: Unable to read coralogix_ip_access | id configured-id: 404 Not Found — {\"code\":404,\"message\":\"Not Found\"}"
     ],
     "state": {
       "enable_coralogix_customer_support_access": null,

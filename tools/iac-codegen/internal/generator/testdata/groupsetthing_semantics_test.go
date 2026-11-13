@@ -91,6 +91,9 @@ func TestCreateSendsTheLimitAsAStringAndReadsItBack(t *testing.T) {
 		t.Fatalf("create bodies = %+v, want one with one group", group_set_things_service.Created)
 	}
 	sent := group_set_things_service.Created[0].Groups[0]
+	if sent.Name != "g" {
+		t.Fatalf("sent group = %+v, want the configured group in the request list", sent)
+	}
 	if sent.Limit == nil || *sent.Limit != "5" {
 		t.Fatalf("sent limit = %v, want the string 5", sent.Limit)
 	}
@@ -124,8 +127,8 @@ func TestCreateSendsTheLimitAsAStringAndReadsItBack(t *testing.T) {
 	if state.Name != "set-1" || state.Document != "doc" {
 		t.Fatalf("state name %q and document %q, want the id as the name and the planned document", state.Name, state.Document)
 	}
-	if len(groups) != 1 || groups[0].Interval != 60 || groups[0].Limit != 5 {
-		t.Fatalf("state groups = %+v, want interval 60 from the server and limit 5", groups)
+	if len(groups) != 1 || groups[0].Name != "g" || groups[0].Interval != 60 || groups[0].Limit != 5 {
+		t.Fatalf("state groups = %+v, want the map value named g with interval 60 and limit 5", groups)
 	}
 }
 
@@ -134,7 +137,7 @@ func TestCreateSendsTheLimitAsAStringAndReadsItBack(t *testing.T) {
 func TestUpgradeKeepsTheDocumentOfThePriorState(t *testing.T) {
 	ctx := context.Background()
 	limit, interval := "0", int64(60)
-	group_set_things_service.Stored = group_set_things_service.GroupSetThing{Id: "set-1", Name: "s", Groups: []group_set_things_service.OutGroupThing{{Name: "g", Interval: &interval, Limit: &limit}}}
+	group_set_things_service.Stored = group_set_things_service.GroupSetThing{Id: "set-1", Name: "s", Groups: map[string]group_set_things_service.OutGroupThing{"server-key": {Name: "g", Interval: &interval, Limit: &limit}}}
 	r, schemaResp, root := setSchema(t)
 	upgrader := r.UpgradeState(ctx)[0]
 	priorType := upgrader.PriorSchema.Type().TerraformType(ctx).(tftypes.Object)
@@ -294,7 +297,7 @@ func TestServerDefaultInAnUnconfiguredSetKeepsThePlan(t *testing.T) {
 func TestUpgradeRunsAfterFlattenOnTheKeptDocument(t *testing.T) {
 	ctx := context.Background()
 	limit, interval := "0", int64(60)
-	group_set_things_service.Stored = group_set_things_service.GroupSetThing{Id: "set-1", Name: "s", Groups: []group_set_things_service.OutGroupThing{{Name: "g", Interval: &interval, Limit: &limit}}}
+	group_set_things_service.Stored = group_set_things_service.GroupSetThing{Id: "set-1", Name: "s", Groups: map[string]group_set_things_service.OutGroupThing{"server-key": {Name: "g", Interval: &interval, Limit: &limit}}}
 	r, schemaResp, root := setSchema(t)
 	r.hooks.AfterFlatten = func(_ context.Context, m *GroupSetThingModel, v *group_set_things_service.GroupSetThing) diag.Diagnostics {
 		if m.Document.ValueString() == "doc" {

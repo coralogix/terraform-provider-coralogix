@@ -6,7 +6,9 @@ package groupsetthing
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -607,8 +609,9 @@ func flattenGroupSetThing(ctx context.Context, p path.Path, v *group_set_things_
 	out.Groups = types.SetNull(types.ObjectType{AttrTypes: outGroupThingAttrTypes()})
 	if v.Groups != nil {
 		items := make([]OutGroupThingModel, 0, len(v.Groups))
-		for i := range v.Groups {
-			items = append(items, *flattenOutGroupThing(ctx, p.AtName("groups"), &v.Groups[i], diags))
+		for _, k := range slices.Sorted(maps.Keys(v.Groups)) {
+			item := v.Groups[k]
+			items = append(items, *flattenOutGroupThing(ctx, p.AtName("groups"), &item, diags))
 		}
 		out.Groups = flattenSet(ctx, types.ObjectType{AttrTypes: outGroupThingAttrTypes()}, items, diags)
 	}
