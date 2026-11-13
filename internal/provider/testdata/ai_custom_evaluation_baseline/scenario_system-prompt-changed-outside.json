@@ -1,0 +1,184 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [],
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": true,
+          "violates": ""
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the API has the flag off",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "drift": [
+      "AttributeName(\"should_include_system_prompt\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"application_ids\")",
+      "AttributeName(\"should_include_system_prompt\")"
+    ]
+  },
+  {
+    "step": "apply the configuration again",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "requests": [
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": true,
+          "violates": ""
+        },
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "examples": [],
+          "updateMask": "examples"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": true
+    },
+    "replanEmpty": true
+  }
+]

@@ -1,0 +1,13 @@
+[
+  {
+    "step": "validate without instructions",
+    "config": {
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"instructions\")] | Must set a configuration value for the instructions attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]

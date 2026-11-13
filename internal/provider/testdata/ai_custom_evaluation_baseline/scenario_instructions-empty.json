@@ -1,0 +1,15 @@
+[
+  {
+    "step": "validate empty instructions",
+    "config": {
+      "instructions": "",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"instructions\")] | Attribute instructions string length must be between 1 and 1048576, got: 0",
+      "error: Invalid Attribute Value Match [AttributeName(\"instructions\")] | Attribute instructions instructions must contain at least one of {prompt}, {response}, or {chat_history}., got: "
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,13 @@
+[
+  {
+    "step": "validate without policy_type",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"policy_type\")] | Must set a configuration value for the policy_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]

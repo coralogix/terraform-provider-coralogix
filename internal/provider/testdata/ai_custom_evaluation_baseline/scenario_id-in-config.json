@@ -1,0 +1,15 @@
+[
+  {
+    "step": "validate a configured id",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"id\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  }
+]

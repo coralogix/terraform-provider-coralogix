@@ -1,0 +1,919 @@
+[
+  {
+    "step": "create with 60 acceptable and 40 prohibited examples",
+    "config": {
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2",
+            "ok 3",
+            "ok 4",
+            "ok 5",
+            "ok 6",
+            "ok 7",
+            "ok 8",
+            "ok 9",
+            "ok 10",
+            "ok 11",
+            "ok 12",
+            "ok 13",
+            "ok 14",
+            "ok 15",
+            "ok 16",
+            "ok 17",
+            "ok 18",
+            "ok 19",
+            "ok 20",
+            "ok 21",
+            "ok 22",
+            "ok 23",
+            "ok 24",
+            "ok 25",
+            "ok 26",
+            "ok 27",
+            "ok 28",
+            "ok 29",
+            "ok 30",
+            "ok 31",
+            "ok 32",
+            "ok 33",
+            "ok 34",
+            "ok 35",
+            "ok 36",
+            "ok 37",
+            "ok 38",
+            "ok 39",
+            "ok 40",
+            "ok 41",
+            "ok 42",
+            "ok 43",
+            "ok 44",
+            "ok 45",
+            "ok 46",
+            "ok 47",
+            "ok 48",
+            "ok 49",
+            "ok 50",
+            "ok 51",
+            "ok 52",
+            "ok 53",
+            "ok 54",
+            "ok 55",
+            "ok 56",
+            "ok 57",
+            "ok 58",
+            "ok 59",
+            "ok 60"
+          ],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1",
+            "bad 2",
+            "bad 3",
+            "bad 4",
+            "bad 5",
+            "bad 6",
+            "bad 7",
+            "bad 8",
+            "bad 9",
+            "bad 10",
+            "bad 11",
+            "bad 12",
+            "bad 13",
+            "bad 14",
+            "bad 15",
+            "bad 16",
+            "bad 17",
+            "bad 18",
+            "bad 19",
+            "bad 20",
+            "bad 21",
+            "bad 22",
+            "bad 23",
+            "bad 24",
+            "bad 25",
+            "bad 26",
+            "bad 27",
+            "bad 28",
+            "bad 29",
+            "bad 30",
+            "bad 31",
+            "bad 32",
+            "bad 33",
+            "bad 34",
+            "bad 35",
+            "bad 36",
+            "bad 37",
+            "bad 38",
+            "bad 39",
+            "bad 40"
+          ],
+          "flags": ""
+        }
+      },
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2",
+            "ok 3",
+            "ok 4",
+            "ok 5",
+            "ok 6",
+            "ok 7",
+            "ok 8",
+            "ok 9",
+            "ok 10",
+            "ok 11",
+            "ok 12",
+            "ok 13",
+            "ok 14",
+            "ok 15",
+            "ok 16",
+            "ok 17",
+            "ok 18",
+            "ok 19",
+            "ok 20",
+            "ok 21",
+            "ok 22",
+            "ok 23",
+            "ok 24",
+            "ok 25",
+            "ok 26",
+            "ok 27",
+            "ok 28",
+            "ok 29",
+            "ok 30",
+            "ok 31",
+            "ok 32",
+            "ok 33",
+            "ok 34",
+            "ok 35",
+            "ok 36",
+            "ok 37",
+            "ok 38",
+            "ok 39",
+            "ok 40",
+            "ok 41",
+            "ok 42",
+            "ok 43",
+            "ok 44",
+            "ok 45",
+            "ok 46",
+            "ok 47",
+            "ok 48",
+            "ok 49",
+            "ok 50",
+            "ok 51",
+            "ok 52",
+            "ok 53",
+            "ok 54",
+            "ok 55",
+            "ok 56",
+            "ok 57",
+            "ok 58",
+            "ok 59",
+            "ok 60"
+          ],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1",
+            "bad 2",
+            "bad 3",
+            "bad 4",
+            "bad 5",
+            "bad 6",
+            "bad 7",
+            "bad 8",
+            "bad 9",
+            "bad 10",
+            "bad 11",
+            "bad 12",
+            "bad 13",
+            "bad 14",
+            "bad 15",
+            "bad 16",
+            "bad 17",
+            "bad 18",
+            "bad 19",
+            "bad 20",
+            "bad 21",
+            "bad 22",
+            "bad 23",
+            "bad 24",
+            "bad 25",
+            "bad 26",
+            "bad 27",
+            "bad 28",
+            "bad 29",
+            "bad 30",
+            "bad 31",
+            "bad 32",
+            "bad 33",
+            "bad 34",
+            "bad 35",
+            "bad 36",
+            "bad 37",
+            "bad 38",
+            "bad 39",
+            "bad 40"
+          ],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [],
+          "description": "",
+          "examples": [
+            {
+              "conversation": "ok 1",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 2",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 3",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 4",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 5",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 6",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 7",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 8",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 9",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 10",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 11",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 12",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 13",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 14",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 15",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 16",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 17",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 18",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 19",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 20",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 21",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 22",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 23",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 24",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 25",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 26",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 27",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 28",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 29",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 30",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 31",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 32",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 33",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 34",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 35",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 36",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 37",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 38",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 39",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 40",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 41",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 42",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 43",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 44",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 45",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 46",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 47",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 48",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 49",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 50",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 51",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 52",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 53",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 54",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 55",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 56",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 57",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 58",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 59",
+              "score": "1"
+            },
+            {
+              "conversation": "ok 60",
+              "score": "1"
+            },
+            {
+              "conversation": "bad 1",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 2",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 3",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 4",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 5",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 6",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 7",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 8",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 9",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 10",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 11",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 12",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 13",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 14",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 15",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 16",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 17",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 18",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 19",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 20",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 21",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 22",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 23",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 24",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 25",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 26",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 27",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 28",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 29",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 30",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 31",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 32",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 33",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 34",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 35",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 36",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 37",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 38",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 39",
+              "score": "0"
+            },
+            {
+              "conversation": "bad 40",
+              "score": "0"
+            }
+          ],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2",
+            "ok 3",
+            "ok 4",
+            "ok 5",
+            "ok 6",
+            "ok 7",
+            "ok 8",
+            "ok 9",
+            "ok 10",
+            "ok 11",
+            "ok 12",
+            "ok 13",
+            "ok 14",
+            "ok 15",
+            "ok 16",
+            "ok 17",
+            "ok 18",
+            "ok 19",
+            "ok 20",
+            "ok 21",
+            "ok 22",
+            "ok 23",
+            "ok 24",
+            "ok 25",
+            "ok 26",
+            "ok 27",
+            "ok 28",
+            "ok 29",
+            "ok 30",
+            "ok 31",
+            "ok 32",
+            "ok 33",
+            "ok 34",
+            "ok 35",
+            "ok 36",
+            "ok 37",
+            "ok 38",
+            "ok 39",
+            "ok 40",
+            "ok 41",
+            "ok 42",
+            "ok 43",
+            "ok 44",
+            "ok 45",
+            "ok 46",
+            "ok 47",
+            "ok 48",
+            "ok 49",
+            "ok 50",
+            "ok 51",
+            "ok 52",
+            "ok 53",
+            "ok 54",
+            "ok 55",
+            "ok 56",
+            "ok 57",
+            "ok 58",
+            "ok 59",
+            "ok 60"
+          ],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1",
+            "bad 2",
+            "bad 3",
+            "bad 4",
+            "bad 5",
+            "bad 6",
+            "bad 7",
+            "bad 8",
+            "bad 9",
+            "bad 10",
+            "bad 11",
+            "bad 12",
+            "bad 13",
+            "bad 14",
+            "bad 15",
+            "bad 16",
+            "bad 17",
+            "bad 18",
+            "bad 19",
+            "bad 20",
+            "bad 21",
+            "bad 22",
+            "bad 23",
+            "bad 24",
+            "bad 25",
+            "bad 26",
+            "bad 27",
+            "bad 28",
+            "bad 29",
+            "bad 30",
+            "bad 31",
+            "bad 32",
+            "bad 33",
+            "bad 34",
+            "bad 35",
+            "bad 36",
+            "bad 37",
+            "bad 38",
+            "bad 39",
+            "bad 40"
+          ],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok 1",
+            "ok 2",
+            "ok 3",
+            "ok 4",
+            "ok 5",
+            "ok 6",
+            "ok 7",
+            "ok 8",
+            "ok 9",
+            "ok 10",
+            "ok 11",
+            "ok 12",
+            "ok 13",
+            "ok 14",
+            "ok 15",
+            "ok 16",
+            "ok 17",
+            "ok 18",
+            "ok 19",
+            "ok 20",
+            "ok 21",
+            "ok 22",
+            "ok 23",
+            "ok 24",
+            "ok 25",
+            "ok 26",
+            "ok 27",
+            "ok 28",
+            "ok 29",
+            "ok 30",
+            "ok 31",
+            "ok 32",
+            "ok 33",
+            "ok 34",
+            "ok 35",
+            "ok 36",
+            "ok 37",
+            "ok 38",
+            "ok 39",
+            "ok 40",
+            "ok 41",
+            "ok 42",
+            "ok 43",
+            "ok 44",
+            "ok 45",
+            "ok 46",
+            "ok 47",
+            "ok 48",
+            "ok 49",
+            "ok 50",
+            "ok 51",
+            "ok 52",
+            "ok 53",
+            "ok 54",
+            "ok 55",
+            "ok 56",
+            "ok 57",
+            "ok 58",
+            "ok 59",
+            "ok 60"
+          ],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad 1",
+            "bad 2",
+            "bad 3",
+            "bad 4",
+            "bad 5",
+            "bad 6",
+            "bad 7",
+            "bad 8",
+            "bad 9",
+            "bad 10",
+            "bad 11",
+            "bad 12",
+            "bad 13",
+            "bad 14",
+            "bad 15",
+            "bad 16",
+            "bad 17",
+            "bad 18",
+            "bad 19",
+            "bad 20",
+            "bad 21",
+            "bad 22",
+            "bad 23",
+            "bad 24",
+            "bad 25",
+            "bad 26",
+            "bad 27",
+            "bad 28",
+            "bad 29",
+            "bad 30",
+            "bad 31",
+            "bad 32",
+            "bad 33",
+            "bad 34",
+            "bad 35",
+            "bad 36",
+            "bad 37",
+            "bad 38",
+            "bad 39",
+            "bad 40"
+          ],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  }
+]
