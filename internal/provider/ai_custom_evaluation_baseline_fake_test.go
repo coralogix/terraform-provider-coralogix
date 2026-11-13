@@ -283,20 +283,15 @@ func (f *aiceFake) handle(method, path string, query url.Values, body any) (int,
 // routeEvaluation answers the routes under /custom-evaluations/v3. ok is false for a route that
 // the API does not have.
 func (f *aiceFake) routeEvaluation(method string, parts []string, body any) (int, any, bool) {
-	var status int
-	var answer any
-	ok := true
 	switch len(parts) {
 	case 0:
-		status, answer, ok = f.routeCollection(method, body)
+		return f.routeCollection(method, body)
 	case 1:
-		status, answer, ok = f.routeItem(method, parts[0], body)
+		return f.routeItem(method, parts[0], body)
 	case 3:
-		status, answer, ok = f.routeLink(method, parts)
-	default:
-		ok = false
+		return f.routeLink(method, parts)
 	}
-	return status, answer, ok
+	return 0, nil, false
 }
 
 func (f *aiceFake) routeCollection(method string, body any) (int, any, bool) {
