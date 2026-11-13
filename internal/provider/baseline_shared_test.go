@@ -165,6 +165,13 @@ type grHarness struct {
 	// failedCreate is the state that the last Create that failed returned, or null. Terraform core
 	// saves it tainted, so the next apply replaces it.
 	failedCreate tftypes.Value
+	// private is the private state of the resource that the last write, read, or import returned.
+	// Terraform core hands it back to the provider as PriorPrivate when it plans, as Private when it
+	// reads, and as PlannedPrivate, taken from the plan, when it applies.
+	private []byte
+	// plannedPrivate is the PlannedPrivate that the last plan returned. The apply that follows
+	// the plan receives it.
+	plannedPrivate []byte
 }
 
 func newProtocolHarness(t *testing.T, typeName string, api requestLog) *grHarness {
@@ -267,8 +274,10 @@ func (h *grHarness) plan(prior, cfg tftypes.Value) (tftypes.Value, []string, []*
 		PriorState:       h.dynamic(h.typ, prior),
 		ProposedNewState: h.dynamic(h.typ, proposed),
 		Config:           h.dynamic(h.typ, cfg),
+		PriorPrivate:     h.privateOf(prior),
 	})
 	h.must(err)
+	h.plannedPrivate = resp.PlannedPrivate
 	var replace []string
 	for _, p := range resp.RequiresReplace {
 		replace = append(replace, p.String())
@@ -332,16 +341,20 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 		return prior
 	}
 
+	// The apply gets the private state that this plan planned, as Terraform core hands it over.
+	plannedPrivate := h.plannedPrivate
 	resp, err := h.server.ApplyResourceChange(h.ctx, &tfprotov6.ApplyResourceChangeRequest{
-		TypeName:     h.typeName,
-		PriorState:   h.dynamic(h.typ, prior),
-		PlannedState: h.dynamic(h.typ, planned),
-		Config:       h.dynamic(h.typ, cfg),
+		TypeName:       h.typeName,
+		PriorState:     h.dynamic(h.typ, prior),
+		PlannedState:   h.dynamic(h.typ, planned),
+		Config:         h.dynamic(h.typ, cfg),
+		PlannedPrivate: plannedPrivate,
 	})
 	h.must(err)
 	step.Requests = h.api.takeRequests()
 	step.ApplyDiags = diagStrings(resp.Diagnostics)
 	state := h.decode(resp.NewState)
+	h.keepPrivate(state, resp.Private)
 	if hasError(resp.Diagnostics) {
 		h.applied = cfgJSON
 
@@ -376,7 +389,7 @@ func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 	h.t.Helper()
 	step := grStep{Step: name}
 	resp, err := h.server.ReadResource(h.ctx, &tfprotov6.ReadResourceRequest{
-		TypeName: h.typeName, CurrentState: h.dynamic(h.typ, state),
+		TypeName: h.typeName, CurrentState: h.dynamic(h.typ, state), Private: h.privateOf(state),
 	})
 	h.must(err)
 	step.Requests = h.api.takeRequests()
@@ -387,6 +400,7 @@ func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 		return state
 	}
 	next := h.decode(resp.NewState)
+	h.keepPrivate(next, resp.Private)
 	step.State = toJSON(next)
 	if !next.IsNull() {
 		step.Drift = diffPaths(state, next)
@@ -434,6 +448,7 @@ func (h *grHarness) Destroy(name string, state tftypes.Value) {
 		PriorState:       h.dynamic(h.typ, state),
 		ProposedNewState: h.dynamic(h.typ, null),
 		Config:           h.dynamic(h.typ, null),
+		PriorPrivate:     h.privateOf(state),
 	})
 	h.must(err)
 	step.PlanDiags = diagStrings(plan.Diagnostics)
@@ -452,8 +467,27 @@ func (h *grHarness) Destroy(name string, state tftypes.Value) {
 	h.must(err)
 	step.Requests = h.api.takeRequests()
 	step.ApplyDiags = diagStrings(resp.Diagnostics)
-	step.State = toJSON(h.decode(resp.NewState))
+	destroyed := h.decode(resp.NewState)
+	h.keepPrivate(destroyed, resp.Private)
+	step.State = toJSON(destroyed)
 	h.record(step)
+}
+
+// privateOf returns the private state that goes with a state: none for a resource that does not exist.
+func (h *grHarness) privateOf(state tftypes.Value) []byte {
+	if state.IsNull() {
+		return nil
+	}
+	return h.private
+}
+
+// keepPrivate stores the private state that a call returned. A resource that is gone has none.
+func (h *grHarness) keepPrivate(state tftypes.Value, private []byte) {
+	if state.IsNull() {
+		h.private = nil
+		return
+	}
+	h.private = private
 }
 
 // Import imports an id, then refreshes it, as `terraform import` does.
@@ -468,6 +502,7 @@ func (h *grHarness) Import(name, id string) tftypes.Value {
 		return h.null()
 	}
 	h.record(step)
+	h.keepPrivate(h.decode(resp.ImportedResources[0].State), resp.ImportedResources[0].Private)
 	return h.Refresh(name+" (refresh)", h.decode(resp.ImportedResources[0].State))
 }
 

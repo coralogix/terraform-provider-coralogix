@@ -1,0 +1,9 @@
+[
+  {
+    "step": "import by an email that two users have in different letter case",
+    "applyDiagnostics": [
+      "error: Multiple Users found with user_name \"tf-acc-user-1@coralogix.com\" | Matched user ids: 00000000-0000-4000-8000-000000000001, 00000000-0000-4000-8000-000000000002. Use the user id instead."
+    ],
+    "state": null
+  }
+]

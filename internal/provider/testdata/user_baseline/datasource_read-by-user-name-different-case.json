@@ -1,0 +1,32 @@
+[
+  {
+    "step": "read by user_name in another letter case: the state keeps the configured case",
+    "config": {
+      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40CORALOGIX.COM",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
+    }
+  }
+]

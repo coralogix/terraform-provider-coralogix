@@ -1,0 +1,201 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": "(unknown)",
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+            "userTemplate": {
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the PUT answers 200 without the user",
+    "config": {
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "allowedLoginMode": [],
+              "firstName": "Renamed",
+              "lastName": "Person",
+              "status": "USER_STATUS_ACTIVE"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating User | update of user \"00000000-0000-4000-8000-000000000001\" returned no user"
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  },
+  {
+    "step": "refresh after the failed update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "drift": [
+      "AttributeName(\"name\").AttributeName(\"family_name\")",
+      "AttributeName(\"name\").AttributeName(\"given_name\")"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "apply the rename again after refresh",
+    "config": {
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "noChange": true,
+    "state": {
+      "active": true,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  }
+]

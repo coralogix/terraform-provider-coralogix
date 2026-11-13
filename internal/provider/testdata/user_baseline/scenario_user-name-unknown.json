@@ -1,0 +1,17 @@
+[
+  {
+    "step": "plan with user_name unknown at validate",
+    "config": {
+      "user_name": "(unknown)"
+    },
+    "plan": {
+      "active": true,
+      "emails": "(unknown)",
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": "(unknown)",
+      "user_name": "(unknown)"
+    },
+    "state": null
+  }
+]
