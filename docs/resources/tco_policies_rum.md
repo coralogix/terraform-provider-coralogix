@@ -125,7 +125,7 @@ Read-Only:
 
 Required:
 
-- `names` (Set of String)
+- `names` (Set of String) The values to match. With the rule types `is` and `is_not` each element is a separate value. With `starts_with` and `includes` the API matches one value: set exactly one element. If you set more, the API receives them joined with commas as one value (`one,two`), and the policy matches that literal text, not `one` or `two`. A name must be lowercase and must not contain a comma.
 
 Optional:
 
@@ -154,7 +154,7 @@ Required:
 
 Required:
 
-- `names` (Set of String)
+- `names` (Set of String) The values to match. With the rule types `is` and `is_not` each element is a separate value. With `starts_with` and `includes` the API matches one value: set exactly one element. If you set more, the API receives them joined with commas as one value (`one,two`), and the policy matches that literal text, not `one` or `two`. A name must be lowercase and must not contain a comma.
 
 Optional:
 

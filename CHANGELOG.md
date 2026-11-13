@@ -56,6 +56,12 @@
 - FIX: The data source shows the permissions that the role owns for a lookup by name, as it does for a lookup by id. Before, a lookup by name showed them together with the permissions of the parent role.
 - FIX: The data source accepts `name = ""` and finds the role with the empty name, which the API allows. Before, it failed with `id or name must be provided`.
 
+#### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
+- DOCS: `names` of a rule now has a description. With the rule types `starts_with` and `includes` the API matches one value, so set one element: more elements reach the API as one comma-joined value. The provider still only warns about this, as before.
+
+#### data-source/coralogix_tco_policies_logs, data-source/coralogix_tco_policies_traces, data-source/coralogix_tco_policies_rum
+- DOCS: Same description for `names` as on the resources.
+
 # Release 3.25.0
 
 #### provider
