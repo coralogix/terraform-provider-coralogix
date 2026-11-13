@@ -2,7 +2,7 @@
     description: Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/.
 enable_coralogix_customer_support_access  tftypes.String computed
     description: The Coralogix customer support access setting.
-id  tftypes.String optional
+id  tftypes.String optional,computed
     description: The unique identifier for the company IP access settings. This is typically a company ID.
 ip_access  nested SET computed
     description: The list of IP access entries.

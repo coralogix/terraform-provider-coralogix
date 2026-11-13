@@ -40,7 +40,7 @@ paths:
                           - {required: [oneHour], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
-                groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+                groups: {type: array, items: {$ref: '#/components/schemas/InGroupThing'}}
                 schedule: {$ref: '#/components/schemas/Schedule'}
                 absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
                 relativeWindow: {type: string, minLength: 1}
@@ -96,7 +96,7 @@ paths:
                           - {required: [oneHour], type: object}
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
-                groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+                groups: {type: array, items: {$ref: '#/components/schemas/InGroupThing'}}
                 schedule: {$ref: '#/components/schemas/Schedule'}
                 absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
                 relativeWindow: {type: string, minLength: 1}
@@ -150,7 +150,7 @@ components:
       properties:
         id: {type: string, minLength: 1}
         name: {type: string, minLength: 1}
-        groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/OutGroupThing'}}
+        groups: {type: object, additionalProperties: {$ref: '#/components/schemas/OutGroupThing'}}
         schedule: {$ref: '#/components/schemas/Schedule'}
         absoluteWindow: {$ref: '#/components/schemas/AbsoluteWindow'}
         relativeWindow: {type: string, minLength: 1}

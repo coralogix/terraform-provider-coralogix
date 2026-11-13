@@ -7,7 +7,9 @@ import (
 	"testing"
 )
 
-// The golden output of a released resource whose groups are a set with nested server defaults that
+// The golden output of a released resource whose requests send groups as a list while Get returns
+// them as a map, with collection: set preserving the Terraform set and discarding map keys. It also
+// covers nested server defaults that
 // the response requires, a validator line that keeps such a default, a uint64 limit shown as Int64, a
 // skipped uint64 that may not fit Int64, a required line on a component that only the response
 // has, and a string attribute that the API does not hold.

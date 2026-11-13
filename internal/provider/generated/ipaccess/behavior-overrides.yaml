@@ -8,6 +8,9 @@ validators:
 
 singletonID: {fromAPI: true}
 
+dataSource:
+  queryID: true
+
 types:
   CompanyIpAccessSettings:
     fields:

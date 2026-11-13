@@ -32,8 +32,8 @@ const (
 )
 
 // These goldens were recorded from the handwritten coralogix_ip_access resource and data source.
-// On the migration branch they run against the generated resource and unchanged data source; the
-// diff should show only API-provided descriptions, diagnostic wording, or explicitly accepted bug fixes.
+// They now run against the generated resource and generated data source. Diffs should show only
+// API-provided descriptions, diagnostic wording, or explicitly accepted behavior fixes.
 //
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestIpAccessBaseline
 func newIpAccessHarness(t *testing.T) *grHarness {

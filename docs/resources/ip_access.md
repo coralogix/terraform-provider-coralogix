@@ -58,4 +58,4 @@ Required:
 
 Optional:
 
-- `name` (String) The name of this IP access entry.
+- `name` (String) The name of the IP access entry.

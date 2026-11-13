@@ -145,6 +145,8 @@ data "coralogix_ip_access" "without_id" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrPair("data.coralogix_ip_access.by_id", "id", ipAccessGeneratedResourceAddress, "id"),
 					resource.TestCheckResourceAttr("data.coralogix_ip_access.by_id", "ip_access.#", "1"),
+					resource.TestCheckResourceAttrSet("data.coralogix_ip_access.without_id", "id"),
+					resource.TestCheckResourceAttr("data.coralogix_ip_access.without_id", "enable_coralogix_customer_support_access", "disabled"),
 					resource.TestCheckResourceAttr("data.coralogix_ip_access.without_id", "ip_access.#", "1"),
 				),
 			},

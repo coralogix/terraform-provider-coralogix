@@ -244,6 +244,22 @@ func (r *Resource) get(ctx context.Context, id string) (*ip_access_service.Compa
 	return out.Settings, nil
 }
 
+// getWithQueryID reads a singleton, optionally selecting it by its Get query id.
+func (r *Resource) getWithQueryID(ctx context.Context, id *string) (*ip_access_service.CompanyIpAccessSettings, error) {
+	request := r.client.IpAccessServiceGetCompanyIpAccessSettings(ctx)
+	if id != nil {
+		request = request.Id(*id)
+	}
+	out, httpResp, err := request.Execute()
+	if err != nil {
+		return nil, cxsdk.NewAPIError(httpResp, err)
+	}
+	if out == nil {
+		return nil, nil
+	}
+	return out.Settings, nil
+}
+
 func (r *Resource) update(ctx context.Context, id string, body *ip_access_service.ReplaceCompanyIPAccessSettingsRequest) (*ip_access_service.CompanyIpAccessSettings, error) {
 	out, httpResp, err := r.client.IpAccessServiceReplaceCompanyIpAccessSettings(ctx).ReplaceCompanyIPAccessSettingsRequest(*body).Execute()
 	if err != nil {

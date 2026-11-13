@@ -53,7 +53,7 @@ type CreateGroupSetThingResult struct {
 type GroupSetThing struct {
 	AbsoluteWindow *AbsoluteWindow
 	FiveMinutes    map[string]interface{}
-	Groups         []OutGroupThing
+	Groups         map[string]OutGroupThing
 	Id             string
 	Name           string
 	Off            map[string]interface{}
@@ -145,7 +145,7 @@ func (r ApiGroupSetsUpdateRequest) UpdateGroupSetThing(updateGroupSetThing Updat
 type refresh struct{ off, fiveMinutes, oneHour map[string]interface{} }
 
 func store(id string, name *string, groups []InGroupThing, schedule *Schedule, absolute *AbsoluteWindow, relative *string, arms refresh) {
-	Stored = GroupSetThing{Id: id, Name: id, Schedule: schedule, AbsoluteWindow: absolute, RelativeWindow: relative,
+	Stored = GroupSetThing{Id: id, Name: id, Groups: map[string]OutGroupThing{}, Schedule: schedule, AbsoluteWindow: absolute, RelativeWindow: relative,
 		Off: arms.off, FiveMinutes: arms.fiveMinutes, OneHour: arms.oneHour}
 	if arms.off == nil && arms.fiveMinutes == nil && arms.oneHour == nil {
 		// The service refreshes nothing when no arm is sent, and says so.
@@ -170,7 +170,8 @@ func store(id string, name *string, groups []InGroupThing, schedule *Schedule, a
 			}
 			out.Items = append(out.Items, OutItemThing{Key: item.Key, Labels: labels})
 		}
-		Stored.Groups = append(Stored.Groups, out)
+		// The response map key is independent of the object fields that Terraform exposes.
+		Stored.Groups["server:"+g.Name] = out
 	}
 }
 

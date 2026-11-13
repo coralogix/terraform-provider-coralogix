@@ -50,4 +50,4 @@ Read-Only:
 
 - `enabled` (Boolean) Whether this IP access entry is enabled.
 - `ip_range` (String) The IP range in CIDR notation.
-- `name` (String) The name of this IP access entry.
+- `name` (String) The name of the IP access entry.

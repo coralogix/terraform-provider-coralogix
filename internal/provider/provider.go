@@ -436,7 +436,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		aaa.NewUserDataSource,
 		aaa.NewScopeDataSource,
 		aaa.NewTeamDataSource,
-		aaa.NewIpAccessDataSource,
+		func() datasource.DataSource { return ipaccess.NewDataSource(ipaccess.Hooks{}) },
 		integrations.NewIntegrationDataSource,
 		alerts.NewAlertDataSource,
 		notifications.NewConnectorDataSource,
