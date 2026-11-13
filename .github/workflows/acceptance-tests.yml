@@ -28,7 +28,7 @@ concurrency:
 env:
   CI_PREP_EXPERIMENT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' && 'true' || 'false' }}
   PRIVATE_ACC_OUTPUT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' && 'true' || 'false' }}
-  SDK_COMMIT: 4c724eefdcf1e878a221b9639153f8bf73ad7d7d
+  SDK_COMMIT: 328c65dfa4cfe7635872a0ff78376bb3fe96e7da
   DASHBOARD_ACC_PATTERN: '^TestAccCoralogix(Resource|DataSource)Dashboards?'
   DASHBOARD_MIGRATION_ACC_PATTERN: '^TestAccCoralogixResourceDashboardMigration'
   DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
