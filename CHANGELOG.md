@@ -57,7 +57,7 @@
 - FIX: The data source accepts `name = ""` and finds the role with the empty name, which the API allows. Before, it failed with `id or name must be provided`.
 
 #### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
-- BREAKING: An `applications` or `subsystems` rule of type `starts_with` or `includes` with more than one element in `names` is an error at plan time. Before, it was a warning, and the API got the names joined with commas as one value (`one,two`), so the policy matched that literal text and not `one` or `two`. Keep one element, or use `is` or `is_not` to match several values. Rules of `services`, `actions`, and `tags` are not checked.
+- BREAKING: A rule of type `starts_with` or `includes` with more than one element in `names` is an error at plan time. This covers `applications` and `subsystems`, and `services`, `actions`, and `tags` of `coralogix_tco_policies_traces`. Before, it was a warning for `applications` and `subsystems` and nothing for the rest, and the API got the names joined with commas as one value (`one,two`), so the policy matched that literal text and not `one` or `two`. Keep one element, or use `is` or `is_not` to match several values.
 - DOCS: `names` of a rule has a description.
 
 #### data-source/coralogix_tco_policies_logs, data-source/coralogix_tco_policies_traces, data-source/coralogix_tco_policies_rum

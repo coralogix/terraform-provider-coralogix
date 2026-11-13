@@ -87,9 +87,16 @@ var tcoPoliciesLogsHooks = tcopolicieslogs.Hooks{
 	},
 }
 
-// rejectMultiValueRules rejects an applications or subsystems rule of type starts_with or includes
-// with more than one name. The API matches one value for those types, so it would receive the names
-// joined with commas as one literal value, which is not what the configuration says.
+// ruleAttributes are the policy attributes that hold one rule: applications and subsystems of every
+// policy, and services and actions of a span policy. tagRulesAttribute holds a map of rules by tag name.
+var ruleAttributes = []string{"applications", "subsystems", "services", "actions"}
+
+const tagRulesAttribute = "tags"
+
+// rejectMultiValueRules rejects a rule of type starts_with or includes with more than one name. The API
+// matches one value for those types, so it would receive the names joined with commas as one literal
+// value, which is not what the configuration says. A policy that has no such attribute, such as the
+// services of a log policy, is skipped.
 func rejectMultiValueRules(ctx context.Context, config tfsdk.Config) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var policies types.List
@@ -102,22 +109,35 @@ func rejectMultiValueRules(ctx context.Context, config tfsdk.Config) diag.Diagno
 		if !ok || policy.IsNull() || policy.IsUnknown() {
 			continue
 		}
-		for _, attribute := range []string{"applications", "subsystems"} {
-			rule, ok := policy.Attributes()[attribute].(types.Object)
-			if !ok || rule.IsNull() || rule.IsUnknown() {
-				continue
-			}
-			ruleType, _ := rule.Attributes()["rule_type"].(types.String)
-			names, _ := rule.Attributes()["names"].(types.Set)
-			kind := ruleType.ValueString()
-			if (kind == "starts_with" || kind == "includes") && len(names.Elements()) > 1 {
-				diags.AddAttributeError(
-					path.Root("policies").AtListIndex(i).AtName(attribute),
-					"Invalid Attribute Combination",
-					fmt.Sprintf("rule_type %q matches a single value, but \"names\" has %d elements: the API would receive them joined with commas as one value. Keep one element, or use rule_type \"is\" or \"is_not\" to match several values.", kind, len(names.Elements())),
-				)
-			}
+		policyPath := path.Root("policies").AtListIndex(i)
+		for _, attribute := range ruleAttributes {
+			rule, _ := policy.Attributes()[attribute].(types.Object)
+			diags.Append(rejectMultiValueRule(policyPath.AtName(attribute), rule)...)
 		}
+		tags, _ := policy.Attributes()[tagRulesAttribute].(types.Map)
+		for name, element := range tags.Elements() {
+			rule, _ := element.(types.Object)
+			diags.Append(rejectMultiValueRule(policyPath.AtName(tagRulesAttribute).AtMapKey(name), rule)...)
+		}
+	}
+	return diags
+}
+
+// rejectMultiValueRule checks one rule. A null or unknown rule, rule_type, or names is not checked.
+func rejectMultiValueRule(p path.Path, rule types.Object) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if rule.IsNull() || rule.IsUnknown() {
+		return diags
+	}
+	ruleType, _ := rule.Attributes()["rule_type"].(types.String)
+	names, _ := rule.Attributes()["names"].(types.Set)
+	kind := ruleType.ValueString()
+	if (kind == "starts_with" || kind == "includes") && len(names.Elements()) > 1 {
+		diags.AddAttributeError(
+			p,
+			"Invalid Attribute Combination",
+			fmt.Sprintf("rule_type %q matches a single value, but \"names\" has %d elements: the API would receive them joined with commas as one value. Keep one element, or use rule_type \"is\" or \"is_not\" to match several values.", kind, len(names.Elements())),
+		)
 	}
 	return diags
 }

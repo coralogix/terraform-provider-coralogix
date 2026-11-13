@@ -71,10 +71,14 @@ func TestRejectMultiValueRules(t *testing.T) {
 	ctx := context.Background()
 	str := func(s string) *string { return &s }
 
-	resources := map[string]resource.Resource{
-		"logs":   NewTCOPoliciesLogsResource(),
-		"traces": NewTCOPoliciesTracesResource(),
-		"rum":    NewTCOPoliciesRumResource(),
+	// The attributes that hold a rule, for each resource. tags holds a map of rules by tag name.
+	resources := map[string]struct {
+		resource   resource.Resource
+		attributes []string
+	}{
+		"logs":   {NewTCOPoliciesLogsResource(), []string{"applications", "subsystems"}},
+		"traces": {NewTCOPoliciesTracesResource(), []string{"applications", "subsystems", "services", "actions", "tags"}},
+		"rum":    {NewTCOPoliciesRumResource(), []string{"applications", "subsystems"}},
 	}
 	cases := []struct {
 		name        string
@@ -93,7 +97,8 @@ func TestRejectMultiValueRules(t *testing.T) {
 		{name: "unknown rule_type with two names", unknownType: true, names: []string{"one", "two"}},
 	}
 
-	for resourceName, r := range resources {
+	for resourceName, entry := range resources {
+		r := entry.resource
 		var schemaResponse resource.SchemaResponse
 		r.Schema(ctx, resource.SchemaRequest{}, &schemaResponse)
 		rootT, ok := schemaResponse.Schema.Type().TerraformType(ctx).(tftypes.Object)
@@ -106,15 +111,24 @@ func TestRejectMultiValueRules(t *testing.T) {
 		}
 		policyT := policiesT.ElementType.(tftypes.Object)
 
-		for _, attribute := range []string{"applications", "subsystems"} {
-			ruleT, ok := policyT.AttributeTypes[attribute]
+		for _, attribute := range entry.attributes {
+			attributeT, ok := policyT.AttributeTypes[attribute]
 			if !ok {
 				t.Fatalf("%s: policies has no attribute %q any more: update rejectMultiValueRules", resourceName, attribute)
 			}
+			ruleT := attributeT
+			if mapT, isMap := attributeT.(tftypes.Map); isMap {
+				ruleT = mapT.ElementType
+			} else if attribute == "tags" {
+				t.Fatalf("%s: tags is not a map any more: update rejectMultiValueRules", resourceName)
+			}
 			for _, tc := range cases {
 				t.Run(fmt.Sprintf("%s/%s/%s", resourceName, attribute, tc.name), func(t *testing.T) {
-					rule := ruleObject(t, ruleT, tc.ruleType, tc.unknownType, tc.names)
-					policy := nullsExcept(policyT, map[string]tftypes.Value{attribute: rule})
+					value := ruleObject(t, ruleT, tc.ruleType, tc.unknownType, tc.names)
+					if mapT, isMap := attributeT.(tftypes.Map); isMap {
+						value = tftypes.NewValue(mapT, map[string]tftypes.Value{"tags.http.method": value})
+					}
+					policy := nullsExcept(policyT, map[string]tftypes.Value{attribute: value})
 					root := nullsExcept(rootT, map[string]tftypes.Value{"policies": tftypes.NewValue(policiesT, []tftypes.Value{policy})})
 
 					diags := rejectMultiValueRules(ctx, tfsdk.Config{Raw: root, Schema: schemaResponse.Schema})
