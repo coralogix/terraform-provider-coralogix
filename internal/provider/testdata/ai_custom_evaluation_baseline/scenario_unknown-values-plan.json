@@ -1,0 +1,33 @@
+[
+  {
+    "step": "plan with unknown values",
+    "config": {
+      "description": "(unknown)",
+      "instructions": "(unknown)",
+      "name": "(unknown)",
+      "policy_type": "quality",
+      "should_include_system_prompt": "(unknown)"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "(unknown)",
+      "id": "(unknown)",
+      "instructions": "(unknown)",
+      "name": "(unknown)",
+      "policy_type": "quality",
+      "should_include_system_prompt": "(unknown)"
+    },
+    "state": null
+  }
+]

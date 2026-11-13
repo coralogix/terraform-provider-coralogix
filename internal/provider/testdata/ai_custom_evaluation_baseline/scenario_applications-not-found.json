@@ -1,0 +1,52 @@
+[
+  {
+    "step": "create with an application that does not exist",
+    "config": {
+      "applications": [
+        {
+          "application": "nope",
+          "subsystem": "api"
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [
+        {
+          "application": "nope",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/applications/v3?page_offset=0&page_size=200",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: AI application not found | No AI application named \"nope\" with subsystem \"api\" was found."
+    ],
+    "state": null
+  }
+]
