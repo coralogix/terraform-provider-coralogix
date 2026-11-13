@@ -34,7 +34,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_custom_role | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role taken for team 700001 as it already exists.\"}\noperation - Create"
+      "error: Unable to create custom_role | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Could not create custom role taken for team 700001 as it already exists.\"}"
     ],
     "state": null
   }

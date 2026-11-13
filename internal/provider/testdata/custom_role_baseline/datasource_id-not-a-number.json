@@ -5,7 +5,7 @@
       "id": "not-a-number"
     },
     "applyDiagnostics": [
-      "error: Invalid Id or Name | coralogix_custom_role id or name must be provided"
+      "error: Invalid id [AttributeName(\"id\")] | The id \"not-a-number\" is not a valid int64."
     ],
     "state": {
       "description": null,

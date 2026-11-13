@@ -28,8 +28,8 @@ import (
 
 func testUser(userID, username, firstName, lastName string, status users.UserStatus) users.RbacV2User {
 	user := users.RbacV2User{
-		UserId:   &userID,
-		Username: &username,
+		UserId:   userID,
+		Username: username,
 		Status:   &status,
 	}
 	if firstName != "" || lastName != "" {

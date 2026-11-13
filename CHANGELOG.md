@@ -47,6 +47,15 @@
 #### data-source/coralogix_scope
 - CHORE: Generate the data source with the resource. Keep lookup by id, the shared schema, and the same scopes API call.
 
+#### resource/coralogix_custom_role
+- CHORE: The resource and its data source are generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the roles that 3.24.0 created from the same configuration shows no change. The data source reads a role by name with the list and then with Get, where it used the list only; both calls need the same permission, `team-roles:ReadConfig`.
+- FIX: Changing `parent_role` plans a replacement: the role is deleted and created again with a new id. Before, the plan accepted the change, Update did not send it, and the apply failed with `Provider produced inconsistent result`.
+- FIX: A role that the API no longer finds at update fails with `Resource no longer exists` and says to refresh. Before, the provider removed it from the state during the update, and the framework failed with `Missing Resource State After Update`.
+- FIX: When Get fails after a role was created, the role stays in the state with its id, marked as tainted, so the next apply replaces it. Before, the role was lost from the state, and the next apply tried to create it again and failed with `409`.
+- FIX: Importing an id that is not a number fails with `Invalid import ID`. Before, the import succeeded with an empty state.
+- FIX: The data source shows the permissions that the role owns for a lookup by name, as it does for a lookup by id. Before, a lookup by name showed them together with the permissions of the parent role.
+- FIX: The data source accepts `name = ""` and finds the role with the empty name, which the API allows. Before, it failed with `id or name must be provided`.
+
 # Release 3.25.0
 
 #### provider
