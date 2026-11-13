@@ -174,7 +174,7 @@
       "ip_access": []
     },
     "plan": {
-      "enable_coralogix_customer_support_access": "unspecified",
+      "enable_coralogix_customer_support_access": "(unknown)",
       "id": "(unknown)",
       "ip_access": []
     },
@@ -183,7 +183,6 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
         "body": {
-          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
           "ipAccess": []
         },
         "status": 200
@@ -213,11 +212,7 @@
     "drift": [
       "AttributeName(\"enable_coralogix_customer_support_access\")"
     ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"enable_coralogix_customer_support_access\")",
-      "AttributeName(\"id\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

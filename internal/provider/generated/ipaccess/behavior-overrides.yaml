@@ -18,7 +18,6 @@ types:
         readOnly: true
       enableCoralogixCustomerSupportAccess:
         computed: true
-        default: unspecified
         validators: [{enum: true}]
       ipAccess:
         collection: set

@@ -152,11 +152,15 @@ data "coralogix_ip_access" "without_id" {
 				),
 			},
 			{
-				Config:                   resourceConfig(updatedRange, true),
+				Config:                   resourceConfigWithoutSupportAccess(updatedRange, name, true),
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrPair("data.coralogix_ip_access.by_id", "id", ipAccessGeneratedResourceAddress, "id"),
 					resource.TestCheckResourceAttr("data.coralogix_ip_access.by_id", "ip_access.#", "1"),
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "enable_coralogix_customer_support_access", "disabled"),
 					resource.TestCheckResourceAttrSet("data.coralogix_ip_access.without_id", "id"),
 					resource.TestCheckResourceAttr("data.coralogix_ip_access.without_id", "enable_coralogix_customer_support_access", "disabled"),
 					resource.TestCheckResourceAttr("data.coralogix_ip_access.without_id", "ip_access.#", "1"),
@@ -180,6 +184,28 @@ func resourceConfigWithoutName(ipRange string) string {
     ip_range = %q
   }]
 }`, ipRange)
+}
+
+func resourceConfigWithoutSupportAccess(ipRange, name string, withDataSources bool) string {
+	config := fmt.Sprintf(`resource "coralogix_ip_access" "generated_live" {
+  ip_access = [{
+    enabled  = false
+    ip_range = %q
+    name     = %q
+  }]
+}`, ipRange, name)
+	if withDataSources {
+		config += `
+
+data "coralogix_ip_access" "by_id" {
+  id = coralogix_ip_access.generated_live.id
+}
+
+data "coralogix_ip_access" "without_id" {
+  depends_on = [coralogix_ip_access.generated_live]
+}`
+	}
+	return config
 }
 
 func checkIpAccessGeneratedLiveDestroy(base, apiKey string) func(*terraform.State) error {

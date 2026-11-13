@@ -13,8 +13,8 @@ func TestIpAccessGeneratedSchemaCompatibility(t *testing.T) {
 	got := ipaccess.Schema()
 
 	support, ok := got.Attributes["enable_coralogix_customer_support_access"].(schema.StringAttribute)
-	if !ok || !support.Optional || !support.Computed || support.Default == nil || len(support.Validators) == 0 {
-		t.Fatalf("customer support access schema = %#v; want optional+computed, default, and enum validation", got.Attributes["enable_coralogix_customer_support_access"])
+	if !ok || !support.Optional || !support.Computed || support.Default != nil || len(support.Validators) == 0 {
+		t.Fatalf("customer support access schema = %#v; want optional+computed without a static default and with enum validation", got.Attributes["enable_coralogix_customer_support_access"])
 	}
 
 	entries, ok := got.Attributes["ip_access"].(schema.SetNestedAttribute)
@@ -24,8 +24,9 @@ func TestIpAccessGeneratedSchemaCompatibility(t *testing.T) {
 	if !entries.NestedObject.Attributes["enabled"].(schema.BoolAttribute).Required || !entries.NestedObject.Attributes["ip_range"].(schema.StringAttribute).Required {
 		t.Fatal("ip_access.enabled and ip_access.ip_range must remain required")
 	}
-	if !entries.NestedObject.Attributes["name"].(schema.StringAttribute).Optional {
-		t.Fatal("ip_access.name must remain optional")
+	name := entries.NestedObject.Attributes["name"].(schema.StringAttribute)
+	if !name.Optional || !name.Computed {
+		t.Fatal("ip_access.name must remain optional+computed to track the API's empty-string default")
 	}
 
 	id, ok := got.Attributes["id"].(schema.StringAttribute)

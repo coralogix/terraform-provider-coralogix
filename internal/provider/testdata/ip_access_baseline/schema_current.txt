@@ -1,7 +1,6 @@
 (schema)  version=0
     markdown: "Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/."
 enable_coralogix_customer_support_access  StringAttribute optional computed
-    default: stringdefault.staticStringDefault value defaults to unspecified
     markdown: "The Coralogix customer support access setting."
     validator: stringvalidator.oneOfValidator value must be one of: ["disabled" "enabled" "unspecified"]
 id  StringAttribute computed
