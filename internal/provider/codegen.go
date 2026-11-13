@@ -32,3 +32,5 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=GetCompanyPoliciesResponse OUT=tcopoliciestraces
 //go:generate make -C ../.. codegen RESOURCE=GetCompanyPoliciesResponse OUT=tcopoliciesrum
 //go:generate make -C ../.. codegen RESOURCE=GetRetentionsResponse OUT=archiveretentions
+
+//go:generate make -C ../.. codegen RESOURCE=v1.Scope OUT=scope

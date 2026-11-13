@@ -20,3 +20,6 @@ dataSourceSkip:
   - rules.0.kind
 upgradeFrom: "1.2.3"
 leftovers: internal/acctest.RemoveLeftoverLegacyThings
+skipTests:
+  full-lifecycle: the test tenant refuses this update
+  upgrade-full: the released API refuses this update

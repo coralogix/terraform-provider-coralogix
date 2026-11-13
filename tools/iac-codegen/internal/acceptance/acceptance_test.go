@@ -25,6 +25,8 @@ upgradeCases:
     values:
       token_wo: '{ secret = "x" }'
 leftovers: internal/acctest.RemoveLeftoverGlobalRouters
+skipTests:
+  full-lifecycle: the test tenant refuses this update
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +36,9 @@ leftovers: internal/acctest.RemoveLeftoverGlobalRouters
 	}
 	if f.LeftoversPackage() != "internal/acctest" || f.LeftoversFunc() != "RemoveLeftoverGlobalRouters" {
 		t.Fatalf("leftovers = %q, %q", f.LeftoversPackage(), f.LeftoversFunc())
+	}
+	if f.SkipTests["full-lifecycle"] != "the test tenant refuses this update" {
+		t.Fatalf("skipTests = %v", f.SkipTests)
 	}
 	if got := f.ValuePaths(); len(got) != 1 || got[0] != "rules[].targets[].connector_id" {
 		t.Fatalf("value paths = %v", got)
@@ -54,6 +59,9 @@ func TestParseRejectsWhatCannotWork(t *testing.T) {
 		"env not listed":         {"resource: R\nprerequisites: x @{env.MISSING}\n", "not @{run}"},
 		"bad value path":         {"resource: R\nvalues:\n  Rules.x: y\n", "not a field path"},
 		"empty value":            {"resource: R\nvalues:\n  name: \"\"\n", "is empty"},
+		"skip test no reason":    {"resource: R\nskipTests:\n  full-lifecycle:\n", "reason is required"},
+		"skip test blank reason": {"resource: R\nskipTests:\n  full-lifecycle: ' '\n", "reason is required"},
+		"skip test twice":        {"resource: R\nskipTests:\n  full-lifecycle: first\n  full-lifecycle: second\n", "already defined"},
 		"bad skip path":          {"resource: R\nskip: [Bad]\n", "not a field path"},
 		"bad minimal path":       {"resource: R\nminimal: [a.B]\n", "not a field path"},
 		"bad upgradeMinimal":     {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeMinimal: [Bad]\n", "not a field path"},

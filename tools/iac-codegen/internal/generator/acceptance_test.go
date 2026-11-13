@@ -639,6 +639,9 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 		"data source skip of a missing check": {func(s string) string {
 			return strings.Replace(s, "  - rules.0.kind\n", "  - rules.0.nope\n", 1)
 		}, "dataSourceSkip"},
+		"skip of a missing subtest": {func(s string) string {
+			return strings.Replace(s, "  full-lifecycle:", "  missing-subtest:", 1)
+		}, "matches no generated live subtest"},
 		"minimal of a missing one": {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
 		"another resource":         {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
 	}

@@ -59,6 +59,9 @@ type File struct {
 	// Skip lists the fields that the test configs leave out, for example a deprecated field that
 	// the API refuses next to its replacement. A path has the same form as in values.
 	Skip []string `yaml:"skip"`
+	// SkipTests maps exact live subtest names to reasons. The generator keeps each test body and
+	// writes t.Skip at its start. A name that matches no generated subtest is an error.
+	SkipTests map[string]string `yaml:"skipTests"`
 	// DataSourceSkip lists the attribute paths that the data source test does not compare with the
 	// resource, for a data source that shows more than the resource: the rules that Coralogix manages
 	// are in the data source and not in the resource, so the counts differ. A path is a path of the
@@ -333,6 +336,11 @@ func (f *File) checkUpgradeCases() error {
 // checkSkipLists checks the skipValues and skipChoices entries: each names something, has no
 // duplicate, and states a reason.
 func (f *File) checkSkipLists() error {
+	for _, name := range sortedKeys(f.SkipTests) {
+		if strings.TrimSpace(f.SkipTests[name]) == "" {
+			return fmt.Errorf("skipTests.%s: reason is required", name)
+		}
+	}
 	for _, name := range sortedKeys(f.SkipValues) {
 		e := f.SkipValues[name]
 		if err := checkSkip("skipValues."+name, "values", e.Values, e.Reason); err != nil {

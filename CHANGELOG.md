@@ -1,6 +1,7 @@
 # Unreleased
 
 #### tools/iac-codegen
+- FEAT: `skipTests` in `acceptance.yaml` generates inline skips for named live subtests with required reasons. Unknown names fail generation; other tests stay active.
 - FEAT: A one-of group, a `typedArms` object, and a sibling `exactlyOneOf` or `conflictsWith` line are checked by one validator of the parent object. A validator on each arm walked the whole configuration for each sibling, so plan time grew with the number of objects.
 - FEAT: Keys `keepPriorArm` (group), `unsupportedArms` for a plain field with the hook `AllowUnsupported`, `unsupportedIfEmpty`, `durationFormat`, `enumAs`, the validator `unsupported`, `readNullAs` for an enum, a top-level `readEmptyAs`, place lines with every field key, `defaultFromSibling`, string extra attributes with a default inside list items, and `validators` on a `distributeTo` line.
 - FEAT: A new value of an enum in the API contract is accepted without a line in `behavior-overrides.yaml`. The accepted values are the contract values without the zero value and without `rejected`, so the `values` key is gone. A new value takes the style of the `names` entries of its enum, or the generator stops with `ENUM_NAME_UNDECIDED` and asks for a `names` entry.
@@ -35,6 +36,16 @@
 
 #### data-source/coralogix_dashboard
 - CHORE: The data source is generated with the resource and has the same attributes.
+
+#### resource/coralogix_scope
+- CHORE: Generate the resource from the API contract. Keep the schema, state version, string `team_id`, ordered filters, import by id, and API-key permissions.
+- FIX: An explicitly empty `description` stays empty after apply and refresh, instead of becoming null and causing an inconsistent result or a recurring plan.
+- FIX: Empty `filters` stay an empty list after apply and refresh, instead of becoming null and causing an inconsistent result or a recurring plan.
+- FIX: A Delete that gets a 404 for a missing API route returns an error and keeps state. A confirmed missing scope still counts as deleted.
+- CHORE: Use generated CRUD diagnostics. Successful configurations keep their behavior; API errors and missing-resource warnings use the generator's message wording.
+
+#### data-source/coralogix_scope
+- CHORE: Generate the data source with the resource. Keep lookup by id, the shared schema, and the same scopes API call.
 
 #### resource/coralogix_custom_role
 - CHORE: The resource and its data source are generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the roles that 3.24.0 created from the same configuration shows no change. The data source reads a role by name with the list and then with Get, where it used the list only; both calls need the same permission, `team-roles:ReadConfig`.

@@ -42,7 +42,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_scope | error - no value given for required property id — {\"scope\":{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}}\noperation - Create"
+      "error: Unable to create scope | no value given for required property id — {\"scope\":{\"defaultExpression\":\"\\u003cv1\\u003etrue\",\"displayName\":\"example\",\"filters\":[],\"teamId\":1}}"
     ],
     "state": null
   }

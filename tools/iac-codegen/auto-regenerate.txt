@@ -26,6 +26,7 @@ coralogix_parsing_rules
 coralogix_preset
 coralogix_quota_allocation_rule_set
 coralogix_recording_rules_groups_set
+coralogix_scope
 coralogix_slo_v2
 coralogix_tco_policies_logs
 coralogix_tco_policies_rum

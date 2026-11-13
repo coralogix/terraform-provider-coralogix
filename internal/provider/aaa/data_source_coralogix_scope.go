@@ -15,104 +15,10 @@
 package aaa
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-
-	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/scope"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-)
-
-var (
-	_ datasource.DataSourceWithConfigure = &ScopeDataSource{}
 )
 
 func NewScopeDataSource() datasource.DataSource {
-	return &ScopeDataSource{}
-}
-
-type ScopeDataSource struct {
-	client *scopess.ScopesServiceAPIService
-}
-
-func (d *ScopeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_scope"
-}
-
-func (d *ScopeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.Scopes()
-}
-
-func (d *ScopeDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ScopeResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *ScopeResourceModel
-	diags := req.Config.Get(ctx, &data)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if data == nil || data.ID.IsNull() || data.ID.IsUnknown() || data.ID.ValueString() == "" {
-		resp.Diagnostics.AddError(
-			"Error reading coralogix_scope",
-			"id must be set to a non-empty scope id.",
-		)
-		return
-	}
-	id := data.ID.ValueString()
-
-	rq := d.client.
-		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
-
-	result, httpResponse, err := rq.
-		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
-		return
-	}
-
-	if result == nil || len(result.Scopes) == 0 {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("coralogix_scope %q does not exist in Coralogix backend", id),
-			"Check the id, and that the API key is permitted to read scopes.",
-		)
-		return
-	}
-
-	if result.Scopes[0].GetId() == "" {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Unable to read coralogix_scope %q", id),
-			"The read returned a scope with no id.",
-		)
-		return
-	}
-
-	state := flattenScope(result.Scopes[0])
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	return scope.NewDataSource(scope.Hooks{})
 }

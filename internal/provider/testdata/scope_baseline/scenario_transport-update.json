@@ -82,7 +82,7 @@
       "team_id": "1234"
     },
     "applyDiagnostics": [
-      "error: Error updating coralogix_scope | error - Put \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1\": scope transport unavailable\noperation - Replace"
+      "error: Unable to update scope | id 00000000-0000-4000-8000-000000000001: Put \"https://api.eu2.coralogix.com/mgmt/openapi/5/aaa/team-scopes/v1\": scope transport unavailable"
     ],
     "state": {
       "default_expression": "<v1>true",

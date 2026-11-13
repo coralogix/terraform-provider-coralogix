@@ -20,26 +20,21 @@
         "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
         "body": {
           "defaultExpression": "\u003cv1\u003etrue",
-          "displayName": "example"
+          "displayName": "example",
+          "filters": []
         },
         "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "filters"
     ],
     "state": {
       "default_expression": "<v1>true",
       "description": null,
       "display_name": "example",
-      "filters": null,
+      "filters": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"filters\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and plan empty filters",
@@ -54,14 +49,11 @@
       "default_expression": "<v1>true",
       "description": null,
       "display_name": "example",
-      "filters": null,
+      "filters": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"filters\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "import empty filters",
@@ -112,26 +104,21 @@
         "body": {
           "defaultExpression": "\u003cv1\u003etrue",
           "displayName": "example",
+          "filters": [],
           "id": "00000000-0000-4000-8000-000000000001"
         },
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "filters"
-    ],
     "state": {
       "default_expression": "<v1>true",
       "description": null,
       "display_name": "example",
-      "filters": null,
+      "filters": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "team_id": "1234"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"filters\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "read empty filters",
