@@ -25,7 +25,7 @@ import (
 var IpAccessResource = `
 
 resource "coralogix_ip_access" "test" {
-    enable_coralogix_customer_support_access = "enabled"
+    enable_coralogix_customer_support_access = "disabled"
     ip_access = [{ 
 	   enabled = false, 
 	   ip_range = "100.64.0.0/10", 
@@ -44,7 +44,7 @@ func TestIpAccessResource(t *testing.T) {
 			{
 				Config: IpAccessResource,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(ipAccessResourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckResourceAttr(ipAccessResourceName, "enable_coralogix_customer_support_access", "disabled"),
 					resource.TestCheckTypeSetElemNestedAttrs(ipAccessResourceName, "ip_access.*",
 						map[string]string{
 							"enabled":  "false",
@@ -57,7 +57,7 @@ func TestIpAccessResource(t *testing.T) {
 			{
 				Config: strings.ReplaceAll(IpAccessResource, "100.64.0.0/10", "10.0.0.0/8"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(ipAccessResourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckResourceAttr(ipAccessResourceName, "enable_coralogix_customer_support_access", "disabled"),
 					resource.TestCheckTypeSetElemNestedAttrs(ipAccessResourceName, "ip_access.*", map[string]string{
 						"enabled": "false", "ip_range": "10.0.0.0/8", "name": "random range from wikipedia",
 					}),
