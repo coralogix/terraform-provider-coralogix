@@ -7,8 +7,8 @@ if [[ $# -eq 0 ]]; then
   exit 2
 fi
 
-# The public experiment uses a private team. Keep its IDs and test output out
-# of Actions logs, summaries, and artifacts. Each job reads its own IDs.
+# The public CI uses a private team. The test text stays in the job log
+# with private values removed. Each job reads its own IDs.
 if [[ ${PRIVATE_ACC_OUTPUT:-} == true ]]; then
   set +x
   umask 077
