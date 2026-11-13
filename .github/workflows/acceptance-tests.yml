@@ -28,7 +28,7 @@ concurrency:
 env:
   CI_PREP_EXPERIMENT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' && 'true' || 'false' }}
   PRIVATE_ACC_OUTPUT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'ci/prepare-team-experiment' && 'true' || 'false' }}
-  SDK_COMMIT: 783f6cb99a0a87b5e14975cb4b7163bd710f9df0
+  SDK_COMMIT: 7578e90d9b9dc198231c84a6adff76099a5e38f0
   DASHBOARD_ACC_PATTERN: '^TestAccCoralogix(Resource|DataSource)Dashboards?'
   DASHBOARD_MIGRATION_ACC_PATTERN: '^TestAccCoralogixResourceDashboardMigration'
   DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
@@ -197,6 +197,7 @@ jobs:
           CORALOGIX_SEND_YOUR_DATA_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_SEND_YOUR_DATA_API_KEY }}
           PAGERDUTY_REST_API_KEY: ${{ secrets.CI_PREP_PAGERDUTY_REST_API_KEY }}
           PAGERDUTY_USER_EMAIL: ${{ secrets.CI_PREP_PAGERDUTY_USER_EMAIL }}
+          CI_PREP_AI_APPLICATION_PREFIX: ${{ secrets.CI_PREP_AI_APPLICATION_PREFIX }}
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
@@ -205,7 +206,7 @@ jobs:
         run: |
           set -euo pipefail
           set +x
-          for name in CORALOGIX_API_KEY CORALOGIX_SEND_YOUR_DATA_API_KEY PAGERDUTY_REST_API_KEY PAGERDUTY_USER_EMAIL AWS_TEST_ROLE ARCHIVE_LOGS_BUCKET ARCHIVE_METRICS_BUCKET SLACK_INTEGRATION_CHANNEL SLACK_INTEGRATION_CHANNEL_UPDATED; do
+          for name in CORALOGIX_API_KEY CORALOGIX_SEND_YOUR_DATA_API_KEY PAGERDUTY_REST_API_KEY PAGERDUTY_USER_EMAIL CI_PREP_AI_APPLICATION_PREFIX AWS_TEST_ROLE ARCHIVE_LOGS_BUCKET ARCHIVE_METRICS_BUCKET SLACK_INTEGRATION_CHANNEL SLACK_INTEGRATION_CHANNEL_UPDATED; do
             if [ -z "${!name}" ]; then
               echo 'An experiment input is missing'
               exit 1
@@ -227,6 +228,7 @@ jobs:
           CORALOGIX_SEND_YOUR_DATA_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_SEND_YOUR_DATA_API_KEY }}
           PAGERDUTY_REST_API_KEY: ${{ secrets.CI_PREP_PAGERDUTY_REST_API_KEY }}
           PAGERDUTY_USER_EMAIL: ${{ secrets.CI_PREP_PAGERDUTY_USER_EMAIL }}
+          CI_PREP_AI_APPLICATION_PREFIX: ${{ secrets.CI_PREP_AI_APPLICATION_PREFIX }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
         run: |
           set -euo pipefail
@@ -238,6 +240,7 @@ jobs:
             -e CORALOGIX_SEND_YOUR_DATA_API_KEY \
             -e PAGERDUTY_REST_API_KEY \
             -e PAGERDUTY_USER_EMAIL \
+            -e CI_PREP_AI_APPLICATION_PREFIX \
             -e ARCHIVE_LOGS_BUCKET \
             prepare-ci-team:experiment >/dev/null 2>&1; then
             echo 'EU2 team preparation failed'

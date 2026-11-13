@@ -81,7 +81,7 @@ class RedactPrivateAcceptanceOutputTest(unittest.TestCase):
             generated_key = "C" * 30
             result, _, _ = run_private(
                 f"AWS {aws_id} PagerDuty {pagerduty_key} Coralogix {generated_key}\n"
-                "application=ci-acceptance-ai-02\n"
+                "application=private-example-ai-02\n"
                 "request failed for team 321; wss://internal.example.invalid/a\n"
                 "team 432 has no archive\n"
                 "HTTP 403\n"
@@ -93,7 +93,7 @@ class RedactPrivateAcceptanceOutputTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0)
             self.assertIn("Failure category: Dataset unavailable", result.stdout)
             self.assertIn("Failure category: Authorization failed", result.stdout)
-            for value in (aws_id, pagerduty_key, generated_key, "ci-acceptance-ai",
+            for value in (aws_id, pagerduty_key, generated_key, "private-example-ai",
                           "321", "432", "403", "internal.example", "private-dataset", "abc-123",
                           "::warning::", "Private value"):
                 self.assertNotIn(value, result.stdout + result.stderr)
