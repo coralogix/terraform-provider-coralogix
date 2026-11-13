@@ -498,11 +498,11 @@ var aiceScenarios = map[string]func(h *grHarness){
 		s = h.Apply("update: swap the examples", s, aiceWith(aiceConfig("n"), j{"criteria": aiceCriteria("", l{"b"}, "", l{"a"})}))
 		h.RefreshPlan("refresh and replan", s)
 	},
-	"criteria-examples-clear-fails": func(h *grHarness) {
+	// The released resource cleared the examples with a second call. One call with a mask does it.
+	"criteria-examples-cleared-in-one-call": func(h *grHarness) {
 		s := h.Apply("create with examples", h.null(), aiceWith(aiceConfig("n"), j{"criteria": aiceCriteria("", l{"ok"}, "", l{})}))
-		h.aice().updateScript = []int{0, 500}
-		s = h.Apply("update: the first call works and the call that clears the examples answers 500", s, aiceWith(aiceConfig("n-renamed"), j{}))
-		h.RefreshPlan("refresh after the failed update", s)
+		s = h.Apply("update: rename and remove the examples", s, aiceWith(aiceConfig("n-renamed"), j{}))
+		h.RefreshPlan("refresh and replan", s)
 	},
 	"criteria-examples-changed-outside": func(h *grHarness) {
 		cfg := aiceWith(aiceConfig("n"), j{"criteria": aiceCriteria("", l{"ok"}, "", l{"bad"})})
@@ -544,22 +544,28 @@ var aiceScenarios = map[string]func(h *grHarness){
 	"read-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("gone"))
 		h.aice().forgetOutside(aiceFirstEvalID)
-		h.Refresh("refresh: the evaluation is not in the list", s)
+		h.Refresh("refresh: the API does not find the evaluation", s)
 	},
 	"read-api-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("broken"))
-		h.aice().listStatus = 500
-		h.Refresh("refresh: the list answers 500", s)
+		h.aice().getStatus = 500
+		h.Refresh("refresh: the read answers 500", s)
 	},
-	"read-list-not-found": func(h *grHarness) {
+	"read-route-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("n"))
-		h.aice().listStatus = 404
-		h.Refresh("refresh: the list answers 404", s)
+		h.aice().getStatus = 404
+		h.Refresh("refresh: the route answers 404", s)
 	},
 	"delete-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("gone"))
 		h.aice().forgetOutside(aiceFirstEvalID)
 		h.Destroy("destroy: the API answers 404", s)
+	},
+	// A 404 with no message of its own is a missing route, not a deleted evaluation.
+	"delete-route-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), aiceConfig("n"))
+		h.aice().deleteStatus = 404
+		h.Destroy("destroy: the route answers 404", s)
 	},
 	"delete-api-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("broken"))
@@ -606,8 +612,8 @@ var aiceScenarios = map[string]func(h *grHarness){
 	},
 	"import-api-error": func(h *grHarness) {
 		id := h.aice().seedEvaluation("imported")
-		h.aice().listStatus = 500
-		h.Import("import: the list answers 500", id)
+		h.aice().getStatus = 500
+		h.Import("import: the read answers 500", id)
 	},
 	"import-score-unexpected": func(h *grHarness) {
 		id := h.aice().seedEvaluation("imported")

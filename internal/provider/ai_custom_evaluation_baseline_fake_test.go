@@ -40,7 +40,9 @@ const aiceFakeCompanyID = "700001"
 // that depends on the route (see the notes of the fake).
 var aiceUUIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
-// aiceMaskPaths are the field paths that an update mask may name, as the service lists them.
+// aiceMaskPaths are the field paths that an update mask may name, as the service lists them (proto
+// names). The REST gateway takes the names of the JSON body, in lower camel case, and turns them into
+// these: "policyType" is "policy_type". A name with an underscore is refused by the gateway.
 var aiceMaskPaths = map[string]string{
 	"name":                         "name",
 	"description":                  "description",
@@ -50,6 +52,19 @@ var aiceMaskPaths = map[string]string{
 	"policy_type":                  "policyType",
 	"should_include_system_prompt": "shouldIncludeSystemPrompt",
 	"examples":                     "examples",
+}
+
+// aiceSnakeCase turns a lower camel case path of the JSON body into the proto name.
+func aiceSnakeCase(path string) string {
+	var out []rune
+	for _, r := range path {
+		if r >= 'A' && r <= 'Z' {
+			out = append(out, '_', r+('a'-'A'))
+			continue
+		}
+		out = append(out, r)
+	}
+	return string(out)
 }
 
 // aiceClearDefaults are the values that a field takes when a mask names it and the body omits it.
@@ -88,8 +103,8 @@ type aiceFake struct {
 	nextAppID   int
 	// The statuses force an answer of the next calls of the route. updateScript answers the calls of
 	// Update in order: 0 is a normal answer, and a call after the end of the script is normal.
-	createStatus, listStatus, appsStatus, deleteStatus, linkStatus, unlinkStatus int
-	updateScript                                                                 []int
+	createStatus, listStatus, getStatus, appsStatus, deleteStatus, linkStatus, unlinkStatus int
+	updateScript                                                                            []int
 }
 
 type aiceEvaluation struct {
@@ -268,25 +283,58 @@ func (f *aiceFake) handle(method, path string, query url.Values, body any) (int,
 // routeEvaluation answers the routes under /custom-evaluations/v3. ok is false for a route that
 // the API does not have.
 func (f *aiceFake) routeEvaluation(method string, parts []string, body any) (int, any, bool) {
-	var status int
-	var answer any
-	switch {
-	case len(parts) == 0 && method == http.MethodGet:
-		status, answer = f.list()
-	case len(parts) == 0 && method == http.MethodPost:
-		status, answer = f.create(asObject(body))
-	case len(parts) == 1 && method == http.MethodPatch:
-		status, answer = f.update(parts[0], asObject(body))
-	case len(parts) == 1 && method == http.MethodDelete:
-		status, answer = f.delete(parts[0])
-	case len(parts) == 3 && parts[1] == "applications" && method == http.MethodPost:
-		status, answer = f.link(parts[0], parts[2])
-	case len(parts) == 3 && parts[1] == "applications" && method == http.MethodDelete:
-		status, answer = f.unlink(parts[0], parts[2])
-	default:
+	switch len(parts) {
+	case 0:
+		return f.routeCollection(method, body)
+	case 1:
+		return f.routeItem(method, parts[0], body)
+	case 3:
+		return f.routeLink(method, parts)
+	}
+	return 0, nil, false
+}
+
+func (f *aiceFake) routeCollection(method string, body any) (int, any, bool) {
+	switch method {
+	case http.MethodGet:
+		status, answer := f.list()
+		return status, answer, true
+	case http.MethodPost:
+		status, answer := f.create(asObject(body))
+		return status, answer, true
+	}
+	return 0, nil, false
+}
+
+func (f *aiceFake) routeItem(method, id string, body any) (int, any, bool) {
+	switch method {
+	case http.MethodGet:
+		status, answer := f.get(id)
+		return status, answer, true
+	case http.MethodPatch:
+		status, answer := f.update(id, asObject(body))
+		return status, answer, true
+	case http.MethodDelete:
+		status, answer := f.delete(id)
+		return status, answer, true
+	}
+	return 0, nil, false
+}
+
+// routeLink answers /{id}/applications/{application_id}.
+func (f *aiceFake) routeLink(method string, parts []string) (int, any, bool) {
+	if parts[1] != "applications" {
 		return 0, nil, false
 	}
-	return status, answer, true
+	switch method {
+	case http.MethodPost:
+		status, answer := f.link(parts[0], parts[2])
+		return status, answer, true
+	case http.MethodDelete:
+		status, answer := f.unlink(parts[0], parts[2])
+		return status, answer, true
+	}
+	return 0, nil, false
 }
 
 func (f *aiceFake) listApps(query url.Values) (int, any) {
@@ -367,6 +415,24 @@ func (f *aiceFake) list() (int, any) {
 	return http.StatusOK, map[string]any{"items": items}
 }
 
+// get answers the read of one evaluation, the call that the generated resource makes. The recording
+// has no such call, because the API of the recording does not have it yet: the answer follows the
+// contract of the new call, which returns the evaluation itself, with 404 for an id that no
+// evaluation has and for an id that is no UUID.
+func (f *aiceFake) get(id string) (int, any) {
+	if f.getStatus != 0 {
+		return aiceError(f.getStatus, http.StatusText(f.getStatus))
+	}
+	if !aiceUUIDPattern.MatchString(id) {
+		return aiceInvalidID()
+	}
+	e := f.find(id)
+	if e == nil {
+		return aiceNotFound("Custom evaluation not found")
+	}
+	return http.StatusOK, e.proto(e.appIDs)
+}
+
 func aiceExamples(value any) []map[string]any {
 	out := []map[string]any{}
 	for _, item := range asSlice(value) {
@@ -423,9 +489,15 @@ func aiceParseMask(request map[string]any) (mask []string, status int, answer an
 		return nil, 0, nil
 	}
 	for _, path := range strings.Split(text, ",") {
-		field, known := aiceMaskPaths[path]
+		if strings.Contains(path, "_") {
+			// The gateway refuses a proto name: the mask is written as the JSON body is.
+			status, answer = aiceError(http.StatusBadRequest, fmt.Sprintf("Bad Request: proto:\u00a0(line 1:16): google.protobuf.FieldMask.paths contains invalid path: %q", path))
+			return nil, status, answer
+		}
+		proto := aiceSnakeCase(path)
+		field, known := aiceMaskPaths[proto]
 		if !known {
-			status, answer = aiceZodIssue(fmt.Sprintf("  {\n    \"code\": \"custom\",\n    \"message\": \"Unknown field path \\\"%s\\\" in update_mask.\",\n    \"path\": [\n      \"updateMask\"\n    ]\n  }", path))
+			status, answer = aiceZodIssue(fmt.Sprintf("  {\n    \"code\": \"custom\",\n    \"message\": \"Unknown field path \\\"%s\\\" in update_mask.\",\n    \"path\": [\n      \"updateMask\"\n    ]\n  }", proto))
 			return nil, status, answer
 		}
 		mask = append(mask, field)

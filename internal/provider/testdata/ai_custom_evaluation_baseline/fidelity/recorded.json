@@ -841,6 +841,134 @@
         {
           "status": 200,
           "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "security",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:38): google.protobuf.FieldMask.paths contains invalid path: \"policy_type\""
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "security",
+                "safe": "",
+                "shouldIncludeSystemPrompt": true,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "security",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"custom\",\n    \"message\": \"Unknown field path \\\"foo_bar\\\" in update_mask.\",\n    \"path\": [\n      \"updateMask\"\n    ]\n  }\n]"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "s2",
+                "shouldIncludeSystemPrompt": false,
+                "violates": "v2"
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
             "items": [
               {
                 "applicationIds": [],
@@ -848,13 +976,13 @@
                   "examples": [],
                   "instructions": "i {prompt}",
                   "policyType": "quality",
-                  "safe": "",
+                  "safe": "s2",
                   "shouldIncludeSystemPrompt": false,
-                  "violates": ""
+                  "violates": "v2"
                 },
                 "description": "",
                 "id": "{{A}}",
-                "name": "{{NAME}}-a"
+                "name": "{{NAME}}-a2"
               },
               {
                 "applicationIds": [],

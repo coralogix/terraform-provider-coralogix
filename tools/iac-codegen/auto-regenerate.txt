@@ -7,6 +7,7 @@
 # yet, such as one whose migration is still in review, is skipped until it is generated.
 
 coralogix_action
+coralogix_ai_custom_evaluation
 coralogix_ai_evaluation
 coralogix_alert
 coralogix_alerts_scheduler

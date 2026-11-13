@@ -1,0 +1,138 @@
+resource: CustomEvaluation
+mode: existing
+typeName: ai_custom_evaluation
+
+# A hook reads criteria and applications from the response.
+afterFlatten: true
+
+markdownDescription: "Coralogix AI custom evaluation."
+
+validators:
+  inferred: true
+
+api:
+  updateMaskInBody: true
+  operations:
+    create: AiEvaluationsService_CreateCustomEvaluation
+    get: AiEvaluationsService_GetCustomEvaluation
+    update: AiEvaluationsService_UpdateCustomEvaluation
+    delete: AiEvaluationsService_DeleteCustomEvaluation
+
+types:
+  CustomEvaluation:
+    fields:
+      config: {inline: true}
+      id:
+        markdownDescription: "AI custom evaluation ID."
+      name:
+        required: true
+        markdownDescription: "Display name of the custom evaluation."
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "Human-readable description. Defaults to an empty string."
+      policyType:
+        required: true
+        validators:
+          - oneOf: [quality, security]
+        markdownDescription: "Policy type identifier. Can be one of `quality` or `security`."
+      instructions:
+        required: true
+        validators:
+          - regexMatches:
+              pattern: '\{(?:prompt|response|chat_history)\}'
+              message: "instructions must contain at least one of {prompt}, {response}, or {chat_history}."
+        markdownDescription: "Instructions sent to the LLM evaluator. Must contain at least one of `{prompt}`, `{response}`, or `{chat_history}`."
+      shouldIncludeSystemPrompt:
+        computed: true
+        default: false
+        markdownDescription: "Whether to include the system prompt in the LLM input. Defaults to `false`."
+      applicationIds:
+        readOnly: true
+        collection: set
+        markdownDescription: "Resolved AI application IDs linked to this custom evaluation."
+      safe: {skip: true}
+      violates: {skip: true}
+      examples: {skip: true}
+    extraAttributes:
+      applications:
+        type: set
+        optional: true
+        computed: true
+        default: []
+        validators:
+          - sizeAtMost: 1024
+        markdownDescription: "AI applications to link this custom evaluation to, selected by application and subsystem. Defaults to no linked applications."
+        attributes:
+          application:
+            type: string
+            required: true
+            validators:
+              - lengthBetween: [1, 256]
+            markdownDescription: "AI application name."
+          subsystem:
+            type: string
+            required: true
+            validators:
+              - lengthBetween: [1, 256]
+            markdownDescription: "AI application subsystem."
+      criteria:
+        type: object
+        optional: true
+        computed: true
+        maskPaths: [safe, violates, examples]
+        default:
+          acceptable: {flags: "", examples: []}
+          prohibited: {flags: "", examples: []}
+        markdownDescription: "Acceptable and prohibited criteria for this custom evaluation. Defaults to empty criteria."
+        attributes:
+          acceptable:
+            type: object
+            optional: true
+            computed: true
+            default: {flags: "", examples: []}
+            markdownDescription: "Criteria and examples for acceptable responses."
+            attributes:
+              flags:
+                type: string
+                optional: true
+                computed: true
+                default: ""
+                validators:
+                  - lengthBetween: [0, 65536]
+                markdownDescription: "Criterion flags."
+              examples:
+                type: list
+                elementType: string
+                optional: true
+                computed: true
+                default: []
+                validators:
+                  - sizeAtMost: 100
+                  - valuesAre: {lengthBetween: [1, 65536]}
+                markdownDescription: "Example conversations for this criterion."
+          prohibited:
+            type: object
+            optional: true
+            computed: true
+            default: {flags: "", examples: []}
+            markdownDescription: "Criteria and examples for prohibited responses."
+            attributes:
+              flags:
+                type: string
+                optional: true
+                computed: true
+                default: ""
+                validators:
+                  - lengthBetween: [0, 65536]
+                markdownDescription: "Criterion flags."
+              examples:
+                type: list
+                elementType: string
+                optional: true
+                computed: true
+                default: []
+                validators:
+                  - sizeAtMost: 100
+                  - valuesAre: {lengthBetween: [1, 65536]}
+                markdownDescription: "Example conversations for this criterion."

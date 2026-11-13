@@ -29,46 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func TestGetCustomEvaluationByIDTreatsListNotFoundAsEmpty(t *testing.T) {
-	t.Parallel()
-
-	cfg := aievaluations.NewConfiguration()
-	cfg.Servers = aievaluations.ServerConfigurations{
-		{
-			URL: "https://example.test",
-		},
-	}
-	cfg.HTTPClient = &http.Client{
-		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-			if r.URL.Path != "/ai/custom-evaluations/v3" {
-				t.Fatalf("unexpected request path: %s", r.URL.Path)
-			}
-
-			return &http.Response{
-				StatusCode: http.StatusNotFound,
-				Status:     "404 Not Found",
-				Header: http.Header{
-					"Content-Type": []string{"application/json"},
-				},
-				Body:    io.NopCloser(strings.NewReader(`{"message":"not found"}`)),
-				Request: r,
-			}, nil
-		}),
-	}
-
-	resource := &AICustomEvaluationResource{
-		aiEvaluationsClient: aievaluations.NewAPIClient(cfg).AIEvaluationsServiceAPI,
-	}
-
-	customEvaluation, found, err := resource.getCustomEvaluationByID(context.Background(), "missing-custom-evaluation-id")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if found {
-		t.Fatalf("expected custom evaluation to be missing, got found=true with id %q", customEvaluation.GetId())
-	}
-}
-
 func TestListAIApplicationsRequestsConsecutivePageOffsets(t *testing.T) {
 	t.Parallel()
 
@@ -113,7 +73,7 @@ func TestListAIApplicationsRequestsConsecutivePageOffsets(t *testing.T) {
 		}),
 	}
 
-	resource := &AICustomEvaluationResource{
+	resource := &aiCustomEvaluationResource{
 		aiApplicationsClient: aiapplications.NewAPIClient(cfg).AIApplicationsServiceAPI,
 	}
 
@@ -132,63 +92,32 @@ func TestListAIApplicationsRequestsConsecutivePageOffsets(t *testing.T) {
 	}
 }
 
-func TestExtractUpdateAICustomEvaluationKeepsEmptyExamplesNonNil(t *testing.T) {
-	t.Parallel()
-
-	acceptable := aiCustomEvaluationEmptyCriterionModel()
-	prohibited := aiCustomEvaluationEmptyCriterionModel()
-	plan := AICustomEvaluationResourceModel{
-		Name:                      types.StringValue("custom evaluation"),
-		PolicyType:                types.StringValue(aiCustomEvaluationPolicyTypeQuality),
-		Description:               types.StringValue("description"),
-		Instructions:              types.StringValue("Score whether {response} matches the policy."),
-		ShouldIncludeSystemPrompt: types.BoolValue(false),
-		Criteria: &AICustomEvaluationCriteriaModel{
-			Acceptable: &acceptable,
-			Prohibited: &prohibited,
-		},
-	}
-
-	rq, diags := extractUpdateAICustomEvaluation(context.Background(), plan)
-	if diags.HasError() {
-		t.Fatalf("expected no diagnostics, got %v", diags)
-	}
-	if rq.UpdateMask != nil {
-		t.Fatalf("expected no update mask on the primary update request, got %q", *rq.UpdateMask)
-	}
-	if rq.Examples == nil {
-		t.Fatal("expected examples to be a non-nil empty slice")
-	}
-	if len(rq.Examples) != 0 {
-		t.Fatalf("expected no examples, got %d", len(rq.Examples))
-	}
-}
-
+// The criteria of a configuration become one list of examples, with the score 1 for an acceptable
+// example and 0 for a prohibited one, and the flags become the fields safe and violates.
 func TestExtractAICustomEvaluationCriteriaMapsExampleScores(t *testing.T) {
 	t.Parallel()
 
-	acceptable := aiCustomEvaluationEmptyCriterionModel()
-	acceptable.Examples = types.ListValueMust(
-		types.StringType,
-		[]attr.Value{
-			types.StringValue("acceptable example"),
-		},
-	)
-	prohibited := aiCustomEvaluationEmptyCriterionModel()
-	prohibited.Examples = types.ListValueMust(
-		types.StringType,
-		[]attr.Value{
-			types.StringValue("prohibited example"),
-		},
-	)
-	criteria := &AICustomEvaluationCriteriaModel{
-		Acceptable: &acceptable,
-		Prohibited: &prohibited,
+	criterion := func(flags string, examples ...string) types.Object {
+		values := make([]attr.Value, 0, len(examples))
+		for _, example := range examples {
+			values = append(values, types.StringValue(example))
+		}
+		return types.ObjectValueMust(aiCustomEvaluationCriterionAttributeTypes(), map[string]attr.Value{
+			"flags":    types.StringValue(flags),
+			"examples": types.ListValueMust(types.StringType, values),
+		})
 	}
+	criteria := types.ObjectValueMust(aiCustomEvaluationCriteriaAttributeTypes(), map[string]attr.Value{
+		"acceptable": criterion("polite", "acceptable example"),
+		"prohibited": criterion("rude", "prohibited example"),
+	})
 
-	examples, _, _, diags := extractAICustomEvaluationCriteria(context.Background(), criteria)
+	examples, safe, violates, diags := extractAICustomEvaluationCriteria(context.Background(), criteria)
 	if diags.HasError() {
 		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+	if safe != "polite" || violates != "rude" {
+		t.Fatalf("expected the flags polite and rude, got %q and %q", safe, violates)
 	}
 	if len(examples) != 2 {
 		t.Fatalf("expected 2 examples, got %d", len(examples))
@@ -207,84 +136,34 @@ func TestExtractAICustomEvaluationCriteriaMapsExampleScores(t *testing.T) {
 	}
 }
 
-func TestClearCustomEvaluationExamplesSendsExamplesUpdateMask(t *testing.T) {
+// A criteria object that is null or unknown, as in a configuration that omits it, sends nothing.
+func TestExtractAICustomEvaluationCriteriaTreatsMissingCriteriaAsEmpty(t *testing.T) {
 	t.Parallel()
 
-	customEvaluationID := "00000000-0000-0000-0000-000000000000"
-	cfg := aievaluations.NewConfiguration()
-	cfg.Servers = aievaluations.ServerConfigurations{
-		{
-			URL: "https://example.test",
-		},
+	for _, criteria := range []types.Object{
+		types.ObjectNull(aiCustomEvaluationCriteriaAttributeTypes()),
+		types.ObjectUnknown(aiCustomEvaluationCriteriaAttributeTypes()),
+	} {
+		examples, safe, violates, diags := extractAICustomEvaluationCriteria(context.Background(), criteria)
+		if diags.HasError() || len(examples) != 0 || safe != "" || violates != "" {
+			t.Fatalf("expected empty criteria, got %v, %q, %q, %v", examples, safe, violates, diags)
+		}
 	}
-	cfg.HTTPClient = &http.Client{
-		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-			if r.Method != http.MethodPatch {
-				t.Fatalf("expected PATCH, got %s", r.Method)
-			}
-			if r.URL.Path != "/ai/custom-evaluations/v3/"+customEvaluationID {
-				t.Fatalf("unexpected request path: %s", r.URL.Path)
-			}
+}
 
-			bodyBytes, err := io.ReadAll(r.Body)
-			if err != nil {
-				t.Fatalf("failed to read request body: %v", err)
-			}
-			var body map[string]any
-			if err := json.Unmarshal(bodyBytes, &body); err != nil {
-				t.Fatalf("failed to decode request body %q: %v", string(bodyBytes), err)
-			}
-			if got := body["updateMask"]; got != aiCustomEvaluationExamplesUpdateMask {
-				t.Fatalf("expected updateMask %q, got %v", aiCustomEvaluationExamplesUpdateMask, got)
-			}
-			examples, ok := body["examples"].([]any)
-			if !ok {
-				t.Fatalf("expected examples array, got %T", body["examples"])
-			}
-			if len(examples) != 0 {
-				t.Fatalf("expected empty examples, got %v", examples)
-			}
-			if _, ok := body["policyType"]; ok {
-				t.Fatalf("did not expect policyType in examples clear request: %v", body)
-			}
+// A field of an example that the resource does not show makes the read fail. The next update would
+// replace the whole list of examples and lose it.
+func TestFlattenAICustomEvaluationCriteriaRejectsUnknownExampleFields(t *testing.T) {
+	t.Parallel()
 
-			response := fmt.Sprintf(`{
-				"item": {
-					"id": %q,
-					"name": "custom evaluation",
-					"description": "",
-					"config": {
-						"instructions": "Score whether {response} matches the policy.",
-						"policyType": "quality",
-						"safe": "",
-						"violates": "",
-						"shouldIncludeSystemPrompt": false,
-						"examples": []
-					}
-				}
-			}`, customEvaluationID)
-			return &http.Response{
-				StatusCode: http.StatusOK,
-				Status:     "200 OK",
-				Header: http.Header{
-					"Content-Type": []string{"application/json"},
-				},
-				Body:    io.NopCloser(strings.NewReader(response)),
-				Request: r,
-			}, nil
-		}),
-	}
-	resource := &AICustomEvaluationResource{
-		aiEvaluationsClient: aievaluations.NewAPIClient(cfg).AIEvaluationsServiceAPI,
+	var config aievaluations.CustomEvaluationConfig
+	if err := json.Unmarshal([]byte(`{"examples":[{"conversation":"c","score":"1","reason":"because"}]}`), &config); err != nil {
+		t.Fatal(err)
 	}
 
-	customEvaluation, _, err := resource.clearCustomEvaluationExamples(context.Background(), customEvaluationID)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	config := customEvaluation.GetConfig()
-	if examples := config.GetExamples(); len(examples) != 0 {
-		t.Fatalf("expected cleared examples, got %v", examples)
+	_, diags := flattenAICustomEvaluationCriteria(context.Background(), config)
+	if !diags.HasError() || !strings.Contains(diags[0].Summary(), "Unsupported AI custom evaluation example field") {
+		t.Fatalf("expected an error for the unknown field, got %v", diags)
 	}
 }
 
