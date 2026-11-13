@@ -1,5 +1,5 @@
 {
-  "comment": "Live API requests used to validate the AI custom evaluation fake. Every evaluation that a case creates has a name that starts with the run name, and the recorder deletes only the evaluations that it created. {{APP1}} and {{APP2}} are the first two applications of the tenant, {{A}} and the other capitals the ids that an earlier Create returned. The paths are relative to the /ai route. The list answers hold the evaluations and applications of the whole tenant, so the test keeps only the evaluations of the run and the first two applications, with their names masked. The update cases also name fields of two words in the mask: the gateway takes the names of the JSON body (policyType) and refuses a proto name (policy_type).",
+  "comment": "Live API requests used to validate the AI custom evaluation fake. Every evaluation that a case creates has a name that starts with the run name, and the recorder deletes only the evaluations that it created. {{APP1}} and {{APP2}} are the first two applications of the tenant, {{A}} and the other capitals the ids that an earlier Create returned. The paths are relative to the /ai route. The list answers hold the evaluations and applications of the whole tenant, so the test keeps only the evaluations of the run and the first two applications, with their names masked. The update cases also name fields of two words in the mask: the gateway takes the names of the JSON body (policyType) and refuses a proto name (policy_type). Two update cases send body fields that the mask does not name: the server ignores them.",
   "cases": [
     {
       "name": "applications",
@@ -383,6 +383,36 @@
           "path": "/custom-evaluations/v3/{{A}}",
           "body": {
             "updateMask": "fooBar"
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/custom-evaluations/v3/{{A}}",
+          "body": {
+            "updateMask": "name",
+            "name": "{{NAME}}-a2",
+            "instructions": "changed {prompt}",
+            "examples": [
+              {
+                "conversation": "x",
+                "score": "0"
+              }
+            ],
+            "safe": "changed",
+            "policyType": "security",
+            "description": "changed",
+            "shouldIncludeSystemPrompt": true
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/custom-evaluations/v3/{{A}}",
+          "body": {
+            "updateMask": "safe,violates,examples",
+            "safe": "s2",
+            "violates": "v2",
+            "name": "{{NAME}}-a3",
+            "description": "changed again"
           }
         },
         {

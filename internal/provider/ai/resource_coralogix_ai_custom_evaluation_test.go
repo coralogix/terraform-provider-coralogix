@@ -16,6 +16,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,7 @@ import (
 	"testing"
 
 	aiapplications "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_applications_service"
+	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -146,6 +148,22 @@ func TestExtractAICustomEvaluationCriteriaTreatsMissingCriteriaAsEmpty(t *testin
 		if diags.HasError() || len(examples) != 0 || safe != "" || violates != "" {
 			t.Fatalf("expected empty criteria, got %v, %q, %q, %v", examples, safe, violates, diags)
 		}
+	}
+}
+
+// A field of an example that the resource does not show makes the read fail. The next update would
+// replace the whole list of examples and lose it.
+func TestFlattenAICustomEvaluationCriteriaRejectsUnknownExampleFields(t *testing.T) {
+	t.Parallel()
+
+	var config aievaluations.CustomEvaluationConfig
+	if err := json.Unmarshal([]byte(`{"examples":[{"conversation":"c","score":"1","reason":"because"}]}`), &config); err != nil {
+		t.Fatal(err)
+	}
+
+	_, diags := flattenAICustomEvaluationCriteria(context.Background(), config)
+	if !diags.HasError() || !strings.Contains(diags[0].Summary(), "Unsupported AI custom evaluation example field") {
+		t.Fatalf("expected an error for the unknown field, got %v", diags)
 	}
 }
 

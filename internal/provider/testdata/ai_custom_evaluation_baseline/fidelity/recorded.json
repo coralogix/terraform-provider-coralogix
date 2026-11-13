@@ -931,6 +931,44 @@
         {
           "status": 200,
           "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "s2",
+                "shouldIncludeSystemPrompt": false,
+                "violates": "v2"
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
             "items": [
               {
                 "applicationIds": [],
@@ -938,13 +976,13 @@
                   "examples": [],
                   "instructions": "i {prompt}",
                   "policyType": "quality",
-                  "safe": "",
+                  "safe": "s2",
                   "shouldIncludeSystemPrompt": false,
-                  "violates": ""
+                  "violates": "v2"
                 },
                 "description": "",
                 "id": "{{A}}",
-                "name": "{{NAME}}-a"
+                "name": "{{NAME}}-a2"
               },
               {
                 "applicationIds": [],

@@ -115,6 +115,15 @@ func flattenAICustomEvaluationCriteria(ctx context.Context, config aievaluations
 	prohibitedExamples := make([]string, 0)
 
 	for _, example := range config.GetExamples() {
+		if len(example.AdditionalProperties) != 0 {
+			// The resource shows the conversation and the score only. A field that it does not know
+			// would be lost on the next update, which replaces the whole list.
+			diags.AddError(
+				"Unsupported AI custom evaluation example field",
+				fmt.Sprintf("Custom evaluation examples can have the fields conversation and score. The API returned %d more.", len(example.AdditionalProperties)),
+			)
+			return types.ObjectNull(aiCustomEvaluationCriteriaAttributeTypes()), diags
+		}
 		switch example.GetScore() {
 		case aiCustomEvaluationAcceptableScore:
 			acceptableExamples = append(acceptableExamples, example.GetConversation())
