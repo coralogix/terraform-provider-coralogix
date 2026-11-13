@@ -69,7 +69,7 @@
 
 #### tools/iac-codegen
 - FEAT: `collection: set` supports a map-of-objects Get response with list-of-objects write requests, preserving each API operation's wire shape while exposing one Terraform set.
-- CHORE: Bump the generator to `v0.1.0-beta.84`; its map-to-set generation is covered by a golden fixture.
+- CHORE: Bump the generator to `v0.1.0-beta.85`; its map-to-set generation is covered by a golden fixture.
 # Release 3.25.0
 
 #### provider
