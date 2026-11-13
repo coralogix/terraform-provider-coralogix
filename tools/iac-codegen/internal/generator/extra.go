@@ -78,7 +78,7 @@ func attachOneExtra(out *tfResource, file *overrides.File, component string, mod
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", location, err)
 	}
-	computed := extra.Computed || extra.Type == "object"
+	computed := extra.Computed || extra.Type == "object" || extra.IsSetOfObjects()
 	if component == file.Resource {
 		out.Attributes = append(out.Attributes, attribute)
 	} else {
@@ -109,7 +109,7 @@ func newExtra(name string, extra overrides.ExtraAttribute, file *overrides.File)
 	if err := configureExtraAttribute(attribute, extra, file); err != nil {
 		return nil, field, "", "", err
 	}
-	if extra.Type == "object" {
+	if extra.Type == "object" || extra.IsSetOfObjects() {
 		if attrType, nullExpr, err = attachObjectChildren(attribute, extra, file); err != nil {
 			return nil, field, "", "", err
 		}
@@ -117,8 +117,9 @@ func newExtra(name string, extra overrides.ExtraAttribute, file *overrides.File)
 	return attribute, field, attrType, nullExpr, nil
 }
 
-// attachObjectChildren adds the attributes of an object extra attribute, in name order, and returns
-// the attr.Type expression and the typed null of the object.
+// attachObjectChildren adds the attributes of an object extra attribute, or of the elements of a set
+// of objects, in name order, and returns the attr.Type expression and the typed null of the
+// attribute.
 func attachObjectChildren(object *tfAttr, extra overrides.ExtraAttribute, file *overrides.File) (string, string, error) {
 	typeExprs := make([]string, 0, len(extra.Attributes))
 	for _, name := range extraNames(extra.Attributes) {
@@ -130,6 +131,10 @@ func attachObjectChildren(object *tfAttr, extra overrides.ExtraAttribute, file *
 		typeExprs = append(typeExprs, fmt.Sprintf("%q: %s", name, childType))
 	}
 	attrTypes := "map[string]attr.Type{" + strings.Join(typeExprs, ", ") + "}"
+	if extra.IsSetOfObjects() {
+		elem := "types.ObjectType{AttrTypes: " + attrTypes + "}"
+		return "types.SetType{ElemType: " + elem + "}", "types.SetNull(" + elem + ")", nil
+	}
 	return "types.ObjectType{AttrTypes: " + attrTypes + "}", "types.ObjectNull(" + attrTypes + ")", nil
 }
 
@@ -152,11 +157,18 @@ func configureExtraAttribute(attribute *tfAttr, extra overrides.ExtraAttribute, 
 		attribute.Validators = append(attribute.Validators, "setvalidator.ValueStringsAre(stringvalidator.OneOf("+strings.Join(quoted, ", ")+"))")
 	}
 	if extra.Default != nil {
-		expr, err := defaultExpr(attribute, extra.Default)
-		if err != nil {
-			return fmt.Errorf("default: %w", err)
+		attribute.DefaultRaw = extra.Default
+		if deferredDefault(attribute, extra.Default) {
+			// An object, or an empty set of objects: built after every attribute below it has its
+			// type (resolveStructDefaults), as the default of a field line is.
+			attribute.StructDefault = extra.Default
+		} else {
+			expr, err := defaultExpr(attribute, extra.Default)
+			if err != nil {
+				return fmt.Errorf("default: %w", err)
+			}
+			attribute.Default = expr
 		}
-		attribute.Default, attribute.DefaultRaw = expr, extra.Default
 	}
 	if extra.Equality != "" {
 		// First, as for the equality line of a field.
@@ -221,6 +233,20 @@ func attachExtraBehavior(out *tfResource, resource, component, name string, extr
 		// The package needs the comparison of that kind, as for an equality line of a field.
 		out.Conv.ExtraEquality = append(out.Conv.ExtraEquality, extra.Equality)
 	}
+	if len(extra.MaskPaths) != 0 {
+		if component != resource {
+			return fmt.Errorf("%s: maskPaths applies to an attribute of the resource %s", location, resource)
+		}
+		if out.Conv == nil || out.Conv.Replace || out.Conv.LeafMask {
+			return fmt.Errorf("%s: maskPaths needs an Update that is a PATCH with an update mask of plain field names", location)
+		}
+		for _, p := range extra.MaskPaths {
+			if slices.ContainsFunc(out.Conv.MaskFields, func(f *maskField) bool { return f.API == p }) {
+				return fmt.Errorf("%s: maskPaths names %q, which an attribute of the resource puts in the update mask already", location, p)
+			}
+			out.Conv.MaskFields = append(out.Conv.MaskFields, &maskField{TFName: name, API: p})
+		}
+	}
 	if extra.InUpdate {
 		if component != resource {
 			return fmt.Errorf("%s: inUpdate applies to an attribute of the resource %s", location, resource)
@@ -250,6 +276,9 @@ func keepExtra(out *tfResource, name string, extra overrides.ExtraAttribute, att
 	case extra.Type == "object":
 		kept.Type, kept.AttrType = "types.Object", attrType
 		out.CRUD.KeptObjects = true
+	case extra.IsSetOfObjects():
+		kept.Type, kept.AttrType = "types.Set", attrType
+		out.CRUD.KeptObjects = true
 	default:
 		return
 	}
@@ -260,7 +289,7 @@ func keepExtra(out *tfResource, name string, extra overrides.ExtraAttribute, att
 func extraHasObject(file *overrides.File) bool {
 	for _, t := range file.Types {
 		for _, extra := range t.ExtraAttributes {
-			if extra.Type == "object" {
+			if extra.Type == "object" || extra.IsSetOfObjects() {
 				return true
 			}
 		}
@@ -375,6 +404,11 @@ func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelFie
 	case "bool":
 		attribute.Kind, field.Type, attrType, nullExpr = "Bool", "types.Bool", "types.BoolType", "types.BoolNull()"
 	case "set":
+		if extra.IsSetOfObjects() {
+			// attachObjectChildren sets the type and the null of the set of objects.
+			attribute.Kind, field.Type = "SetNested", "types.Set"
+			break
+		}
 		attribute.Kind, attribute.ElementType, field.Type = "Set", "types.StringType", "types.Set"
 		attrType, nullExpr = "types.SetType{ElemType: types.StringType}", "types.SetNull(types.StringType)"
 	case "list":
@@ -393,8 +427,11 @@ func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelFie
 		attrType, nullExpr = "types.MapType{ElemType: "+elem+"}", null
 	}
 	attribute.ValueKind = attribute.Kind
-	if attribute.Kind == "SingleNested" {
+	switch attribute.Kind {
+	case "SingleNested":
 		attribute.ValueKind = "Object"
+	case "SetNested":
+		attribute.ValueKind = "Set"
 	}
 	return attribute, field, attrType, nullExpr, nil
 }

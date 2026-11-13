@@ -788,7 +788,8 @@ func (t Type) GroupOf(field string) string {
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
 	// Type is "string", "int64", or "bool" for a scalar, "set" or "list" for a collection of strings,
-	// or "object" for an object with the attributes below. Without it, the attribute is a map. A
+	// "set" with Attributes for a set of objects, or "object" for an object with the attributes
+	// below. Without it, the attribute is a map. A
 	// string of the resource that is not read-only or writeOnly keeps the value of the plan or the
 	// prior state, as a dynamic one does, for a text that a handwritten hook turns into request
 	// values, such as a document of the whole resource. So does an object of the resource.
@@ -807,6 +808,12 @@ type ExtraAttribute struct {
 	// of it makes an Update. Without it, a change of only this attribute plans an update that
 	// sends no request. It needs a resource whose Update replaces the resource (PUT).
 	InUpdate bool `yaml:"inUpdate"`
+	// MaskPaths are the update mask paths that a handwritten BeforeWrite hook sends for this
+	// attribute, on an Update that is a PATCH with an update mask: when the attribute changes, the
+	// mask names these API fields, and the hook puts their values in the body. They are API field
+	// names that no attribute shows (a skipped field), such as the fields that a Terraform-only
+	// object stands for. A field that the body leaves out is cleared by the server.
+	MaskPaths []string `yaml:"maskPaths"`
 	// WriteOnly: Terraform sends the value and does not store it.
 	WriteOnly bool `yaml:"writeOnly"`
 	// MarkdownDescription is the docs text of the attribute.
@@ -821,12 +828,15 @@ type ExtraAttribute struct {
 	// that the user may set and that a handwritten hook fills in otherwise. Without computed, an
 	// extra attribute is optional already.
 	Optional bool `yaml:"optional"`
-	// Default is the static default of an Optional and Computed string, bool, or int64.
+	// Default is the static default of an Optional and Computed attribute: a string, a bool, or an
+	// int64; [] for a list, a set, or a set of objects; or the object value of an object, with the
+	// forms of the default of a field line.
 	Default any `yaml:"default"`
 	// Equality is "json" or "yaml" for a string: the plan keeps the state value when the configured
 	// document is equal to it, as the equality line of a field does.
 	Equality string `yaml:"equality"`
-	// Attributes are the attributes of an object (type: object), by Terraform name. They take the
+	// Attributes are the attributes of an object (type: object) or of the elements of a set of
+	// objects (type: set), by Terraform name. They take the
 	// keys of an extra attribute, except dynamic, writeOnly, and inUpdate, and they are optional
 	// unless they say required: true.
 	Attributes map[string]ExtraAttribute `yaml:"attributes"`
@@ -1145,6 +1155,13 @@ const (
 type Validator struct {
 	OneOf       []string `yaml:"oneOf"`
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
+	// SizeAtMost is a released SizeAtMost validator of a list, set, or map.
+	SizeAtMost *int `yaml:"sizeAtMost"`
+	// ValuesAre is a released ValueStringsAre validator of a list or set of strings: each element
+	// must satisfy the length limits.
+	ValuesAre *ValuesAre `yaml:"valuesAre"`
+	// LengthBetween is a released stringvalidator.LengthBetween: the minimum and the maximum.
+	LengthBetween []int `yaml:"lengthBetween"`
 	// LengthAtLeast and LengthAtMost are a released stringvalidator.LengthAtLeast and
 	// stringvalidator.LengthAtMost.
 	LengthAtLeast *int `yaml:"lengthAtLeast"`
@@ -1179,6 +1196,11 @@ type Validator struct {
 	// Unsupported rejects any configured value of a bool with this message, for an attribute that the
 	// API never accepts at this place, as a released validator did.
 	Unsupported string `yaml:"unsupported"`
+}
+
+// ValuesAre holds the limits that each element of a list or set of strings must satisfy.
+type ValuesAre struct {
+	LengthBetween []int `yaml:"lengthBetween"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -1873,6 +1895,9 @@ func (e ExtraAttribute) checkAt(name string, nested bool) error {
 	if e.MarkdownDescription == "" {
 		return errors.New("markdownDescription is required")
 	}
+	if err := checkValidators(e.Validators); err != nil {
+		return err
+	}
 	for child, attribute := range e.Attributes {
 		if err := attribute.checkAt(child, true); err != nil {
 			return fmt.Errorf("attributes.%s: %w", child, err)
@@ -1896,8 +1921,18 @@ func (e ExtraAttribute) checkMode(nested bool) error {
 	if e.UseStateForUnknown && !e.Computed {
 		return errors.New("useStateForUnknown needs a computed attribute")
 	}
-	if nested && (e.Dynamic || e.WriteOnly || e.InUpdate || e.Equality != "") {
-		return errors.New("an attribute inside an object cannot be dynamic, writeOnly, inUpdate, or have an equality line")
+	if nested && (e.Dynamic || e.WriteOnly || e.InUpdate || len(e.MaskPaths) != 0 || e.Equality != "") {
+		return errors.New("an attribute inside an object cannot be dynamic, writeOnly, inUpdate, or have maskPaths or an equality line")
+	}
+	if len(e.MaskPaths) != 0 {
+		if e.InUpdate || e.WriteOnly || e.Computed && !e.Optional {
+			return errors.New("maskPaths cannot be combined with inUpdate or writeOnly, and the attribute is set by the user")
+		}
+		for i, p := range e.MaskPaths {
+			if p == "" || slices.Contains(e.MaskPaths[:i], p) {
+				return fmt.Errorf("maskPaths has an empty or repeated path %q", p)
+			}
+		}
 	}
 	return e.checkEquality()
 }
@@ -1957,8 +1992,8 @@ func (e ExtraAttribute) checkDynamic() error {
 }
 
 func (e ExtraAttribute) checkType() error {
-	if e.Type != "object" && len(e.Attributes) != 0 {
-		return errors.New("attributes belong to type: object")
+	if e.Type != "object" && !e.isSetOfObjects() && len(e.Attributes) != 0 {
+		return errors.New("attributes belong to type: object, or to type: set for a set of objects")
 	}
 	switch e.Type {
 	case "":
@@ -1970,6 +2005,9 @@ func (e ExtraAttribute) checkType() error {
 			return fmt.Errorf("a %s attribute has no elementType", e.Type)
 		}
 	case "set", "list":
+		if e.isSetOfObjects() {
+			return e.checkObject()
+		}
 		if e.ElementType != "string" {
 			return fmt.Errorf("a %s attribute needs elementType string, got %q", e.Type, e.ElementType)
 		}
@@ -1981,10 +2019,20 @@ func (e ExtraAttribute) checkType() error {
 	return nil
 }
 
-// checkObject checks an object extra attribute: the user sets it, and it has attributes.
+// isSetOfObjects reports whether the attribute is a set whose elements are objects with the
+// attributes below: type: set with attributes and no elementType.
+func (e ExtraAttribute) isSetOfObjects() bool {
+	return e.Type == "set" && len(e.Attributes) != 0
+}
+
+// IsSetOfObjects reports whether the extra attribute is a set of objects.
+func (e ExtraAttribute) IsSetOfObjects() bool { return e.isSetOfObjects() }
+
+// checkObject checks an object extra attribute, or a set of objects: the user sets it, and it has
+// attributes.
 func (e ExtraAttribute) checkObject() error {
 	if e.ElementType != "" || len(e.Attributes) == 0 {
-		return errors.New("an object attribute has attributes and no elementType")
+		return errors.New("an object attribute, or a set of objects, has attributes and no elementType")
 	}
 	if e.Computed && !e.Optional || e.WriteOnly {
 		return errors.New("an object attribute is set by the user: it cannot be computed-only or writeOnly")
@@ -2379,6 +2427,14 @@ func (l Field) hasBehavior() bool {
 		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != "" || l.DurationFormat != "" || l.Join != "" || l.ClientID != "" || l.DistributeTo != nil
 }
 
+// checkLengthBetween checks the minimum and the maximum of a length: two whole numbers in order.
+func checkLengthBetween(key string, limits []int) error {
+	if len(limits) != 2 || limits[0] < 0 || limits[0] > limits[1] {
+		return fmt.Errorf("%s needs a minimum and a maximum length, in that order", key)
+	}
+	return nil
+}
+
 func checkValidators(validators []Validator) error {
 	for _, v := range validators {
 		set := 0
@@ -2387,6 +2443,21 @@ func checkValidators(validators []Validator) error {
 		}
 		if v.SizeAtLeast != nil {
 			set++
+		}
+		if v.SizeAtMost != nil {
+			set++
+		}
+		if v.ValuesAre != nil {
+			set++
+			if err := checkLengthBetween("valuesAre.lengthBetween", v.ValuesAre.LengthBetween); err != nil {
+				return err
+			}
+		}
+		if v.LengthBetween != nil {
+			set++
+			if err := checkLengthBetween("lengthBetween", v.LengthBetween); err != nil {
+				return err
+			}
 		}
 		if v.LengthAtLeast != nil {
 			set++
@@ -2443,7 +2514,7 @@ func checkValidators(validators []Validator) error {
 			set++
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, equals, atLeast, regexMatches, keysAre, and unsupported")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, sizeAtMost, valuesAre, lengthBetween, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, equals, atLeast, regexMatches, keysAre, and unsupported")
 		}
 	}
 	return nil

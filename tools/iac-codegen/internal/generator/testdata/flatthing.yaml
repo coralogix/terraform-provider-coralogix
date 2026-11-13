@@ -1,0 +1,357 @@
+openapi: 3.1.0
+info:
+  title: flatthing
+  version: 1.0.0
+paths:
+  /flat/v1/things:
+    post:
+      description: Creates a new flat thing in the catalog.
+      operationId: FlatThingsService_CreateFlatThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create a flat thing in the catalog.
+              properties:
+                linkIds:
+                  description: IDs of the things that this flat thing is linked to.
+                  items:
+                    description: IDs of the things that this flat thing is linked to.
+                    maxLength: 36
+                    minLength: 36
+                    pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                    type: string
+                  maxItems: 1024
+                  minItems: 0
+                  type: array
+                description:
+                  description: Human-readable description.
+                  maxLength: 65536
+                  minLength: 0
+                  pattern: "^[\\s\\S]*$"
+                  type: string
+                samples:
+                  description: Labeled samples.
+                  items:
+                    "$ref": "#/components/schemas/FlatThingSample"
+                  maxItems: 100
+                  minItems: 0
+                  type: array
+                instructions:
+                  description: Instructions of the flat thing.
+                  maxLength: 1048576
+                  minLength: 1
+                  pattern: "^[\\s\\S]+$"
+                  type: string
+                name:
+                  description: Display name of the flat thing.
+                  maxLength: 256
+                  minLength: 1
+                  pattern: "^[\\s\\S]+$"
+                  type: string
+                kind:
+                  description: Kind of the flat thing.
+                  maxLength: 256
+                  minLength: 1
+                  pattern: "^[\\s\\S]+$"
+                  type: string
+                allowed:
+                  description: Description of what counts as allowed.
+                  maxLength: 65536
+                  minLength: 0
+                  pattern: "^[\\s\\S]*$"
+                  type: string
+                verbose:
+                  description: Whether the flat thing is verbose.
+                  type: boolean
+                denied:
+                  description: What the flat thing denies.
+                  maxLength: 65536
+                  minLength: 0
+                  pattern: "^[\\s\\S]*$"
+                  type: string
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CreateFlatThingResponse"
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CreateFlatThingResponse"
+          description: Flat thing created
+      summary: Create flat thing
+      tags:
+        - Flat Things Service
+  /flat/v1/things/{id}:
+    get:
+      description: Gets a flat thing by its unique identifier.
+      operationId: FlatThingsService_GetFlatThing
+      parameters:
+        - "$ref": "#/components/parameters/id_1"
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - "$ref": "#/components/schemas/FlatThing"
+                description: The requested flat thing.
+          description: ''
+      summary: Get flat thing
+      tags:
+        - Flat Things Service
+    delete:
+      description: Deletes a flat thing from the catalog.
+      operationId: FlatThingsService_DeleteFlatThing
+      parameters:
+        - description: Unique identifier of the flat thing to delete.
+          in: path
+          name: id
+          required: true
+          schema:
+            description: Unique identifier of the flat thing to delete.
+            maxLength: 36
+            minLength: 36
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DeleteFlatThingResponse"
+          description: ''
+      summary: Delete flat thing
+      tags:
+        - Flat Things Service
+    patch:
+      description: Updates one or more fields of an existing flat thing.
+      operationId: FlatThingsService_UpdateFlatThing
+      parameters:
+        - description: Unique identifier of the flat thing to update.
+          in: path
+          name: id
+          required: true
+          schema:
+            description: Unique identifier of the flat thing to update.
+            maxLength: 36
+            minLength: 36
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to update a flat thing in the catalog.
+              properties:
+                description:
+                  description: Human-readable description.
+                  maxLength: 65536
+                  minLength: 0
+                  pattern: "^[\\s\\S]*$"
+                  type: string
+                  x-coralogix-presence: true
+                samples:
+                  description: Labeled samples.
+                  items:
+                    "$ref": "#/components/schemas/FlatThingSample"
+                  maxItems: 100
+                  minItems: 0
+                  type: array
+                instructions:
+                  description: Instructions of the flat thing.
+                  maxLength: 1048576
+                  minLength: 1
+                  pattern: "^[\\s\\S]+$"
+                  type: string
+                  x-coralogix-presence: true
+                name:
+                  description: Display name of the flat thing.
+                  maxLength: 256
+                  minLength: 1
+                  pattern: "^[\\s\\S]+$"
+                  type: string
+                  x-coralogix-presence: true
+                kind:
+                  description: Kind of the flat thing.
+                  maxLength: 256
+                  minLength: 1
+                  pattern: "^[\\s\\S]+$"
+                  type: string
+                  x-coralogix-presence: true
+                allowed:
+                  description: Description of what counts as allowed.
+                  maxLength: 65536
+                  minLength: 0
+                  pattern: "^[\\s\\S]*$"
+                  type: string
+                  x-coralogix-presence: true
+                verbose:
+                  description: Whether the flat thing is verbose.
+                  type: boolean
+                  x-coralogix-presence: true
+                updateMask:
+                  description: Comma-separated list of field paths to update. When provided, only the listed fields are touched; a listed field that is absent from the request body is cleared. When omitted, only fields present in the body are updated.
+                  maxLength: 1024
+                  minLength: 1
+                  pattern: "^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$"
+                  type: string
+                  x-coralogix-presence: true
+                denied:
+                  description: What the flat thing denies.
+                  maxLength: 65536
+                  minLength: 0
+                  pattern: "^[\\s\\S]*$"
+                  type: string
+                  x-coralogix-presence: true
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UpdateFlatThingResponse"
+          description: ''
+      summary: Update flat thing
+      tags:
+        - Flat Things Service
+components:
+  parameters:
+    id_1:
+      name: id
+      in: path
+      description: Unique identifier of the flat thing.
+      required: true
+      schema:
+        maxLength: 36
+        minLength: 36
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        type: string
+        description: Unique identifier of the flat thing.
+  schemas:
+    FlatThing:
+      required:
+        - id
+        - name
+        - config
+      type: object
+      properties:
+        linkIds:
+          maxItems: 1024
+          minItems: 0
+          type: array
+          items:
+            maxLength: 36
+            minLength: 36
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            type: string
+            description: IDs of the things that this flat thing is linked to.
+          description: IDs of the things that this flat thing is linked to.
+        config:
+          allOf:
+            - "$ref": "#/components/schemas/FlatThingConfig"
+          description: Settings of the flat thing.
+        description:
+          maxLength: 65536
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+          description: Human-readable description.
+        id:
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          type: string
+          description: Unique identifier of the flat thing.
+        name:
+          maxLength: 256
+          minLength: 1
+          pattern: "^[\\s\\S]+$"
+          type: string
+          description: Display name of the flat thing.
+      description: A flat thing defined in the catalog.
+    FlatThingConfig:
+      type: object
+      properties:
+        samples:
+          maxItems: 100
+          minItems: 0
+          type: array
+          items:
+            "$ref": "#/components/schemas/FlatThingSample"
+          description: Labeled samples.
+        instructions:
+          maxLength: 1048576
+          minLength: 1
+          pattern: "^[\\s\\S]+$"
+          type: string
+          description: Instructions of the flat thing.
+        kind:
+          maxLength: 256
+          minLength: 1
+          pattern: "^[\\s\\S]+$"
+          type: string
+          description: Kind of the flat thing.
+        allowed:
+          maxLength: 65536
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+          description: Description of what counts as allowed.
+        verbose:
+          type: boolean
+          description: Whether the flat thing is verbose.
+        denied:
+          maxLength: 65536
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+          description: What the flat thing denies.
+      description: Settings of a flat thing.
+    FlatThingSample:
+      type: object
+      properties:
+        text:
+          maxLength: 65536
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+          description: Sample text.
+        weight:
+          maxLength: 4
+          minLength: 1
+          pattern: "^[0-9]+$"
+          type: string
+          description: Weight of this sample.
+      description: A labeled sample of a flat thing.
+    CreateFlatThingResponse:
+      type: object
+      properties:
+        item:
+          allOf:
+            - "$ref": "#/components/schemas/FlatThing"
+          description: The newly created flat thing.
+      description: Response returned after creating a flat thing.
+    UpdateFlatThingResponse:
+      type: object
+      properties:
+        item:
+          allOf:
+            - "$ref": "#/components/schemas/FlatThing"
+          description: The updated flat thing.
+      description: Response returned after updating a flat thing.
+    DeleteFlatThingResponse:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          type: string
+          description: Unique identifier of the deleted flat thing.
+      description: Response returned after deleting a flat thing.

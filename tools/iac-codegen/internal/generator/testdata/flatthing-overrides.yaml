@@ -1,0 +1,140 @@
+# A released resource whose Create and Update bodies take the settings flat, while the resource
+# holds them in an object (config), and whose Update is a PATCH with an update mask in the body.
+# The object is inlined. Some settings are shown as Terraform-only objects that a hook fills in:
+# the allowed and denied texts and the samples as criteria, and the links as a set of selectors.
+resource: FlatThing
+mode: existing
+typeName: flat_thing
+
+markdownDescription: "A flat thing."
+
+# A hook reads criteria and links from the response.
+afterFlatten: true
+
+validators:
+  inferred: true
+
+api:
+  updateMaskInBody: true
+  operations:
+    create: FlatThingsService_CreateFlatThing
+    get: FlatThingsService_GetFlatThing
+    update: FlatThingsService_UpdateFlatThing
+    delete: FlatThingsService_DeleteFlatThing
+
+types:
+  FlatThing:
+    fields:
+      config: {inline: true}
+      id:
+        markdownDescription: "Flat thing ID."
+      name:
+        required: true
+        markdownDescription: "Display name."
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "Description. Defaults to an empty string."
+      kind:
+        required: true
+        validators:
+          - oneOf: [small, large]
+        markdownDescription: "Kind. Can be one of `small` or `large`."
+      instructions:
+        required: true
+        markdownDescription: "Instructions."
+      verbose:
+        computed: true
+        default: false
+        markdownDescription: "Whether the flat thing is verbose. Defaults to `false`."
+      linkIds:
+        readOnly: true
+        collection: set
+        markdownDescription: "Resolved IDs of the linked things."
+      # A hook sends the allowed and denied texts and the samples from criteria.
+      allowed: {skip: true}
+      denied: {skip: true}
+      samples: {skip: true}
+    extraAttributes:
+      links:
+        type: set
+        optional: true
+        computed: true
+        default: []
+        validators:
+          - sizeAtMost: 1024
+        markdownDescription: "Things to link this flat thing to, selected by name and group. Defaults to no links."
+        attributes:
+          name:
+            type: string
+            required: true
+            validators:
+              - lengthBetween: [1, 256]
+            markdownDescription: "Name of the linked thing."
+          group:
+            type: string
+            required: true
+            validators:
+              - lengthBetween: [1, 256]
+            markdownDescription: "Group of the linked thing."
+      criteria:
+        type: object
+        optional: true
+        computed: true
+        # A change of criteria is an Update of the three fields that it stands for.
+        maskPaths: [allowed, denied, samples]
+        default:
+          accepted: {flags: "", texts: []}
+          refused: {flags: "", texts: []}
+        markdownDescription: "Accepted and refused criteria. Defaults to empty criteria."
+        attributes:
+          accepted:
+            type: object
+            optional: true
+            computed: true
+            default: {flags: "", texts: []}
+            markdownDescription: "Accepted criteria."
+            attributes:
+              flags:
+                type: string
+                optional: true
+                computed: true
+                default: ""
+                validators:
+                  - lengthBetween: [0, 65536]
+                markdownDescription: "Criterion flags."
+              texts:
+                type: list
+                elementType: string
+                optional: true
+                computed: true
+                default: []
+                validators:
+                  - sizeAtMost: 100
+                  - valuesAre: {lengthBetween: [1, 65536]}
+                markdownDescription: "Sample texts."
+          refused:
+            type: object
+            optional: true
+            computed: true
+            default: {flags: "", texts: []}
+            markdownDescription: "Refused criteria."
+            attributes:
+              flags:
+                type: string
+                optional: true
+                computed: true
+                default: ""
+                validators:
+                  - lengthBetween: [0, 65536]
+                markdownDescription: "Criterion flags."
+              texts:
+                type: list
+                elementType: string
+                optional: true
+                computed: true
+                default: []
+                validators:
+                  - sizeAtMost: 100
+                  - valuesAre: {lengthBetween: [1, 65536]}
+                markdownDescription: "Sample texts."
