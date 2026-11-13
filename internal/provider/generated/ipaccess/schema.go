@@ -43,6 +43,7 @@ func Schema() schema.Schema {
 						},
 						"name": schema.StringAttribute{
 							Optional:            true,
+							Computed:            true,
 							MarkdownDescription: "The name of the IP access entry.",
 						},
 					},

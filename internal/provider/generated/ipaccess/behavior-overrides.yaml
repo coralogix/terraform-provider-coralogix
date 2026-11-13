@@ -32,7 +32,7 @@ types:
         required: true
         markdownDescription: "The IP range in CIDR notation."
       name:
-        computed: false
+        computed: true
         markdownDescription: "The name of the IP access entry."
 
 enums:

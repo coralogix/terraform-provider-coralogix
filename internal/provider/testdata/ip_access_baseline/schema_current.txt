@@ -13,5 +13,5 @@ ip_access[].enabled  BoolAttribute required
     markdown: "Whether this IP access entry is enabled."
 ip_access[].ip_range  StringAttribute required
     markdown: "The IP range in CIDR notation."
-ip_access[].name  StringAttribute optional
+ip_access[].name  StringAttribute optional computed
     markdown: "The name of the IP access entry."

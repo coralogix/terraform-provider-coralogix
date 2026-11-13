@@ -100,8 +100,9 @@ var oneOfArms = map[string]bool{}
 // steps left out.
 var computedAttrs = map[string]bool{
 	"enable_coralogix_customer_support_access": true,
-	"id":        true,
-	"ip_access": true,
+	"id":             true,
+	"ip_access":      true,
+	"ip_access.name": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.

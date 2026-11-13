@@ -68,7 +68,7 @@
         {
           "enabled": false,
           "ip_range": "not-a-cidr",
-          "name": null
+          "name": "(unknown)"
         }
       ]
     },

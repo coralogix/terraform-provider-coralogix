@@ -66,6 +66,7 @@ func TestIpAccessGeneratedLiveAcceptance(t *testing.T) {
 
 	name := "codex-" + uuid.NewString()[:8]
 	firstRange := "192.0.2.0/24"
+	unnamedRange := "203.0.113.0/24"
 	updatedRange := "198.51.100.0/24"
 	resourceConfig := func(ipRange string, withDataSources bool) string {
 		config := fmt.Sprintf(`resource "coralogix_ip_access" "generated_live" {
@@ -131,6 +132,17 @@ data "coralogix_ip_access" "without_id" {
 				),
 			},
 			{
+				Config:                   resourceConfigWithoutName(unnamedRange),
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.#", "1"),
+					resource.TestCheckResourceAttr(ipAccessGeneratedResourceAddress, "ip_access.0.name", ""),
+				),
+			},
+			{
 				Config:                   resourceConfig(updatedRange, false),
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -158,6 +170,16 @@ data "coralogix_ip_access" "without_id" {
 			},
 		},
 	})
+}
+
+func resourceConfigWithoutName(ipRange string) string {
+	return fmt.Sprintf(`resource "coralogix_ip_access" "generated_live" {
+  enable_coralogix_customer_support_access = "disabled"
+  ip_access = [{
+    enabled  = false
+    ip_range = %q
+  }]
+}`, ipRange)
 }
 
 func checkIpAccessGeneratedLiveDestroy(base, apiKey string) func(*terraform.State) error {
