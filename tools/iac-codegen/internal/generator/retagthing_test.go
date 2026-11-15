@@ -103,3 +103,34 @@ func TestServerSetInRequestNeedsOverwrite(t *testing.T) {
 		t.Fatalf("err = %v, required = %t; want the error and the attribute unchanged", err, a.Required)
 	}
 }
+
+// A field line on a component that the Get response does not reach changes nothing: the Terraform
+// schema is built from the response. TagUpdate is the item that only the rename request sends, and
+// RenameTagsResponse is the write response, which the schema does not use either.
+func TestLineOutsideTheResponseIsUnused(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "retagthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join("testdata", "retagthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := validateOpenAPIWith(spec, "TagList", model.OperationIDs{}, "sdk", "provider", mustParse(t, string(raw))); err != nil {
+		t.Fatalf("the lines on Tag, a component of the response: %v", err)
+	}
+	for _, line := range []string{
+		"  TagUpdate:\n    fields:\n      id: {skip: true}\n",
+		"  TagUpdate:\n    fields:\n      id: {computed: true, useStateForUnknown: true}\n",
+		"  TagUpdate:\n    fields:\n      name: {description: The tag name.}\n",
+		"  RenameTagsResponse:\n    fields:\n      tags: {description: The tags.}\n",
+		"  TagUpdate@unused:\n    fields:\n      name: {description: The tag name.}\n",
+		"  Tag@unused:\n    fields:\n      name: {description: The tag name.}\n",
+	} {
+		file := mustParse(t, strings.Replace(string(raw), "\ndataSource: {}", line+"\ndataSource: {}", 1))
+		_, err := validateOpenAPIWith(spec, "TagList", model.OperationIDs{}, "sdk", "provider", file)
+		if err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") {
+			t.Errorf("%s: err = %v, want OVERRIDE_UNUSED", line, err)
+		}
+	}
+}

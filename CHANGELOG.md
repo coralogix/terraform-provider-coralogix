@@ -1,6 +1,7 @@
 # Unreleased
 
 #### tools/iac-codegen
+- FIX: A `behavior-overrides.yaml` field line on a component that the Get response does not reach, such as an item that only a request sends, fails with `OVERRIDE_UNUSED`. Before, the generator accepted it and ignored it.
 - FEAT: `skipTests` in `acceptance.yaml` generates inline skips for named live subtests with required reasons. Unknown names fail generation; other tests stay active.
 - FEAT: A one-of group, a `typedArms` object, and a sibling `exactlyOneOf` or `conflictsWith` line are checked by one validator of the parent object. A validator on each arm walked the whole configuration for each sibling, so plan time grew with the number of objects.
 - FEAT: Keys `keepPriorArm` (group), `unsupportedArms` for a plain field with the hook `AllowUnsupported`, `unsupportedIfEmpty`, `durationFormat`, `enumAs`, the validator `unsupported`, `readNullAs` for an enum, a top-level `readEmptyAs`, place lines with every field key, `defaultFromSibling`, string extra attributes with a default inside list items, and `validators` on a `distributeTo` line.
