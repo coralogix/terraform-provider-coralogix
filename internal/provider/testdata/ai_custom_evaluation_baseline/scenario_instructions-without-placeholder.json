@@ -1,0 +1,38 @@
+[
+  {
+    "step": "validate instructions without a placeholder",
+    "config": {
+      "instructions": "Be nice",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"instructions\")] | Attribute instructions instructions must contain at least one of {prompt}, {response}, or {chat_history}., got: Be nice"
+    ],
+    "state": null
+  },
+  {
+    "step": "validate instructions with an unknown placeholder",
+    "config": {
+      "instructions": "Check {text}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"instructions\")] | Attribute instructions instructions must contain at least one of {prompt}, {response}, or {chat_history}., got: Check {text}"
+    ],
+    "state": null
+  },
+  {
+    "step": "validate instructions with a placeholder in upper case",
+    "config": {
+      "instructions": "Check {PROMPT}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"instructions\")] | Attribute instructions instructions must contain at least one of {prompt}, {response}, or {chat_history}., got: Check {PROMPT}"
+    ],
+    "state": null
+  }
+]

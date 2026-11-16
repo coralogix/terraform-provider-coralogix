@@ -1,0 +1,216 @@
+[
+  {
+    "step": "create with criteria",
+    "config": {
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok"
+          ],
+          "flags": "polite"
+        },
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok"
+          ],
+          "flags": "polite"
+        },
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [],
+          "description": "",
+          "examples": [
+            {
+              "conversation": "ok",
+              "score": "1"
+            },
+            {
+              "conversation": "bad",
+              "score": "0"
+            }
+          ],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "polite",
+          "shouldIncludeSystemPrompt": false,
+          "violates": "rude"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            "ok"
+          ],
+          "flags": "polite"
+        },
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove the acceptable criteria",
+    "config": {
+      "criteria": {
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "description": "",
+          "examples": [
+            {
+              "conversation": "bad",
+              "score": "0"
+            }
+          ],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": "rude"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [
+            "bad"
+          ],
+          "flags": "rude"
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  }
+]

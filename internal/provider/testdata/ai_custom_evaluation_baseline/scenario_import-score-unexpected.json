@@ -1,0 +1,30 @@
+[
+  {
+    "step": "import an evaluation with the score 7",
+    "state": null
+  },
+  {
+    "step": "import an evaluation with the score 7 (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unsupported AI custom evaluation example score | Custom evaluation examples must have score \"1\" or \"0\", got \"7\"."
+    ],
+    "state": {
+      "application_ids": null,
+      "applications": null,
+      "criteria": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": null,
+      "name": null,
+      "policy_type": null,
+      "should_include_system_prompt": null
+    }
+  }
+]

@@ -1,0 +1,1014 @@
+{
+  "cases": [
+    {
+      "name": "applications",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP1}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              },
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP2}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "\u003capp-id\u003e",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "\u003capp-id\u003e",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP1}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              },
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP2}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP1}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              },
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP2}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [
+                "{{APP1}}"
+              ],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c1",
+                    "score": "1"
+                  },
+                  {
+                    "conversation": "c0",
+                    "score": "0"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "s",
+                "shouldIncludeSystemPrompt": true,
+                "violates": "v"
+              },
+              "description": "d",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "items": [
+              {
+                "applicationIds": [
+                  "{{APP1}}"
+                ],
+                "config": {
+                  "examples": [
+                    {
+                      "conversation": "c1",
+                      "score": "1"
+                    },
+                    {
+                      "conversation": "c0",
+                      "score": "0"
+                    }
+                  ],
+                  "instructions": "check {prompt}",
+                  "policyType": "quality",
+                  "safe": "s",
+                  "shouldIncludeSystemPrompt": true,
+                  "violates": "v"
+                },
+                "description": "d",
+                "id": "{{A}}",
+                "name": "{{NAME}}-a"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c1",
+                    "score": "1"
+                  },
+                  {
+                    "conversation": "c0",
+                    "score": "0"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "s",
+                "shouldIncludeSystemPrompt": true,
+                "violates": "v"
+              },
+              "description": "d",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "s",
+                "shouldIncludeSystemPrompt": true,
+                "violates": "v"
+              },
+              "description": "d",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "s",
+                "shouldIncludeSystemPrompt": true,
+                "violates": "v"
+              },
+              "description": "d",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "s",
+                "shouldIncludeSystemPrompt": true,
+                "violates": "v"
+              },
+              "description": "d",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "s",
+                "shouldIncludeSystemPrompt": true,
+                "violates": "v"
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": true,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "check {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": true,
+                "violates": ""
+              },
+              "description": "second",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "x {response}",
+                "policyType": "security",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "second",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "c2",
+                    "score": "1"
+                  }
+                ],
+                "instructions": "x {response}",
+                "policyType": "security",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "second",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "applicationId": "{{APP2}}",
+            "id": "{{A}}"
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: Custom evaluation is already linked to this application"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "items": [
+              {
+                "applicationIds": [
+                  "{{APP1}}",
+                  "{{APP2}}"
+                ],
+                "config": {
+                  "examples": [
+                    {
+                      "conversation": "c2",
+                      "score": "1"
+                    }
+                  ],
+                  "instructions": "x {response}",
+                  "policyType": "security",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "second",
+                "id": "{{A}}",
+                "name": "{{NAME}}-a2"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "applicationId": "{{APP1}}",
+            "id": "{{A}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation is not linked to this application"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "items": [
+              {
+                "applicationIds": [
+                  "{{APP2}}"
+                ],
+                "config": {
+                  "examples": [
+                    {
+                      "conversation": "c2",
+                      "score": "1"
+                    }
+                  ],
+                  "instructions": "x {response}",
+                  "policyType": "security",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "second",
+                "id": "{{A}}",
+                "name": "{{NAME}}-a2"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{A}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation not found"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "create",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP1}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              },
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP2}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Name is required"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Name is required"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "",
+                "policyType": "",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{B}}",
+              "name": "{{NAME}}-b"
+            }
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: A custom evaluation with name '{{NAME}}-b' already exists"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: AI application not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Resource not found: invalid ID"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [
+                "{{APP1}}",
+                "{{APP2}}"
+              ],
+              "config": {
+                "examples": [],
+                "instructions": "",
+                "policyType": "",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{D}}",
+              "name": "{{NAME}}-d"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [
+                  {
+                    "conversation": "x",
+                    "score": "7"
+                  }
+                ],
+                "instructions": "",
+                "policyType": "anything",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{E}}",
+              "name": "{{NAME}}-e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "items": [
+              {
+                "applicationIds": [],
+                "config": {
+                  "examples": [],
+                  "instructions": "",
+                  "policyType": "",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "",
+                "id": "{{B}}",
+                "name": "{{NAME}}-b"
+              },
+              {
+                "applicationIds": [
+                  "{{APP1}}",
+                  "{{APP2}}"
+                ],
+                "config": {
+                  "examples": [],
+                  "instructions": "",
+                  "policyType": "",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "",
+                "id": "{{D}}",
+                "name": "{{NAME}}-d"
+              },
+              {
+                "applicationIds": [],
+                "config": {
+                  "examples": [
+                    {
+                      "conversation": "x",
+                      "score": "7"
+                    }
+                  ],
+                  "instructions": "",
+                  "policyType": "anything",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "",
+                "id": "{{E}}",
+                "name": "{{NAME}}-e"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "update",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "",
+                "policyType": "",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{B}}",
+              "name": "{{NAME}}-b"
+            }
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"validation\": \"uuid\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid uuid\",\n    \"path\": [\n      \"id\"\n    ]\n  }\n]"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"custom\",\n    \"path\": [\n      \"updateMask\"\n    ],\n    \"message\": \"Field \\\"name\\\" is required and cannot be cleared via update_mask.\"\n  }\n]"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"custom\",\n    \"message\": \"Unknown field path \\\"nope\\\" in update_mask.\",\n    \"path\": [\n      \"updateMask\"\n    ]\n  }\n]"
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: A custom evaluation with name '{{NAME}}-b' already exists"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": ""
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "i {prompt}",
+                "policyType": "quality",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "items": [
+              {
+                "applicationIds": [],
+                "config": {
+                  "examples": [],
+                  "instructions": "i {prompt}",
+                  "policyType": "quality",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "",
+                "id": "{{A}}",
+                "name": "{{NAME}}-a"
+              },
+              {
+                "applicationIds": [],
+                "config": {
+                  "examples": [],
+                  "instructions": "",
+                  "policyType": "",
+                  "safe": "",
+                  "shouldIncludeSystemPrompt": false,
+                  "violates": ""
+                },
+                "description": "",
+                "id": "{{B}}",
+                "name": "{{NAME}}-b"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Resource not found: invalid ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "links",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiApplications": [
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP1}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              },
+              {
+                "application": "\u003capplication\u003e",
+                "color": "\u003ccolor\u003e",
+                "companyId": "\u003ccompany-id\u003e",
+                "createdAt": "\u003ctime\u003e",
+                "guardrailsIntegrated": "\u003cguardrailsIntegrated\u003e",
+                "icon": "\u003cicon\u003e",
+                "id": "{{APP2}}",
+                "subsystem": "\u003csubsystem\u003e",
+                "updatedAt": "\u003ctime\u003e"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "item": {
+              "applicationIds": [],
+              "config": {
+                "examples": [],
+                "instructions": "",
+                "policyType": "",
+                "safe": "",
+                "shouldIncludeSystemPrompt": false,
+                "violates": ""
+              },
+              "description": "",
+              "id": "{{A}}",
+              "name": "{{NAME}}-a"
+            }
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: AI application not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Resource not found: invalid ID"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Resource not found: invalid ID"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation not found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation is not linked to this application"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Custom evaluation is not linked to this application"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Resource not found: invalid ID"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Resource not found: invalid ID"
+          }
+        }
+      ]
+    }
+  ]
+}

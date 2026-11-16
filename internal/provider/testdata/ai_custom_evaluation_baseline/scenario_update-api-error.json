@@ -1,0 +1,137 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [],
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the API answers 500",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n-renamed",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n-renamed",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "n-renamed",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating coralogix_ai_custom_evaluation | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Update"
+    ],
+    "state": {
+      "application_ids": [],
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    }
+  }
+]

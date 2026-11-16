@@ -1,0 +1,19 @@
+[
+  {
+    "step": "validate a selector without subsystem",
+    "config": {
+      "applications": [
+        {
+          "application": "checkout"
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<null>>).AttributeName(\"subsystem\")] | Must set a configuration value for the applications[Value({\"application\":\"checkout\",\"subsystem\":<null>})].subsystem attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]
