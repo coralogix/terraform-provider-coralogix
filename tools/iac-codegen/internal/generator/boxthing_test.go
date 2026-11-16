@@ -94,3 +94,23 @@ func TestBoxThingPagedListIsRefused(t *testing.T) {
 		t.Fatalf("error = %v, want one that says the List pages its result", err)
 	}
 }
+
+// A List that returns a pagination object beside the items pages its result too, also without a
+// paging query parameter.
+func TestBoxThingPaginationObjectIsRefused(t *testing.T) {
+	_, err := generateBoxThingWith(t, nil,
+		"      required:\n        - items\n      type: object\n      properties:\n",
+		"      required:\n        - items\n      type: object\n      properties:\n        pagination:\n          type: object\n          properties:\n            hasMore: {type: boolean}\n")
+	if err == nil || !strings.Contains(err.Error(), "pages its result") {
+		t.Fatalf("error = %v, want one that says the List pages its result", err)
+	}
+}
+
+// The data source of a resource that is read from its List looks up the id only. A lookup by name
+// says so, and does not fail on a missing SDK method.
+func TestBoxThingNameLookupIsRefused(t *testing.T) {
+	_, err := generateBoxThingWith(t, []string{"types:\n  BoxThing:", "dataSource:\n  lookup: [id, name]\n\ntypes:\n  BoxThing:"})
+	if err == nil || !strings.Contains(err.Error(), "api.getFromList") {
+		t.Fatalf("error = %v, want one that names api.getFromList", err)
+	}
+}

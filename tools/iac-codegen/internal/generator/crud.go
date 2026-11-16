@@ -175,12 +175,12 @@ type crudOp struct {
 	Copy []string
 }
 
-// buildCRUD maps the operations and their SDK names to the template data.
 // Items reports whether the call answers with an array of resources, from which the resource is
 // selected: a batch Get by ids, or the List of a getFromList resource. No item means that the
 // resource does not exist.
 func (o crudOp) Items() bool { return o.IDs != "" || o.FromList }
 
+// buildCRUD maps the operations and their SDK names to the template data.
 // Create, Get, and Update must return the resource. Delete must not have a
 // body.
 // buildCRUDWith is buildCRUD for a resource with a behavior-overrides file (nil for a new resource).
@@ -511,7 +511,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 // the response field items, and the generated code selects the one with the id of the resource. A
 // List that pages its result is refused: one call would miss a resource on a later page.
 func getFromListOp(r *model.Resource, items string, out crudOp) (crudOp, error) {
-	if len(r.PageParameters) != 0 || r.NextPage != nil {
+	if len(r.PageParameters) != 0 || r.NextPage != nil || r.List != nil && r.List.Paged {
 		return out, errors.New("api.getFromList: the List pages its result, which the generated Get does not read yet")
 	}
 	out.Response, out.FromList = items, true

@@ -530,7 +530,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		return
 	}
 {{- if .Get.Items}}
-	if id == "" {
+	if id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
 		resp.Diagnostics.AddWarning("Resource has no id", "The state has no resource id. Terraform removed it from state so it can be recreated.")
 		resp.State.RemoveResource(ctx)
 		return
