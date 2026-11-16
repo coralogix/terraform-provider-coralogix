@@ -486,11 +486,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 				return out, fmt.Errorf("batch response needs []%s", resource)
 			}
 			if o.name == "get" && r.GetFromList {
-				if len(r.PageParameters) != 0 || r.NextPage != nil {
-					return out, errors.New("api.getFromList: the List pages its result, which the generated Get does not read yet")
-				}
-				out.Response, out.FromList = field.Name, true
-				return out, nil
+				return getFromListOp(r, field.Name, out)
 			}
 			builder, err := ix.typeRef("get")
 			if err != nil {
@@ -508,6 +504,17 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		}
 		out.Response, out.ResponseValue = field.Name, field.Want == resource
 	}
+	return out, nil
+}
+
+// getFromListOp sets the Get of a resource that is read from its List: the call lists the items, in
+// the response field items, and the generated code selects the one with the id of the resource. A
+// List that pages its result is refused: one call would miss a resource on a later page.
+func getFromListOp(r *model.Resource, items string, out crudOp) (crudOp, error) {
+	if len(r.PageParameters) != 0 || r.NextPage != nil {
+		return out, errors.New("api.getFromList: the List pages its result, which the generated Get does not read yet")
+	}
+	out.Response, out.FromList = items, true
 	return out, nil
 }
 
