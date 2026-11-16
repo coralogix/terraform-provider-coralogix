@@ -1,0 +1,26 @@
+[
+  {
+    "step": "read by user_name: the search answers 500",
+    "config": {
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error searching Users | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
+    ],
+    "state": {
+      "active": null,
+      "emails": null,
+      "groups": null,
+      "id": null,
+      "name": null,
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "step": "config sets id to an empty string",
+    "config": {
+      "id": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"id\")] | Attribute id string length must be at least 1, got: 0"
+    ],
+    "state": null
+  }
+]

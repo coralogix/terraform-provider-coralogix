@@ -1,0 +1,15 @@
+(data source schema)
+    description: Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
+active  tftypes.Bool computed
+emails  nested SET computed
+emails.primary  tftypes.Bool computed
+emails.type  tftypes.String computed
+emails.value  tftypes.String computed
+groups  tftypes.Set[tftypes.String] computed
+id  tftypes.String optional,computed
+    description: User ID. Exactly one of `id` or `user_name` must be set.
+name  nested SINGLE computed
+name.family_name  tftypes.String computed
+name.given_name  tftypes.String computed
+user_name  tftypes.String optional,computed
+    description: User name (email). Exactly one of `id` or `user_name` must be set. The lookup is case-insensitive, since SSO login can normalize letter case in the backend.

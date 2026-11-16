@@ -1,0 +1,12 @@
+[
+  {
+    "step": "config sets user_name to an empty string",
+    "config": {
+      "user_name": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"user_name\")] | Attribute user_name string length must be at least 1, got: 0"
+    ],
+    "state": null
+  }
+]

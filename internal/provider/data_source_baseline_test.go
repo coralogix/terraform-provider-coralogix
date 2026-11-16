@@ -35,6 +35,7 @@ type dataSourceBaseline struct {
 var dataSourceBaselines = map[string]dataSourceBaseline{
 	"scope":       {scopeGoldenDir, newScopeHarness, scopeDataSourceScenarios},
 	"custom_role": {customRoleGoldenDir, newCustomRoleHarness, customRoleDataSourceScenarios},
+	"user":        {userGoldenDir, newUserHarness, userDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {
@@ -55,6 +56,9 @@ func TestDataSourceBaselineScenarios(t *testing.T) {
 			t.Run(name+"/"+scenario, func(t *testing.T) {
 				h := baseline.harness(t)
 				run(h)
+				if name == "user" {
+					canonicalizeUserStepValues(h.steps)
+				}
 				checkGoldenAt(t, baseline.dir, "datasource_"+scenario+".json", marshalDataSourceGolden(t, name, h.steps))
 			})
 		}

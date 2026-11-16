@@ -1,0 +1,9 @@
+[
+  {
+    "step": "import by an email that no user has",
+    "applyDiagnostics": [
+      "error: User with user_name \"tf-acc-user-1@coralogix.com\" not found"
+    ],
+    "state": null
+  }
+]

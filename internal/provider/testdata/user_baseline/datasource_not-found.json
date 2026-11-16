@@ -1,0 +1,26 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "00000000-0000-4000-8000-999999999999"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: User \"00000000-0000-4000-8000-999999999999\" not found"
+    ],
+    "state": {
+      "active": null,
+      "emails": null,
+      "groups": null,
+      "id": "00000000-0000-4000-8000-999999999999",
+      "name": null,
+      "user_name": null
+    }
+  }
+]

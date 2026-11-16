@@ -1,0 +1,26 @@
+[
+  {
+    "step": "read by user_name: SearchUsers returns the user without userId",
+    "config": {
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error searching Users | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
+    ],
+    "state": {
+      "active": null,
+      "emails": null,
+      "groups": null,
+      "id": null,
+      "name": null,
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  }
+]
