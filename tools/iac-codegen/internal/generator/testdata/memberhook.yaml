@@ -107,18 +107,6 @@ paths:
                 $ref: '#/components/schemas/UpdateMembersStatusesResponse'
 components:
   schemas:
-    SearchMembersResponse:
-      type: object
-      required:
-      - members
-      properties:
-        nextPageToken:
-          type: string
-          minLength: 0
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Member'
     MemberHookSearchResponse:
       type: object
       required:
