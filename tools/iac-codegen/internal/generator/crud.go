@@ -482,6 +482,11 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 			if err != nil {
 				return out, err
 			}
+			// The generated Delete writes the id into a string array; a body field of any
+			// other shape fails at provider build instead of with a generator diagnostic.
+			if ids.Want != "[]string" {
+				return out, fmt.Errorf("delete.body.%s: the SDK field is %s, want []string", r.Policy.DeleteIDs, ids.Want)
+			}
 			out.DeleteIDs = ids.Name
 			for _, v := range r.DeleteValues {
 				f, err := ix.fieldRef("delete.body." + v.Name)
@@ -508,7 +513,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 				// renders with its package; a builtin renders bare.
 				if strings.HasPrefix(f.Want, "*") {
 					typeName := f.Want[1:]
-					if !slices.Contains([]string{"string", "bool", "int", "int64", "float64", "float32"}, typeName) {
+					if !slices.Contains([]string{"string", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint32", "uint64", "float32", "float64", "byte", "rune"}, typeName) {
 						typeName = ix.pkg.Name + "." + typeName
 					}
 					out.DeleteValues = append(out.DeleteValues, crudQuery{Method: f.Name, Value: value, Type: typeName})

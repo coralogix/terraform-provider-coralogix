@@ -284,6 +284,7 @@ func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, 
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
 		if out == nil {
+			pageToken = nil
 			break
 		}
 		for i := range out.Members {
