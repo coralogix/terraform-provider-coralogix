@@ -76,7 +76,6 @@ type SearchMembersResponse struct {
 	Members       []Member
 }
 
-
 type CreateMembersResponse struct {
 	Results []CreateMemberResult
 }
