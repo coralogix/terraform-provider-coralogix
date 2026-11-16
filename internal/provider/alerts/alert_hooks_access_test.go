@@ -306,3 +306,48 @@ func TestAlertAccessPolicySchema(t *testing.T) {
 		t.Error("access_policy has no description documenting the set/delete/unmanaged semantics")
 	}
 }
+
+// A policy that lists only the permissions it grants means the same as the policy that the backend
+// stores, which holds every other permission as "deny". A permission that differs, or a rule that
+// differs, is another policy.
+func TestPoliciesEquivalent(t *testing.T) {
+	partial := `{"default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[]}`
+	stored := `{"default":{"permissions":{"alerts:ReadConfig":"grant","alerts:UpdateConfig":"deny","alerts:ReadAccessPolicy":"deny"}},"rules":[]}`
+	tests := []struct {
+		name string
+		a, b string
+		want bool
+	}{
+		{"equal JSON in another order", `{"rules":[],"default":{"permissions":{"alerts:ReadConfig":"grant"}}}`, partial, true},
+		{"omitted permissions read as deny", partial, stored, true},
+		{"omitted permissions read as deny, in the other direction", stored, partial, true},
+		{"no rules and an empty list of rules", `{"default":{"permissions":{"alerts:ReadConfig":"grant"}}}`, stored, true},
+		{"a permission that the backend grants", partial, `{"default":{"permissions":{"alerts:ReadConfig":"grant","alerts:UpdateConfig":"grant"}},"rules":[]}`, false},
+		{"a permission with another value", partial, `{"default":{"permissions":{"alerts:ReadConfig":"deny"}},"rules":[]}`, false},
+		{"a rule", partial, `{"default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[{"name":"r"}]}`, false},
+		{"no default permissions", `{"rules":[]}`, partial, false},
+		{"not JSON", "not json", partial, false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := policiesEquivalent(test.a, test.b); got != test.want {
+				t.Errorf("policiesEquivalent(%s, %s) = %v, want %v", test.a, test.b, got, test.want)
+			}
+		})
+	}
+}
+
+// A configured policy that the backend stores with extra "deny" permissions stays as written, so
+// the read after a write and a later Read report no change. A policy that really differs replaces it.
+func TestFoldAccessPolicyKeepsAPolicyThatOnlyOmitsDenies(t *testing.T) {
+	configured := `{"default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[]}`
+	stored := `{"default":{"permissions":{"alerts:ReadConfig":"grant","alerts:UpdateConfig":"deny"}},"rules":[]}`
+	granted := `{"default":{"permissions":{"alerts:ReadConfig":"grant","alerts:UpdateConfig":"grant"}},"rules":[]}`
+	if got := foldAccessPolicy(types.StringValue(configured), &stored, true); got.ValueString() != configured {
+		t.Errorf("state = %s, want the configured text", got.ValueString())
+	}
+	got := foldAccessPolicy(types.StringValue(configured), &granted, true)
+	if got.ValueString() == configured || got.IsNull() {
+		t.Errorf("state = %s, want the policy of the backend", got.ValueString())
+	}
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "step": "validate an empty name",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 256, got: 0"
+    ],
+    "state": null
+  }
+]

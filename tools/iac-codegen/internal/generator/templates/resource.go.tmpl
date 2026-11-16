@@ -735,7 +735,11 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if out == nil {
 		return nil, nil
 	}
+{{- if .ReadAfterWrite}}
+	return r.readAfterWrite(ctx, {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}), nil
+{{- else}}
 	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
+{{- end}}
 }
 {{- end}}
 {{- end}}
@@ -854,7 +858,11 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	if out == nil {
 		return nil, nil
 	}
+{{- if .ReadAfterWrite}}
+	return r.readAfterWrite(ctx, {{if .Update.Response}}{{if .Update.ResponseValue}}&{{end}}out.{{.Update.Response}}{{else}}out{{end}}), nil
+{{- else}}
 	return {{if .Update.Response}}{{if .Update.ResponseValue}}&{{end}}out.{{.Update.Response}}{{else}}out{{end}}, nil
+{{- end}}
 {{- end}}
 }
 
@@ -1150,6 +1158,28 @@ func stateID(ctx context.Context, state tfsdk.State) ({{.IDGoType}}, diag.Diagno
 }
 
 {{- if not .Singleton}}
+{{- if .ReadAfterWrite}}
+
+// readAfterWrite reads the resource that a write returned with Get, so that the AfterGet hook sees the
+// values next to the resource, as a Read does, and the state after the write is the state of a later
+// Read. When the read fails, the write response stands: the write succeeded, and the next Read adds
+// what the response lacked.
+func (r *Resource) readAfterWrite(ctx context.Context, written *{{$sdk}}.{{.Resource}}) *{{$sdk}}.{{.Resource}} {
+	id, ok := apiID(written)
+	if !ok || id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+		return written
+	}
+	v, err := r.get(ctx, id)
+	if err != nil || v == nil {
+		return written
+	}
+	// The id of the write is the id of the resource, also when Get leaves it out.
+	if got, ok := apiID(v); !ok || got == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+		setAPIID(v, id)
+	}
+	return v
+}
+{{- end}}
 
 // apiID returns the id that v holds, and false when v holds none.
 func apiID(v *{{$sdk}}.{{.Resource}}) ({{.IDGoType}}, bool) {
@@ -1170,7 +1200,7 @@ func apiID(v *{{$sdk}}.{{.Resource}}) ({{.IDGoType}}, bool) {
 {{- end}}
 }
 
-{{- if or .Create.ResponseID .Update.Empty}}
+{{- if or .Create.ResponseID .Update.Empty .ReadAfterWrite}}
 
 // setAPIID sets the id that v holds.
 func setAPIID(v *{{$sdk}}.{{.Resource}}, id {{.IDGoType}}) {

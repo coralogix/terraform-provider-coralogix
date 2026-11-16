@@ -61,6 +61,9 @@ type crudData struct {
 	// GetResponse is the SDK type that the Get call returns.
 	GetHooks    bool
 	GetResponse string
+	// ReadAfterWrite: Create and Update read the resource with Get after a write whose response
+	// holds the resource (readAfterWrite of the behavior-overrides file). It needs GetHooks.
+	ReadAfterWrite bool
 	// GetRequest is the SDK type of the Get request builder, which the Get hook receives a factory of.
 	GetRequest string
 	// GetQuery are the query values that Get always sends: the request builder method and the Go
@@ -269,6 +272,9 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r, r.IDType != nil && len(r.IDType.Wrappers) == 1); err != nil {
 			return nil, err
 		}
+	}
+	if err := out.checkReadAfterWrite(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -559,6 +565,9 @@ func getCall(ix *refIndex, r *model.Resource, file *overrides.File, out *crudDat
 
 // getHooks names the SDK type that the Get call returns, for the Get and AfterGet hooks.
 func getHooks(ix *refIndex, r *model.Resource, file *overrides.File, out *crudData) error {
+	if file != nil && file.ReadAfterWrite && !file.GetHooks {
+		return errors.New("readAfterWrite needs getHooks: the values that it reads back reach the state through the AfterGet hook")
+	}
 	if file == nil || !file.GetHooks {
 		return nil
 	}
@@ -574,6 +583,27 @@ func getHooks(ix *refIndex, r *model.Resource, file *overrides.File, out *crudDa
 		return err
 	}
 	out.GetHooks, out.GetResponse, out.GetRequest = true, response.Name, request.Name
+	out.ReadAfterWrite = file.ReadAfterWrite
+	return nil
+}
+
+// createReadsBack reports whether the generated Create already reads the resource with Get: its
+// response holds only the id, has no fields, or the resource is an overwrite list.
+func (c *crudData) createReadsBack() bool {
+	return c.Overwrite || c.Create.Empty || c.Create.ResponseID != "" || len(c.Create.Copy) > 0
+}
+
+// updateReadsBack reports whether the generated Update already reads the resource with Get.
+func (c *crudData) updateReadsBack() bool {
+	return c.Overwrite || c.Update.Empty || len(c.Update.Copy) > 0
+}
+
+// checkReadAfterWrite stops a readAfterWrite line that changes nothing: both writes already read the
+// resource back. A line that matches nothing hides that the behavior comes from somewhere else.
+func (c *crudData) checkReadAfterWrite() error {
+	if c.ReadAfterWrite && c.createReadsBack() && c.updateReadsBack() {
+		return errors.New("readAfterWrite changes nothing: Create and Update already read the resource with Get. Delete the line")
+	}
 	return nil
 }
 

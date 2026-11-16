@@ -1,0 +1,24 @@
+[
+  {
+    "step": "create with the same selector twice",
+    "config": {
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        },
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Duplicate Set Element [AttributeName(\"applications\")] | This attribute contains duplicate values of: tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<\"api\">>"
+    ],
+    "state": null
+  }
+]

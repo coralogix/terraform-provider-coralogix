@@ -1,0 +1,67 @@
+# A released resource whose Create and Update return the resource, with the two hooks around its Get
+# call and the readAfterWrite line. The write response holds no value that only the Get response
+# has, so without the line the state after a write differs from the state after a Read. With the
+# line, Create and Update read the resource with Get, and the AfterGet hook runs after a write too.
+resource: LegacyThing
+mode: existing
+typeName: read_thing
+getHooks: true
+readAfterWrite: true
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  clientSetID: true
+
+types:
+  LegacyThing:
+    fields:
+      id:
+        markdownDescription: "The id. Leave it empty for a generated one."
+      name:
+        markdownDescription: "The name."
+        required: true
+      createTime:
+        useStateForUnknown: true
+      labels:
+        description: "The labels."
+        readEmptyAs: "null"
+      rules:
+        description: "The rules."
+        computed: true
+  LegacyRule:
+    fields:
+      name:
+        description: "The rule name."
+        required: true
+      managed: {skip: true}
+      kind:
+        computed: true
+        default: alpha
+        useStateForUnknown: true
+        validators: [{enum: true}]
+      targets:
+        description: "The targets."
+        computed: true
+        keepPriorOrder: true
+        validators: [{sizeAtLeast: 1}]
+  LegacyLabels:
+    fields:
+      env: {description: "", computed: true}
+  LegacyTarget:
+    fields:
+      connectorId:
+        description: "The connector."
+        required: true
+        validators: [{oneOf: [first, second]}]
+      id: {skip: true}
+
+enums:
+  legacy.Kind:
+    zero: unspecified
+    rejected: [GAMMA]
+
+dataSource: {}
