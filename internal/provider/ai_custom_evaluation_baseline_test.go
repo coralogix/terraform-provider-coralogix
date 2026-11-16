@@ -338,6 +338,19 @@ var aiceScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create with an application on the second page", h.null(), aiceWith(aiceConfig("n"), j{"applications": l{aiceSel("late", "api")}}))
 		h.RefreshPlan("refresh and replan", s)
 	},
+	// The order of the applications changes between two page requests: the first page lists them in
+	// the order of the API, the second in reverse. The application is on the first page of the
+	// reverse order and on none of the pages that the provider reads, so it is missed.
+	"applications-order-changes-between-pages": func(h *grHarness) {
+		for i := 0; i < 230; i++ {
+			h.aice().seedApp(fmt.Sprintf("filler-%03d", i), "api")
+		}
+		h.aice().seedApp("late", "api")
+		h.aice().appsReverse = []bool{false, true}
+		s := h.Apply("create: the order changes between the pages and the application is missed", h.null(), aiceWith(aiceConfig("n"), j{"applications": l{aiceSel("late", "api")}}))
+		h.aice().appsReverse = nil
+		h.Apply("create again after the order is stable", s, aiceWith(aiceConfig("n"), j{"applications": l{aiceSel("late", "api")}}))
+	},
 	// The page is full and the next page is empty.
 	"applications-exactly-one-page": func(h *grHarness) {
 		for i := 0; i < 199; i++ {
@@ -362,6 +375,17 @@ var aiceScenarios = map[string]func(h *grHarness){
 		h.aice().evaluation(aiceFirstEvalID).appIDs = []string{web}
 		s = h.RefreshPlan("refresh: the API has a link", s)
 		h.Apply("apply the configuration again", s, aiceConfig("n"))
+	},
+	// An application is renamed outside Terraform and keeps its id: the linked ids are the same, so the
+	// refresh keeps the configured selector and does not list the applications.
+	"applications-renamed-outside": func(h *grHarness) {
+		api, _, _ := aiceApps(h)
+		cfg := aiceWith(aiceConfig("n"), j{"applications": l{aiceSel("checkout", "api")}})
+		s := h.Apply("create with an application", h.null(), cfg)
+		h.aice().renameApp(api, "checkout-renamed", "api-renamed")
+		s = h.RefreshPlan("refresh: the application has another name and the same id", s)
+		s = h.Apply("apply the same configuration", s, cfg)
+		h.Apply("update: change the description", s, aiceWith(cfg, j{"description": "changed"}))
 	},
 	"applications-unlinked-outside": func(h *grHarness) {
 		aiceApps(h)
@@ -394,6 +418,16 @@ var aiceScenarios = map[string]func(h *grHarness){
 		s = h.Apply("update: the name and an application, and the link answers 500", s, aiceWith(aiceConfig("n-renamed"), j{"applications": l{aiceSel("checkout", "api")}}))
 		h.aice().linkStatus = 0
 		h.RefreshPlan("refresh after the failed update", s)
+	},
+	// Two applications are linked in the order of their ids. The first link is made, the second fails.
+	"update-second-link-fails": func(h *grHarness) {
+		aiceApps(h)
+		s := h.Apply("create", h.null(), aiceConfig("n"))
+		cfg := aiceWith(aiceConfig("n"), j{"applications": l{aiceSel("checkout", "api"), aiceSel("checkout", "web")}})
+		h.aice().linkScript = []int{0, 500}
+		s = h.Apply("update: two applications, the first link is made and the second answers 500", s, cfg)
+		s = h.RefreshPlan("refresh after the failed update: one link exists", s)
+		h.Apply("retry the update", s, cfg)
 	},
 	"update-unlink-fails": func(h *grHarness) {
 		aiceApps(h)

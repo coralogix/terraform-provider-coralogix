@@ -88,8 +88,12 @@ type aiceFake struct {
 	nextAppID   int
 	// The statuses force an answer of the next calls of the route. updateScript answers the calls of
 	// Update in order: 0 is a normal answer, and a call after the end of the script is normal.
+	// linkScript does the same for the link calls. appsReverse does it for the calls that list the
+	// applications: true lists the applications in reverse order, which is an application order that
+	// changes between two page requests.
 	createStatus, listStatus, appsStatus, deleteStatus, linkStatus, unlinkStatus int
-	updateScript                                                                 []int
+	updateScript, linkScript                                                     []int
+	appsReverse                                                                  []bool
 }
 
 type aiceEvaluation struct {
@@ -174,6 +178,19 @@ func (f *aiceFake) forgetApp(id string) {
 	for i, app := range f.apps {
 		if app.id == id {
 			f.apps = append(f.apps[:i], f.apps[i+1:]...)
+			return
+		}
+	}
+}
+
+// renameApp changes the name of an application and keeps its id, as if it was renamed outside
+// Terraform.
+func (f *aiceFake) renameApp(id, application, subsystem string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, app := range f.apps {
+		if app.id == id {
+			app.application, app.subsystem = application, subsystem
 			return
 		}
 	}
@@ -298,9 +315,20 @@ func (f *aiceFake) listApps(query url.Values) (int, any) {
 		size = 200
 	}
 	page, _ := strconv.Atoi(query.Get("page_offset"))
+	apps := f.apps
+	if len(f.appsReverse) > 0 {
+		reverse := f.appsReverse[0]
+		f.appsReverse = f.appsReverse[1:]
+		if reverse {
+			apps = make([]*aiceApp, len(f.apps))
+			for i, app := range f.apps {
+				apps[len(apps)-1-i] = app
+			}
+		}
+	}
 	items := []any{}
-	for i := page * size; i < len(f.apps) && i < (page+1)*size; i++ {
-		app := f.apps[i]
+	for i := page * size; i < len(apps) && i < (page+1)*size; i++ {
+		app := apps[i]
 		items = append(items, map[string]any{
 			"id": app.id, "application": app.application, "subsystem": app.subsystem,
 			"companyId": aiceFakeCompanyID, "color": "blue", "icon": "bot", "guardrailsIntegrated": false,
@@ -533,6 +561,13 @@ func (f *aiceFake) delete(id string) (int, any) {
 }
 
 func (f *aiceFake) link(id, appID string) (int, any) {
+	if len(f.linkScript) > 0 {
+		status := f.linkScript[0]
+		f.linkScript = f.linkScript[1:]
+		if status != 0 {
+			return aiceError(status, http.StatusText(status))
+		}
+	}
 	if f.linkStatus != 0 {
 		return aiceError(f.linkStatus, http.StatusText(f.linkStatus))
 	}
