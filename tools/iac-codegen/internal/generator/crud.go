@@ -779,6 +779,11 @@ func getPage(ix *refIndex, r *model.Resource, out *crudData) error {
 	if err != nil {
 		return err
 	}
+	// The generated loop compares the token with "" and sends it to the builder method, so a
+	// token of any other type fails at provider build instead of with a generator diagnostic.
+	if want := strings.TrimPrefix(field.Want, "*"); want != "string" {
+		return fmt.Errorf("get.response.%s: the SDK field is %s, want a string or *string next page token", r.NextPage.Name, field.Want)
+	}
 	out.GetNextPage, out.GetNextPageField = next.Name, field.Name
 	out.GetNextPageValue = !strings.HasPrefix(field.Want, "*")
 	return nil

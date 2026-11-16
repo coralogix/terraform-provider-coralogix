@@ -839,14 +839,22 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 			}
 		}
 	{{- end}}
+	{{- if .GetHooks}}
+		pageExecute := func(token {{if .GetNextPageValue}}string{{else}}*string{{end}}) (*{{$sdk}}.{{.GetResponse}}, *http.Response, error) {
+			if r.hooks.Get != nil {
+				return r.hooks.Get(ctx, pageRequest(token))
+			}
+			return pageRequest(token)().Execute()
+		}
+	{{- end}}
 	{{- if .GetNextPageValue}}
 	pageToken := out.{{.GetNextPageField}}
 	for page := 1; pageToken != "" && page < 100; page++ {
-		out, httpResp, err = {{if .GetHooks}}r.hooks.Get(ctx, pageRequest(pageToken)){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}({{if .GetNextPageValue}}pageToken{{else}}*pageToken{{end}}).Execute(){{end}}
+		out, httpResp, err = {{if .GetHooks}}pageExecute(pageToken){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}({{if .GetNextPageValue}}pageToken{{else}}*pageToken{{end}}).Execute(){{end}}
 	{{- else}}
 	pageToken := out.{{.GetNextPageField}}
 	for page := 1; pageToken != nil && *pageToken != "" && page < 100; page++ {
-		out, httpResp, err = {{if .GetHooks}}r.hooks.Get(ctx, pageRequest(pageToken)){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}({{if .GetNextPageValue}}pageToken{{else}}*pageToken{{end}}).Execute(){{end}}
+		out, httpResp, err = {{if .GetHooks}}pageExecute(pageToken){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}({{if .GetNextPageValue}}pageToken{{else}}*pageToken{{end}}).Execute(){{end}}
 	{{- end}}
 		if err != nil {
 			return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)

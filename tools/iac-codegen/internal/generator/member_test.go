@@ -113,6 +113,31 @@ func TestCreateReadsTheFirstResultAndReportsTheMessage(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+
+
+func TestGoldenOutputMemberHook(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(mustRead(t, filepath.Join("testdata", "memberhook.yaml")))
+	out := filepath.Join(t.TempDir(), "memberhook")
+	options := Options{Resource: "Member", OutputDir: out, OverridesPath: filepath.Join("testdata", "memberhook-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	golden := filepath.Join("testdata", "golden", "memberhook")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("memberhook golden differs; run with -update:\n%s", diff)
+	}
+	compileGenerated(t, out, input)
+}
+
 func TestMemberThingNegativeKeys(t *testing.T) {
 	input, _ := syntheticInput(t)
 	var doc map[string]any
