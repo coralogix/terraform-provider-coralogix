@@ -18,7 +18,7 @@
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
 
 #### resource/coralogix_alert
-- FIX: The state after create or update holds the `access_policy` that Coralogix writes for an alert created without one, as a read or an import does. Before, an alert created without `access_policy` had a null value in state until the next refresh, and an import of the same alert showed the policy. Create and update read the alert once more to get it. A policy that lists only some permissions is no longer reported as changed when Coralogix stores the others as `deny`.
+- FIX: The state after create or update holds the `access_policy` that Coralogix writes for an alert created without one, as a read or an import does. Before, an alert created without `access_policy` had a null value in state until the next refresh, and an import of the same alert showed the policy. Create and update read the alert once more to get it. A policy that lists only some permissions is no longer reported as changed when Coralogix stores the others as `deny`. A configured `access_policy = ""` stays in state after create and update.
 - FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
 - CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261116113014-362e16dcfafe`.
 

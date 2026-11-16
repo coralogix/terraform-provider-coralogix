@@ -168,3 +168,45 @@ func TestAlertWriteSurvivesAFailedReadAfterIt(t *testing.T) {
 		t.Fatalf("access_policy after Refresh = %v, want the default policy", got)
 	}
 }
+
+// access_policy = "" says that the alert has no policy. An update that deletes a policy with it, and a
+// create with it while the backend writes a default policy, both end with the planned "" in state: the
+// read after the write finds no policy, or the default one, and the result of an apply must hold the
+// planned value. The next Read shows the difference, as it did before the read after a write.
+func TestAlertWriteKeepsTheEmptyPolicySentinel(t *testing.T) {
+	policy := `{"default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[]}`
+
+	t.Run("update that deletes the policy", func(t *testing.T) {
+		h := newAlertHarness(t)
+		created := h.Apply("create", h.null(), alertLogsImmediate("tf delete policy", j{"access_policy": policy}))
+		updated := h.Apply("delete the policy", created, alertLogsImmediate("tf delete policy", j{"access_policy": ""}))
+		step := h.steps[len(h.steps)-1]
+		if len(step.ApplyDiags) != 0 || len(step.Inconsistent) != 0 {
+			t.Fatalf("apply diagnostics = %v, inconsistent = %v", step.ApplyDiags, step.Inconsistent)
+		}
+		if got := accessPolicyOf(t, updated); got != "" {
+			t.Fatalf("access_policy after the update = %v, want the empty string", got)
+		}
+		if step.ReplanEmpty == nil || !*step.ReplanEmpty {
+			t.Fatalf("plan after the update is not empty: %v", step.ReplanDiff)
+		}
+	})
+
+	t.Run("create with the default policy written by the backend", func(t *testing.T) {
+		h := newAlertHarness(t)
+		h.api.(*alertFake).defaultPolicy = alertDefaultPolicy
+		created := h.Apply("create", h.null(), alertLogsImmediate("tf empty on create", j{"access_policy": ""}))
+		step := h.steps[len(h.steps)-1]
+		if len(step.ApplyDiags) != 0 || len(step.Inconsistent) != 0 {
+			t.Fatalf("apply diagnostics = %v, inconsistent = %v", step.ApplyDiags, step.Inconsistent)
+		}
+		if got := accessPolicyOf(t, created); got != "" {
+			t.Fatalf("access_policy after Create = %v, want the empty string", got)
+		}
+		// The next Read finds the default policy, so the next apply deletes it.
+		refreshed := h.Refresh("refresh", created)
+		if got := accessPolicyOf(t, refreshed); !sameJSON(t, got, alertDefaultPolicy) {
+			t.Fatalf("access_policy after Refresh = %v, want the default policy", got)
+		}
+	})
+}
