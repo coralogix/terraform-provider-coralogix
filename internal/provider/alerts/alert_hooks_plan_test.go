@@ -43,38 +43,48 @@ func TestWithStateAdvancedNotification(t *testing.T) {
 	nullPeriod := tftypes.NewValue(periodType, nil)
 	cases := []struct {
 		name    string
+		config  tftypes.Value
 		planned tftypes.Value
 		state   []tftypes.Value
 		want    tftypes.Value
 	}{
-		{"both omitted, state has neither: null is kept",
+		{"both omitted, state has neither: null is kept", webhook("1", nullString, nullPeriod),
 			webhook("1", unknownString, unknownPeriod), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("1", nullString, nullPeriod)},
-		{"both omitted, state has both: both are kept",
+		{"both omitted, state has both: both are kept", webhook("1", nullString, nullPeriod),
 			webhook("1", unknownString, unknownPeriod), []tftypes.Value{webhook("1", stringValue("Triggered Only"), period(10))}, webhook("1", stringValue("Triggered Only"), period(10))},
-		{"both omitted, state has only the period: each is kept as it is",
+		{"both omitted, state has only the period: each is kept as it is", webhook("1", nullString, nullPeriod),
 			webhook("1", unknownString, unknownPeriod), []tftypes.Value{webhook("1", nullString, period(10))}, webhook("1", nullString, period(10))},
-		{"notify_on set, period omitted, state has neither: the period stays unknown",
+		{"notify_on set, period omitted, state has neither: the period stays unknown", webhook("1", stringValue("Triggered Only"), nullPeriod),
 			webhook("1", stringValue("Triggered Only"), unknownPeriod), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("1", stringValue("Triggered Only"), unknownPeriod)},
-		{"period set, notify_on omitted, state has neither: notify_on stays unknown",
+		{"period set, notify_on omitted, state has neither: notify_on stays unknown", webhook("1", nullString, period(5)),
 			webhook("1", unknownString, period(5)), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("1", unknownString, period(5))},
-		{"period set, notify_on omitted, state has notify_on: it is kept",
+		{"period set, notify_on omitted, state has notify_on: it is kept", webhook("1", nullString, period(5)),
 			webhook("1", unknownString, period(5)), []tftypes.Value{webhook("1", stringValue("Triggered Only"), period(10))}, webhook("1", stringValue("Triggered Only"), period(5))},
-		{"both set: nothing changes",
+		{"both set: nothing changes", webhook("1", stringValue("Triggered Only"), period(5)),
 			webhook("1", stringValue("Triggered Only"), period(5)), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("1", stringValue("Triggered Only"), period(5))},
-		{"no state webhook matches: both stay unknown",
+		{"no state webhook matches: both stay unknown", webhook("2", nullString, nullPeriod),
 			webhook("2", unknownString, unknownPeriod), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("2", unknownString, unknownPeriod)},
-		{"the matching state webhook is picked, not the first one",
+		{"the matching state webhook is picked, not the first one", webhook("2", nullString, nullPeriod),
 			webhook("2", unknownString, unknownPeriod),
 			[]tftypes.Value{webhook("1", stringValue("Triggered Only"), period(10)), webhook("2", nullString, nullPeriod)},
 			webhook("2", nullString, nullPeriod)},
-		{"recipients match",
+		{"recipients match", nullObject(webhookType, map[string]tftypes.Value{"recipients": tftypes.NewValue(tftypes.Set{ElementType: tftypes.String}, []tftypes.Value{stringValue("a@b.c")})}),
 			nullObject(webhookType, map[string]tftypes.Value{"recipients": tftypes.NewValue(tftypes.Set{ElementType: tftypes.String}, []tftypes.Value{stringValue("a@b.c")}), "notify_on": unknownString, "retriggering_period": unknownPeriod}),
 			[]tftypes.Value{nullObject(webhookType, map[string]tftypes.Value{"recipients": tftypes.NewValue(tftypes.Set{ElementType: tftypes.String}, []tftypes.Value{stringValue("a@b.c")})})},
 			nullObject(webhookType, map[string]tftypes.Value{"recipients": tftypes.NewValue(tftypes.Set{ElementType: tftypes.String}, []tftypes.Value{stringValue("a@b.c")})})},
+		{"notify_on is an expression unknown until apply, period omitted, state has neither: both stay unknown",
+			webhook("1", unknownString, nullPeriod),
+			webhook("1", unknownString, unknownPeriod), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("1", unknownString, unknownPeriod)},
+		{"notify_on is an expression unknown until apply, state has both: notify_on stays unknown, the omitted period is kept",
+			webhook("1", unknownString, nullPeriod),
+			webhook("1", unknownString, unknownPeriod), []tftypes.Value{webhook("1", stringValue("Triggered Only"), period(10))}, webhook("1", unknownString, period(10))},
+		{"no configuration webhook matches: both stay unknown",
+			webhook("2", nullString, nullPeriod),
+			webhook("1", unknownString, unknownPeriod), []tftypes.Value{webhook("1", nullString, nullPeriod)}, webhook("1", unknownString, unknownPeriod)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := withStateAdvancedNotification(tc.planned, tc.state); !got.Equal(tc.want) {
+			if got := withStateAdvancedNotification(tc.planned, tc.state, []tftypes.Value{tc.config}); !got.Equal(tc.want) {
 				t.Errorf("got %v, want %v", got, tc.want)
 			}
 		})

@@ -361,11 +361,11 @@ func setFromConfig(config, plan tftypes.Value) bool {
 func planWebhookAdvancedNotification(req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) diag.Diagnostics {
 	var diags diag.Diagnostics
 	webhooks := []tftypes.AttributePathStep{tftypes.AttributeName("notification_group"), tftypes.AttributeName("webhooks_settings")}
-	stateWebhooks, ok := valueAtAttributes(req.State.Raw, webhooks)
-	var stateItems []tftypes.Value
-	if !ok || !stateWebhooks.IsKnown() || stateWebhooks.IsNull() || stateWebhooks.As(&stateItems) != nil || len(stateItems) == 0 {
+	stateItems := knownItems(req.State.Raw, webhooks)
+	if len(stateItems) == 0 {
 		return diags
 	}
+	configItems := knownItems(req.Config.Raw, webhooks)
 	planned, err := tftypes.Transform(resp.Plan.Raw, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
 		steps := p.Steps()
 		if len(steps) != 3 || steps[0] != tftypes.AttributePathStep(webhooks[0]) || steps[1] != tftypes.AttributePathStep(webhooks[1]) {
@@ -374,7 +374,7 @@ func planWebhookAdvancedNotification(req resource.ModifyPlanRequest, resp *resou
 		if _, isItem := steps[2].(tftypes.ElementKeyValue); !isItem {
 			return v, nil
 		}
-		return withStateAdvancedNotification(v, stateItems), nil
+		return withStateAdvancedNotification(v, stateItems, configItems), nil
 	})
 	if err != nil {
 		diags.AddError("Unable to plan the advanced notification of the webhooks", err.Error())
@@ -384,35 +384,51 @@ func planWebhookAdvancedNotification(req resource.ModifyPlanRequest, resp *resou
 	return diags
 }
 
+// knownItems returns the items of the known, non-null set at the path, or nil.
+func knownItems(root tftypes.Value, path []tftypes.AttributePathStep) []tftypes.Value {
+	set, ok := valueAtAttributes(root, path)
+	var items []tftypes.Value
+	if !ok || !set.IsKnown() || set.IsNull() || set.As(&items) != nil {
+		return nil
+	}
+	return items
+}
+
 // advancedNotificationAttributes are the attributes of a webhook that the API fills in or leaves out.
 var advancedNotificationAttributes = []string{"notify_on", "retriggering_period"}
 
 // withStateAdvancedNotification returns the planned webhook with the notify_on and the retriggering_period of
-// the state webhook that it matches, for each of them that the plan leaves unknown. A value that the state
-// webhook does not have (null) is kept only when the configuration leaves out both attributes: that is a
-// webhook without Advanced Notification, which the API returns without either. When the configuration sets
-// one of them, the API may fill in the other, so it stays unknown.
-func withStateAdvancedNotification(webhook tftypes.Value, stateItems []tftypes.Value) tftypes.Value {
+// the state webhook that it matches, for each of them that the plan leaves unknown and the configuration
+// leaves out (null). A value that the configuration sets to something unknown until apply (an expression) stays
+// unknown, because it may resolve to a value that is not the one in the state. A value that the state webhook
+// does not have (null) is kept only when the configuration leaves out both attributes: that is a webhook
+// without Advanced Notification, which the API returns without either. When the configuration sets one of
+// them, the API may fill in the other, so it stays unknown.
+func withStateAdvancedNotification(webhook tftypes.Value, stateItems, configItems []tftypes.Value) tftypes.Value {
 	var attrs map[string]tftypes.Value
 	if !webhook.IsKnown() || webhook.IsNull() || webhook.As(&attrs) != nil {
 		return webhook
 	}
-	var unknown []string
-	for _, name := range advancedNotificationAttributes {
-		if value, found := attrs[name]; found && !value.IsKnown() {
-			unknown = append(unknown, name)
-		}
-	}
-	if len(unknown) == 0 {
-		return webhook
-	}
-	stateAttrs, found := matchingStateWebhook(attrs, stateItems)
+	configAttrs, found := matchingWebhook(attrs, configItems)
 	if !found {
 		return webhook
 	}
-	keepNull := len(unknown) == len(advancedNotificationAttributes)
+	var omitted []string
+	for _, name := range advancedNotificationAttributes {
+		if value, set := attrs[name]; set && !value.IsKnown() && configAttrs[name].IsNull() {
+			omitted = append(omitted, name)
+		}
+	}
+	if len(omitted) == 0 {
+		return webhook
+	}
+	stateAttrs, found := matchingWebhook(attrs, stateItems)
+	if !found {
+		return webhook
+	}
+	keepNull := len(omitted) == len(advancedNotificationAttributes)
 	kept := maps.Clone(attrs)
-	for _, name := range unknown {
+	for _, name := range omitted {
 		if value := stateAttrs[name]; value.IsKnown() && (keepNull || !value.IsNull()) {
 			kept[name] = value
 		}
@@ -420,13 +436,13 @@ func withStateAdvancedNotification(webhook tftypes.Value, stateItems []tftypes.V
 	return tftypes.NewValue(webhook.Type(), kept)
 }
 
-// matchingStateWebhook returns the attributes of the state webhook that sends to the same integration or the
+// matchingWebhook returns the attributes of the webhook in items that sends to the same integration or the
 // same recipients as the planned one.
-func matchingStateWebhook(planned map[string]tftypes.Value, stateItems []tftypes.Value) (map[string]tftypes.Value, bool) {
-	for _, item := range stateItems {
-		var stateAttrs map[string]tftypes.Value
-		if item.IsKnown() && !item.IsNull() && item.As(&stateAttrs) == nil && sameWebhook(planned, stateAttrs) {
-			return stateAttrs, true
+func matchingWebhook(planned map[string]tftypes.Value, items []tftypes.Value) (map[string]tftypes.Value, bool) {
+	for _, item := range items {
+		var attrs map[string]tftypes.Value
+		if item.IsKnown() && !item.IsNull() && item.As(&attrs) == nil && sameWebhook(planned, attrs) {
+			return attrs, true
 		}
 	}
 	return nil, false
