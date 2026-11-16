@@ -142,8 +142,18 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
 	root, _ := model.BuildWithPolicy(doc, component, ids, policy) // Model issues are reported by the contract check.
 	createOptional := createOptionalFields(doc, component, ids, file)
+	response := responseComponents(doc, component)
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
+			continue
+		}
+		if line.Kind == overrides.KindField && !response[line.Component] && doc.Components != nil && doc.Components.Schemas.GetOrZero(line.Component) != nil {
+			report = append(report, issue.Issue{
+				Code:        "OVERRIDE_UNUSED",
+				Location:    overrides.FileName + ":" + line.String(),
+				Message:     fmt.Sprintf("The response of the resource does not reach %s, so Terraform has no attribute from it, and the line changes nothing.", line.Component),
+				Remediation: "Put the line on the component of the field in the Get response, or delete it.",
+			})
 			continue
 		}
 		if problem := lineProblem(doc, line, component, file, requested, root, createOptional); problem != nil {
@@ -197,8 +207,12 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
-	// An enums entry "<Enum>@<variant>" is another spelling of the contract enum <Enum>.
-	contractComponent, _, _ := strings.Cut(line.Component, "@")
+	// An enums entry "<Enum>@<variant>" is another spelling of the contract enum <Enum>. Other lines
+	// name a component exactly.
+	contractComponent := line.Component
+	if line.Kind == overrides.KindEnum {
+		contractComponent, _, _ = strings.Cut(line.Component, "@")
+	}
 	proxy := doc.Components.Schemas.GetOrZero(contractComponent)
 	if proxy == nil {
 		return wholeLine(fmt.Errorf("no component %q", contractComponent))
@@ -489,6 +503,32 @@ func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 	if doc.Paths == nil || doc.Paths.PathItems == nil {
 		return out
 	}
+	walk := componentWalker(out)
+	for _, item := range doc.Paths.PathItems.FromOldest() {
+		for _, op := range item.GetOperations().FromOldest() {
+			if op.RequestBody == nil || op.RequestBody.Content == nil || ops != nil && !ops[op.OperationId] {
+				continue
+			}
+			for _, media := range op.RequestBody.Content.FromOldest() {
+				walk(media.Schema)
+			}
+		}
+	}
+	return out
+}
+
+// responseComponents returns the resource component and every component that it reaches. The
+// Terraform schema is built from them only, so a field line on any other component changes nothing.
+func responseComponents(doc *v3.Document, component string) map[string]bool {
+	out := map[string]bool{component: true}
+	if doc.Components != nil && doc.Components.Schemas != nil {
+		componentWalker(out)(doc.Components.Schemas.GetOrZero(component))
+	}
+	return out
+}
+
+// componentWalker returns a function that adds to out every component that a schema reaches.
+func componentWalker(out map[string]bool) func(*base.SchemaProxy) {
 	var walk func(proxy *base.SchemaProxy)
 	walk = func(proxy *base.SchemaProxy) {
 		if proxy == nil {
@@ -522,17 +562,7 @@ func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 			}
 		}
 	}
-	for _, item := range doc.Paths.PathItems.FromOldest() {
-		for _, op := range item.GetOperations().FromOldest() {
-			if op.RequestBody == nil || op.RequestBody.Content == nil || ops != nil && !ops[op.OperationId] {
-				continue
-			}
-			for _, media := range op.RequestBody.Content.FromOldest() {
-				walk(media.Schema)
-			}
-		}
-	}
-	return out
+	return walk
 }
 
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is

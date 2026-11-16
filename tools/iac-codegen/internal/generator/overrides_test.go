@@ -1200,7 +1200,7 @@ func TestIDPropertyMissingFromCreateIsComputed(t *testing.T) {
         scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
         priority: {type: integer, format: int32, x-coralogix-presence: true}
 `
-	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\nunwrap: [Ids]\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n      id: {skip: true}\n  SuppressedThingDraft:\n    fields:\n      id: {skip: true}\n")
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\nunwrap: [Ids]\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n      id: {skip: true}")
 	validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
 	if err != nil {
 		t.Fatalf("an id property that only Update and Get have must be computed: %v", err)
