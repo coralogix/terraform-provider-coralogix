@@ -186,21 +186,45 @@ func TestValidateGroupBy(t *testing.T) {
 	}
 }
 
-func TestValidateGroupByForNeedsGroupBy(t *testing.T) {
+// "Both" is what the API stores for an alert without group-by keys, so it needs no group_by. The other two
+// values need a non-empty group_by.
+func TestValidateGroupByFor(t *testing.T) {
 	ctx := context.Background()
-	for _, withGroupBy := range []bool{false, true} {
-		set := map[string]tftypes.Value{
-			"type_definition": typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{
-				"logs_ratio_threshold": {"group_by_for": stringValue("Both")},
-			}),
-		}
-		if withGroupBy {
-			set["group_by"] = tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{stringValue("a")})
-		}
-		diags := validateAlertConfig(ctx, alertConfig(ctx, set))
-		if diags.HasError() == withGroupBy {
-			t.Errorf("group_by set = %v: errors = %v", withGroupBy, errorSummaries(diags))
-		}
+	listType := tftypes.List{ElementType: tftypes.String}
+	keys := tftypes.NewValue(listType, []tftypes.Value{stringValue("a")})
+	empty := tftypes.NewValue(listType, []tftypes.Value{})
+	unknown := tftypes.NewValue(listType, tftypes.UnknownValue)
+	cases := []struct {
+		name       string
+		groupByFor tftypes.Value
+		groupBy    tftypes.Value
+		wantError  bool
+	}{
+		{"Both without group_by", stringValue("Both"), tftypes.NewValue(listType, nil), false},
+		{"Both with group_by", stringValue("Both"), keys, false},
+		{"Both with empty group_by", stringValue("Both"), empty, false},
+		{"unset without group_by", tftypes.NewValue(tftypes.String, nil), tftypes.NewValue(listType, nil), false},
+		{"Numerator Only without group_by", stringValue("Numerator Only"), tftypes.NewValue(listType, nil), true},
+		{"Numerator Only with empty group_by", stringValue("Numerator Only"), empty, true},
+		{"Numerator Only with group_by", stringValue("Numerator Only"), keys, false},
+		{"Numerator Only with unknown group_by", stringValue("Numerator Only"), unknown, false},
+		{"Denominator Only without group_by", stringValue("Denominator Only"), tftypes.NewValue(listType, nil), true},
+		{"Denominator Only with group_by", stringValue("Denominator Only"), keys, false},
+		{"unknown value without group_by", tftypes.NewValue(tftypes.String, tftypes.UnknownValue), tftypes.NewValue(listType, nil), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			set := map[string]tftypes.Value{
+				"group_by": tc.groupBy,
+				"type_definition": typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{
+					"logs_ratio_threshold": {"group_by_for": tc.groupByFor},
+				}),
+			}
+			diags := validateAlertConfig(ctx, alertConfig(ctx, set))
+			if diags.HasError() != tc.wantError {
+				t.Errorf("errors = %v, want an error: %v", errorSummaries(diags), tc.wantError)
+			}
+		})
 	}
 }
 

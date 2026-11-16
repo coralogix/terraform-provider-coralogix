@@ -21,7 +21,6 @@ import (
 	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -157,7 +156,13 @@ func checkGroupBy(ctx context.Context, config tfsdk.Config, typeDefinition types
 	return diags
 }
 
-// checkGroupByFor requires group_by when logs_ratio_threshold sets group_by_for.
+// logsRatioGroupByForBoth is the value of group_by_for that the API stores for an alert without group-by keys,
+// whatever was sent. The provider reads it back for every such alert, so it is valid without group_by.
+const logsRatioGroupByForBoth = "Both"
+
+// checkGroupByFor requires a non-empty group_by when logs_ratio_threshold sets group_by_for to "Numerator Only"
+// or "Denominator Only". The API stores "Both" when there are no group-by keys, so these two values could not
+// be read back, and "Both" needs no group_by.
 func checkGroupByFor(ctx context.Context, config tfsdk.Config, typeDefinition types.Object) diag.Diagnostics {
 	if !armIsSet(typeDefinition, "logs_ratio_threshold") {
 		return nil
@@ -165,13 +170,19 @@ func checkGroupByFor(ctx context.Context, config tfsdk.Config, typeDefinition ty
 	groupByFor := path.Root("type_definition").AtName("logs_ratio_threshold").AtName("group_by_for")
 	var value types.String
 	diags := config.GetAttribute(ctx, groupByFor, &value)
-	if diags.HasError() {
+	if diags.HasError() || value.IsNull() || value.IsUnknown() || value.ValueString() == logsRatioGroupByForBoth {
 		return diags
 	}
-	request := validator.StringRequest{Config: config, ConfigValue: value, Path: groupByFor, PathExpression: groupByFor.Expression()}
-	response := &validator.StringResponse{}
-	stringvalidator.AlsoRequires(path.MatchRoot("group_by")).ValidateString(ctx, request, response)
-	diags.Append(response.Diagnostics...)
+	var groupBy types.List
+	diags.Append(config.GetAttribute(ctx, path.Root("group_by"), &groupBy)...)
+	if diags.HasError() || groupBy.IsUnknown() {
+		return diags
+	}
+	if len(groupBy.Elements()) == 0 {
+		diags.AddAttributeError(groupByFor, "Missing Attribute Configuration",
+			fmt.Sprintf("Attribute \"group_by\" must be a non-empty list when %q is %q: the API stores %q for an alert without group-by keys.",
+				"group_by_for", value.ValueString(), logsRatioGroupByForBoth))
+	}
 	return diags
 }
 
