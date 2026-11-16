@@ -9,7 +9,9 @@ api:
   updateIDInBody: true
   updateIDOutsideWrapper: true
   idProperty: memberId
-  getFromList: {}
+  getFromList:
+    query:
+      status: MEMBER_STATUS_ACTIVE
   operations:
     create: MemberService_CreateMembers
     get: MemberService_SearchMembers

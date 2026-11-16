@@ -248,7 +248,11 @@ if configured.IsUnknown() || id == {{if eq .IDGoType "string"}}""{{else}}0{{end}
 	v, err := d.resource.get(ctx, id)
 	{{- end}}
 	if {{if .Get.FromList}}err == nil && v == nil{{else}}{{$cx}}.{{.APINotFound}}(err){{end}} {
+	{{- if .Get.FromList}}
+		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v in its List", TypeName, id))
+	{{- else}}
 		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
+	{{- end}}
 		return
 	}
 	if err != nil {

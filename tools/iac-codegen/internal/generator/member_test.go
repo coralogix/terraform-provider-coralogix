@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.yaml.in/yaml/v4"
@@ -61,6 +62,12 @@ func TestReadPagesUntilTheItemIsFound(t *testing.T) {
  if client.SearchPageCalls != 2 { t.Fatalf("page calls = %d", client.SearchPageCalls) }
  if len(client.SearchPageTokens) != 1 || client.SearchPageTokens[0] != token {
   t.Fatalf("page tokens = %v", client.SearchPageTokens)
+ }
+ // The fixed query value that Get always sends rides on every page.
+ for i, s := range client.SearchStatuses {
+  if s != member_service.MEMBERSTATUS_MEMBER_STATUS_ACTIVE {
+   t.Fatalf("page %d status = %v", i+1, s)
+  }
  }
 }
 func TestReadOfAnAbsentMemberReturnsNil(t *testing.T) {
@@ -136,17 +143,35 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 	if _, err := validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil {
 		t.Fatal("a paged List without a page-token parameter must be refused")
 	}
-	// A delete without its status value must be refused: the model requires the fixed values
-	// beside the ids.
+	// A batch write whose response array has no createResult line must be refused: the
+	// generated call could not tell the created item from the failed ones.
 	data = mustRead(t, filepath.Join("testdata", "memberthing.yaml"))
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		t.Fatal(err)
 	}
-	file, err = readOverrides(filepath.Join("testdata", "memberthing-overrides.yaml"))
+	overrides := string(mustRead(t, filepath.Join("testdata", "memberthing-overrides.yaml")))
+	stripped := strings.Replace(overrides,
+		"    createResult:\n      resource: member\n      status: status\n      created:\n      - CREATE_MEMBER_STATUS_CREATED\n      - CREATE_MEMBER_STATUS_INVITED\n      message: message\n", "", 1)
+	stripped = strings.Replace(stripped,
+		"  createValues:\n    onboardingMode: ONBOARDING_MODE_NO_INVITE\n", "", 1)
+	if stripped == overrides {
+		t.Fatal("the overrides must carry the batchWrite.createResult block")
+	}
+	without := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(without, []byte(stripped), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	file, err = readOverrides(without)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := validateOpenAPIWith(data, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err != nil {
-		t.Fatalf("the memberthing contract must be eligible: %v", err)
+	_, err = validateOpenAPIWith(data, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file)
+	if err == nil {
+		t.Fatal("a batch write response without createResult must be refused")
+	}
+	// The model refuses the undecipherable batch Create response at the contract gate, and the
+	// renderer refuses one that the model passes but the createResult line does not describe.
+	if !strings.Contains(err.Error(), "RESOURCE_LIFECYCLE_INCOMPLETE") && !strings.Contains(err.Error(), "batch write array") {
+		t.Fatalf("the refusal must be the batch Create response shape: %v", err)
 	}
 }

@@ -93,6 +93,7 @@ type MemberServiceAPIService struct {
 	SearchResponses  []*SearchMembersResponse
 	SearchPageCalls  int
 	SearchPageTokens []string
+	SearchStatuses   []MemberStatus
 	CreateResults    *CreateMembersResponse
 	CreateBodies     [][]CreateMemberRequest
 	UpdateBodies     []UpdateMemberRequest
@@ -129,6 +130,11 @@ func (c *MemberServiceAPIService) MemberServiceUpdateMembers(ctx context.Context
 
 func (c *MemberServiceAPIService) MemberServiceUpdateMembersStatuses(ctx context.Context) ApiMemberServiceUpdateMembersStatusesRequest {
 	return ApiMemberServiceUpdateMembersStatusesRequest{client: c}
+}
+
+func (r ApiMemberServiceSearchMembersRequest) Status(status MemberStatus) ApiMemberServiceSearchMembersRequest {
+	r.client.SearchStatuses = append(r.client.SearchStatuses, status)
+	return r
 }
 
 func (r ApiMemberServiceSearchMembersRequest) PageSize(pageSize int64) ApiMemberServiceSearchMembersRequest {

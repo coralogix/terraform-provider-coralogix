@@ -262,7 +262,7 @@ func (r *Resource) create(ctx context.Context, body *member_service.CreateMember
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, error) {
-	out, httpResp, err := r.client.MemberServiceSearchMembers(ctx).Execute()
+	out, httpResp, err := r.client.MemberServiceSearchMembers(ctx).Status(member_service.MEMBERSTATUS_MEMBER_STATUS_ACTIVE).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
@@ -279,7 +279,7 @@ func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, 
 	}
 	pageToken := out.NextPageToken
 	for page := 1; pageToken != nil && *pageToken != "" && page < 100; page++ {
-		out, httpResp, err = r.client.MemberServiceSearchMembers(ctx).PageToken(*pageToken).Execute()
+		out, httpResp, err = r.client.MemberServiceSearchMembers(ctx).Status(member_service.MEMBERSTATUS_MEMBER_STATUS_ACTIVE).PageToken(*pageToken).Execute()
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
@@ -292,6 +292,9 @@ func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, 
 			}
 		}
 		pageToken = out.NextPageToken
+	}
+	if pageToken != nil && *pageToken != "" {
+		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
 	return nil, nil
 }
@@ -319,7 +322,7 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 	body := member_service.UpdateMemberStatusRequest{}
 	body.MemberIds = []string{id}
 	{
-		value := member_service.MEMBERSTATUS_MEMBER_STATUS_INACTIVE
+		var value member_service.MemberStatus = member_service.MEMBERSTATUS_MEMBER_STATUS_INACTIVE
 		body.Status = &value
 	}
 	_, httpResp, err := r.client.MemberServiceUpdateMembersStatuses(ctx).UpdateMemberStatusRequest(body).Execute()

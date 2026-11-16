@@ -9,6 +9,12 @@ paths:
       - Member Service
       operationId: MemberService_SearchMembers
       parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          allOf:
+          - $ref: '#/components/schemas/MemberStatus'
       - name: page_size
         in: query
         required: false

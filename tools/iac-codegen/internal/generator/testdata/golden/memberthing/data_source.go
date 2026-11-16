@@ -93,7 +93,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 	v, err := d.resource.get(ctx, id)
 	if err == nil && v == nil {
-		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
+		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v in its List", TypeName, id))
 		return
 	}
 	if err != nil {
