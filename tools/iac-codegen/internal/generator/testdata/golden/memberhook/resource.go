@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"example.com/iac-test-sdk/go/openapi/cxsdk"
-	"example.com/iac-test-sdk/go/openapi/gen/member_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 )
 
@@ -33,7 +33,7 @@ var (
 // Resource is the Terraform resource. The provider data must be a
 // *clientset.ClientSet.
 type Resource struct {
-	client *member_service.MemberServiceAPIService
+	client *member_hook_service.MemberHookServiceAPIService
 	hooks  Hooks
 }
 
@@ -47,7 +47,7 @@ type Hooks struct {
 	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
-	BeforeFlatten func(context.Context, *member_service.Member) diag.Diagnostics
+	BeforeFlatten func(context.Context, *member_hook_service.Member) diag.Diagnostics
 	// Get replaces the Execute step of the Get call that Read, the data source, and every read
 	// after a write make (nil: the generated call). It receives a factory of the generated
 	// request, which already holds the context, the id, and the fixed query values of the
@@ -57,12 +57,12 @@ type Hooks struct {
 	// response, and the error. The generated code classifies the error as it does for its own
 	// call (a 404 of the resource is a resource that is gone, a 404 of a route that does not
 	// exist is an error), and takes the resource out of the response.
-	Get func(context.Context, func() member_service.ApiMemberServiceSearchMembersRequest) (*member_service.SearchMembersResponse, *http.Response, error)
+	Get func(context.Context, func() member_hook_service.ApiMemberHookServiceSearchMembersRequest) (*member_hook_service.MemberHookSearchResponse, *http.Response, error)
 	// AfterGet receives the whole Get response, with the values next to the resource that the
 	// generated code drops, and the state that was just written from it. It runs after
 	// the state was written and before AfterRead, only for a state that a Get call produced
 	// (the response of a write is no Get response), and not when flatten failed.
-	AfterGet func(context.Context, *tfsdk.State, *member_service.SearchMembersResponse) diag.Diagnostics
+	AfterGet func(context.Context, *tfsdk.State, *member_hook_service.MemberHookSearchResponse) diag.Diagnostics
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -74,7 +74,7 @@ func NewResource(hooks Hooks) resource.Resource {
 }
 
 // NewResourceWithClient returns the resource with an injected API client.
-func NewResourceWithClient(client *member_service.MemberServiceAPIService, hooks Hooks) resource.Resource {
+func NewResourceWithClient(client *member_hook_service.MemberHookServiceAPIService, hooks Hooks) resource.Resource {
 	return &Resource{client: client, hooks: hooks}
 }
 
@@ -116,7 +116,7 @@ func (r *Resource) Configure(_ context.Context, req resource.ConfigureRequest, r
 			fmt.Sprintf("The provider data is %T. The resource needs *clientset.ClientSet.", req.ProviderData))
 		return
 	}
-	r.client = cs.Member()
+	r.client = cs.MemberHook()
 }
 
 // ImportState sets the id. The Read after the import sets the other attributes.
@@ -206,7 +206,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 			return
 		}
 	}
-	var v *member_service.Member
+	var v *member_hook_service.Member
 	var err error
 	if body == nil {
 		v, err = r.get(ctx, id)
@@ -245,8 +245,8 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 
 // The API calls. Each returns the error with its HTTP status and body.
 
-func (r *Resource) create(ctx context.Context, body *member_service.CreateMemberRequest) (*member_service.Member, error) {
-	out, httpResp, err := r.client.MemberServiceCreateMembers(ctx).CreateMemberRequest([]member_service.CreateMemberRequest{*body}).Execute()
+func (r *Resource) create(ctx context.Context, body *member_hook_service.CreateMemberRequest) (*member_hook_service.Member, error) {
+	out, httpResp, err := r.client.MemberHookServiceCreateMembers(ctx).CreateMemberRequest([]member_hook_service.CreateMemberRequest{*body}).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
@@ -262,9 +262,9 @@ func (r *Resource) create(ctx context.Context, body *member_service.CreateMember
 	}
 	created := false
 	switch *result.Status {
-	case member_service.CREATEMEMBERSTATUS_CREATE_MEMBER_STATUS_CREATED:
+	case member_hook_service.CREATEMEMBERSTATUS_CREATE_MEMBER_STATUS_CREATED:
 		created = true
-	case member_service.CREATEMEMBERSTATUS_CREATE_MEMBER_STATUS_INVITED:
+	case member_hook_service.CREATEMEMBERSTATUS_CREATE_MEMBER_STATUS_INVITED:
 		created = true
 	}
 	if !created {
@@ -286,7 +286,7 @@ type getResultKey struct{}
 // getResult holds the whole response of the last Get call of one CRUD method, for the AfterGet
 // hook. setState takes it once.
 type getResult struct {
-	response *member_service.SearchMembersResponse
+	response *member_hook_service.MemberHookSearchResponse
 }
 
 // withGetResult returns a context that carries a getResult.
@@ -295,11 +295,11 @@ func withGetResult(ctx context.Context) (context.Context, *getResult) {
 	return context.WithValue(ctx, getResultKey{}, got), got
 }
 
-func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, error) {
-	request := func() member_service.ApiMemberServiceSearchMembersRequest {
-		return r.client.MemberServiceSearchMembers(ctx).Status(member_service.MEMBERSTATUS_MEMBER_STATUS_ACTIVE)
+func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Member, error) {
+	request := func() member_hook_service.ApiMemberHookServiceSearchMembersRequest {
+		return r.client.MemberHookServiceSearchMembers(ctx).Status(member_hook_service.MEMBERSTATUS_MEMBER_STATUS_ACTIVE)
 	}
-	var out *member_service.SearchMembersResponse
+	var out *member_hook_service.MemberHookSearchResponse
 	var httpResp *http.Response
 	var err error
 	if r.hooks.Get != nil {
@@ -324,25 +324,25 @@ func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, 
 			return &out.Members[i], nil
 		}
 	}
-	pageRequest := func(token *string) func() member_service.ApiMemberServiceSearchMembersRequest {
-		return func() member_service.ApiMemberServiceSearchMembersRequest {
-			return request().PageToken(*token)
+	pageRequest := func(token string) func() member_hook_service.ApiMemberHookServiceSearchMembersRequest {
+		return func() member_hook_service.ApiMemberHookServiceSearchMembersRequest {
+			return request().PageToken(token)
 		}
 	}
-	pageExecute := func(token *string) (*member_service.SearchMembersResponse, *http.Response, error) {
+	pageExecute := func(token string) (*member_hook_service.MemberHookSearchResponse, *http.Response, error) {
 		if r.hooks.Get != nil {
 			return r.hooks.Get(ctx, pageRequest(token))
 		}
 		return pageRequest(token)().Execute()
 	}
 	pageToken := out.NextPageToken
-	for page := 1; pageToken != nil && *pageToken != "" && page < 100; page++ {
+	for page := 1; pageToken != "" && page < 100; page++ {
 		out, httpResp, err = pageExecute(pageToken)
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
 		if out == nil {
-			pageToken = nil
+			pageToken = ""
 			break
 		}
 		if got, ok := ctx.Value(getResultKey{}).(*getResult); ok {
@@ -355,14 +355,14 @@ func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, 
 		}
 		pageToken = out.NextPageToken
 	}
-	if pageToken != nil && *pageToken != "" {
+	if pageToken != "" {
 		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
 	return nil, nil
 }
 
-func (r *Resource) update(ctx context.Context, id string, body *member_service.UpdateMemberRequest) (*member_service.Member, error) {
-	_, httpResp, err := r.client.MemberServiceUpdateMembers(ctx).UpdateMemberRequest([]member_service.UpdateMemberRequest{*body}).Execute()
+func (r *Resource) update(ctx context.Context, id string, body *member_hook_service.UpdateMemberRequest) (*member_hook_service.Member, error) {
+	_, httpResp, err := r.client.MemberHookServiceUpdateMembers(ctx).UpdateMemberRequest([]member_hook_service.UpdateMemberRequest{*body}).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
@@ -381,13 +381,13 @@ func (r *Resource) update(ctx context.Context, id string, body *member_service.U
 
 func (r *Resource) delete(ctx context.Context, id string) error {
 	// The remove sends the id in a batch body (api.delete.ids), beside the fixed values.
-	body := member_service.UpdateMemberStatusRequest{}
+	body := member_hook_service.UpdateMemberStatusRequest{}
 	body.MemberIds = []string{id}
 	{
-		var value member_service.MemberStatus = member_service.MEMBERSTATUS_MEMBER_STATUS_INACTIVE
+		var value member_hook_service.MemberStatus = member_hook_service.MEMBERSTATUS_MEMBER_STATUS_INACTIVE
 		body.Status = &value
 	}
-	_, httpResp, err := r.client.MemberServiceUpdateMembersStatuses(ctx).UpdateMemberStatusRequest(body).Execute()
+	_, httpResp, err := r.client.MemberHookServiceUpdateMembersStatuses(ctx).UpdateMemberStatusRequest(body).Execute()
 	return cxsdk.NewAPIError(httpResp, err)
 }
 
@@ -396,7 +396,7 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // state before Read. A state upgrade has no prior of this schema version, so it passes nil and
 // the state takes the value of the API. flatten returns an error when the response has no
 // resource.
-func (r *Resource) setState(ctx context.Context, v *member_service.Member, prior tfData, state *tfsdk.State) diag.Diagnostics {
+func (r *Resource) setState(ctx context.Context, v *member_hook_service.Member, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeFlatten != nil && v != nil {
 		diags.Append(r.hooks.BeforeFlatten(ctx, v)...)
@@ -432,7 +432,7 @@ func (r *Resource) setState(ctx context.Context, v *member_service.Member, prior
 
 // Flatten returns the Terraform model of a resource in an API response, for a data source that
 // uses the schema and the model of this resource. It has no prior model.
-func Flatten(ctx context.Context, v *member_service.Member) (*MemberModel, diag.Diagnostics) {
+func Flatten(ctx context.Context, v *member_hook_service.Member) (*MemberModel, diag.Diagnostics) {
 	return flatten(ctx, v)
 }
 
@@ -441,7 +441,7 @@ func Flatten(ctx context.Context, v *member_service.Member) (*MemberModel, diag.
 // Create uses: a null or unknown value is left out, and a field that the generator adds later is
 // in it with no edit of the hook. When the Create body holds the resource in one field, Expand
 // returns that resource, as the API response has it, and not the body.
-func Expand(ctx context.Context, m *MemberModel) (*member_service.MemberTemplate, diag.Diagnostics) {
+func Expand(ctx context.Context, m *MemberModel) (*member_hook_service.MemberTemplate, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandMemberCreate(ctx, path.Empty(), m, &diags)
 	return out, diags
@@ -455,7 +455,7 @@ func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) 
 }
 
 // apiID returns the id that v holds, and false when v holds none.
-func apiID(v *member_service.Member) (string, bool) {
+func apiID(v *member_hook_service.Member) (string, bool) {
 	if v == nil || v.MemberId == nil {
 		return "", false
 	}
@@ -463,7 +463,7 @@ func apiID(v *member_service.Member) (string, bool) {
 }
 
 // setAPIID sets the id that v holds.
-func setAPIID(v *member_service.Member, id string) {
+func setAPIID(v *member_hook_service.Member, id string) {
 	v.MemberId = &id
 }
 

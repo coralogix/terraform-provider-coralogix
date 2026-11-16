@@ -14,10 +14,10 @@ api:
     query:
       status: MEMBER_STATUS_ACTIVE
   operations:
-    create: MemberService_CreateMembers
-    get: MemberService_SearchMembers
-    update: MemberService_UpdateMembers
-    delete: MemberService_UpdateMembersStatuses
+    create: MemberHookService_CreateMembers
+    get: MemberHookService_SearchMembers
+    update: MemberHookService_UpdateMembers
+    delete: MemberHookService_UpdateMembersStatuses
   delete:
     ids: memberIds
     values:

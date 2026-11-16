@@ -15,6 +15,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/key_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/member_service"
 	"example.com/iac-test-sdk/go/openapi/gen/method_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
@@ -55,6 +56,7 @@ type ClientSet struct {
 	Suppressed     *suppressed_things_service.SuppressedThingsServiceAPIService
 	RulebookClient *rulebook_service.RulebookServiceAPIService
 	MemberClient   *member_service.MemberServiceAPIService
+	MemberHookClient *member_hook_service.MemberHookServiceAPIService
 	UpsertClient   *upsert_service.UpsertServiceAPIService
 	StorageClient  *storage_service.StorageServiceAPIService
 	Rename         *rename_things_service.RenameThingsServiceAPIService
@@ -73,6 +75,8 @@ func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.
 func (c *ClientSet) Rulebook() *rulebook_service.RulebookServiceAPIService { return c.RulebookClient }
 
 func (c *ClientSet) Member() *member_service.MemberServiceAPIService { return c.MemberClient }
+
+func (c *ClientSet) MemberHook() *member_hook_service.MemberHookServiceAPIService { return c.MemberHookClient }
 
 func (c *ClientSet) Settings() *settings_service.SettingsServiceAPIService { return c.SettingsClient }
 

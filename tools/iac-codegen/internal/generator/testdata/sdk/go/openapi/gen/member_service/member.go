@@ -76,6 +76,12 @@ type SearchMembersResponse struct {
 	Members       []Member
 }
 
+
+type MemberHookSearchResponse struct {
+	NextPageToken string
+	Members       []Member
+}
+
 type CreateMembersResponse struct {
 	Results []CreateMemberResult
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"example.com/iac-test-sdk/go/openapi/gen/member_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
 )
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
@@ -51,23 +51,23 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 }
 
 // expandCreate returns the Create request body. A null value is not sent.
-func expandCreate(ctx context.Context, m *MemberModel) (*member_service.CreateMemberRequest, diag.Diagnostics) {
+func expandCreate(ctx context.Context, m *MemberModel) (*member_hook_service.CreateMemberRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandMemberCreate(ctx, path.Empty(), m, &diags)
-	return &member_service.CreateMemberRequest{Template: out}, diags
+	return &member_hook_service.CreateMemberRequest{Template: out}, diags
 }
 
 // expandUpdate returns the Update request body with every Update field. A
 // null value is not sent, and the server clears it (a full replace).
-func expandUpdate(ctx context.Context, m *MemberModel) (*member_service.UpdateMemberRequest, diag.Diagnostics) {
+func expandUpdate(ctx context.Context, m *MemberModel) (*member_hook_service.UpdateMemberRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandMemberUpdate(ctx, path.Empty(), m, &diags)
-	return &member_service.UpdateMemberRequest{Template: out}, diags
+	return &member_hook_service.UpdateMemberRequest{Template: out}, diags
 }
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *member_service.Member) (*MemberModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *member_hook_service.Member) (*MemberModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no Member.")
@@ -248,31 +248,31 @@ func emptyValue(at string, v attr.Value) bool {
 	return false
 }
 
-func expandMemberCreate(ctx context.Context, p path.Path, m *MemberModel, diags *diag.Diagnostics) *member_service.MemberTemplate {
+func expandMemberCreate(ctx context.Context, p path.Path, m *MemberModel, diags *diag.Diagnostics) *member_hook_service.MemberTemplate {
 	if m == nil {
 		return nil
 	}
-	out := &member_service.MemberTemplate{}
+	out := &member_hook_service.MemberTemplate{}
 	out.Login = expandString(m.Login)
 	out.DisplayName = expandString(m.DisplayName)
-	out.Status = expandEnum[member_service.MemberStatus](m.Status)
-	out.LoginModes = expandStrings[member_service.LoginMode](ctx, p.AtName("login_modes"), m.LoginModes, diags)
+	out.Status = expandEnum[member_hook_service.MemberStatus](m.Status)
+	out.LoginModes = expandStrings[member_hook_service.LoginMode](ctx, p.AtName("login_modes"), m.LoginModes, diags)
 	return out
 }
 
-func expandMemberUpdate(ctx context.Context, p path.Path, m *MemberModel, diags *diag.Diagnostics) *member_service.MemberTemplate {
+func expandMemberUpdate(ctx context.Context, p path.Path, m *MemberModel, diags *diag.Diagnostics) *member_hook_service.MemberTemplate {
 	if m == nil {
 		return nil
 	}
-	out := &member_service.MemberTemplate{}
+	out := &member_hook_service.MemberTemplate{}
 	out.Login = expandString(m.Login)
 	out.DisplayName = expandString(m.DisplayName)
-	out.Status = expandEnum[member_service.MemberStatus](m.Status)
-	out.LoginModes = expandStrings[member_service.LoginMode](ctx, p.AtName("login_modes"), m.LoginModes, diags)
+	out.Status = expandEnum[member_hook_service.MemberStatus](m.Status)
+	out.LoginModes = expandStrings[member_hook_service.LoginMode](ctx, p.AtName("login_modes"), m.LoginModes, diags)
 	return out
 }
 
-func flattenMember(ctx context.Context, p path.Path, v *member_service.Member, diags *diag.Diagnostics) *MemberModel {
+func flattenMember(ctx context.Context, p path.Path, v *member_hook_service.Member, diags *diag.Diagnostics) *MemberModel {
 	if v == nil {
 		return nil
 	}

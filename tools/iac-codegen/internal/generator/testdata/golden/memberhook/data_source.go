@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"example.com/iac-test-sdk/go/openapi/gen/member_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
@@ -37,7 +37,7 @@ func NewDataSource(hooks Hooks) datasource.DataSource {
 }
 
 // NewDataSourceWithClient returns a data source with an injected API client.
-func NewDataSourceWithClient(client *member_service.MemberServiceAPIService, hooks Hooks) datasource.DataSource {
+func NewDataSourceWithClient(client *member_hook_service.MemberHookServiceAPIService, hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{client: client, hooks: hooks}}
 }
 
@@ -75,7 +75,7 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 			fmt.Sprintf("The provider data is %T. The data source needs *clientset.ClientSet.", req.ProviderData))
 		return
 	}
-	d.resource.client = cs.Member()
+	d.resource.client = cs.MemberHook()
 }
 
 // Read reads the resource with the configured id. An id that the API does not find is an error.

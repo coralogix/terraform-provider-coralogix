@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 
-	"example.com/iac-test-sdk/go/openapi/gen/member_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
 )
 
 // tfData is a tfsdk.Config, tfsdk.Plan, or tfsdk.State.
@@ -60,7 +60,7 @@ func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.
 // mask. A value that the plan clears (null) is not in the body, and the
 // server clears it. updateRequest returns nil when no Update field changed.
 // Then the caller sends no request (D14).
-func updateRequest(ctx context.Context, config, plan, state tfData) (*member_service.UpdateMemberRequest, diag.Diagnostics) {
+func updateRequest(ctx context.Context, config, plan, state tfData) (*member_hook_service.UpdateMemberRequest, diag.Diagnostics) {
 	changed, diags := updateChanged(ctx, config, plan, state)
 	if diags.HasError() || !changed {
 		return nil, diags

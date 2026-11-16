@@ -113,8 +113,6 @@ func TestCreateReadsTheFirstResultAndReportsTheMessage(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
-
-
 func TestGoldenOutputMemberHook(t *testing.T) {
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = []byte(mustRead(t, filepath.Join("testdata", "memberhook.yaml")))
@@ -186,6 +184,27 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 	}
 	if _, err := validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "cannot read where the pages end") {
 		t.Fatalf("a List with paging parameters but no readable next-page property must be refused: %v", err)
+	}
+	// A next page token of another type must be refused: the generated loop compares it with
+	// "" and sends it to the builder method, so any other type fails at provider build.
+	data = mustRead(t, filepath.Join("testdata", "memberthing.yaml"))
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	schemas = doc["components"].(map[string]any)["schemas"].(map[string]any)
+	token := schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any)["nextPageToken"].(map[string]any)
+	token["type"] = "integer"
+	token["format"] = "int64"
+	spec, err = yaml.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err = readOverrides(filepath.Join("testdata", "memberthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "want a string or *string next page token") {
+		t.Fatalf("a non-string next page token must be refused: %v", err)
 	}
 	// A batch write whose response array has no createResult line must be refused: the
 	// generated call could not tell the created item from the failed ones.
