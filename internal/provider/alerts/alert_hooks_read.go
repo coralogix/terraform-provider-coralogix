@@ -195,7 +195,28 @@ func afterReadAlert(ctx context.Context, state *tfsdk.State, prior any) diag.Dia
 	if diags.HasError() {
 		return diags
 	}
+	diags = append(diags, keepPlannedEmptyAccessPolicy(ctx, state, prior)...)
+	if diags.HasError() {
+		return diags
+	}
 	return append(diags, keepDestinationPeriodsUnset(ctx, state, prior)...)
+}
+
+// keepPlannedEmptyAccessPolicy keeps a planned "" in access_policy after a write. The "" says that the
+// alert has no policy: Update sends a delete, and the read after the write finds none, which a Read folds
+// to null. The result of an apply must hold the planned value, so a write keeps the "". The next Read folds
+// it as before. A Create with "" sends no delete: a policy that Coralogix writes by default shows on the
+// next Read, and the next apply deletes it.
+func keepPlannedEmptyAccessPolicy(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	plan, ok := prior.(tfsdk.Plan)
+	if !ok {
+		return nil
+	}
+	var planned types.String
+	if diags := plan.GetAttribute(ctx, accessPolicyPath, &planned); diags.HasError() || planned.IsNull() || planned.IsUnknown() || planned.ValueString() != "" {
+		return diags
+	}
+	return state.SetAttribute(ctx, accessPolicyPath, planned)
 }
 
 var descriptionAttrPath = path.Root("description")
