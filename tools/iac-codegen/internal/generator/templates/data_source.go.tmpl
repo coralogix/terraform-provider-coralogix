@@ -228,7 +228,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 {{- else}}
 	id := configured.Value{{.IDTFType}}()
 {{- if .Get.Items}}
-	if configured.IsUnknown() || id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+if configured.IsUnknown() || id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
 		resp.Diagnostics.AddError("Unable to read coralogix_"+TypeName, fmt.Sprintf("id must be set to a non-empty %s id.", TypeName))
 		return
 	}
@@ -247,7 +247,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	{{- if not (and .Singleton $.DataSource.QueryID)}}
 	v, err := d.resource.get(ctx, id)
 	{{- end}}
-	if {{$cx}}.{{.APINotFound}}(err) {
+	if {{if .Get.FromList}}err == nil && v == nil{{else}}{{$cx}}.{{.APINotFound}}(err){{end}} {
 		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
 		return
 	}

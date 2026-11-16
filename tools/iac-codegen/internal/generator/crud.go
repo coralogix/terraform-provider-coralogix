@@ -69,6 +69,14 @@ type crudData struct {
 	// GetQuery are the query values that Get always sends: the request builder method and the Go
 	// expression of the value.
 	GetQuery []crudQuery
+	// GetPage are the query values that a paged GetFromList sends on every page but the first,
+	// beside the page token: the request builder method of each page parameter, and the Go
+	// expression of a fixed value ("" for the parameter to omit).
+	GetPage []crudQuery
+	// GetNextPage is the request builder method that sets the page token of the next page, and
+	// GetNextPageField is the response field that holds it. Only a paged GetFromList has them.
+	GetNextPage      string
+	GetNextPageField string
 	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
 	// without one as a resource that does not exist.
 	Arms []string
@@ -124,6 +132,17 @@ type crudData struct {
 // crudQuery is one query value that Get always sends: request.<Method>(<Value>).
 type crudQuery struct{ Method, Value string }
 
+// crudResult is the batch Create answer (api.batchWrite.createResult): Create sends one item
+// and reads the first result. The item is created only when Status holds one of the Created
+// constants, and Resource then holds it. Otherwise Message, when the result has it, says why.
+type crudResult struct {
+	Items       string   // response field that holds the results
+	Resource    string   // result field that holds the resource
+	Status      string   // result field that holds the status enum
+	CreatedVals []string // enum constants that mean created
+	Message     string   // result field with the message; "" when the line names none
+}
+
 // upgradeData is a state upgrader. It reads the resource from the API, so the prior schema is
 // only used to decode the old state.
 type upgradeData struct {
@@ -153,6 +172,17 @@ type crudOp struct {
 	FromList bool
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
+	// DeleteBodyType is the SDK type of the Delete request body, when the remove sends one
+	// (api.delete.ids). "" when Delete has no body.
+	DeleteBodyType string
+	// DeleteIDs is the SDK field of the id array in the Delete body (api.delete.ids).
+	DeleteIDs string
+	// DeleteValues are the fixed properties that Delete sends beside the ids: the body field and
+	// the Go expression of each value.
+	DeleteValues []crudQuery
+	// Result are the names of the batch Create answer (api.batchWrite.createResult): the
+	// response items field, the result fields, and the enum constants that mean created.
+	Result *crudResult
 	Response string // response field that holds the resource; "" when there is none, or the response is the resource
 	// ResponseValue: the response field is a value, not a pointer. openapi-generator uses a value
 	// for a required field.
@@ -180,9 +210,6 @@ type crudOp struct {
 // resource does not exist.
 func (o crudOp) Items() bool { return o.IDs != "" || o.FromList }
 
-// buildCRUD maps the operations and their SDK names to the template data.
-// Create, Get, and Update must return the resource. Delete must not have a
-// body.
 // buildCRUDWith is buildCRUD for a resource with a behavior-overrides file (nil for a new resource).
 func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File) (*crudData, error) {
 	ix, err := indexRefs(refs)
@@ -272,7 +299,12 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		{"get", r.Get, &out.Get, false, true},
 		{"update", r.Update, &out.Update, true, true},
 		// The Delete of an overwrite resource is the write, with every list empty.
+		// A remove through a body (api.delete.ids) sends the id array beside the
+		// fixed values, so Delete has a body then.
 		{"delete", r.Delete, &out.Delete, r.Overwrite, false},
+	}
+	if r.Policy.DeleteIDs != "" {
+		ops[3].body = true
 	}
 	for _, o := range ops {
 		if o.name == "delete" && file.Upserts() {
@@ -412,9 +444,10 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
 	// The write of an overwrite resource returns what it created in its own shape, so Create and
-	// Update read the resource with Get.
+	// Update read the resource with Get. A batch Create (api.batchWrite.createResult) reads its
+	// first result instead of the resource.
 	writes := overwrite && (o.name == "create" || o.name == "update")
-	readsBack := o.op.Response.ID != "" || (o.name == "update" || o.name == "create") && o.op.Response.Empty || writes
+	readsBack := o.op.Response.ID != "" || o.op.Response.Result != nil || (o.name == "update" || o.name == "create") && o.op.Response.Empty || writes
 	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource && !readsBack {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
@@ -433,6 +466,36 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 			return out, err
 		}
 		out.Body = body.Name
+		if o.name == "delete" && r.Policy.DeleteIDs != "" {
+			// A remove through a body sends the id array beside the fixed values
+			// (api.delete.ids, api.delete.values). The sdkcheck refs register them on the
+			// Delete body type.
+			bodyType, err := ix.typeRef("delete.body")
+			if err != nil {
+				return out, err
+			}
+			out.DeleteBodyType = bodyType.Name
+			ids, err := ix.fieldRef("delete.body." + r.Policy.DeleteIDs)
+			if err != nil {
+				return out, err
+			}
+			out.DeleteIDs = ids.Name
+			for _, v := range r.DeleteValues {
+				f, err := ix.fieldRef("delete.body." + v.Name)
+				if err != nil {
+					return out, err
+				}
+				value := fmt.Sprintf("%q", v.Value)
+				if v.Type != nil && v.Type.Kind == model.Enum {
+					c, ok := ix.consts["delete.body."+v.Name+"."+v.Value]
+					if !ok {
+						return out, fmt.Errorf("delete.body.%s: no SDK constant for %s", v.Name, v.Value)
+					}
+					value = ix.pkg.Name + "." + c.Name
+				}
+				out.DeleteValues = append(out.DeleteValues, crudQuery{Method: f.Name, Value: value})
+			}
+		}
 	}
 	if o.op.Response.ID != "" && idWrapped {
 		// The response holds the wrapper of the id, as the resource does. The wrap helpers of the
@@ -476,6 +539,17 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		}
 		return out, nil
 	}
+	if o.op.Response.Result != nil {
+		// A batch Create (api.batchWrite.createResult) answers with per-item results, not the
+		// resource. This must run before the resource-response branch: a result response has an
+		// empty Field, which that branch would reject.
+		result, err := buildCRUDResult(ix, o, o.op.Response.Result)
+		if err != nil {
+			return out, err
+		}
+		out.Result = result
+		return out, nil
+	}
 	if o.resource && !o.op.Response.Direct {
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.Field)
 		if err != nil {
@@ -486,17 +560,26 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 				return out, fmt.Errorf("batch response needs []%s", resource)
 			}
 			if o.name == "get" && r.GetFromList {
-				return getFromListOp(r, field.Name, out)
+				// The Get is the List (api.getFromList). A List that pages its result is
+				// supported: the generated Get follows the next page token.
+				out.Response, out.FromList = field.Name, true
+				return out, nil
 			}
-			builder, err := ix.typeRef("get")
-			if err != nil {
-				return out, err
+			if o.name == "get" {
+				builder, err := ix.typeRef("get")
+				if err != nil {
+					return out, err
+				}
+				setter, err := ix.methodRef("get.ids", builder.Name)
+				if err != nil {
+					return out, err
+				}
+				out.Response, out.IDs = field.Name, setter.Name
+				return out, nil
 			}
-			setter, err := ix.methodRef("get.ids", builder.Name)
-			if err != nil {
-				return out, err
-			}
-			out.Response, out.IDs = field.Name, setter.Name
+			// Create and Update answer with the array of resources they wrote; the generated
+			// call reads the state from the write and Get covers the rest.
+			out.Response = field.Name
 			return out, nil
 		}
 		if field.Want != "*"+resource && field.Want != resource {
@@ -507,14 +590,42 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 	return out, nil
 }
 
-// getFromListOp sets the Get of a resource that is read from its List: the call lists the items, in
-// the response field items, and the generated code selects the one with the id of the resource. A
-// List that pages its result is refused: one call would miss a resource on a later page.
-func getFromListOp(r *model.Resource, items string, out crudOp) (crudOp, error) {
-	if len(r.PageParameters) != 0 || r.NextPage != nil || r.List != nil && r.List.Paged {
-		return out, errors.New("api.getFromList: the List pages its result, which the generated Get does not read yet")
+// buildCRUDResult resolves the names of the batch Create answer: the response items field, the
+// result fields, and the enum constants that mean created (sdknames.go writeResult).
+func buildCRUDResult(ix *refIndex, o crudSpec, result *model.WriteResult) (*crudResult, error) {
+	items, err := ix.fieldRef(o.name + ".response." + result.Items)
+	if err != nil {
+		return nil, err
 	}
-	out.Response, out.FromList = items, true
+	resourceField, err := ix.fieldRef(o.name + ".result." + result.Resource)
+	if err != nil {
+		return nil, err
+	}
+	status, err := ix.fieldRef(o.name + ".result." + result.Status)
+	if err != nil {
+		return nil, err
+	}
+	created := make([]string, 0, len(result.Created))
+	for _, v := range result.Created {
+		c, ok := ix.consts[o.name + ".result." + result.Status + "." + v]
+		if !ok {
+			return nil, fmt.Errorf("%s.result.%s: no SDK constant for %s", o.name, result.Status, v)
+		}
+		created = append(created, ix.pkg.Name+"."+c.Name)
+	}
+	out := &crudResult{
+		Items:       items.Name,
+		Resource:    resourceField.Name,
+		Status:      status.Name,
+		CreatedVals: created,
+	}
+	if result.Message != "" {
+		message, err := ix.fieldRef(o.name + ".result." + result.Message)
+		if err != nil {
+			return nil, err
+		}
+		out.Message = message.Name
+	}
 	return out, nil
 }
 
@@ -578,12 +689,66 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 }
 
 // getCall sets what the Get call needs besides the id: the query values that it always sends, and
-// the SDK type that it returns, for the Get and AfterGet hooks.
+// the SDK type that it returns, for the Get and AfterGet hooks. A paged GetFromList also gets the
+// page setters and the next page token.
 func getCall(ix *refIndex, r *model.Resource, file *overrides.File, out *crudData) error {
 	if err := getQuery(ix, r, out); err != nil {
 		return err
 	}
+	if err := getPage(ix, r, out); err != nil {
+		return err
+	}
 	return getHooks(ix, r, file, out)
+}
+
+// getPage resolves the paging of a GetFromList Get: the request builder method of the page-token
+// parameter, the response field that holds the next token, and the setters of the page parameters
+// beside it. The other page parameters have no fixed value, so the generated Get sends none.
+func normalizePageName(name string) string {
+	return strings.ToLower(strings.NewReplacer("_", "", "-", "").Replace(name))
+}
+
+func getPage(ix *refIndex, r *model.Resource, out *crudData) error {
+	if !r.GetFromList || r.NextPage == nil {
+		return nil
+	}
+	builder, err := ix.typeRef("get")
+	if err != nil {
+		return err
+	}
+	// The token is the paging query parameter whose normal name matches the next page response
+	// property (next_page_token), or a plain page_token parameter. Size/offset parameters page
+	// the List but do not carry the next-page token.
+	token := ""
+	for _, p := range r.PageParameters {
+		switch normalizePageName(p.Name) {
+		case "nextpagetoken", "pagetoken":
+			token = p.Name
+		}
+	}
+	if token == "" {
+		return fmt.Errorf("get.page: the List has a next page property %q but no page-token query parameter", r.NextPage.Name)
+	}
+	next, err := ix.methodRef("get.page."+token, builder.Name)
+	if err != nil {
+		return err
+	}
+	field, err := ix.fieldRef("get.response." + r.NextPage.Name)
+	if err != nil {
+		return err
+	}
+	out.GetNextPage, out.GetNextPageField = next.Name, field.Name
+	for _, p := range r.PageParameters {
+		if p.Name == token {
+			continue
+		}
+		method, err := ix.methodRef("get.page."+p.Name, builder.Name)
+		if err != nil {
+			return err
+		}
+		out.GetPage = append(out.GetPage, crudQuery{Method: method.Name})
+	}
+	return nil
 }
 
 // getHooks names the SDK type that the Get call returns, for the Get and AfterGet hooks.

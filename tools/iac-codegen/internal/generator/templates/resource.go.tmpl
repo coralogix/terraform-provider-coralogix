@@ -530,7 +530,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		return
 	}
 {{- if .Get.Items}}
-	if id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+if id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
 		resp.Diagnostics.AddWarning("Resource has no id", "The state has no resource id. Terraform removed it from state so it can be recreated.")
 		resp.State.RemoveResource(ctx)
 		return
@@ -731,6 +731,43 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	}
 	return v, nil
 }
+{{- else if .Create.Result}}
+	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	// A batch Create answers with one result per request item, and the request has one item.
+	// The item is created only when the result status holds one of the created values, and the
+	// result then holds the resource. Otherwise the message, when the result has it, says why.
+	if out == nil || len(out.{{.Create.Result.Items}}) == 0 {
+		return nil, fmt.Errorf("the API returned no result for the new %s", TypeName)
+	}
+	result := out.{{.Create.Result.Items}}[0]
+	created := false
+	switch result.{{.Create.Result.Status}} {
+	{{- range .Create.Result.CreatedVals}}
+	case {{.}}:
+		created = true
+	{{- end}}
+	}
+	if !created {
+	{{- if .Create.Result.Message}}
+		if result.{{.Create.Result.Message}} != "" {
+			return nil, fmt.Errorf("the API did not create the %s: %s", TypeName, result.{{.Create.Result.Message}})
+		}
+	{{- end}}
+		return nil, fmt.Errorf("the API did not create the %s", TypeName)
+	}
+	if result.{{.Create.Result.Resource}} == nil {
+		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)
+	}
+	v := result.{{.Create.Result.Resource}}
+	// The id that the API returned is the id of the resource, also when Get leaves it out.
+	if got, ok := apiID(v); !ok || got == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+		setAPIID(v, id)
+	}
+	return v, nil
+}
 {{- else}}
 	if out == nil {
 		return nil, nil
@@ -787,11 +824,32 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	}
 {{- end}}
 {{- if .Get.FromList}}
+	// The Get is the List of the collection (api.getFromList). It selects the item whose id is
+	// the id of the resource, and follows the next page token until the item is found or the
+	// pages end.
 	for i := range out.{{.Get.Response}} {
 		if got, ok := apiID(&out.{{.Get.Response}}[i]); ok && got == id {
 			return &out.{{.Get.Response}}[i], nil
 		}
 	}
+{{- if .GetNextPage}}
+	pageToken := out.{{.GetNextPageField}}
+	for page := 1; pageToken != "" && page < 100; page++ {
+		out, httpResp, err = r.client.{{.Get.Method}}(ctx){{range .GetPage}}{{if .Value}}.{{.Method}}({{.Value}}){{end}}{{end}}.{{.GetNextPage}}(pageToken).Execute()
+		if err != nil {
+			return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+		}
+		if out == nil {
+			break
+		}
+		for i := range out.{{.Get.Response}} {
+			if got, ok := apiID(&out.{{.Get.Response}}[i]); ok && got == id {
+				return &out.{{.Get.Response}}[i], nil
+			}
+		}
+		pageToken = out.{{.GetNextPageField}}
+	}
+{{- end}}
 	return nil, nil
 {{- else if .Get.IDs}}
 	if len(out.{{.Get.Response}}) == 0 { return nil, nil }
@@ -815,7 +873,14 @@ func (r *Resource) getWithQueryID(ctx context.Context, id *string) (*{{$sdk}}.{{
 	if out == nil {
 		return nil, nil
 	}
-{{- if .Get.IDs}}
+{{- if .Get.FromList}}
+	for i := range out.{{.Get.Response}} {
+		if got, ok := apiID(&out.{{.Get.Response}}[i]); ok && (id == nil || got == *id) {
+			return &out.{{.Get.Response}}[i], nil
+		}
+	}
+	return nil, nil
+{{- else if .Get.IDs}}
 	if len(out.{{.Get.Response}}) == 0 { return nil, nil }
 	return &out.{{.Get.Response}}[0], nil
 {{- else}}
@@ -881,8 +946,19 @@ func (r *Resource) delete(ctx context.Context, _ {{.IDGoType}}) error {
 }
 {{- else if not .Upsert -}}
 func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
+{{- if .Delete.Body}}
+	// The remove sends the id in a batch body (api.delete.ids), beside the fixed values.
+	body := {{$sdk}}.{{.Delete.DeleteBodyType}}{}
+	body.{{.Delete.DeleteIDs}} = []string{id}
+	{{- range .Delete.DeleteValues}}
+	body.{{.Method}} = {{.Value}}
+	{{- end}}
+	_, httpResp, err := r.client.{{.Delete.Method}}(ctx).{{.Delete.Body}}(body).Execute()
+	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
+{{- else}}
 	_, httpResp, err := r.client.{{.Delete.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
+{{- end}}
 }
 {{- end}}
 {{- if .Arms}}
