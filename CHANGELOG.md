@@ -16,6 +16,7 @@
 - FEAT: `inline` works for a PATCH Update with an update mask when the Create and Update bodies already hold the inlined fields flat and only the response holds them in the object. The mask names the flat fields. Before, `INLINE_UNSUPPORTED`.
 - FEAT: An `extraAttributes` entry can be a set of objects (`type: set` with `attributes`), can have a static `default` that is an object or `[]` (as a field line does), and can have the validators `sizeAtMost`, `valuesAre`, and `lengthBetween`. The validators of an extra attribute are now checked when the file is read, as those of a field line are.
 - FEAT: `maskPaths` on an `extraAttributes` entry of a resource whose Update is a PATCH with an update mask makes a change of that attribute put the named API fields in the mask, for a Terraform-only object that a `BeforeWrite` hook sends through fields that a `skip` line removed.
+- FEAT: `api.getFromList` for an existing resource that no call reads by its id: the generated Get lists the collection once and selects the item with the id of the resource. Update takes the id in its path or in its body. A List that pages is refused. Needs the SDK `iac` module that has the key.
 
 #### provider
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`

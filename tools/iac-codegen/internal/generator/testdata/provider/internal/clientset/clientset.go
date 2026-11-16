@@ -3,6 +3,7 @@ package clientset
 import (
 	"example.com/iac-test-sdk/go/openapi/gen/action_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/box_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/default_things_service"
@@ -37,6 +38,7 @@ type ClientSet struct {
 	ActionThing    *action_things_service.ActionThingsServiceAPIService
 	Folder         *folder_things_service.FolderThingsServiceAPIService
 	Flat           *flat_things_service.FlatThingsServiceAPIService
+	Box            *box_things_service.BoxThingsServiceAPIService
 	WrappedID      *wrapped_things_service.WrappedThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
 	SettingsClient *settings_service.SettingsServiceAPIService
@@ -117,6 +119,8 @@ func (c *ClientSet) Storage() *storage_service.StorageServiceAPIService {
 func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPIService {
 	return c.Folder
 }
+
+func (c *ClientSet) BoxThings() *box_things_service.BoxThingsServiceAPIService { return c.Box }
 
 func (c *ClientSet) FlatThings() *flat_things_service.FlatThingsServiceAPIService {
 	return c.Flat

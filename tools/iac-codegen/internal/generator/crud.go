@@ -146,7 +146,11 @@ func sortedVersions(file *overrides.File) []int64 {
 //
 //	client.<Method>(ctx[, id]).<Body>(body).Execute()
 type crudOp struct {
-	IDs      string // SDK query setter of a batch Get that returns a resource array
+	IDs string // SDK query setter of a batch Get that returns a resource array
+	// FromList: the Get is the List of the resource (api.getFromList). It takes no id, and the
+	// generated call selects the item whose id is the id of the resource. Response is the field
+	// that holds the items.
+	FromList bool
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
 	Response string // response field that holds the resource; "" when there is none, or the response is the resource
@@ -172,6 +176,11 @@ type crudOp struct {
 }
 
 // buildCRUD maps the operations and their SDK names to the template data.
+// Items reports whether the call answers with an array of resources, from which the resource is
+// selected: a batch Get by ids, or the List of a getFromList resource. No item means that the
+// resource does not exist.
+func (o crudOp) Items() bool { return o.IDs != "" || o.FromList }
+
 // Create, Get, and Update must return the resource. Delete must not have a
 // body.
 // buildCRUDWith is buildCRUD for a resource with a behavior-overrides file (nil for a new resource).
@@ -475,6 +484,13 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		if o.op.Response.Items {
 			if field.Want != "[]"+resource {
 				return out, fmt.Errorf("batch response needs []%s", resource)
+			}
+			if o.name == "get" && r.GetFromList {
+				if len(r.PageParameters) != 0 || r.NextPage != nil {
+					return out, errors.New("api.getFromList: the List pages its result, which the generated Get does not read yet")
+				}
+				out.Response, out.FromList = field.Name, true
+				return out, nil
 			}
 			builder, err := ix.typeRef("get")
 			if err != nil {
