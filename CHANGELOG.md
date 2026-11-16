@@ -19,6 +19,7 @@
 #### resource/coralogix_alert
 - FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
 - CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261116113014-362e16dcfafe`.
+- FIX: `type_definition.logs_ratio_threshold.group_by_for = "Both"` no longer needs `group_by`. `"Numerator Only"` and `"Denominator Only"` still need a non-empty `group_by`, because the API stores `"Both"` for an alert without group-by keys.
 
 #### resource/coralogix_dashboard
 - FEAT: Show a deprecation warning for attributes that the API deprecates: `highlighted` of a widget, `show_inner_arc` and `show_outer_arc` of a gauge, `value_field` of the gauge of a dynamic widget, `resolution` of a line chart query definition, and `value` of a spans field value in a variable query.
