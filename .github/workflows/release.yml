@@ -38,6 +38,13 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    # One publishing run at a time, whatever started it, so that two runs for the same tag cannot
+    # both pass "Refuse to overwrite a published release" before either has uploaded assets. The
+    # second run waits, then finds the assets and stops. A pull request snapshot only builds, so it
+    # gets a group of its own and never waits for, or cancels, a release or another snapshot.
+    concurrency:
+      group: ${{ github.event_name == 'pull_request' && format('release-snapshot-{0}', github.run_id) || 'release-publish' }}
+      cancel-in-progress: false
     # goreleaser publishes a non-draft GitHub release (see .goreleaser.yaml).
     permissions:
       contents: write
