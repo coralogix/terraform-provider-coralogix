@@ -16,7 +16,9 @@ package alerts
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -83,6 +85,52 @@ func accessPolicyFromGetResponse(response *alertapi.GetAlertDefResponse) (policy
 	return p, true
 }
 
+// policiesEquivalent reports whether two access policy texts mean the same policy: they are equal JSON,
+// or they are equal once the permissions that one of them leaves out are read as "deny", as the backend
+// stores them. A configured policy that lists only the permissions it grants is stored with every other
+// permission as "deny", so the read of the alert answers more than the configuration holds.
+func policiesEquivalent(a, b string) bool {
+	if utils.JSONStringsEqual(a, b) {
+		return true
+	}
+	var left, right map[string]any
+	if json.Unmarshal([]byte(a), &left) != nil || json.Unmarshal([]byte(b), &right) != nil {
+		return false
+	}
+	leftPermissions, rightPermissions := defaultPermissions(left), defaultPermissions(right)
+	if leftPermissions == nil || rightPermissions == nil {
+		return false
+	}
+	for name := range rightPermissions {
+		if _, ok := leftPermissions[name]; !ok {
+			leftPermissions[name] = "deny"
+		}
+	}
+	for name := range leftPermissions {
+		if _, ok := rightPermissions[name]; !ok {
+			rightPermissions[name] = "deny"
+		}
+	}
+	// An absent list of rules and an empty one are the same policy.
+	for _, policy := range []map[string]any{left, right} {
+		if rules, ok := policy["rules"].([]any); ok && len(rules) == 0 {
+			delete(policy, "rules")
+		}
+	}
+	return reflect.DeepEqual(left, right)
+}
+
+// defaultPermissions returns the permissions object of the default part of a policy, or nil when the
+// policy has none.
+func defaultPermissions(policy map[string]any) map[string]any {
+	def, ok := policy["default"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	permissions, _ := def["permissions"].(map[string]any)
+	return permissions
+}
+
 // foldAccessPolicy folds the access policy of the backend into the state value: a configured text that is
 // semantically equal to the backend's is kept as written, otherwise the backend text is stored in the
 // canonical shape that jsonencode produces.
@@ -98,7 +146,7 @@ func foldAccessPolicy(current types.String, policy *string, readable bool) types
 		}
 		return current
 	}
-	if !current.IsNull() && !current.IsUnknown() && utils.JSONStringsEqual(current.ValueString(), *policy) {
+	if !current.IsNull() && !current.IsUnknown() && policiesEquivalent(current.ValueString(), *policy) {
 		return current
 	}
 	canonical, err := utils.CanonicalJSON(*policy)

@@ -269,7 +269,7 @@ func (r *Resource) create(ctx context.Context, body *alert_definitions_service.C
 	if out == nil {
 		return nil, nil
 	}
-	return out.AlertDef, nil
+	return r.readAfterWrite(ctx, out.AlertDef), nil
 }
 
 // getResultKey is the key of the getResult that a CRUD method puts in its context.
@@ -319,7 +319,7 @@ func (r *Resource) update(ctx context.Context, body *alert_definitions_service.R
 	if out == nil {
 		return nil, nil
 	}
-	return out.AlertDef, nil
+	return r.readAfterWrite(ctx, out.AlertDef), nil
 }
 
 func (r *Resource) delete(ctx context.Context, id string) error {
@@ -468,12 +468,37 @@ func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) 
 	return id.ValueString(), diags
 }
 
+// readAfterWrite reads the resource that a write returned with Get, so that the AfterGet hook sees the
+// values next to the resource, as a Read does, and the state after the write is the state of a later
+// Read. When the read fails, the write response stands: the write succeeded, and the next Read adds
+// what the response lacked.
+func (r *Resource) readAfterWrite(ctx context.Context, written *alert_definitions_service.AlertDef) *alert_definitions_service.AlertDef {
+	id, ok := apiID(written)
+	if !ok || id == "" {
+		return written
+	}
+	v, err := r.get(ctx, id)
+	if err != nil || v == nil {
+		return written
+	}
+	// The id of the write is the id of the resource, also when Get leaves it out.
+	if got, ok := apiID(v); !ok || got == "" {
+		setAPIID(v, id)
+	}
+	return v
+}
+
 // apiID returns the id that v holds, and false when v holds none.
 func apiID(v *alert_definitions_service.AlertDef) (string, bool) {
 	if v == nil || v.Id == nil {
 		return "", false
 	}
 	return *v.Id, *v.Id != ""
+}
+
+// setAPIID sets the id that v holds.
+func setAPIID(v *alert_definitions_service.AlertDef, id string) {
+	v.Id = &id
 }
 
 // idStateValue returns the value of the id attribute for id.

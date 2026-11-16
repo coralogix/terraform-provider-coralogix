@@ -51,6 +51,14 @@ type File struct {
 	// values that sit next to the resource. The data source runs them too. A singleton has no
 	// such hooks.
 	GetHooks bool `yaml:"getHooks"`
+	// ReadAfterWrite makes Create and Update read the resource with Get after a write whose response
+	// already holds the resource, so that AfterGet sees what a Read sees. Without it, the state after
+	// a write holds no value that comes from the values next to the resource in the Get response,
+	// and a later Read or import adds it, which makes an import check of the same state fail. A
+	// failed read does not fail the write: the write response stands. It needs getHooks, and has no
+	// effect on a call that already reads back (a Create response that holds only the id, an
+	// Update response with no fields).
+	ReadAfterWrite bool `yaml:"readAfterWrite"`
 	// EnumValuesInDescription appends the accepted Terraform values of an enum attribute to its
 	// description: ` Valid values: ["A" "B"].`, as the released handwritten resources wrote them.
 	// The list is the one of the validator. A description that a field line states, or that
