@@ -35,8 +35,9 @@ const (
 
 // userFake models the public Users REST contract and the behavior that the handwritten
 // resource relies on. Every id, account id, and email is synthetic; no tenant or member data
-// is used. It follows the contract of the pinned SDK:
-//   - GET searches, with a partial and case-insensitive username filter and an offset page token
+// is used. It follows the contract of the pinned SDK, with the filter semantics the EU2
+// fidelity recording proved:
+//   - GET searches, with an exact and case-insensitive username filter and an offset page token
 //   - POST creates a batch and answers one result per requested user, with a per-user status
 //   - PUT replaces the whole template of each user: an omitted login mode list is written as none,
 //     and an omitted status as inactive
@@ -211,7 +212,9 @@ func (f *userFake) checkRequest(query url.Values, body any) {
 
 func (f *userFake) handle(method, path string, query url.Values, body any) (int, any) {
 	if !strings.HasSuffix(path, userBasePath) {
-		return userFakeError(http.StatusNotFound)
+		// The real gateway fails to parse the nonexistent tail as the user_account_id path
+		// parameter of an unknown route and answers 400, not 404 (EU2 recording).
+		return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: type mismatch, parameter: user_account_id, error: <domain>: parsing \"no-such-route\": invalid syntax"}
 	}
 	switch method {
 	case http.MethodGet:
@@ -241,10 +244,13 @@ func (f *userFake) search(query url.Values) (int, any) {
 	if f.searchStatus != 0 {
 		return userFakeError(f.searchStatus)
 	}
-	filter := strings.ToLower(query.Get("username"))
+	// The real API filters by exact username, case-insensitively: the EU2 fidelity recording
+	// shows a search for the run prefix returns no users while the full username matches.
+	// An empty filter lists the whole team (the data source without a username pages it).
+	filter := query.Get("username")
 	matches := make([]map[string]any, 0, len(f.users))
 	for _, user := range f.users {
-		if strings.Contains(strings.ToLower(user["username"].(string)), filter) {
+		if filter == "" || strings.EqualFold(user["username"].(string), filter) {
 			matches = append(matches, user)
 		}
 	}
@@ -256,7 +262,21 @@ func (f *userFake) search(query url.Values) (int, any) {
 	if f.pageLimit > 0 && f.pageLimit < size {
 		size = f.pageLimit
 	}
-	offset, _ := strconv.Atoi(query.Get("page_token"))
+	// The real gateway 400s a page_token it cannot parse, an empty-but-present one included
+	// (EU2 recording): the fake does the same instead of treating it as the first offset.
+	// An ABSENT page_token is the first page and starts at offset 0.
+	rawToken, present := query["page_token"]
+	offset := 0
+	if present {
+		if len(rawToken) != 1 || rawToken[0] == "" {
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: parsing field \"page_token\": <domain>: parsing \"\": invalid syntax"}
+		}
+		parsed, err := strconv.Atoi(rawToken[0])
+		if err != nil {
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: parsing field \"page_token\": <domain>: parsing \"" + rawToken[0] + "\": invalid syntax"}
+		}
+		offset = parsed
+	}
 	if offset > len(matches) {
 		offset = len(matches)
 	}
@@ -306,10 +326,13 @@ func (f *userFake) createResultFor(username string, template map[string]any) any
 	}
 	for _, user := range f.users {
 		if strings.EqualFold(user["username"].(string), username) {
+			// The real API answers the existing user and no message (EU2 recording).
 			return map[string]any{
-				"status":   "CREATE_USER_STATUS_ALREADY_EXISTS",
-				"username": username,
-				"message":  "user already exists",
+				"status":        "CREATE_USER_STATUS_ALREADY_EXISTS",
+				"username":      username,
+				"userId":        user["userId"],
+				"userAccountId": user["userAccountId"],
+				"user":          copyUser(user),
 			}
 		}
 	}
@@ -356,7 +379,10 @@ func (f *userFake) update(body any) (int, any) {
 		request := asObject(raw)
 		user := f.findRequested(request)
 		if user == nil {
-			return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found: user not found"}
+			// The real API quotes the requested id and the team (EU2 recording): the message
+			// carries the unknown userId, which the replay redactor maps to its placeholder.
+			id, _ := request["userId"].(string)
+			return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found: user " + id + " not found in team 19641"}
 		}
 		template := asObject(request["userTemplate"])
 		user["firstName"], _ = template["firstName"].(string)
@@ -369,9 +395,12 @@ func (f *userFake) update(body any) (int, any) {
 		if modes, ok := template["allowedLoginMode"]; ok {
 			user["allowedLoginMode"] = modes
 		}
-		delete(user, "accessType")
+		// The real PUT answers the user with its access type; the template does not carry it.
+		// A template that does carry one (the temporary-access scenario) is kept as sent.
 		if access, ok := template["accessType"]; ok {
 			user["accessType"] = access
+		} else {
+			user["accessType"] = map[string]any{"accessType": "permanent", "permanentAccess": map[string]any{}}
 		}
 		accountIDs = append(accountIDs, user["userAccountId"])
 		updated = append(updated, copyUser(user))
@@ -420,6 +449,7 @@ func (f *userFake) newUser(input map[string]any) map[string]any {
 		"status":           "USER_STATUS_ACTIVE",
 		"allowedLoginMode": []any{},
 		"groupIds":         []any{},
+		"accessType":       map[string]any{"accessType": "permanent", "permanentAccess": map[string]any{}},
 	}
 	for key, value := range input {
 		user[key] = value

@@ -66,7 +66,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading User | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
+      "error: Error reading User | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"accessType\":{\"accessType\":\"permanent\",\"permanentAccess\":{}},\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
     ],
     "state": {
       "active": true,
