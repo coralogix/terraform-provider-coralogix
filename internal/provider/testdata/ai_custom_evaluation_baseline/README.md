@@ -15,10 +15,10 @@ UPDATE_GOLDEN=1 go test ./internal/provider -run 'TestAICustomEvaluationBaseline
 ## What the migration changed
 
 The generated resource reads like the handwritten one: it lists the custom evaluations once and takes
-the one with its id (`api.getFromList`). Of the 96 scenarios of the handwritten resource, two were
+the one with its id (`api.getFromList`). Of the 99 scenarios of the handwritten resource, two were
 replaced (the failure of the call that cleared the examples, which no longer exists, and the 404 of
-the list route), one is new (`delete-route-not-found`), and 81 of the other 94 are the same in every
-plan, state, diagnostic, and second plan. 54 of them also send the same requests. The other 27 have an
+the list route), one is new (`delete-route-not-found`), and 83 of the other 97 are the same in every
+plan, state, diagnostic, and second plan. 55 of them also send the same requests. The other 28 have an
 update, which is one `PATCH` with a mask now (see the third row). The other differences are these:
 
 | Difference | Scenarios |
@@ -26,6 +26,7 @@ update, which is one `PATCH` with a mask now (see the third row). The other diff
 | The wording of an API error or of a missing resource: `Unable to create ai_custom_evaluation`, `Resource disappeared during read`, `Resource no longer exists`. | `create-api-error`, `name-duplicate`, `rename-to-taken-name`, `update-api-error`, `update-not-found`, `delete-api-error`, `read-api-error`, `read-not-found`, `import-not-found`, `import-not-a-uuid`, `import-api-error` |
 | A 404 of the list route is an error and keeps the state. Before, it removed the resource, because a missing route and a missing evaluation looked the same. A destroy that gets a 404 of its route is an error too, and was success. | `read-route-not-found` (was `read-list-not-found`), `delete-route-not-found` (new) |
 | An update sends one `PATCH` whose mask names the changed fields. The examples are cleared in the same call, so the second call and its failure case are gone. A change of only `applications` sends no `PATCH`. | `criteria-examples-cleared-in-one-call` (was `criteria-examples-clear-fails`), `minimal-lifecycle`, `applications-added-on-update` |
+| An update of an evaluation whose application was renamed outside Terraform no longer fails. Before, the update listed the applications, took the new name from the list, and failed with `Provider produced inconsistent result after apply` for `applications`. Now the state keeps the configured selector while the linked ids are the same, and the plan is empty after the update. | `applications-renamed-outside` |
 | The order of the elements of a set in the golden (`applications`, `application_ids`). The sets are equal. | `applications-multiple`, `import-with-applications` |
 
 The update mask takes the names of the JSON body in lower camel case (`policyType`), and the gateway

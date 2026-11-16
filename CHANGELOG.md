@@ -27,6 +27,7 @@
 - FIX: A refresh no longer removes the resource from state when the API route is missing. Before, a 404 of the list route read as a deleted custom evaluation. Now a missing custom evaluation is one that the list lacks, and a 404 of the list is an error.
 - FIX: An update sends one `PATCH` with an update mask that names the fields that changed. Before, it sent every field, and a second `PATCH` cleared the examples whenever the plan had none. A change of only `applications` sends no `PATCH`.
 - FIX: Removing the examples of `criteria` no longer needs a second request, so a failure of that request can no longer leave the other fields changed and the state unchanged.
+- FIX: An update of a custom evaluation whose linked application was renamed outside Terraform no longer fails with `Provider produced inconsistent result after apply` for `applications`. The state keeps the configured selector while the linked ids are the same.
 - CHORE: API errors read `Unable to create ai_custom_evaluation`, `Unable to update ai_custom_evaluation`, and so on. A missing custom evaluation on refresh reads `Resource disappeared during read`, and an update of a missing one reads `Resource no longer exists`.
 
 #### resource/coralogix_alert
