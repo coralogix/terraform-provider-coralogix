@@ -695,6 +695,42 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	}
 	return v, nil
 }
+{{- else if .Create.Result}}
+	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}([]{{$sdk}}.{{$.Conv.CreateBody}}{*body}).Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	// A batch Create answers with one result per request item, and the request has one item.
+	// The item is created only when the result status holds one of the created values, and the
+	// result then holds the resource. Otherwise the message, when the result has it, says why.
+	if out == nil || len(out.{{.Create.Result.Items}}) == 0 {
+		return nil, fmt.Errorf("the API returned no result for the new %s", TypeName)
+	}
+	result := out.{{.Create.Result.Items}}[0]
+	if result.{{.Create.Result.Status}} == nil {
+		return nil, fmt.Errorf("the API returned no status for the new %s", TypeName)
+	}
+	created := false
+	switch *result.{{.Create.Result.Status}} {
+	{{- range .Create.Result.CreatedVals}}
+	case {{.}}:
+		created = true
+	{{- end}}
+	}
+	if !created {
+	{{- if .Create.Result.Message}}
+		if result.{{.Create.Result.Message}} != nil && *result.{{.Create.Result.Message}} != "" {
+			return nil, fmt.Errorf("the API did not create the %s: %s", TypeName, *result.{{.Create.Result.Message}})
+		}
+	{{- end}}
+		return nil, fmt.Errorf("the API did not create the %s", TypeName)
+	}
+	if result.{{.Create.Result.Resource}} == nil {
+		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)
+	}
+	// The result holds the resource that the API created, with the id that the API gave it.
+	return result.{{.Create.Result.Resource}}, nil
+}
 {{- else}}
 	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
 	if err != nil {
@@ -726,43 +762,6 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 		return resourceWithID(id), fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
 	// The id that Create returned is the id of the resource, also when Get leaves it out.
-	if got, ok := apiID(v); !ok || got == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
-		setAPIID(v, id)
-	}
-	return v, nil
-}
-{{- else if .Create.Result}}
-	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
-	if err != nil {
-		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
-	}
-	// A batch Create answers with one result per request item, and the request has one item.
-	// The item is created only when the result status holds one of the created values, and the
-	// result then holds the resource. Otherwise the message, when the result has it, says why.
-	if out == nil || len(out.{{.Create.Result.Items}}) == 0 {
-		return nil, fmt.Errorf("the API returned no result for the new %s", TypeName)
-	}
-	result := out.{{.Create.Result.Items}}[0]
-	created := false
-	switch result.{{.Create.Result.Status}} {
-	{{- range .Create.Result.CreatedVals}}
-	case {{.}}:
-		created = true
-	{{- end}}
-	}
-	if !created {
-	{{- if .Create.Result.Message}}
-		if result.{{.Create.Result.Message}} != "" {
-			return nil, fmt.Errorf("the API did not create the %s: %s", TypeName, result.{{.Create.Result.Message}})
-		}
-	{{- end}}
-		return nil, fmt.Errorf("the API did not create the %s", TypeName)
-	}
-	if result.{{.Create.Result.Resource}} == nil {
-		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)
-	}
-	v := result.{{.Create.Result.Resource}}
-	// The id that the API returned is the id of the resource, also when Get leaves it out.
 	if got, ok := apiID(v); !ok || got == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
 		setAPIID(v, id)
 	}
@@ -833,9 +832,15 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 		}
 	}
 {{- if .GetNextPage}}
+	{{- if .GetNextPageValue}}
 	pageToken := out.{{.GetNextPageField}}
 	for page := 1; pageToken != "" && page < 100; page++ {
 		out, httpResp, err = r.client.{{.Get.Method}}(ctx){{range .GetPage}}{{if .Value}}.{{.Method}}({{.Value}}){{end}}{{end}}.{{.GetNextPage}}(pageToken).Execute()
+	{{- else}}
+	pageToken := out.{{.GetNextPageField}}
+	for page := 1; pageToken != nil && *pageToken != "" && page < 100; page++ {
+		out, httpResp, err = r.client.{{.Get.Method}}(ctx){{range .GetPage}}{{if .Value}}.{{.Method}}({{.Value}}){{end}}{{end}}.{{.GetNextPage}}(*pageToken).Execute()
+	{{- end}}
 		if err != nil {
 			return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 		}
@@ -901,7 +906,7 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	// The write returns the list that it replaced.
 	return &{{$sdk}}.{{.Resource}}{ {{- range $i, $f := .Update.Copy}}{{if $i}}, {{end}}{{$f}}: out.{{$f}}{{end -}} }, nil
 {{- else if .Update.Empty}}
-	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if .UpdateMask}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}({{if $.Conv.UpdateSliceBody}}[]{{$sdk}}.{{$.Conv.UpdateBody}}{*body}{{else}}*body{{end}}){{if .UpdateMask}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
@@ -923,7 +928,7 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 {{- end}}
 	return v, nil
 {{- else}}
-	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if .UpdateMask}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}({{if $.Conv.UpdateSliceBody}}[]{{$sdk}}.{{$.Conv.UpdateBody}}{*body}{{else}}*body{{end}}){{if .UpdateMask}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
@@ -951,7 +956,10 @@ func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 	body := {{$sdk}}.{{.Delete.DeleteBodyType}}{}
 	body.{{.Delete.DeleteIDs}} = []string{id}
 	{{- range .Delete.DeleteValues}}
-	body.{{.Method}} = {{.Value}}
+	{
+		value := {{.Value}}
+		body.{{.Method}} = &value
+	}
 	{{- end}}
 	_, httpResp, err := r.client.{{.Delete.Method}}(ctx).{{.Delete.Body}}(body).Execute()
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)

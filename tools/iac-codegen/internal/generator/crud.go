@@ -77,6 +77,8 @@ type crudData struct {
 	// GetNextPageField is the response field that holds it. Only a paged GetFromList has them.
 	GetNextPage      string
 	GetNextPageField string
+	// GetNextPageValue is true when the response field holds the token by value, not pointer.
+	GetNextPageValue bool
 	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
 	// without one as a resource that does not exist.
 	Arms []string
@@ -738,6 +740,7 @@ func getPage(ix *refIndex, r *model.Resource, out *crudData) error {
 		return err
 	}
 	out.GetNextPage, out.GetNextPageField = next.Name, field.Name
+	out.GetNextPageValue = !strings.HasPrefix(field.Want, "*")
 	for _, p := range r.PageParameters {
 		if p.Name == token {
 			continue
