@@ -21,6 +21,7 @@
 - FIX: The state after create or update holds the `access_policy` that Coralogix writes for an alert created without one, as a read or an import does. Before, an alert created without `access_policy` had a null value in state until the next refresh, and an import of the same alert showed the policy. Create and update read the alert once more to get it. A policy that lists only some permissions is no longer reported as changed when Coralogix stores the others as `deny`. A configured `access_policy = ""` stays in state after create and update.
 - FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
 - CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261116113014-362e16dcfafe`.
+- FIX: `type_definition.logs_ratio_threshold.group_by_for = "Both"` no longer needs `group_by`. `"Numerator Only"` and `"Denominator Only"` still need a non-empty `group_by`, because the API stores `"Both"` for an alert without group-by keys.
 - FIX: An alert with a webhook in `notification_group.webhooks_settings` that sets only `integration_id` or `recipients` no longer shows a perpetual in-place update that sets `notify_on` and `retriggering_period` to `(known after apply)`.
 
 #### resource/coralogix_dashboard
