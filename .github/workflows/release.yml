@@ -38,6 +38,13 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    # One publishing run at a time, whatever started it, so that two runs for the same tag cannot
+    # both pass "Refuse to overwrite a published release" before either has uploaded assets. The
+    # second run waits, then finds the assets and stops. A pull request snapshot only builds, so it
+    # gets a group of its own and never waits for, or cancels, a release or another snapshot.
+    concurrency:
+      group: ${{ github.event_name == 'pull_request' && format('release-snapshot-{0}', github.run_id) || 'release-publish' }}
+      cancel-in-progress: false
     # goreleaser publishes a non-draft GitHub release (see .goreleaser.yaml).
     permissions:
       contents: write
@@ -68,6 +75,32 @@ jobs:
           ref: ${{ inputs.tag || '' }}
       - name: Unshallow
         run: git fetch --prune --unshallow
+      - name: Refuse to overwrite a published release
+        # goreleaser uploads into an existing release, so a re-run on a moved tag replaces the
+        # assets of a version that registries already ingested (v3.14.1: OpenTofu froze the first
+        # checksums and then rejected every install). A tag is released once.
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          tag="${TAG_INPUT:-$(git describe --exact-match --tags HEAD 2>/dev/null || true)}"
+          if [ -z "$tag" ]; then
+            echo "::notice::No tag at this commit; goreleaser decides what to do"; exit 0
+          fi
+          status=0
+          assets=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length' 2>"$RUNNER_TEMP/release-view.err") || status=$?
+          if [ "$status" != 0 ]; then
+            if grep -q "release not found" "$RUNNER_TEMP/release-view.err"; then
+              echo "No release for $tag yet"; exit 0
+            fi
+            cat "$RUNNER_TEMP/release-view.err"
+            echo "::error::Could not look up the release for $tag"; exit 1
+          fi
+          if [ "$assets" -gt 0 ]; then
+            echo "::error::Release $tag already has $assets assets. Not uploading over them: registries may have recorded their checksums. Release the next patch with 'make bump'. If an earlier run of $tag failed half way and no registry has the version, delete that release and its assets on GitHub, then re-run."
+            exit 1
+          fi
       - name: Set up Go
         uses: actions/setup-go@v4
         with:

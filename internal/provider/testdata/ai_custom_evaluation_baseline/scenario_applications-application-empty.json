@@ -1,0 +1,20 @@
+[
+  {
+    "step": "validate an empty application",
+    "config": {
+      "applications": [
+        {
+          "application": "",
+          "subsystem": "api"
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"\">, \"subsystem\":tftypes.String<\"api\">>).AttributeName(\"application\")] | Attribute applications[Value({\"application\":\"\",\"subsystem\":\"api\"})].application string length must be between 1 and 256, got: 0"
+    ],
+    "state": null
+  }
+]

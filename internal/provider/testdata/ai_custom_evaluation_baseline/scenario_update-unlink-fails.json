@@ -1,0 +1,232 @@
+[
+  {
+    "step": "create with an application",
+    "config": {
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/applications/v3?page_offset=0&page_size=200",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "body": {
+          "applicationIds": [
+            "00000000-0000-4000-8000-000000002001"
+          ],
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "n",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [
+        "00000000-0000-4000-8000-000000002001"
+      ],
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the name and no application, and the unlink answers 500",
+    "config": {
+      "instructions": "Check {prompt}",
+      "name": "n-renamed",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n-renamed",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "requests": [
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "description": "",
+          "examples": [],
+          "instructions": "Check {prompt}",
+          "name": "n-renamed",
+          "policyType": "quality",
+          "safe": "",
+          "shouldIncludeSystemPrompt": false,
+          "violates": ""
+        },
+        "status": 200
+      },
+      {
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "body": {
+          "examples": [],
+          "updateMask": "examples"
+        },
+        "status": 200
+      },
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001/applications/00000000-0000-4000-8000-000000002001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating coralogix_ai_custom_evaluation application links | failed to unlink AI application \"00000000-0000-4000-8000-000000002001\": internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Unlink. The custom evaluation fields may already have been updated; run Terraform again after resolving the link error."
+    ],
+    "state": {
+      "application_ids": [
+        "00000000-0000-4000-8000-000000002001"
+      ],
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    }
+  },
+  {
+    "step": "refresh after the failed update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application_ids": [
+        "00000000-0000-4000-8000-000000002001"
+      ],
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "api"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000001001",
+      "instructions": "Check {prompt}",
+      "name": "n-renamed",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "drift": [
+      "AttributeName(\"name\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"application_ids\")",
+      "AttributeName(\"application_ids\").ElementKeyValue(tftypes.String<\"00000000-0000-4000-8000-000000002001\">)",
+      "AttributeName(\"applications\")",
+      "AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<\"api\">>)",
+      "AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<\"api\">>).AttributeName(\"application\")",
+      "AttributeName(\"applications\").ElementKeyValue(tftypes.Object[\"application\":tftypes.String, \"subsystem\":tftypes.String]<\"application\":tftypes.String<\"checkout\">, \"subsystem\":tftypes.String<\"api\">>).AttributeName(\"subsystem\")"
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "step": "validate an empty example",
+    "config": {
+      "criteria": {
+        "acceptable": {
+          "examples": [
+            ""
+          ],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"criteria\").AttributeName(\"acceptable\").AttributeName(\"examples\").ElementKeyInt(0)] | Attribute criteria.acceptable.examples[0] string length must be between 1 and 65536, got: 0"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "step": "plan with an unknown selector",
+    "config": {
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "(unknown)"
+        }
+      ],
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [
+        {
+          "application": "checkout",
+          "subsystem": "(unknown)"
+        }
+      ],
+      "criteria": {
+        "acceptable": {
+          "examples": [],
+          "flags": ""
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "state": null
+  },
+  {
+    "step": "plan with an unknown criteria",
+    "config": {
+      "criteria": {
+        "acceptable": {
+          "examples": "(unknown)",
+          "flags": "(unknown)"
+        }
+      },
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality"
+    },
+    "plan": {
+      "application_ids": "(unknown)",
+      "applications": [],
+      "criteria": {
+        "acceptable": {
+          "examples": "(unknown)",
+          "flags": "(unknown)"
+        },
+        "prohibited": {
+          "examples": [],
+          "flags": ""
+        }
+      },
+      "description": "",
+      "id": "(unknown)",
+      "instructions": "Check {prompt}",
+      "name": "n",
+      "policy_type": "quality",
+      "should_include_system_prompt": false
+    },
+    "state": null
+  }
+]

@@ -19,6 +19,11 @@ modifyPlan: true
 enumValuesInDescription: true
 afterFlatten: true
 getHooks: true
+# Create and Update return the alert but not its access policy, which only a Get with
+# include_access_permissions returns. Coralogix can attach a default policy to an alert that has none
+# in the configuration, so the state after a write must come from a Get as well, or an import of the
+# same alert shows a policy that the state lacks.
+readAfterWrite: true
 dataSource: {}
 typeName: alert
 schema:
@@ -80,7 +85,7 @@ types:
         useStateForUnknown: true
         equality: json
         inUpdate: true
-        markdownDescription: "JSON string representing the access policy for this alert. It defines granular permissions for users and groups. When set, the provider owns the policy and re-applies it whenever the alert is updated, reverting changes made elsewhere; for keys with `alerts:ReadAccessPolicy`, changes made elsewhere also show as drift on refresh. Set to `\"\"` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. When omitted, the policy is left unmanaged and unchanged. While this attribute is set (including `\"\"`), every update of the alert sends the policy and therefore requires the `alerts:UpdateAccessPolicy` permission; remove the line to stop managing it. Reading the policy back requires `alerts:ReadAccessPolicy`: without it the attribute is not refreshed from the backend and drift is not detected."
+        markdownDescription: "JSON string representing the access policy for this alert. It defines granular permissions for users and groups. When set, the provider owns the policy and re-applies it whenever the alert is updated, reverting changes made elsewhere; for keys with `alerts:ReadAccessPolicy`, changes made elsewhere also show as drift on refresh. Set to `\"\"` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. When omitted, the policy is left unmanaged and unchanged: Coralogix can attach a default policy to an alert that is created without one, and the attribute then shows it. While this attribute is set (including `\"\"`), every update of the alert sends the policy and therefore requires the `alerts:UpdateAccessPolicy` permission; remove the line to stop managing it. Reading the policy back requires `alerts:ReadAccessPolicy`: without it the attribute is not refreshed from the backend and drift is not detected."
       schedule:
         type: object
         inUpdate: true

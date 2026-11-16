@@ -62,6 +62,12 @@ type alertFake struct {
 	sloStore *sloFake
 	seq      int
 	requests []grRequest
+	// defaultPolicy, when set, is the policy that a Create without one stores, as the backend does
+	// for a team that enforces policy-based access: it writes a default-allow policy when an alert
+	// is created without a policy. A Replace never adds it.
+	defaultPolicy string
+	// failNextGet makes the next Get answer 500, to see a read after a write that fails.
+	failNextGet bool
 }
 
 func newAlertFake(t *testing.T) *alertFake {
@@ -128,6 +134,10 @@ func (f *alertFake) handle(method, path string, query url.Values, body any) (int
 	case method == http.MethodPut && id == "":
 		return f.write(in, true)
 	case method == http.MethodGet && id != "":
+		if f.failNextGet {
+			f.failNextGet = false
+			return grFail(http.StatusInternalServerError, "Internal error")
+		}
 		stored, found := f.alerts[id]
 		if !found {
 			return alertNotFound()
@@ -206,6 +216,9 @@ func (f *alertFake) write(in map[string]any, update bool) (int, any) {
 	}
 	if !update {
 		id = f.uuidLike()
+		if policy == nil && f.defaultPolicy != "" {
+			policy = &f.defaultPolicy
+		}
 	}
 	f.storePolicy(id, policy)
 	stored := map[string]any{
