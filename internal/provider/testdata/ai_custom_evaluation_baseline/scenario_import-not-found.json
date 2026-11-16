@@ -8,8 +8,8 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000009999",
-        "status": 404
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
       }
     ],
     "applyDiagnostics": [

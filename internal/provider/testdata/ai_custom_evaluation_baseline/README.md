@@ -14,21 +14,22 @@ UPDATE_GOLDEN=1 go test ./internal/provider -run 'TestAICustomEvaluationBaseline
 
 ## What the migration changed
 
-Of the 96 scenarios of the handwritten resource, two were replaced (the failure of the list route and the failure of the call that cleared the examples, which no longer exist), and 81 of the other 94 are the same in every plan, state, diagnostic, and second plan. They differ only in the requests: a read is `GET /ai/custom-evaluations/v3/{id}` and no
-longer a list, and an update is one `PATCH` with a mask. The other differences are these:
+The generated resource reads like the handwritten one: it lists the custom evaluations once and takes
+the one with its id (`api.getFromList`). Of the 96 scenarios of the handwritten resource, two were
+replaced (the failure of the call that cleared the examples, which no longer exists, and the 404 of
+the list route), one is new (`delete-route-not-found`), and 81 of the other 94 are the same in every
+plan, state, diagnostic, and second plan. 54 of them also send the same requests. The other 27 have an
+update, which is one `PATCH` with a mask now (see the third row). The other differences are these:
 
 | Difference | Scenarios |
 |---|---|
-| The wording of an API error or of a missing resource: `Unable to create ai_custom_evaluation`, `Resource disappeared during read`, `Resource no longer exists`. | `create-api-error`, `name-duplicate`, `rename-to-taken-name`, `update-api-error`, `update-not-found`, `delete-api-error`, `read-api-error`, `read-not-found`, `import-not-found`, `import-api-error` |
-| A 404 of the route is an error and keeps the state, on a read and on a destroy. Before, a 404 of the list route removed the resource, and a destroy treated every 404 as done. | `read-route-not-found` (was `read-list-not-found`), `delete-route-not-found` (new) |
+| The wording of an API error or of a missing resource: `Unable to create ai_custom_evaluation`, `Resource disappeared during read`, `Resource no longer exists`. | `create-api-error`, `name-duplicate`, `rename-to-taken-name`, `update-api-error`, `update-not-found`, `delete-api-error`, `read-api-error`, `read-not-found`, `import-not-found`, `import-not-a-uuid`, `import-api-error` |
+| A 404 of the list route is an error and keeps the state. Before, it removed the resource, because a missing route and a missing evaluation looked the same. A destroy that gets a 404 of its route is an error too, and was success. | `read-route-not-found` (was `read-list-not-found`), `delete-route-not-found` (new) |
 | An update sends one `PATCH` whose mask names the changed fields. The examples are cleared in the same call, so the second call and its failure case are gone. A change of only `applications` sends no `PATCH`. | `criteria-examples-cleared-in-one-call` (was `criteria-examples-clear-fails`), `minimal-lifecycle`, `applications-added-on-update` |
-| An id that is no UUID fails to import with an error. Before, the list had no such evaluation and the import warned. | `import-not-a-uuid` |
 | The order of the elements of a set in the golden (`applications`, `application_ids`). The sets are equal. | `applications-multiple`, `import-with-applications` |
 
-The fake answers the new read, which the recording does not have (the API of the recording does not
-have the call yet): it follows the contract of the call. The update mask takes the names of the JSON
-body in lower camel case (`policyType`), and the gateway refuses a proto name (`policy_type`); the
-recording has cases for both.
+The update mask takes the names of the JSON body in lower camel case (`policyType`), and the gateway
+refuses a proto name (`policy_type`); the recording has cases for both.
 
 ## The fake follows the real API
 
@@ -58,7 +59,7 @@ with more than 200 applications does.
 
 | Fact | Golden |
 |---|---|
-| Create answers `{"item": evaluation}` with every config field set (`""`, `[]`, or `false` when the request left it out). Update answers the same shape with `applicationIds: []`, whatever the links are. The API of the recording has no read of one evaluation (a new call was added after it): the handwritten resource lists them all and filters by id, and the generated one reads by id. | `scenario_full-lifecycle.json` |
+| Create answers `{"item": evaluation}` with every config field set (`""`, `[]`, or `false` when the request left it out). Update answers the same shape with `applicationIds: []`, whatever the links are. Both resources read with the list and take the evaluation with their id. | `scenario_full-lifecycle.json` |
 | Update is a PATCH. The update mask is a property of the body (`"updateMask": "examples"`), not a query parameter. A mask that names a field clears it when the body has none. Without a mask, an empty `examples` list is ignored, so the resource clears the examples with a second PATCH. | `scenario_criteria-removed-on-update.json` |
 | A mask that names `name`, or a path that the service does not know, answers 400. An id that is no UUID answers 400 on Update and 404 on the other routes. | fidelity `update`, `delete`, `links` |
 | Applications are linked with `POST` and unlinked with `DELETE` on `/custom-evaluations/v3/{id}/applications/{application_id}`. Linking twice is 409, and unlinking a link that does not exist is 404. Create takes the application ids in its body. | `scenario_applications-added-on-update.json`, `scenario_update-link-already-exists.json` |
@@ -83,8 +84,7 @@ with more than 200 applications does.
 ## Not covered
 
 - The key needs the permissions of the released resource: manage AI evaluations, and read AI
-  applications. A key without the second one cannot use `applications`. The generated resource reads
-  one custom evaluation with its own call, the same service as the list that it replaced. No key that
-  can list but cannot read one custom evaluation has been tried.
+  applications. A key without the second one cannot use `applications`. The generated resource calls
+  the same list and the same other routes as the handwritten one, so the permissions do not change.
 - The data source does not exist, so there is no data source baseline.
 - Only `policy_type` values `quality` and `security` are valid in Terraform. The API accepts others.

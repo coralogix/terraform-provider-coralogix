@@ -578,17 +578,17 @@ var aiceScenarios = map[string]func(h *grHarness){
 	"read-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("gone"))
 		h.aice().forgetOutside(aiceFirstEvalID)
-		h.Refresh("refresh: the API does not find the evaluation", s)
+		h.Refresh("refresh: the evaluation is not in the list", s)
 	},
 	"read-api-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("broken"))
-		h.aice().getStatus = 500
-		h.Refresh("refresh: the read answers 500", s)
+		h.aice().listStatus = 500
+		h.Refresh("refresh: the list answers 500", s)
 	},
 	"read-route-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("n"))
-		h.aice().getStatus = 404
-		h.Refresh("refresh: the route answers 404", s)
+		h.aice().listStatus = 404
+		h.Refresh("refresh: the list answers 404", s)
 	},
 	"delete-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("gone"))
@@ -646,8 +646,8 @@ var aiceScenarios = map[string]func(h *grHarness){
 	},
 	"import-api-error": func(h *grHarness) {
 		id := h.aice().seedEvaluation("imported")
-		h.aice().getStatus = 500
-		h.Import("import: the read answers 500", id)
+		h.aice().listStatus = 500
+		h.Import("import: the list answers 500", id)
 	},
 	"import-score-unexpected": func(h *grHarness) {
 		id := h.aice().seedEvaluation("imported")

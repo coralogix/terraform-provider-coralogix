@@ -151,8 +151,13 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if id == "" {
+		resp.Diagnostics.AddWarning("Resource has no id", "The state has no resource id. Terraform removed it from state so it can be recreated.")
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	v, err := r.get(ctx, id)
-	if cxsdk.IsNotFound(err) {
+	if err == nil && v == nil {
 		resp.Diagnostics.AddWarning("Resource disappeared during read",
 			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -234,14 +239,19 @@ func (r *Resource) create(ctx context.Context, body *ai_evaluations_service.AiEv
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*ai_evaluations_service.CustomEvaluation, error) {
-	out, httpResp, err := r.client.AiEvaluationsServiceGetCustomEvaluation(ctx, id).Execute()
+	out, httpResp, err := r.client.AiEvaluationsServiceGetCustomEvaluations(ctx).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
 	if out == nil {
 		return nil, nil
 	}
-	return out, nil
+	for i := range out.Items {
+		if got, ok := apiID(&out.Items[i]); ok && got == id {
+			return &out.Items[i], nil
+		}
+	}
+	return nil, nil
 }
 
 func (r *Resource) update(ctx context.Context, id string, body *ai_evaluations_service.AiEvaluationsServiceUpdateCustomEvaluationRequest) (*ai_evaluations_service.CustomEvaluation, error) {

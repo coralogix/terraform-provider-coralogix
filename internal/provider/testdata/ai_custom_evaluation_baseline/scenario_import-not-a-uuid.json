@@ -5,19 +5,16 @@
   },
   {
     "step": "import an id that is no UUID (refresh)",
-    "applyDiagnostics": [
-      "error: Unable to read ai_custom_evaluation | id not-a-uuid: id must have at least 36 elements"
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
+      }
     ],
-    "state": {
-      "application_ids": null,
-      "applications": null,
-      "criteria": null,
-      "description": null,
-      "id": "not-a-uuid",
-      "instructions": null,
-      "name": null,
-      "policy_type": null,
-      "should_include_system_prompt": null
-    }
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | ai_custom_evaluation with id not-a-uuid was not found. Terraform removed it from state."
+    ],
+    "state": null
   }
 ]

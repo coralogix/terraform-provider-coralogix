@@ -106,9 +106,9 @@ type aiceFake struct {
 	// linkScript does the same for the link calls. appsReverse does it for the calls that list the
 	// applications: true lists the applications in reverse order, which is an application order that
 	// changes between two page requests.
-	createStatus, listStatus, getStatus, appsStatus, deleteStatus, linkStatus, unlinkStatus int
-	updateScript, linkScript                                                                []int
-	appsReverse                                                                             []bool
+	createStatus, listStatus, appsStatus, deleteStatus, linkStatus, unlinkStatus int
+	updateScript, linkScript                                                     []int
+	appsReverse                                                                  []bool
 }
 
 type aiceEvaluation struct {
@@ -325,9 +325,6 @@ func (f *aiceFake) routeCollection(method string, body any) (int, any, bool) {
 
 func (f *aiceFake) routeItem(method, id string, body any) (int, any, bool) {
 	switch method {
-	case http.MethodGet:
-		status, answer := f.get(id)
-		return status, answer, true
 	case http.MethodPatch:
 		status, answer := f.update(id, asObject(body))
 		return status, answer, true
@@ -441,24 +438,6 @@ func (f *aiceFake) list() (int, any) {
 		items = append(items, e.proto(e.appIDs))
 	}
 	return http.StatusOK, map[string]any{"items": items}
-}
-
-// get answers the read of one evaluation, the call that the generated resource makes. The recording
-// has no such call, because the API of the recording does not have it yet: the answer follows the
-// contract of the new call, which returns the evaluation itself, with 404 for an id that no
-// evaluation has and for an id that is no UUID.
-func (f *aiceFake) get(id string) (int, any) {
-	if f.getStatus != 0 {
-		return aiceError(f.getStatus, http.StatusText(f.getStatus))
-	}
-	if !aiceUUIDPattern.MatchString(id) {
-		return aiceInvalidID()
-	}
-	e := f.find(id)
-	if e == nil {
-		return aiceNotFound("Custom evaluation not found")
-	}
-	return http.StatusOK, e.proto(e.appIDs)
 }
 
 func aiceExamples(value any) []map[string]any {

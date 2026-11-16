@@ -67,12 +67,12 @@
     "replanEmpty": true
   },
   {
-    "step": "refresh: the API does not find the evaluation",
+    "step": "refresh: the evaluation is not in the list",
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
-        "status": 404
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
+        "status": 200
       }
     ],
     "applyDiagnostics": [

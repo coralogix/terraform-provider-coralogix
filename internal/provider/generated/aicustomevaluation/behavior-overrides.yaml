@@ -12,16 +12,21 @@ validators:
 
 api:
   updateMaskInBody: true
+  # No call reads one custom evaluation by its id: the List is the Get.
+  idProperty: id
+  # The contract has no required list, and the API always returns the id.
+  serverSetID: true
+  getFromList: {}
   operations:
     create: AiEvaluationsService_CreateCustomEvaluation
-    get: AiEvaluationsService_GetCustomEvaluation
+    get: AiEvaluationsService_GetCustomEvaluations
     update: AiEvaluationsService_UpdateCustomEvaluation
     delete: AiEvaluationsService_DeleteCustomEvaluation
 
 types:
   CustomEvaluation:
     fields:
-      config: {inline: true}
+      config: {inline: true, required: true}
       id:
         markdownDescription: "AI custom evaluation ID."
       name:

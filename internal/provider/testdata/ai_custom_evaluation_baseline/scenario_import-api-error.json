@@ -1,14 +1,14 @@
 [
   {
-    "step": "import: the read answers 500",
+    "step": "import: the list answers 500",
     "state": null
   },
   {
-    "step": "import: the read answers 500 (refresh)",
+    "step": "import: the list answers 500 (refresh)",
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3/00000000-0000-4000-8000-000000001001",
+        "path": "/mgmt/openapi/5/ai/custom-evaluations/v3",
         "status": 500
       }
     ],
