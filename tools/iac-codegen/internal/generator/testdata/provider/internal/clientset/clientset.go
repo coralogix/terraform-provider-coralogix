@@ -39,7 +39,11 @@ type ClientSet struct {
 	Overwrite        *overwrite_things_service.OverwriteThingsServiceAPIService
 	ActionThing      *action_things_service.ActionThingsServiceAPIService
 	Folder           *folder_things_service.FolderThingsServiceAPIService
+	Flat             *flat_things_service.FlatThingsServiceAPIService
+	Box              *box_things_service.BoxThingsServiceAPIService
 	WrappedID        *wrapped_things_service.WrappedThingsServiceAPIService
+	MemberClient     *member_service.MemberServiceAPIService
+	MemberHookClient *member_hook_service.MemberHookServiceAPIService
 	Client           *things_service.ThingsServiceAPIService
 	SettingsClient   *settings_service.SettingsServiceAPIService
 	Legacy           *legacy_things_service.LegacyThingsServiceAPIService
@@ -53,9 +57,6 @@ type ClientSet struct {
 	Eval             *eval_things_service.EvalThingsServiceAPIService
 	Suppressed       *suppressed_things_service.SuppressedThingsServiceAPIService
 	RulebookClient   *rulebook_service.RulebookServiceAPIService
-	MemberClient     *member_service.MemberServiceAPIService
-
-	MemberHookClient *member_hook_service.MemberHookServiceAPIService
 	UpsertClient     *upsert_service.UpsertServiceAPIService
 	StorageClient    *storage_service.StorageServiceAPIService
 	Rename           *rename_things_service.RenameThingsServiceAPIService
@@ -72,12 +73,6 @@ type ClientSet struct {
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
 
 func (c *ClientSet) Rulebook() *rulebook_service.RulebookServiceAPIService { return c.RulebookClient }
-
-func (c *ClientSet) Member() *member_service.MemberServiceAPIService { return c.MemberClient }
-
-func (c *ClientSet) MemberHook() *member_hook_service.MemberHookServiceAPIService {
-	return c.MemberHookClient
-}
 
 func (c *ClientSet) Settings() *settings_service.SettingsServiceAPIService { return c.SettingsClient }
 
@@ -181,4 +176,8 @@ func (c *ClientSet) RetagThings() *retag_things_service.RetagThingsServiceAPISer
 
 func (c *ClientSet) UnionWrapThings() *union_wrap_things_service.UnionWrapThingsServiceAPIService {
 	return c.UnionWrap
+}
+func (c *ClientSet) Member() *member_service.MemberServiceAPIService { return c.MemberClient }
+func (c *ClientSet) MemberHook() *member_hook_service.MemberHookServiceAPIService {
+	return c.MemberHookClient
 }

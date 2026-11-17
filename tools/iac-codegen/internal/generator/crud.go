@@ -760,10 +760,14 @@ func getPage(ix *refIndex, r *model.Resource, out *crudData) error {
 		return nil
 	}
 	if r.NextPage == nil {
-		// A List with paging parameters but no next-page property that the model reads would
-		// silently drop resources beyond the first page.
+		// A List that pages but whose pages the model cannot follow would silently drop
+		// resources beyond the first page: paging parameters without a next-page property, or a
+		// pagination object without a next-page token property (the model marks both paged).
 		if len(r.PageParameters) > 0 {
-			return fmt.Errorf("get.page: the List pages with %d parameters but the model cannot read where the pages end", len(r.PageParameters))
+			return fmt.Errorf("get.page: the List pages its result with %d paging parameters but the model cannot read where the pages end", len(r.PageParameters))
+		}
+		if r.List != nil && r.List.Paged {
+			return fmt.Errorf("get.page: the List pages its result but the model cannot read where the pages end")
 		}
 		return nil
 	}
