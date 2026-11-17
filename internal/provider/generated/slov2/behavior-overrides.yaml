@@ -117,9 +117,9 @@ types:
   RequestBasedMetricSli:
     fields:
       goodEvents:
-        markdownDescription: "Query defining good events."
+        markdownDescription: "Query defining good events. The query must contain a `[1m]` range selector, for example `sum(rate(requests_total{status=\"ok\"}[1m]))`: the backend evaluates the query every minute, and it rewrites a query without a range by adding `[1m]`, which makes the stored query differ from the configuration."
       totalEvents:
-        markdownDescription: "Query defining total events."
+        markdownDescription: "Query defining total events. The query must contain a `[1m]` range selector, for example `sum(rate(requests_total[1m]))`: the backend evaluates the query every minute, and it rewrites a query without a range by adding `[1m]`, which makes the stored query differ from the configuration."
 
   Metric:
     fields:

@@ -317,8 +317,8 @@ Optional:
 
 Required:
 
-- `good_events` (Attributes) Query defining good events. (see [below for nested schema](#nestedatt--sli--request_based_metric_sli--good_events))
-- `total_events` (Attributes) Query defining total events. (see [below for nested schema](#nestedatt--sli--request_based_metric_sli--total_events))
+- `good_events` (Attributes) Query defining good events. The query must contain a `[1m]` range selector, for example `sum(rate(requests_total{status="ok"}[1m]))`: the backend evaluates the query every minute, and it rewrites a query without a range by adding `[1m]`, which makes the stored query differ from the configuration. (see [below for nested schema](#nestedatt--sli--request_based_metric_sli--good_events))
+- `total_events` (Attributes) Query defining total events. The query must contain a `[1m]` range selector, for example `sum(rate(requests_total[1m]))`: the backend evaluates the query every minute, and it rewrites a query without a range by adding `[1m]`, which makes the stored query differ from the configuration. (see [below for nested schema](#nestedatt--sli--request_based_metric_sli--total_events))
 
 <a id="nestedatt--sli--request_based_metric_sli--good_events"></a>
 ### Nested Schema for `sli.request_based_metric_sli.good_events`

@@ -26,7 +26,7 @@ import (
 )
 
 func NewSLOV2Resource() resource.Resource {
-	return slov2.NewResource(slov2.Hooks{BeforeWrite: clearOwnershipOnReplace, BeforeFlatten: normalizeLegacySLO})
+	return slov2.NewResource(slov2.Hooks{BeforeWrite: clearOwnershipOnReplace, BeforeFlatten: normalizeLegacySLO, ValidateConfig: validateRequestBasedQueryRanges})
 }
 
 // clearOwnershipOnReplace sends an empty ownershipTags with a request that has none. A metric SLO

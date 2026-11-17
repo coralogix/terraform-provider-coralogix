@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- FIX: Plan fails with a clear message when `sli.request_based_metric_sli.good_events.query` or `total_events.query` has no range selector. The backend rewrites such a query by adding `[1m]`, which ended the apply with "Provider produced inconsistent result after apply"; write the `[1m]` range in the query.
+
 #### tools/iac-codegen
 - FEAT: `readAfterWrite: true` in `behavior-overrides.yaml` (with `getHooks: true`) makes Create and Update read the resource with Get after a write whose response holds the resource, so `AfterGet` runs after a write too and the state after a write equals the state after a Read. A write that already reads back, or a line without `getHooks`, is an error.
 - FIX: A `behavior-overrides.yaml` field line on a component that the Get response does not reach, such as an item that only a request sends, fails with `OVERRIDE_UNUSED`. Before, the generator accepted it and ignored it.

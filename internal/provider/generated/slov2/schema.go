@@ -150,7 +150,7 @@ func Schema() schema.Schema {
 										MarkdownDescription: "Query string for the metric.",
 									},
 								},
-								MarkdownDescription: "Query defining good events.",
+								MarkdownDescription: "Query defining good events. The query must contain a `[1m]` range selector, for example `sum(rate(requests_total{status=\"ok\"}[1m]))`: the backend evaluates the query every minute, and it rewrites a query without a range by adding `[1m]`, which makes the stored query differ from the configuration.",
 							},
 							"total_events": schema.SingleNestedAttribute{
 								Required: true,
@@ -160,7 +160,7 @@ func Schema() schema.Schema {
 										MarkdownDescription: "Query string for the metric.",
 									},
 								},
-								MarkdownDescription: "Query defining total events.",
+								MarkdownDescription: "Query defining total events. The query must contain a `[1m]` range selector, for example `sum(rate(requests_total[1m]))`: the backend evaluates the query every minute, and it rewrites a query without a range by adding `[1m]`, which makes the stored query differ from the configuration.",
 							},
 						},
 						MarkdownDescription: "SLI based on request metrics.",
