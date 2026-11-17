@@ -127,6 +127,8 @@ func TestGoldenOutputMemberHook(t *testing.T) {
 
 func TestMemberThingNegativeKeys(t *testing.T) {
 	input, _ := syntheticInput(t)
+	memberOverrides := filepath.Join("testdata", "memberthing-overrides.yaml")
+	memberSpec := filepath.Join("testdata", "memberthing.yaml")
 	// refused runs the spec through the validator and requires the named error.
 	refused := func(spec []byte, overrides string, want string) {
 		t.Helper()
@@ -143,7 +145,7 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 	mutated := func(change func(doc map[string]any)) []byte {
 		t.Helper()
 		var doc map[string]any
-		if err := yaml.Unmarshal(mustRead(t, filepath.Join("testdata", "memberthing.yaml")), &doc); err != nil {
+		if err := yaml.Unmarshal(mustRead(t, memberSpec), &doc); err != nil {
 			t.Fatal(err)
 		}
 		change(doc)
@@ -153,7 +155,6 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 		}
 		return spec
 	}
-	memberOverrides := filepath.Join("testdata", "memberthing-overrides.yaml")
 	// A List whose GET lost the page-token query parameter must be refused: the model cannot
 	// read the next page.
 	spec := mutated(func(doc map[string]any) {
@@ -203,7 +204,7 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = validateOpenAPIWith(mustRead(t, filepath.Join("testdata", "memberthing.yaml")), "Member", Options{}.OperationIDs, input.SDKModule, input.Module, strippedOverrides)
+	_, err = validateOpenAPIWith(mustRead(t, memberSpec), "Member", Options{}.OperationIDs, input.SDKModule, input.Module, strippedOverrides)
 	// The model refuses the undecipherable batch Create response at the contract gate, and the
 	// renderer refuses one that the model passes but the createResult line does not describe.
 	if err == nil || !strings.Contains(err.Error(), "RESOURCE_LIFECYCLE_INCOMPLETE") && !strings.Contains(err.Error(), "batch write array") {
