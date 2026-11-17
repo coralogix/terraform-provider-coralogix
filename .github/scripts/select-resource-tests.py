@@ -105,11 +105,16 @@ def select(component: str, new_out: str | None = None,
            new_tf_name: str | None = None) -> dict:
     known = resources()
     if component in known:
-        if len(known[component]) != 1:
-            raise ValueError(f"ambiguous resource mapping in codegen-list.sh: {component}")
-        out, tf_name = known[component][0]
-        if (new_out and new_out != out) or (new_tf_name and new_tf_name != tf_name):
+        matches = known[component]
+        if new_out:
+            matches = [mapping for mapping in matches if mapping[0] == new_out]
+        if new_tf_name:
+            matches = [mapping for mapping in matches if mapping[1] == new_tf_name]
+        if not matches:
             raise ValueError(f"resource mapping differs from codegen-list.sh: {component}")
+        if len(matches) != 1:
+            raise ValueError(f"ambiguous resource mapping in codegen-list.sh: {component}")
+        out, tf_name = matches[0]
     else:
         if not new_out or not new_tf_name:
             raise ValueError(f"unknown generated resource: {component}")

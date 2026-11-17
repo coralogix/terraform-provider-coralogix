@@ -30,9 +30,14 @@ class SelectorTests(unittest.TestCase):
     def test_ambiguous_existing_mapping_fails(self):
         mapping = {"Thing": [("thing", "coralogix_thing"),
                              ("other", "coralogix_other")]}
-        with mock.patch.object(selector, "resources", return_value=mapping):
+        with mock.patch.object(selector, "resources", return_value=mapping), \
+             mock.patch.object(selector, "root_names", return_value=[]), \
+             mock.patch.object(selector, "listed_names", return_value=["TestAccThing"]):
             with self.assertRaisesRegex(ValueError, "ambiguous resource mapping"):
                 selector.select("Thing")
+            self.assertEqual("other", selector.select("Thing", "other", "coralogix_other")["out"])
+            with self.assertRaisesRegex(ValueError, "mapping differs"):
+                selector.select("Thing", "missing", "coralogix_other")
 
     def test_noncanonical_handwritten_test_files(self):
         with tempfile.TemporaryDirectory() as directory:
