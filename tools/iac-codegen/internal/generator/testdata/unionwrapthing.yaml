@@ -162,7 +162,7 @@ components:
     Tag:
       type: object
       properties:
-        label: {type: string, x-coralogix-presence: true}
+        label: {type: string, x-coralogix-presence: true, description: The label of a tag.}
     # One component in two places that hold its value in different shapes. The single place (choice)
     # inlines the value: choice = {value, label, remark}. The list (choices) keeps the object:
     # choices = [{value = {value, label}, note}].

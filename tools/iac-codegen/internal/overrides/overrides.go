@@ -896,6 +896,12 @@ type Field struct {
 	// string means that the released field had no description.
 	Description         *string `yaml:"description"`
 	MarkdownDescription *string `yaml:"markdownDescription"`
+	// DescriptionSuffix is Terraform-only text for the docs of the attribute. The generator
+	// appends it, after one space, to the description that the API contract gives the field (and
+	// to the list of valid values that enumValuesInDescription adds). Unlike description and
+	// markdownDescription it does not replace the contract text, so a change of the contract
+	// shows in the docs. A field whose contract has no description cannot take it.
+	DescriptionSuffix *string `yaml:"descriptionSuffix"`
 	// Required: true makes the Terraform attribute Required, although the contract does not
 	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
@@ -1841,6 +1847,7 @@ func (l Field) keys() []string {
 	add(l.DefaultArm, "defaultArm")
 	add(l.Description != nil, "description")
 	add(l.MarkdownDescription != nil, "markdownDescription")
+	add(l.DescriptionSuffix != nil, "descriptionSuffix")
 	add(l.ReadOnly, "readOnly")
 	add(l.Required, "required")
 	add(l.Optional, "optional")
@@ -2100,7 +2107,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.hasTypeKey() && !l.DefaultArm && l.Deprecation == "" && !l.Sensitive &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && l.DescriptionSuffix == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.hasTypeKey() && !l.DefaultArm && l.Deprecation == "" && !l.Sensitive &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 
@@ -2160,6 +2167,9 @@ func (l Field) check() error {
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
 	}
+	if err := l.checkDescriptionSuffix(); err != nil {
+		return err
+	}
 	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
 	}
@@ -2180,6 +2190,27 @@ func (l Field) check() error {
 	}
 
 	return checkValidators(l.Validators)
+}
+
+// checkDescriptionSuffix checks descriptionSuffix. It adds to the contract text, so it cannot go
+// with a key that states the whole text, and it needs a field that has an attribute and a text that
+// joins the contract text with one space.
+func (l Field) checkDescriptionSuffix() error {
+	if l.DescriptionSuffix == nil {
+		return nil
+	}
+	suffix := *l.DescriptionSuffix
+	switch {
+	case l.Description != nil || l.MarkdownDescription != nil:
+		return errors.New("descriptionSuffix adds to the description of the contract, and description or markdownDescription replaces it: set one of them")
+	case strings.TrimSpace(suffix) == "":
+		return errors.New("descriptionSuffix is empty: delete the key, or write the text that follows the description of the contract")
+	case strings.TrimSpace(suffix) != suffix:
+		return errors.New("descriptionSuffix must not start or end with white space: the generator puts one space between the description of the contract and the suffix")
+	case l.Skip || l.Fixed():
+		return errors.New("descriptionSuffix needs a field that has a Terraform attribute, but a skip or requestValue field has none")
+	}
+	return nil
 }
 
 // inlineKeys are the keys that an inline line can have besides inline. required says that the API
