@@ -5,7 +5,8 @@
 # application and no resource creates one, so the test reads an existing one from the environment:
 # the CI team has 20 of them, which the preparation step of the acceptance workflow creates (see
 # AI_EVALUATION_APPLICATION there). The handwritten TestAccCoralogixResourceAIEvaluation takes any
-# free application of the tenant at random, so the test uses the last one and the two rarely meet.
+# free application of the tenant at random, but skips the one that these variables name, so the two
+# never meet.
 #
 # The target is "prompt": every evaluation type accepts it, and prompt_injection accepts no other.
 #
