@@ -161,6 +161,16 @@ func dataSourceChecks() resource.TestCheckFunc {
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "groups.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "groups.*", map[string]string{
+			"interval":                    "60",
+			"limit":                       "1",
+			"name":                        render(run, "@{run}-name"),
+			"rules.#":                     "1",
+			"rules.0.evaluation_delay_ms": "1",
+			"rules.0.expr":                "vector(1)",
+			"rules.0.labels.key":          render(run, "@{run}-labels"),
+			"rules.0.record":              "tf_acc:record",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }
@@ -168,6 +178,16 @@ func fullChecks(run string) resource.TestCheckFunc {
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "groups.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "groups.*", map[string]string{
+			"interval":                    "61",
+			"limit":                       "2",
+			"name":                        render(run, "@{run}-name-updated"),
+			"rules.#":                     "1",
+			"rules.0.evaluation_delay_ms": "2",
+			"rules.0.expr":                "vector(1)",
+			"rules.0.labels.key":          render(run, "@{run}-labels-updated"),
+			"rules.0.record":              "tf_acc:record",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 	)
 }
@@ -175,6 +195,16 @@ func updatedChecks(run string) resource.TestCheckFunc {
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "groups.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "groups.*", map[string]string{
+			"interval":                    "60",
+			"limit":                       "1",
+			"name":                        render(run, "@{run}-name"),
+			"rules.#":                     "1",
+			"rules.0.evaluation_delay_ms": "1",
+			"rules.0.expr":                "vector(1)",
+			"rules.0.labels.key":          render(run, "@{run}-labels"),
+			"rules.0.record":              "tf_acc:record",
+		}),
 		resource.TestCheckNoResourceAttr(resourceAddress, "yaml_content"),
 	)
 }
@@ -191,6 +221,16 @@ func removedChecks(run string) resource.TestCheckFunc {
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "groups.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "groups.*", map[string]string{
+			"interval":                    "60",
+			"limit":                       "1",
+			"name":                        render(run, "@{run}-name"),
+			"rules.#":                     "1",
+			"rules.0.evaluation_delay_ms": "1",
+			"rules.0.expr":                "vector(1)",
+			"rules.0.labels.key":          render(run, "@{run}-labels"),
+			"rules.0.record":              "tf_acc:record",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }

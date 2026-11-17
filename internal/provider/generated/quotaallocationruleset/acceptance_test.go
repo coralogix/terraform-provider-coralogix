@@ -130,24 +130,46 @@ func dataSourceChecks() resource.TestCheckFunc {
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "rules.*", map[string]string{
+			"allocation_type": "percentage",
+			"can_overflow":    "true",
+			"enabled":         "true",
+			"entity_type":     "logs",
+		}),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "rules.*", map[string]string{
+			"allocation_type": "percentage",
+			"can_overflow":    "false",
+			"enabled":         "false",
+			"entity_type":     "logs",
+		}),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "rules.*", map[string]string{
+			"can_overflow": "true",
+			"enabled":      "true",
+			"entity_type":  "logs",
+		}),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "rules.*", map[string]string{
+			"can_overflow": "true",
+			"enabled":      "true",
+			"entity_type":  "logs",
+		}),
 	)
 }
 

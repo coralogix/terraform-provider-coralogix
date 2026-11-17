@@ -69,6 +69,50 @@ func TestGoldenOutputBoxThing(t *testing.T) {
 	}
 }
 
+// The failure-path test of a resource that is read from its List says so: a box thing that is gone
+// is a list without it, not a 404. Only the acceptance test is compared.
+func TestGoldenAcceptanceBoxThing(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "boxthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "boxthing")
+	options := Options{
+		Resource:       "BoxThing",
+		OutputDir:      out,
+		OverridesPath:  filepath.Join("testdata", "boxthing-overrides.yaml"),
+		AcceptancePath: filepath.Join("testdata", "boxthing-acceptance.yaml"),
+	}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "acceptance_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	golden := filepath.Join("testdata", "golden", "boxthing-acceptance", "acceptance_test.go")
+	if *updateGolden {
+		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(golden, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(want) != string(got) {
+		t.Fatalf("golden acceptance test differs; run go test ./internal/generator -run TestGoldenAcceptanceBoxThing -update")
+	}
+	if !strings.Contains(string(got), "ReadFromList:   true,") {
+		t.Fatal("the failure-path test of a resource that is read from its List must say ReadFromList")
+	}
+}
+
 // The generated code runs: Read selects the item by its id from the List, a missing item removes
 // the resource from the state, and Update puts the id in its path.
 func TestBoxThingRuntimeSemantics(t *testing.T) {

@@ -186,6 +186,7 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "creator", resourceAddress, "creator"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "active", resourceAddress, "active"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "hidden", resourceAddress, "hidden"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "applications.#", resourceAddress, "applications.#"),
@@ -197,6 +198,8 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.description", resourceAddress, "rule_subgroups.0.rules.0.block.description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.active", resourceAddress, "rule_subgroups.0.rules.0.block.active"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.name", resourceAddress, "rule_subgroups.0.rules.0.block.name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.source_field", resourceAddress, "rule_subgroups.0.rules.0.block.source_field"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.keep_blocked_logs", resourceAddress, "rule_subgroups.0.rules.0.block.keep_blocked_logs"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.regular_expression", resourceAddress, "rule_subgroups.0.rules.0.block.regular_expression"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", resourceAddress, "rule_subgroups.0.rules.0.block.block_all_matching_blocks"),
 	)
@@ -206,6 +209,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "creator", render(run, "@{run}-creator")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "hidden", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
@@ -217,6 +221,8 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.active", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.source_field", "text"),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.keep_blocked_logs", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.regular_expression", render(run, "@{run}-regular_expression")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", "true"),
 	)
@@ -226,6 +232,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "creator", render(run, "@{run}-creator-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "hidden", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
@@ -237,6 +244,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.source_field", "text"),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.keep_blocked_logs", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.regular_expression", render(run, "@{run}-regular_expression-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", "false"),
 	)
@@ -244,6 +253,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.#", "1"),
@@ -252,6 +262,8 @@ func minimalChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.active", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.source_field", "text"),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.keep_blocked_logs", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.regular_expression", render(run, "@{run}-regular_expression")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", "true"),
 	)
@@ -259,6 +271,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.#", "1"),
@@ -267,6 +280,8 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.active", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.source_field", "text"),
+		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.keep_blocked_logs", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.regular_expression", render(run, "@{run}-regular_expression")),
 		resource.TestCheckResourceAttr(resourceAddress, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", "true"),
 	)

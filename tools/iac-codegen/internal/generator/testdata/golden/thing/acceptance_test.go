@@ -257,6 +257,9 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "destinations.0", "https://a"),
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "details.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "details.*", map[string]string{
+			"name": render(run, "@{run}-name"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "labels.key", render(run, "@{run}-labels")),
 		resource.TestCheckResourceAttr(resourceAddress, "expire_time", "2030-01-01T00:00:00Z"),
 		resource.TestCheckResourceAttr(resourceAddress, "windows.#", "1"),
@@ -289,6 +292,9 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "destinations.0", "https://b"),
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "details.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "details.*", map[string]string{
+			"name": render(run, "@{run}-name-updated"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "labels.key", render(run, "@{run}-labels-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "expire_time", "2030-01-02T00:00:00Z"),
 		resource.TestCheckResourceAttr(resourceAddress, "windows.#", "1"),

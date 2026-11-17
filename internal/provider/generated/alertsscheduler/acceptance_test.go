@@ -189,9 +189,14 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "enabled", resourceAddress, "enabled"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "filter.meta_labels.#", resourceAddress, "filter.meta_labels.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "filter.what_expression", resourceAddress, "filter.what_expression"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "meta_labels.#", resourceAddress, "meta_labels.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "schedule.one_time.time_frame.duration.for_over", resourceAddress, "schedule.one_time.time_frame.duration.for_over"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "schedule.one_time.time_frame.duration.frequency", resourceAddress, "schedule.one_time.time_frame.duration.frequency"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "schedule.one_time.time_frame.start_time", resourceAddress, "schedule.one_time.time_frame.start_time"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "schedule.one_time.time_frame.time_zone", resourceAddress, "schedule.one_time.time_frame.time_zone"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "schedule.operation", resourceAddress, "schedule.operation"),
 	)
 }
 
@@ -200,9 +205,22 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "filter.meta_labels.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "filter.meta_labels.*", map[string]string{
+			"key":   "key",
+			"value": "value",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.what_expression", "source logs | filter true"),
 		resource.TestCheckResourceAttr(resourceAddress, "meta_labels.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "meta_labels.*", map[string]string{
+			"key":   "key",
+			"value": "value",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-scheduler")),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.for_over", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.frequency", "days"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.operation", "mute"),
 	)
 }
 
@@ -211,16 +229,34 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "filter.meta_labels.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "filter.meta_labels.*", map[string]string{
+			"key":   "key",
+			"value": "value",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.what_expression", "source logs | filter true"),
 		resource.TestCheckResourceAttr(resourceAddress, "meta_labels.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "meta_labels.*", map[string]string{
+			"key":   "key",
+			"value": "value",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-scheduler")),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.for_over", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.frequency", "days"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.operation", "mute"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-scheduler")),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.for_over", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.frequency", "days"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.operation", "mute"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", ""),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 	)
@@ -228,8 +264,13 @@ func minimalChecks(run string) resource.TestCheckFunc {
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-scheduler")),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.for_over", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.frequency", "days"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.operation", "mute"),
 	)
 }
 

@@ -162,43 +162,72 @@ func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "config_overrides.#", resourceAddress, "config_overrides.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "config_overrides.0.entity_type", resourceAddress, "config_overrides.0.entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "config_overrides.0.fields.#", resourceAddress, "config_overrides.0.fields.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "connector_config.fields.#", resourceAddress, "connector_config.fields.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "type", resourceAddress, "type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "config_overrides.#", resourceAddress, "config_overrides.#"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "config_overrides.0.entity_type", resourceAddress, "config_overrides.0.entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "config_overrides.0.fields.#", resourceAddress, "config_overrides.0.fields.#"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "connector_config.fields.#", resourceAddress, "connector_config.fields.#"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "type", resourceAddress, "type"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.fields.*", map[string]string{
+			"field_name": "url",
+			"template":   "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "connector_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "connector_config.fields.*", map[string]string{
+			"field_name": "url",
+			"value":      "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "type", "generic_https"),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.fields.*", map[string]string{
+			"field_name": "url",
+			"template":   "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "connector_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "connector_config.fields.*", map[string]string{
+			"field_name": "url",
+			"value":      "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "type", "generic_https"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "connector_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "connector_config.fields.*", map[string]string{
+			"field_name": "url",
+			"value":      "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "type", "generic_https"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", ""),
 	)
 }
@@ -206,8 +235,13 @@ func minimalChecks(run string) resource.TestCheckFunc {
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "connector_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "connector_config.fields.*", map[string]string{
+			"field_name": "url",
+			"value":      "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "type", "generic_https"),
 	)
 }
 
@@ -241,11 +275,21 @@ const upgradeWriteOnlyConfig = `resource "coralogix_connector" "test" {
 func upgradeWriteOnlyChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.fields.*", map[string]string{
+			"field_name": "url",
+			"template":   "https://httpbin.org/post",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "connector_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "connector_config.fields.*", map[string]string{
+			"field_name": "url",
+			"value":      "https://httpbin.org/post",
+		}),
 		resource.TestCheckNoResourceAttr(resourceAddress, "connector_config.field_values_wo"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "type", "generic_https"),
 	)
 }
 

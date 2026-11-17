@@ -215,10 +215,12 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.auto_resolve_mode", resourceAddress, "case_settings.auto_resolve_mode"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.#", resourceAddress, "case_settings.enrichment_queries.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.0.query", resourceAddress, "case_settings.enrichment_queries.0.query"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.0.type", resourceAddress, "case_settings.enrichment_queries.0.type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "enabled", resourceAddress, "enabled"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "incidents_settings.notify_on", resourceAddress, "incidents_settings.notify_on"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "notification_group.webhooks_settings.#", resourceAddress, "notification_group.webhooks_settings.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "priority", resourceAddress, "priority"),
 	)
@@ -227,17 +229,30 @@ func dataSourceChecks() resource.TestCheckFunc {
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query")),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-alert")),
 		resource.TestCheckResourceAttr(resourceAddress, "notification_group.webhooks_settings.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "notification_group.webhooks_settings.*", map[string]string{
+			"notify_on": "Triggered Only",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "priority", "P1"),
 	)
 }
@@ -245,23 +260,37 @@ func fullChecks(run string) resource.TestCheckFunc {
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value-updated"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value-updated"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-alert")),
 		resource.TestCheckResourceAttr(resourceAddress, "notification_group.webhooks_settings.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "notification_group.webhooks_settings.*", map[string]string{
+			"notify_on": "Triggered Only",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "priority", "P1"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-alert")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "phantom_mode", "false"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
@@ -278,7 +307,9 @@ func removedChecks(run string) resource.TestCheckFunc {
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-alert")),
+	)
 }
 
 const upgradeScheduleConfig = `resource "coralogix_alert" "test" {
@@ -343,17 +374,30 @@ const upgradeScheduleConfig = `resource "coralogix_alert" "test" {
 func upgradeScheduleChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value"),
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query")),
 		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-alert")),
 		resource.TestCheckResourceAttr(resourceAddress, "notification_group.webhooks_settings.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "notification_group.webhooks_settings.*", map[string]string{
+			"notify_on": "Triggered Only",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "priority", "P1"),
 	)
 }

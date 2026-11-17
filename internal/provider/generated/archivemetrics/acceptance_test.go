@@ -119,6 +119,8 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "retention_policy.five_minutes_resolution", resourceAddress, "retention_policy.five_minutes_resolution"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "retention_policy.one_hour_resolution", resourceAddress, "retention_policy.one_hour_resolution"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "retention_policy.raw_resolution", resourceAddress, "retention_policy.raw_resolution"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "s3.bucket", resourceAddress, "s3.bucket"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "s3.region", resourceAddress, "s3.region"),
 	)
 }
 
@@ -127,6 +129,8 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "retention_policy.five_minutes_resolution", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "retention_policy.one_hour_resolution", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "retention_policy.raw_resolution", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "s3.bucket", render(run, "@{env.ARCHIVE_METRICS_BUCKET}")),
+		resource.TestCheckResourceAttr(resourceAddress, "s3.region", "eu-north-1"),
 	)
 }
 
@@ -135,15 +139,23 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "retention_policy.five_minutes_resolution", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "retention_policy.one_hour_resolution", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "retention_policy.raw_resolution", "2"),
+		resource.TestCheckResourceAttr(resourceAddress, "s3.bucket", render(run, "@{env.ARCHIVE_METRICS_BUCKET}")),
+		resource.TestCheckResourceAttr(resourceAddress, "s3.region", "eu-north-1"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "s3.bucket", render(run, "@{env.ARCHIVE_METRICS_BUCKET}")),
+		resource.TestCheckResourceAttr(resourceAddress, "s3.region", "eu-north-1"),
+	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "s3.bucket", render(run, "@{env.ARCHIVE_METRICS_BUCKET}")),
+		resource.TestCheckResourceAttr(resourceAddress, "s3.region", "eu-north-1"),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }

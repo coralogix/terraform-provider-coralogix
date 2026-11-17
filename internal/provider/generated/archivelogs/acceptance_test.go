@@ -97,29 +97,35 @@ func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "active", resourceAddress, "active"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "bucket", resourceAddress, "bucket"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "active", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "bucket", render(run, "@{env.ARCHIVE_LOGS_BUCKET}")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "active", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "bucket", render(run, "@{env.ARCHIVE_LOGS_BUCKET}")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "bucket", render(run, "@{env.ARCHIVE_LOGS_BUCKET}")),
 		resource.TestCheckResourceAttr(resourceAddress, "active", "true"),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "bucket", render(run, "@{env.ARCHIVE_LOGS_BUCKET}")),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }
