@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Pin the Management SDK at a ref, regenerate the resources of tools/iac-codegen/auto-regenerate.txt,
+# Pin the Management SDK at a ref, regenerate every resource of internal/provider/codegen.go and
 # the docs, and add a changelog entry for each resource whose generated files changed: its
 # package under internal/provider/generated or its examples, the paths that
 # check-generated-resources.sh compares.
 # Usage: regenerate-from-sdk.sh <SDK ref: commit SHA, tag, or branch>
 # Prints the Terraform name of each changed resource, one per line, and nothing when the
 # generated code is unchanged. TFGEN can name a prebuilt generator.
+# A resource that the generator fails on keeps its committed files, and the regeneration goes on
+# with the others. Its Terraform name goes to stderr and, one per line, to the file that
+# FAILED_RESOURCES_FILE names.
 set -euo pipefail
 
 if [[ $# -ne 1 || -z $1 ]]; then
@@ -36,12 +39,31 @@ else
   (cd tools/iac-codegen && go build -o "$binary" ./cmd/tfgen)
 fi
 
-# Only resources of tools/iac-codegen/auto-regenerate.txt; the check fails when a generated one is missing.
-"$scripts/check-auto-regenerate-list.sh" >"$work/resources"
-while read -r resource out _; do
+failed=${FAILED_RESOURCES_FILE:-$work/failed}
+: >"$failed"
+"$scripts/codegen-list.sh" --names >"$work/resources"
+while read -r resource out name; do
   printf 'Generating %s into %s\n' "$resource" "$out" >&2
-  "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2
+  if "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2 </dev/null; then
+    continue
+  fi
+  # The generator can stop after it wrote some files: put back the committed ones.
+  for path in "internal/provider/generated/$out" "examples/resources/$name" "examples/data-sources/$name"; do
+    rm -rf "$path"
+    # A resource without a data source has no committed data source example.
+    if git cat-file -e "HEAD:$path" 2>/dev/null; then
+      git checkout HEAD -- "$path"
+    fi
+  done
+  printf 'The generator failed on %s. It keeps its committed files.\n' "$name" >&2
+  printf '%s\n' "$name" >>"$failed"
 done <"$work/resources"
+# A failure on every resource is a broken setup, such as a missing Go toolchain, not a contract
+# that one resource cannot express yet.
+if [[ $(wc -l <"$failed") -eq $(wc -l <"$work/resources") ]]; then
+  printf '%s\n' 'The generator failed on every resource.' >&2
+  exit 1
+fi
 make generate >&2
 
 # changelog_entries adds the entries of one doc kind (resources or data-sources) of a resource and
