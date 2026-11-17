@@ -37,6 +37,17 @@ EXTRA_ROOT_TESTS = {
         "webhook_generated_lifecycle_test.go": ("TestAccCoralogixResourceWebhookGeneratedTypes",),
     },
 }
+SERIAL_OUTS = {
+    "archivelogs", "archivemetrics", "archiveretentions", "globalrouter",
+    "ipaccess", "parsingrules", "quotaallocationruleset", "recordingrulesgroupsset",
+    "tcopolicieslogs", "tcopoliciesrum", "tcopoliciestraces",
+}
+MIGRATION_GATES = {
+    "DashboardMigration": "CORALOGIX_DASHBOARD_MIGRATION_ACC",
+    "Events2MetricMigration": "CORALOGIX_EVENTS2METRIC_MIGRATION_ACC",
+    "GlobalRouterMigration": "CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC",
+    "UserMigration": "CORALOGIX_USER_MIGRATION_ACC",
+}
 
 
 def resources() -> dict[str, list[tuple[str, str]]]:
@@ -110,7 +121,7 @@ def subtest_matches(pattern: str, parent: str, child: str) -> bool:
             and re.search(parts[1], child) is not None)
 
 
-def required_inputs(out: str) -> list[str]:
+def required_inputs(out: str, selected_names: list[str]) -> list[str]:
     acceptance = ROOT / "internal/provider/generated" / out / "acceptance.yaml"
     values = ["CORALOGIX_API_KEY",
               "CORALOGIX_ENV" if out == "ipaccess" else "CORALOGIX_DOMAIN"]
@@ -122,6 +133,13 @@ def required_inputs(out: str) -> list[str]:
         values.append("CORALOGIX_ORG_API_KEY")
     if out == "ipaccess":
         values.extend(("TF_ACC_PROVIDER_NAMESPACE", "IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION"))
+    if any("GeneratedUpgrade" in name or "Migration" in name
+           for name in selected_names):
+        values.append("TF_ACC_PROVIDER_NAMESPACE")
+    if any("GeneratedUpgrade" in name for name in selected_names):
+        values.append("CORALOGIX_GENERATED_UPGRADE_ACC")
+    for name in selected_names:
+        values.extend(gate for stem, gate in MIGRATION_GATES.items() if stem in name)
     return sorted(set(values))
 
 
@@ -186,8 +204,12 @@ def select(component: str, new_out: str | None = None,
                            "run": run_pattern(names), "expected": names})
     if not shards:
         raise ValueError(f"no listed acceptance tests for {component}")
+    if out in SERIAL_OUTS:
+        # Both packages change the same account-wide state. Keep them in one shard.
+        shards = [{"name": "serial", "steps": shards}]
+    selected_names = root + generated
     return {"resource": component, "out": out, "tf_name": tf_name,
-            "required_inputs": required_inputs(out), "shards": shards}
+            "required_inputs": required_inputs(out, selected_names), "shards": shards}
 
 
 def main() -> int:

@@ -97,11 +97,36 @@ class SelectorTests(unittest.TestCase):
         self.assertEqual(selected, mapped)
 
     def test_ip_access_live_test_requires_its_extra_inputs(self):
-        required = selector.required_inputs("ipaccess")
+        required = selector.required_inputs("ipaccess", ["TestIpAccessGeneratedLiveAcceptance"])
         self.assertIn("CORALOGIX_ENV", required)
         self.assertNotIn("CORALOGIX_DOMAIN", required)
         self.assertIn("TF_ACC_PROVIDER_NAMESPACE", required)
         self.assertIn("IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION", required)
+
+    def test_upgrade_and_migration_gates_follow_selected_tests(self):
+        required = selector.required_inputs("apikey", ["TestAccCoralogixResourceApiKeyGeneratedUpgrade"])
+        self.assertIn("CORALOGIX_GENERATED_UPGRADE_ACC", required)
+        self.assertIn("TF_ACC_PROVIDER_NAMESPACE", required)
+        required = selector.required_inputs("dashboard", ["TestAccCoralogixResourceDashboardMigrationFromV360"])
+        self.assertIn("CORALOGIX_DASHBOARD_MIGRATION_ACC", required)
+        self.assertIn("TF_ACC_PROVIDER_NAMESPACE", required)
+        required = selector.required_inputs("dashboard", ["TestAccCoralogixResourceDashboardGenerated"])
+        self.assertNotIn("CORALOGIX_DASHBOARD_MIGRATION_ACC", required)
+
+    def test_singleton_tests_share_one_serial_shard(self):
+        root = ["TestAccCoralogixResourceQuotaAllocationRuleSet"]
+        generated = ["TestAccCoralogixResourceQuotaAllocationRuleSetGenerated"]
+        def listed(package):
+            return generated if package.endswith("/generated/quotaallocationruleset") else root
+        with mock.patch.object(selector, "resources", return_value={
+            "QuotaAllocationRuleSet": [("quotaallocationruleset", "coralogix_quota_allocation_rule_set")]}), \
+             mock.patch.object(selector, "root_names", return_value=root), \
+             mock.patch.object(selector, "listed_names", side_effect=listed):
+            selected = selector.select("QuotaAllocationRuleSet")
+        self.assertEqual(1, len(selected["shards"]))
+        self.assertEqual("serial", selected["shards"][0]["name"])
+        self.assertEqual([root, generated],
+                         [step["expected"] for step in selected["shards"][0]["steps"]])
 
     def test_dashboard_includes_handwritten_and_every_generated_subtest(self):
         with tempfile.TemporaryDirectory() as directory:
