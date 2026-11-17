@@ -112,7 +112,6 @@ components:
       type: object
       required:
       - members
-      - nextPageToken
       properties:
         nextPageToken:
           type: integer
@@ -152,7 +151,14 @@ components:
           $ref: '#/components/schemas/MemberTemplate'
     UpdateMembersResponse:
       type: object
-      required: []
+      required:
+      - members
+      properties:
+        members:
+          type: array
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/Member'
     UpdateMembersStatusesResponse:
       type: object
       required: []

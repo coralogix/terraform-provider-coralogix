@@ -469,7 +469,7 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 	// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 	body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
-	v, err := r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if .UpdateMask}}, mask{{end}})
+	v, err := r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty .Update.UpdateItems}}, id{{end}}, body{{if .UpdateMask}}, mask{{end}})
 	if err != nil {
 		diags.AddError("Unable to update "+TypeName+" after create", err.Error())
 		return diags
@@ -608,7 +608,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
-		v, err = r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if .UpdateMask}}, mask{{end}})
+		v, err = r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty .Update.UpdateItems}}, id{{end}}, body{{if .UpdateMask}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		// The framework does not allow Update to remove the resource from state.
@@ -832,18 +832,18 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 		}
 	}
 {{- if .GetNextPage}}
-	{{- $tokenType := "string"}}{{if .GetNextPageInt}}{{$tokenType = "int64"}}{{end}}
+	{{- $tokenType := .GetNextPageType}}{{if not .GetNextPageType}}{{$tokenType = "string"}}{{end}}
 	{{- if .GetHooks}}
 		pageRequest := func(token {{$tokenType}}) func() {{$sdk}}.{{.GetRequest}} {
 			return func() {{$sdk}}.{{.GetRequest}} {
-				return request().{{.GetNextPage}}({{if .GetNextPageValue}}token{{else}}*token{{end}})
+				return request().{{.GetNextPage}}(token)
 			}
 		}
 		pageExecute := func(token {{if .GetNextPageValue}}{{$tokenType}}{{else}}*{{$tokenType}}{{end}}) (*{{$sdk}}.{{.GetResponse}}, *http.Response, error) {
 			if r.hooks.Get != nil {
-				return r.hooks.Get(ctx, pageRequest(token))
+				return r.hooks.Get(ctx, pageRequest({{if .GetNextPageValue}}token{{else}}*token{{end}}))
 			}
-			return pageRequest(token)().Execute()
+			return pageRequest({{if .GetNextPageValue}}token{{else}}*token{{end}})().Execute()
 		}
 	{{- end}}
 	{{- if .GetNextPageValue}}
@@ -859,7 +859,7 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 			return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 		}
 		if out == nil {
-			pageToken = {{if .GetNextPageInt}}0{{else if .GetNextPageValue}}""{{else}}nil{{end}}
+			pageToken = {{if .GetNextPageValue}}{{if .GetNextPageInt}}0{{else}}""{{end}}{{else}}nil{{end}}
 			break
 		}
 		{{- if .GetHooks}}
@@ -918,7 +918,7 @@ func (r *Resource) getWithQueryID(ctx context.Context, id *string) (*{{$sdk}}.{{
 }
 {{end}}
 
-func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Update.Empty}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if .UpdateMask}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Update.Empty .Update.UpdateItems}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if .UpdateMask}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
 {{- if .Update.Copy}}
 	out, httpResp, err := r.client.{{.Update.Method}}(ctx).{{.Update.Body}}(*body).Execute()
 	if err != nil {
@@ -956,7 +956,7 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
-{{- if .Update.Items}}
+{{- if .Update.UpdateItems}}
 	if out == nil || len(out.{{.Update.Response}}) == 0 {
 		return nil, nil
 	}

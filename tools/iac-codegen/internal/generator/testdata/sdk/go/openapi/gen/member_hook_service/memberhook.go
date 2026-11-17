@@ -75,7 +75,7 @@ type CreateMemberResult struct {
 // The response of the search: the next page token is a value, which is the branch this
 // fixture exercises.
 type MemberHookSearchResponse struct {
-	NextPageToken int64
+	NextPageToken *int64
 	Members       []Member
 }
 
@@ -84,6 +84,7 @@ type CreateMembersResponse struct {
 }
 
 type UpdateMembersResponse struct {
+	Members []Member
 }
 
 type UpdateMemberStatusRequest struct {
@@ -171,7 +172,7 @@ func (r ApiMemberHookServiceUpdateMembersRequest) UpdateMemberRequest(updateMemb
 	return r
 }
 
-func (r ApiMemberHookServiceUpdateMembersRequest) Execute() (map[string]interface{}, *http.Response, error) {
+func (r ApiMemberHookServiceUpdateMembersRequest) Execute() (*UpdateMembersResponse, *http.Response, error) {
 	return nil, nil, nil
 }
 

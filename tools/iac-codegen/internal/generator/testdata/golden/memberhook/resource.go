@@ -329,20 +329,20 @@ func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Mem
 			return request().PageToken(token)
 		}
 	}
-	pageExecute := func(token int64) (*member_hook_service.MemberHookSearchResponse, *http.Response, error) {
+	pageExecute := func(token *int64) (*member_hook_service.MemberHookSearchResponse, *http.Response, error) {
 		if r.hooks.Get != nil {
-			return r.hooks.Get(ctx, pageRequest(token))
+			return r.hooks.Get(ctx, pageRequest(*token))
 		}
-		return pageRequest(token)().Execute()
+		return pageRequest(*token)().Execute()
 	}
 	pageToken := out.NextPageToken
-	for page := 1; pageToken != 0 && page < 100; page++ {
+	for page := 1; pageToken != nil && *pageToken != 0 && page < 100; page++ {
 		out, httpResp, err = pageExecute(pageToken)
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
 		if out == nil {
-			pageToken = 0
+			pageToken = nil
 			break
 		}
 		if got, ok := ctx.Value(getResultKey{}).(*getResult); ok {
@@ -355,7 +355,7 @@ func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Mem
 		}
 		pageToken = out.NextPageToken
 	}
-	if pageToken != 0 {
+	if pageToken != nil && *pageToken != 0 {
 		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
 	// The pages ended without the item, or the List is unpaged and its one page does not hold
@@ -364,21 +364,21 @@ func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Mem
 }
 
 func (r *Resource) update(ctx context.Context, id string, body *member_hook_service.UpdateMemberRequest) (*member_hook_service.Member, error) {
-	_, httpResp, err := r.client.MemberHookServiceUpdateMembers(ctx).UpdateMemberRequest([]member_hook_service.UpdateMemberRequest{*body}).Execute()
+	out, httpResp, err := r.client.MemberHookServiceUpdateMembers(ctx).UpdateMemberRequest([]member_hook_service.UpdateMemberRequest{*body}).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
-	// The Update response has no fields. Read the resource that it changed. Create reaches here
-	// too, for an attribute that only Update sends.
-	v, err := r.get(ctx, id)
-	if err != nil {
-		return nil, err
+	if out == nil || len(out.Members) == 0 {
+		return nil, nil
 	}
-	// The id of the state is the id of the resource, also when Get leaves it out.
-	if got, ok := apiID(v); v != nil && (!ok || got == "") {
-		setAPIID(v, id)
+	// The batch Update answers the users it wrote; the one whose id the request carried is the
+	// updated resource.
+	for i := range out.Members {
+		if got, ok := apiID(&out.Members[i]); ok && got == id {
+			return &out.Members[i], nil
+		}
 	}
-	return v, nil
+	return nil, nil
 }
 
 func (r *Resource) delete(ctx context.Context, id string) error {
@@ -462,11 +462,6 @@ func apiID(v *member_hook_service.Member) (string, bool) {
 		return "", false
 	}
 	return *v.MemberId, *v.MemberId != ""
-}
-
-// setAPIID sets the id that v holds.
-func setAPIID(v *member_hook_service.Member, id string) {
-	v.MemberId = &id
 }
 
 // idStateValue returns the value of the id attribute for id.

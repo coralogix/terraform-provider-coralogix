@@ -78,6 +78,9 @@ type crudData struct {
 	// GetNextPageInt is true when the token is an integer: the loop compares it with 0, and
 	// the builder method takes the number, not a string.
 	GetNextPageInt bool
+	// GetNextPageType is the Go type of the token without its pointer: string, int, int32,
+	// int64, uint32, or uint64. The paging loop and the builder call use it.
+	GetNextPageType string
 	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
 	// without one as a resource that does not exist.
 	Arms []string
@@ -801,6 +804,7 @@ func getPage(ix *refIndex, r *model.Resource, out *crudData) error {
 	out.GetNextPage, out.GetNextPageField = next.Name, field.Name
 	out.GetNextPageValue = !strings.HasPrefix(field.Want, "*")
 	out.GetNextPageInt = want != "string"
+	out.GetNextPageType = want
 	return nil
 }
 
