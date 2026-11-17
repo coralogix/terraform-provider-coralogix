@@ -15,7 +15,11 @@
 #   TF_ACC=1 CORALOGIX_API_KEY=<key> CORALOGIX_ENV=EU2 AI_EVALUATION_APPLICATION=<app> \
 #     AI_EVALUATION_SUBSYSTEM=<subsystem> \
 #     go test ./internal/provider/generated/aievaluation -run TestAccCoralogixResourceAiEvaluationGenerated
+#
+# A cancelled CI run leaves its evaluation behind, and the next create fails with 409, so every
+# subtest first deletes the evaluations of this application (the handwritten tests never use it).
 resource: AiEvaluation
+leftovers: internal/acctest.RemoveLeftoverAiEvaluations
 env: [AI_EVALUATION_APPLICATION, AI_EVALUATION_SUBSYSTEM]
 
 values:
