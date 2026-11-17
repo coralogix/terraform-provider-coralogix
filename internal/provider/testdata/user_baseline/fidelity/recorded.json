@@ -1,569 +1,569 @@
 {
-  "cases": [
+ "cases": [
+  {
+   "name": "user-lifecycle",
+   "steps": [
     {
-      "name": "user-lifecycle",
-      "steps": [
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_CREATED",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [],
-                  "firstName": "Test",
-                  "groupIds": [],
-                  "lastName": "User",
-                  "status": "USER_STATUS_ACTIVE",
-                  "userAccountId": 1001,
-                  "userId": "00000000-0000-4000-8000-000000000001",
-                  "username": "{{USER_A}}"
-                },
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_CREATED",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [],
+         "firstName": "Test",
+         "groupIds": [],
+         "lastName": "User",
+         "status": "USER_STATUS_ACTIVE",
+         "userAccountId": 1001,
+         "userId": "00000000-0000-4000-8000-000000000001",
+         "username": "{{USER_A}}"
         },
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_ALREADY_EXISTS",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [],
-                  "firstName": "Test",
-                  "groupIds": [],
-                  "lastName": "User",
-                  "status": "USER_STATUS_ACTIVE",
-                  "userAccountId": 1001,
-                  "userId": "00000000-0000-4000-8000-000000000001",
-                  "username": "{{USER_A}}"
-                },
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_CREATED",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [],
-                  "firstName": "",
-                  "groupIds": [],
-                  "lastName": "",
-                  "status": "USER_STATUS_INACTIVE",
-                  "userAccountId": 1002,
-                  "userId": "00000000-0000-4000-8000-000000000002",
-                  "username": "{{USER_B}}"
-                },
-                "userAccountId": 1002,
-                "userId": "00000000-0000-4000-8000-000000000002",
-                "username": "{{USER_B}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Test",
-                "groupIds": [],
-                "lastName": "User",
-                "status": "USER_STATUS_ACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Test",
-                "groupIds": [],
-                "lastName": "User",
-                "status": "USER_STATUS_ACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": []
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": []
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "userAccountIds": [
-              1001
-            ],
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Renamed",
-                "groupIds": [],
-                "lastName": "Person",
-                "status": "USER_STATUS_ACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Renamed",
-                "groupIds": [],
-                "lastName": "Person",
-                "status": "USER_STATUS_ACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "userAccountIds": [
-              1001
-            ],
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "",
-                "groupIds": [],
-                "lastName": "",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "userAccountIds": [
-              1001
-            ],
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "",
-                "groupIds": [],
-                "lastName": "",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "",
-                "groupIds": [],
-                "lastName": "",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 404,
-          "response": {
-            "code": 404,
-            "message": "Not Found: user 00000000-0000-4000-8000-000000000000 not found in team \u003cn\u003e"
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "userAccountIds": [
-              1001
-            ],
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Renamed",
-                "groupIds": [],
-                "lastName": "Person",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": []
-          }
-        },
-        {
-          "status": 400,
-          "response": {
-            "code": 400,
-            "message": "Bad Request: type mismatch, parameter: user_account_id, error: \u003cdomain\u003e: parsing \"no-such-route\": invalid syntax"
-          }
-        }
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
       ]
+     }
     },
     {
-      "name": "search-paging",
-      "steps": [
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_CREATED",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [],
-                  "firstName": "",
-                  "groupIds": [],
-                  "lastName": "",
-                  "status": "USER_STATUS_INACTIVE",
-                  "userAccountId": 1001,
-                  "userId": "00000000-0000-4000-8000-000000000001",
-                  "username": "{{USER_A}}"
-                },
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_ALREADY_EXISTS",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [],
+         "firstName": "Test",
+         "groupIds": [],
+         "lastName": "User",
+         "status": "USER_STATUS_ACTIVE",
+         "userAccountId": 1001,
+         "userId": "00000000-0000-4000-8000-000000000001",
+         "username": "{{USER_A}}"
         },
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_CREATED",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [],
-                  "firstName": "",
-                  "groupIds": [],
-                  "lastName": "",
-                  "status": "USER_STATUS_INACTIVE",
-                  "userAccountId": 1002,
-                  "userId": "00000000-0000-4000-8000-000000000002",
-                  "username": "{{USER_B}}"
-                },
-                "userAccountId": 1002,
-                "userId": "00000000-0000-4000-8000-000000000002",
-                "username": "{{USER_B}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": []
-          }
-        },
-        {
-          "status": 400,
-          "response": {
-            "code": 400,
-            "message": "Bad Request: parsing field \"page_token\": \u003cdomain\u003e: parsing \"\": invalid syntax"
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": []
-          }
-        }
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
       ]
+     }
     },
     {
-      "name": "login-mode-echo",
-      "steps": [
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_CREATED",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [
-                    "ALLOWED_LOGIN_MODE_LOCAL"
-                  ],
-                  "firstName": "Test",
-                  "groupIds": [],
-                  "lastName": "User",
-                  "status": "USER_STATUS_INACTIVE",
-                  "userAccountId": 1001,
-                  "userId": "00000000-0000-4000-8000-000000000001",
-                  "username": "{{USER_A}}"
-                },
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_CREATED",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [],
+         "firstName": "",
+         "groupIds": [],
+         "lastName": "",
+         "status": "USER_STATUS_INACTIVE",
+         "userAccountId": 1002,
+         "userId": "00000000-0000-4000-8000-000000000002",
+         "username": "{{USER_B}}"
         },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [
-                  "ALLOWED_LOGIN_MODE_LOCAL"
-                ],
-                "firstName": "Test",
-                "groupIds": [],
-                "lastName": "User",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "userAccountIds": [
-              1001
-            ],
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Test",
-                "groupIds": [],
-                "lastName": "User",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "Test",
-                "groupIds": [],
-                "lastName": "User",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A}}"
-              }
-            ]
-          }
-        }
+        "userAccountId": 1002,
+        "userId": "00000000-0000-4000-8000-000000000002",
+        "username": "{{USER_B}}"
+       }
       ]
+     }
     },
     {
-      "name": "case-folding",
-      "steps": [
-        {
-          "status": 200,
-          "response": {
-            "results": [
-              {
-                "status": "CREATE_USER_STATUS_CREATED",
-                "user": {
-                  "accessType": {
-                    "accessType": "permanent",
-                    "permanentAccess": {}
-                  },
-                  "allowedLoginMode": [],
-                  "firstName": "",
-                  "groupIds": [],
-                  "lastName": "",
-                  "status": "USER_STATUS_INACTIVE",
-                  "userAccountId": 1001,
-                  "userId": "00000000-0000-4000-8000-000000000001",
-                  "username": "{{USER_A_UPPER}}"
-                },
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A_UPPER}}"
-              }
-            ]
-          }
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
         },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "",
-                "groupIds": [],
-                "lastName": "",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A_UPPER}}"
-              }
-            ]
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "totalCount": 1,
-            "users": [
-              {
-                "accessType": {
-                  "accessType": "permanent",
-                  "permanentAccess": {}
-                },
-                "allowedLoginMode": [],
-                "firstName": "",
-                "groupIds": [],
-                "lastName": "",
-                "status": "USER_STATUS_INACTIVE",
-                "userAccountId": 1001,
-                "userId": "00000000-0000-4000-8000-000000000001",
-                "username": "{{USER_A_UPPER}}"
-              }
-            ]
-          }
-        }
+        "allowedLoginMode": [],
+        "firstName": "Test",
+        "groupIds": [],
+        "lastName": "User",
+        "status": "USER_STATUS_ACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
       ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "Test",
+        "groupIds": [],
+        "lastName": "User",
+        "status": "USER_STATUS_ACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 0,
+      "users": []
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 0,
+      "users": []
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "userAccountIds": [
+       1001
+      ],
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "Renamed",
+        "groupIds": [],
+        "lastName": "Person",
+        "status": "USER_STATUS_ACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "Renamed",
+        "groupIds": [],
+        "lastName": "Person",
+        "status": "USER_STATUS_ACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "userAccountIds": [
+       1001
+      ],
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "",
+        "groupIds": [],
+        "lastName": "",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "userAccountIds": [
+       1001
+      ],
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "",
+        "groupIds": [],
+        "lastName": "",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "",
+        "groupIds": [],
+        "lastName": "",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 404,
+     "response": {
+      "code": 404,
+      "message": "Not Found: user 00000000-0000-4000-8000-000000000000 not found in team <n>"
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "userAccountIds": [
+       1001
+      ],
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "Renamed",
+        "groupIds": [],
+        "lastName": "Person",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 0,
+      "users": []
+     }
+    },
+    {
+     "status": 400,
+     "response": {
+      "code": 400,
+      "message": "Bad Request: type mismatch, parameter: user_account_id, error: <domain>: parsing \"no-such-route\": invalid syntax"
+     }
     }
-  ]
+   ]
+  },
+  {
+   "name": "search-empty-pages",
+   "steps": [
+    {
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_CREATED",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [],
+         "firstName": "",
+         "groupIds": [],
+         "lastName": "",
+         "status": "USER_STATUS_INACTIVE",
+         "userAccountId": 1001,
+         "userId": "00000000-0000-4000-8000-000000000001",
+         "username": "{{USER_A}}"
+        },
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_CREATED",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [],
+         "firstName": "",
+         "groupIds": [],
+         "lastName": "",
+         "status": "USER_STATUS_INACTIVE",
+         "userAccountId": 1002,
+         "userId": "00000000-0000-4000-8000-000000000002",
+         "username": "{{USER_B}}"
+        },
+        "userAccountId": 1002,
+        "userId": "00000000-0000-4000-8000-000000000002",
+        "username": "{{USER_B}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 0,
+      "users": []
+     }
+    },
+    {
+     "status": 400,
+     "response": {
+      "code": 400,
+      "message": "Bad Request: parsing field \"page_token\": <domain>: parsing \"\": invalid syntax"
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 0,
+      "users": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "login-mode-echo",
+   "steps": [
+    {
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_CREATED",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [
+          "ALLOWED_LOGIN_MODE_LOCAL"
+         ],
+         "firstName": "Test",
+         "groupIds": [],
+         "lastName": "User",
+         "status": "USER_STATUS_INACTIVE",
+         "userAccountId": 1001,
+         "userId": "00000000-0000-4000-8000-000000000001",
+         "username": "{{USER_A}}"
+        },
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [
+         "ALLOWED_LOGIN_MODE_LOCAL"
+        ],
+        "firstName": "Test",
+        "groupIds": [],
+        "lastName": "User",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "userAccountIds": [
+       1001
+      ],
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "Test",
+        "groupIds": [],
+        "lastName": "User",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "Test",
+        "groupIds": [],
+        "lastName": "User",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A}}"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "case-folding",
+   "steps": [
+    {
+     "status": 200,
+     "response": {
+      "results": [
+       {
+        "status": "CREATE_USER_STATUS_CREATED",
+        "user": {
+         "accessType": {
+          "accessType": "permanent",
+          "permanentAccess": {}
+         },
+         "allowedLoginMode": [],
+         "firstName": "",
+         "groupIds": [],
+         "lastName": "",
+         "status": "USER_STATUS_INACTIVE",
+         "userAccountId": 1001,
+         "userId": "00000000-0000-4000-8000-000000000001",
+         "username": "{{USER_A_UPPER}}"
+        },
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A_UPPER}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "",
+        "groupIds": [],
+        "lastName": "",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A_UPPER}}"
+       }
+      ]
+     }
+    },
+    {
+     "status": 200,
+     "response": {
+      "totalCount": 1,
+      "users": [
+       {
+        "accessType": {
+         "accessType": "permanent",
+         "permanentAccess": {}
+        },
+        "allowedLoginMode": [],
+        "firstName": "",
+        "groupIds": [],
+        "lastName": "",
+        "status": "USER_STATUS_INACTIVE",
+        "userAccountId": 1001,
+        "userId": "00000000-0000-4000-8000-000000000001",
+        "username": "{{USER_A_UPPER}}"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
 }

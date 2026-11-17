@@ -432,8 +432,8 @@ func (f *userFake) find(id string) map[string]any {
 	return nil
 }
 
-// newUser stores a user with the fields of input and the defaults the API gives: an empty name, an
-// active status, and no login modes, access type, or groups.
+// newUser stores a user with the fields of input and the defaults the API gives: an empty name,
+// an active status, a permanent access type, and no login modes or groups.
 func (f *userFake) newUser(input map[string]any) map[string]any {
 	f.seq++
 	user := map[string]any{

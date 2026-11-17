@@ -1,0 +1,17 @@
+planning revision for CX-65729 contract plan v3. You are the PLANNER that produced CX-65729_CONTRACT_PLAN_v2.md (repo root). Your revision task:
+
+Read these repo-root files in order:
+1. CX-65729_CONTRACT_VALIDATION_v1.md - fresh-eyes validation, verdict VALIDATED WITH FIXES
+2. CX-65729_CONTRACT_PLAN_v2.md - your plan v2
+3. CX-65729_MIKHAIL_CHECKLIST.md - the conformance standard
+
+Execute ALL validator amendments with resolution-map discipline (V1-V4 binding, V5-V9 advisory; F1-F13 findings - no silent drops). READ-ONLY: no commits, pushes, file modifications in any repo; no external posts.
+
+Load-bearing fixes:
+- V1/F1: the B.4 overrides file fails at parse ("resource is required"). Use the validator's corrected file: resource: rbac.v2.User, mode: existing, typeName: user, validators: {inferred: false}, api: {idProperty: userId, delete: {operation: UsersMgmtService_DeactivateTeamMember}}. Keep --create/--get/--update-operation flags, drop --delete-operation, run the baseline WITHOUT the overrides file, build the candidate spec from apidocs.swagger.json.
+- V2/F2: rewrite B.0 as an explicit EXCEPTION REQUEST citing AGENTS.md:145/147 (new APIs must use PATCH; the rule does NOT allow the PUT as v2 claimed). Work out the PATCH fallback now (firstName,lastName in the mask).
+- V3/F3+F4: add "fields outside the body are kept" + permission parity as contract requirements. State explicitly that every released request path changes (SearchUsers->Get, batch PUT->single PUT, PUT-INACTIVE->/deactivate) and pre-declare these as intended migration golden diffs.
+- V4/F5+F6: attach tfgen check output to PR 1 AND PR 1b, re-run on PR 1's generated spec, restore the parity run with plan v4's real overrides file.
+- V5-V9 advisories: two-way checks for P2/P4/P6/P7; data-source lookup decision in PR 1; golden-diff pre-declaration; P8 downgraded to confirmation; CHANGELOG scope + iac-breaking-change-on-publish gate + body:'*' consideration + plan-file cleanup (F12: remove the stale v1 PATCH text and duplicate v2 copies).
+
+OUTPUT: resolution map (V1-V9, F1-F13 -> adopted/rejected/deferred, no silent drops) then revised plan v3 sections ONLY. Final message = resolution map + revised sections.

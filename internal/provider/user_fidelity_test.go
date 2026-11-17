@@ -343,9 +343,20 @@ func (r *userFidelityRedactor) redactObject(object map[string]any) map[string]an
 				out[key] = placeholders
 				continue
 			}
-		case "totalCount", "teamId", "companyId", "accountId":
+		case "teamId", "companyId", "accountId":
 			if _, ok := item.(float64); ok {
 				out[key] = float64(1)
+				continue
+			}
+		case "totalCount":
+			// A zero count is fidelity, not member data: it is what an empty or past-the-end
+			// page answers. Only a non-zero count hides as 1.
+			if count, ok := item.(float64); ok {
+				if count == 0 {
+					out[key] = float64(0)
+				} else {
+					out[key] = float64(1)
+				}
 				continue
 			}
 		case "nextPageToken":
@@ -651,7 +662,9 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string, memberCap in
 			}
 		}
 	})
-	ensureUserFidelityRunIsNew(t, base, apiKey, run)
+	for ci := range cases.Cases {
+		ensureUserFidelityRunIsNew(t, base, apiKey, fmt.Sprintf("%s-%d", run, ci+1))
+	}
 
 	owned := map[string]struct{}{userFidelityUnknownID: {}}
 	out := fidelityRecorded{}
@@ -785,7 +798,8 @@ func userFidelityCapacity(t *testing.T, base, apiKey string, need, memberCap int
 	return nil
 }
 
-// userFidelityTotalCount sends a search and returns only its totalCount. The API leaves a zero count out.
+// userFidelityTotalCount sends a search and returns only its totalCount. The recording shows the
+// facade sends zero values (totalCount 0, empty arrays) rather than leaving them out.
 func userFidelityTotalCount(base, apiKey, path string) (int, error) {
 	status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodGet, path, nil)
 	if err != nil {

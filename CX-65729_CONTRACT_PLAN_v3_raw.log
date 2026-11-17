@@ -1,0 +1,272 @@
+[User] You are the PLANNER revising the CX-65729 contract plan to v3. planning revision for CX-65729 contract plan v3. You are the PLANNER that produced CX-65729_CONTRACT_PLAN_v2.md (repo root). Your revision task:
+
+Read these repo-root files in order:
+1. CX-65729_CONTRACT_VALIDATION_v1.md - fresh-eyes validation, verdict VALIDATED WITH FIXES
+2. CX-65729_CONTRACT_PLAN_v2.md - your plan v2
+3. CX-65729_MIKHAIL_CHECKLIST.md - the conformance standard
+
+Execute ALL validator amendments with resolution-map discipline (V1-V4 binding, V5-V9 advisory; F1-F13 findings - no silent drops). READ-ONLY: no commits, pushes, file modifications in any repo; no external posts.
+
+Load-bearing fixes:
+- V1/F1: the B.4 overrides file fails at parse ("resource is required"). Use the validator's corrected file: resource: rbac.v2.User, mode: existing, typeName: user, validators: {inferred: false}, api: {idProperty: userId, delete: {operation: UsersMgmtService_DeactivateTeamMember}}. Keep --create/--get/--update-operation flags, drop --delete-operation, run the baseline WITHOUT the overrides file, build the candidate spec from apidocs.swagger.json.
+- V2/F2: rewrite B.0 as an explicit EXCEPTION REQUEST citing AGENTS.md:145/147 (new APIs must use PATCH; the rule does NOT allow the PUT as v2 claimed). Work out the PATCH fallback now (firstName,lastName in the mask).
+- V3/F3+F4: add "fields outside the body are kept" + permission parity as contract requirements. State explicitly that every released request path changes (SearchUsers->Get, batch PUT->single PUT, PUT-INACTIVE->/deactivate) and pre-declare these as intended migration golden diffs.
+- V4/F5+F6: attach tfgen check output to PR 1 AND PR 1b, re-run on PR 1's generated spec, restore the parity run with plan v4's real overrides file.
+- V5-V9 advisories: two-way checks for P2/P4/P6/P7; data-source lookup decision in PR 1; golden-diff pre-declaration; P8 downgraded to confirmation; CHANGELOG scope + iac-breaking-change-on-publish gate + body:'*' consideration + plan-file cleanup (F12: remove the stale v1 PATCH text and duplicate v2 copies).
+
+OUTPUT: resolution map (V1-V9, F1-F13 -> adopted/rejected/deferred, no silent drops) then revised plan v3 sections ONLY. Final message = resolution map + revised sections.
+I'll start by reading the three input files.
+[Shell] ls CX-65729* ; wc -l CX-65729_CONTRACT_VALIDATION_v1.md CX-65729_CONTRACT_PLAN_v2.md CX-65729_MIKHAIL_CHECKLIST.md
+The validation file isn't named as expected. The closest candidates are `CONTRACT_REVIEW_v1.md` and `CONTRACT_VALIDATE_BRIEF.md`, so I'll check those.
+[Shell] ls -la CX-65729_CONTRACT_* ; grep -l "VALIDATED WITH FIXES" CX-65729* ; git status --short | head; head -30 CX-65729_V3_REVISE_PROMPT.txt
+[Shell] find / -name "*CONTRACT_VALIDATION*" -not -path "*/proc/*" 2>/dev/null | head; cat CX-65729_CONTRACT_VALIDATE_BRIEF.md | head -60; grep -n "V[1-9]\b" CX-65729_CONTRACT_VALIDATE_BRIEF.md | head
+[Task notification] find / -name "*CONTRACT_VALIDATION*" -not -path "*/proc/*" 2>/dev/null | head; cat CX-65729_CONTRACT_VALIDATE_BRIEF.md | head -60; grep -n "V[1-9]\b" CX-65729_CONTRACT_VALIDATE_BRIEF.md | head
+I haven't produced the v3 revision, because `CX-65729_CONTRACT_VALIDATION_v1.md` doesn't exist.
+
+- **What I checked:** the repo root has `CX-65729_CONTRACT_VALIDATE_BRIEF.md`, which is the brief for the validator, but not the validator's report. A filesystem-wide search for `*CONTRACT_VALIDATION*` also found nothing. The only validation-related files are `CX-65729_VALIDATION_v1.md` and `CX-65729_VALIDATE_BRIEF.md`, which belong to the earlier plan round (PLAN_v1 to v4), not the contract plan. The validator probably didn't finish or didn't save its report.
+- **Why that blocks the map:** your prompt names V1–V4 and gives one-line summaries of V5–V9. The F-findings are only partly described: F1–F6 and F12 appear, but F7–F11 and F13 don't. A resolution map where nothing may be silently dropped can't be built from that. I'd have to invent what those findings said, and that is the failure the map is meant to prevent.
+- **What I held back:** I haven't read `CONTRACT_PLAN_v2.md` (629 lines) or the Mikhail checklist in depth, and I've made no edits. A v3 written without the report would be unreliable.
+- **Hook error:** every Bash call returned a PostToolUse hook error (`/usr/local/bin/claude.py` not found). It didn't affect the commands' output, but your hook config points at a missing script.
+
+To unblock me, either:
+1. Point me to the report's actual path, or re-run the validator so it writes `CX-65729_CONTRACT_VALIDATION_v1.md`. I'll then produce the resolution map and revised sections.
+2. Tell me to proceed from the prompt's summary alone. I'd cover V1–V9 and F1–F6 and F12 in full. I'd mark F7–F11 and F13 as "not in the available text" rather than guess. I'd also pull whatever I can from `CONTRACT_REVIEW_v1.md`, if you confirm those F-numbers are the review's findings and not the validator's.
+[User] UNBLOCKED: the validation report is now at CX-65729_CONTRACT_VALIDATION_v1.md (repo root) — my mistake, it existed in the orchestrator's transcript but the file copy to the repo root had failed; fixed now (13,975 bytes, sections: 1 Verdict=VALIDATED WITH FIXES, 2 Mikhail checklist conformance, 3 Claims I checked, 4 Findings F1-F13, 5 Amendments V1-V9, 6 Could-not-verify). Read it fully — it contains the complete F1-F13 and V1-V9 text. Also read CX-65729_CONTRACT_PLAN_v2.md and CX-65729_CONTRACT_REVIEW_v1.md in full. Produce the resolution map (V1-V9 + F1-F13, adopted/rejected/deferred, no silent drops) and the revised plan v3 sections, as instructed. Note: F7-F13 in the validation are the VALIDATOR's findings (do not confuse with the REVIEW's F1-F13; the validation file has both maps — use the validator's F-numbers from its section 4 and 5).
+[Read] /Users/ryan/Documents/terraform-provider-coralogix/CX-65729_CONTRACT_VALIDATION_v1.md
+[Read] /Users/ryan/Documents/terraform-provider-coralogix/CX-65729_CONTRACT_PLAN_v2.md
+[Read] /Users/ryan/Documents/terraform-provider-coralogix/CX-65729_MIKHAIL_CHECKLIST.md
+[Read] /Users/ryan/Documents/terraform-provider-coralogix/CX-65729_CONTRACT_REVIEW_v1.md
+[Shell] grep -n "5\.0\|overrides" CX-65729_PLAN_v4.md | cut -c1-260 | head -30; sed -n 483,500p CX-65729_CONTRACT_PLAN_v2.md | cut -c1-160; ls /Users/ryan/Documents/cx-management-apis/.github/workflows | g...
+[Shell] sed -n 338,358p CX-65729_PLAN_v4.md | cut -c1-400; sed -n 602,612p CX-65729_PLAN_v4.md | cut -c1-700
+# CX-65729 contract plan v3: resolution map and revised sections
+
+I read the validation report, plan v2 (lines 1–482 in full, plus the start of its second copy), the contract review, and the Mikhail checklist. I also spot-read plan v4 §5.0 and §5.4 for the real overrides file, and checked that `iac-breaking-change-on-publish.yml` exists in `cx-management-apis`.
+
+I changed no files, posted nothing and ran no tools against the specs. Everything marked **reviewer-run** or **validator-run** rests on their runs and is not re-run here. The validator did not run the candidate spec, `buf`, api-linter, oasdiff, spectral or `generate_openapi.sh`. Every PATCH-fallback detail below is design reasoning, not a run. Every post-tool hook again failed with "can't open /usr/local/bin/claude.py". That is a broken local hook and doesn't affect the work.
+
+## A. Resolution map
+
+The F-numbers below are the validator's (report §4). Plan v2 used the reviewer's F1–F13, so the two sets differ.
+
+### Amendments V1–V9
+
+| ID | Type | Disposition | Where | Resolution |
+|---|---|---|---|---|
+| **V1** | Binding | Adopted | §B.4 | The overrides file is replaced with the validator's. The command keeps `--create`, `--get` and `--update-operation` and drops `--delete-operation`. The baseline runs without the overrides file. The candidate spec comes from `apidocs.swagger.json`. |
+| **V2** | Binding | Adopted | §B.0 | B.0 is now an exception request citing AGENTS.md:145/147. The PATCH fallback is worked out with `firstName,lastName` in the mask. |
+| **V3** | Binding | Adopted | §B.3, §B.6 | "Fields outside the body are kept" and permission parity are contract requirements. They are carried into the PR description and the Slack draft. |
+| **V4** | Binding | Adopted | §B.4, §B.6 | `tfgen check` output is attached to PR 1 and PR 1b. It is re-run on PR 1's generated spec. The parity run uses plan v4's real overrides file. |
+| **V5** | Advisory | Adopted | §B.2 | P2, P4, P6 and P7 each get a second check. |
+| **V6** | Advisory | Adopted, with a recommendation | §B.3 | PR 1 carries the data-source lookup decision. The final choice needs a human. |
+| **V7** | Advisory | Adopted | §B.8 | The intended golden diffs are pre-declared. |
+| **V8** | Advisory | Adopted | §B.2 | P8 is downgraded to a confirmation and no longer gates the body design. |
+| **V9** | Advisory | Adopted | §B.3, §B.6, §B.9 | CHANGELOG scope, the extra gate, `body: "*"` and the plan-file cleanup are covered. |
+
+### Findings F1–F13
+
+| ID | Disposition | Resolution |
+|---|---|---|
+| **F1** §B.4 command fails | Adopted | See V1. |
+| **F2** present PUT as an exception | Adopted | See V2. Per the validator, the argument rests on the generator limit (README:210, `tfschema.go:1340`), not on the repo rule. |
+| **F3** "fields outside the body are kept" | Adopted | New requirement in §B.3. It adds the old-client hazard and a probe on the batch route. |
+| **F4** every released request path changes | Adopted | Stated in §B.3 and pre-declared in §B.8. It also adds the permission-parity and Get-404 requirements. |
+| **F5** `tfgen check` on PR 1 and PR 1b | Adopted | §B.4 and §B.6. |
+| **F6** parity run with plan v4's overrides | Adopted | §B.4 step 6. |
+| **F7** two-way checks | Adopted | §B.2. |
+| **F8** data-source lookup | Adopted | §B.3, recommendation only. |
+| **F9** retract `ArchiveConfigurationGroup` remark; consider `body: "*"` | Adopted | Retracted. The line is at `.api-linter-baseline.txt:17`, and I had not found it. `body: "*"` is tried first; the baseline line is the fallback. |
+| **F10** CHANGELOG scope | Adopted | §B.3 lists the Create and Update responses as well. |
+| **F11** add `iac-breaking-change-on-publish.yml` | Adopted | §B.6. |
+| **F12** plan-file cleanup | Adopted | §B.9. |
+| **F13** `TeamMember` noun mismatch | Adopted | §B.3. Descriptions say "user" and name the `TeamMember` noun only as the route family. |
+
+**Rejected: nothing. Deferred: nothing.**
+
+**v2 claims I am correcting:**
+- "The repo rule allows the PUT" is wrong.
+- "Precedent at `.update-contract-baseline.txt:51`" is overstated. That line was grandfathered in when the lint was created (#655). The update-contract baseline has never grown for a new operation, so this ask is a first.
+- "I could not find `ArchiveConfigurationGroup`" is retracted.
+- "P8 gates the design" is downgraded.
+
+## B. Revised plan v3 sections
+
+These replace v2's B.0, B.2, B.3 (partly), B.4 and B.6, and add B.8 and B.9. B.1, B.5 and B.7 are unchanged apart from the notes below.
+
+### B.0 Exception request: PUT on `UpdateTeamMember`
+
+**This is an exception request, not an application of a rule.**
+- AGENTS.md:145 says a new update must be a PATCH with a required `updateMask` query parameter.
+- AGENTS.md:147 says a new update operation that breaks the contract fails the PR.
+- `UpdateTeamMember` is a new RPC, so the lint fails it. "Existing APIs keep their update verb" does not cover it. v2 was wrong to say it did.
+
+**Why we ask anyway (reviewer-run):**
+- `tfgen check` reports `RENDERER_SHAPE_UNSUPPORTED groups.name: a group needs a full-replace Update (PUT)`.
+- The released `name` object (`given_name`/`family_name`) can only be built through the groups mechanism. That mechanism is documented at README:210 and enforced at `tfschema.go:1340`.
+- The reason is the generator limit, not that PUT is acceptable by itself.
+
+**What we request:**
+- One line, `UPDATE_METHOD_PUT UsersMgmtService_UpdateTeamMember`, in `.update-contract-baseline.txt`.
+- The baseline has never grown for a new operation, so the PR description must say so. Reviewers should not find this out by diffing.
+- Present it as the first exception, with these reasons: the generator limit, the body is limited to three fields, and the other routes of the same API already use PUT.
+
+**Limits on the ask (the contract that makes PUT safe):**
+- The body carries only `firstName`, `lastName` and `status`.
+- Fields outside the body are kept (§B.3, F3).
+- `username` is immutable.
+
+**PATCH fallback, worked out now.** If AAA or Mikhail rejects the exception, switch to this:
+- **Route:** `PATCH /aaa/users/v2/team-members/{user_id}?updateMask=…`, `body: "member"`, `response_body: "user"`.
+- **Mask:** required string query parameter. The pattern accepts one name, `a,b`, and dotted paths, and rejects `*`. The reviewer found that a pattern without dotted paths trips `UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED`. No contract-side dotted path is needed, because `accessType` stays out of the body.
+- **Mask contents:** `firstName,lastName` always go in the mask together. The `name` group is the unit of change. If either member changes, the generator sends both with the full current group, and `status` goes in separately.
+- **Generator work needed:** a PR that lets a `groups` entry work under PATCH by emitting all group members in the mask. It needs a new key (or a mode on the existing one), a golden fixture (the `generator-key-needs-golden` rule), a version bump, and a regeneration of every generated resource (the `regenerate-all-tfgen-resources` skill). It also needs the same collision check as the other gap PRs.
+- **Removing the `name` block:** this sends empty strings for both members. That is only valid if the contract allows empty names. Decide this with the AAA backend read before the PATCH build starts.
+- **Cost:** the migration waits for the generator PR.
+- **Not verified:** whether the generator can be extended this way. This is design reasoning, not a run.
+- **No contract change:** the `UPDATE_METHOD_PUT` line is not needed in this case.
+
+### B.2 Fact checks: two ways each (V5/F7, V8)
+
+Backend repo is `eng-svc-users-api`. Step 0 is unchanged: try to clone it read-only (whether `gh` can reach it is unverified), then read the handlers. Every fact needs a code read and a live check. "Not applicable" is not an option.
+
+| Fact | Backend read | Second check |
+|---|---|---|
+| P1 deactivate idempotency and readability | Status handler | Deactivate twice on a throwaway user, then GET. |
+| P2 duplicate create | Create result mapping, case matching | One duplicate create on the existing batch route, plus a different-case variant. |
+| P3 update keeps or replaces omitted fields | Update handler | One PUT with only `firstName` on a user with SSO and temporary access, then GET. This also settles F3 below. |
+| P4 `example.com` rejection | Domain check | One batch create of `x@example.com`. The result decides the acceptance-test domain. |
+| P5 permissions | Per-route permission checks | Three keys: ReadConfig only, Manage only, and one that can create API keys. |
+| P6 `User` always returns `userId`, groups, modes | Response mapper | One GET in prod. Staging verification from #574 is not enough. |
+| P7 username change on update | Update validation | One PUT with a different `username` on the batch route. |
+| P8 create with no login mode succeeds | Create validation | One create with NO_INVITE and no modes. |
+
+- **P8 is a confirmation, not a gate (V8).** The released resource has created users this way on the batch route since v3.19.0, and the golden `scenario_create-inactive.json` confirms it. Fold the P8 check into the P2 probe user. If it fails, the contract gains an `allowed_login_mode` on create, which would change the body design.
+- **Budget:** every live probe leaves a permanent inactive user. Keep them few, give them a unique prefix, and use NO_INVITE.
+
+### B.3 Contract PR design (additions and replacements)
+
+**New contract requirements (V3, F3, F4):**
+- **Fields outside the body are kept.**
+  - The new `UpdateTeamMember` route must keep `allowedLoginMode`, `accessType`, group membership and every field the body does not carry. The route description says so.
+  - The released provider's own comment says the batch PUT replaces rather than merges. The new route must not do that.
+  - If P3 shows the backend replaces, this PR cannot ship the PUT as designed. AAA must make the new handler keep fields.
+  - **Old-client hazard:** if `allowedLoginMode` is ever added to the update body, older Terraform versions that don't send it would clear it. The contract and the PR description say that body fields are only added with a compatibility review.
+- **Permission parity.**
+  - The new routes require the same API-key permissions as the released routes they replace.
+  - Read: `GetTeamMember` equals `SearchUsers` and `GetUser`.
+  - Write: Create and Update equal the batch Create and Update.
+  - Deactivate equals the batch status update.
+  - A key that works today must work after the migration (checklist: same permissions, least-privilege keys). P5 verifies this.
+- **Get returns 404 only for a missing user.** A permission failure, a deactivated user or an unrelated error must not return 404. Today a deactivated user is still readable, and tfgen treats 404 as "gone".
+- **Every released request path changes.** Read moves from `SearchUsers` to `GET /team-members/{user_id}`. Update moves from the batch PUT to the single PUT. Delete moves from the batch PUT with status INACTIVE to `POST …/{user_id}/deactivate`. These are intended wire changes, pre-declared in §B.8, and the PR description says so up front.
+
+**Data-source lookup (V6/F8).** The released data source uses the paged `SearchUsers`, and a lookup on another service breaks least-privilege keys. PR 1 is the cheap place to decide. My recommendation is a fifth DEV route, `GET /aaa/users/v2/team-members?username=<exact>`. It requires the same ReadConfig permission as Search and returns `User` directly. The alternative is a generator lookup over the paged Search. I recommend the route because the generator work is open-ended and a contract fix is small. This is a human decision, and I have not run `tfgen` against the route shape. If it is rejected, the checklist requires reporting the lookup as a blocker.
+
+**Noun mismatch (F13).** The route family is `TeamMember` because that keeps the four operations in one lint group. The resource is still `User`, and the descriptions say "user". The only place `TeamMember` appears in prose is the route-family sentence in the PR description. Do not describe the resource as a "team member" in schema descriptions.
+
+**Deactivate and `core::0136` (F9).**
+- Try `body: "*"` first, with the empty `DeactivateTeamMemberRequest` message. This may avoid the `core::0136::http-body` finding.
+- Re-run the lints and the `tfgen check` (§B.4), because tfgen's delete override expects an id-only POST.
+- If `body: "*"` fails either, use the baseline line. `ArchiveConfigurationGroup` is at `.api-linter-baseline.txt:17`, and `:11-13` has other 0136 lines. My v2 said I couldn't find it. I was wrong.
+
+**CHANGELOG draft (F10).** The edit to the shared `User` type shows up in more than the two GET routes:
+> ## YYYY-MM-DD
+> - `GET /aaa/users/v2/{user_account_id}`, `GET /aaa/users/v2`: the user object now declares `userId` (string, 1 to 255 characters) as always returned, and documents the limits of `username`, `firstName` and `lastName`. No wire change. Non-breaking.
+> - `POST /aaa/users/v2`, `PUT /aaa/users/v2`: the user object in the responses has the same declaration.
+
+Check the final list against the generated spec: any published response that references `User` belongs in it.
+
+**Unchanged from v2:** the route table, `TeamMemberCreate`/`TeamMemberUpdate`, the `User` required-and-limits edit, the create-outcome mapping table, and the `get-id`/`write-id` baseline lines.
+
+### B.4 `tfgen check` evidence plan (V1, V4; F1, F5, F6)
+
+1. **Build the candidate spec from `apidocs.swagger.json`.**
+   - Generate it in a scratch worktree with `scripts/generate_openapi.sh` (never in the main checkout, because the script rewrites a tracked file).
+   - Copy it to `/tmp/cx65729/cand.json`.
+   - Request bodies must be inline in any hand-built variant. A hand-built spec is only for use before PR 1 exists.
+2. **Write the overrides file** `/tmp/cx65729/overrides.yaml`. This is the validator-run file, and the reviewer's run had the same content:
+   ```yaml
+   resource: rbac.v2.User
+   mode: existing
+   typeName: user
+   validators: {inferred: false}
+   api:
+     idProperty: userId
+     delete:
+       operation: UsersMgmtService_DeactivateTeamMember
+   ```
+   Without `resource`, `mode: existing` and `validators.inferred` the file fails with `resource is required`.
+3. **Baseline run (no overrides file, pinned spec).** Expect the five problems from plan v4. With the overrides file the baseline would add a `DELETE_OVERRIDE_OPERATION_NOT_FOUND` failure.
+   ```sh
+   cd tools/iac-codegen
+   go run ./cmd/tfgen check --resource rbac.v2.User --openapi <pinned openapi.yaml>
+   ```
+4. **Candidate run.**
+   ```sh
+   go run ./cmd/tfgen check --resource rbac.v2.User --openapi /tmp/cx65729/cand.json \
+     --overrides /tmp/cx65729/overrides.yaml \
+     --create-operation UsersMgmtService_CreateTeamMember \
+     --get-operation UsersMgmtService_GetTeamMember \
+     --update-operation UsersMgmtService_UpdateTeamMember
+   ```
+   There is no `--delete-operation`. A POST delete needs `api.delete.operation` and fails with `OPERATION_METHOD_INCOMPATIBLE` otherwise. Pass criterion: exit 0. The only remaining items are parity gaps (§5.5 gap rows).
+5. **Attach the output.**
+   - Attach the baseline and candidate output to PR 1 and PR 1b.
+   - The `iac-api-eval` bot does not run `tfgen check`, so a bot run is not a substitute.
+   - Re-run on PR 1's generated spec, not only the hand-built one.
+   - Re-run after every probe outcome that changes the contract.
+6. **Parity run with plan v4's real overrides file (restores the review's ask).**
+   - Use the §5.4 draft: `types.<User>.fields` (`userId`→`id`, `username`→`user_name`, `status`→`active`, `groupIds`→`groups` as a set, and the three `skip`s), without `lookup`.
+   - Use existing keys only, per plan v4 §5.0.
+   - Classify every line as a proto fact, an existing key or a gap.
+   - If a line can go away with a proto fact, add the fact in PR 1 (Mikhail's rule).
+   - Attach the output.
+7. **Not run here:** the candidate check on the spec generated from PR 1. This is the largest remaining uncertainty.
+
+### B.6 Stack, sequencing, gates, reviewers (changes only)
+
+- **PR 1 gates** gain `iac-breaking-change-on-publish.yml` (it exists). Otherwise unchanged: `openapi-lint.yml`, `buf-lint.yml`, `public-api-surface`, and the `iac-api-eval` bot (same-repo branch).
+- **PR 1 and PR 1b each carry the `tfgen check` output** (§B.4). The PR 1b run uses the spec after the publish change.
+- **Generator-gap PRs** can start in parallel with the contract PRs. Run the collision check against teammates' open generator PRs before starting each.
+- **Which gap PR 1 closes** goes into the Notion gaps page: the array-body gap, the id-property gap, and the delete override. The lookup row stays open or closes depending on the V6 decision.
+- **C10 is unchanged:** DEV then publish stays two merged PRs. I read C10 as "skip PREVIEW", and the validator says that reading is right (#565 added the routes as DEV and #574 published them the next day). Please confirm that with the AAA team.
+- **Stack order matches the checklist:** contract, SDK, generator, migration.
+
+**Slack draft for #aaa-interface (Ryan posts):**
+> Following AAIN-196: thanks for #565 and the login-mode fix. To let Terraform generate `coralogix_user` we opened <PR link>: four DEV single-user routes (create, get by `userId`, update, deactivate) plus limits on the `User` response. Three asks. (1) Can someone on AAA implement the four routes in `eng-svc-users-api`? (2) Update uses PUT, which the repo's new-API rule doesn't allow, so this is an explicit exception request. Our generator can't express the released `name` object with PATCH and a mask. The body carries only `firstName`, `lastName` and `status`, and we need an update that keeps every field outside the body (login modes, access type, groups). Is that OK, or should the route keep fields differently? (3) We need the same API-key permissions on the new routes as on the routes they replace, and a 404 on Get only for a missing user. No hard-delete ask here.
+
+### B.8 Intended golden diffs for the migration PR (V7, F4)
+
+The checklist says the golden diff is wording or proven fixes only. The routes change, so these diffs are not wording. They are declared here so reviewers see them as intended and not as drift. **Ask Mikhail whether this counts as a proven-fix exception**, because I can't confirm that from the checklist.
+
+| Operation | Released | After the migration |
+|---|---|---|
+| Create | `POST /aaa/users/v2` with a one-element array and an onboarding mode | `POST /aaa/users/v2/team-members` with a single object, always NO_INVITE |
+| Read | `SearchUsers` (paged), filtered in the provider | `GET /aaa/users/v2/team-members/{user_id}` |
+| Update | batch `PUT /aaa/users/v2` that echoes login modes and access type from private state | `PUT /aaa/users/v2/team-members/{user_id}` with `firstName`, `lastName`, `status` only |
+| Delete | batch `PUT` with status INACTIVE | `POST /aaa/users/v2/team-members/{user_id}/deactivate` |
+| Missing user | `SearchUsers` returns no match | Get returns 404 |
+
+State shape, ids and the plan stay unchanged (invariant I1: the id is the UUID `userId`). Anything outside this table is a regression to investigate.
+
+### B.9 Plan-file cleanup (F12)
+
+When plan v3 is saved to the repo root, it contains only v3: the resolution map and the sections above, with the unchanged sections of v2 folded in. The saved file must not contain:
+- the stale v1 PATCH text (v1 §3, around lines 113–160 of the current file),
+- the two duplicated copies of v2.
+
+v1 already exists as `CX-65729_CONTRACT_PLAN_v1.md` and v2 as `CX-65729_CONTRACT_PLAN_v2.md`, so nothing is lost. After the cleanup, grep the file for "PATCH": it must appear only in the B.0 fallback and in the Slack draft's reason for the exception. I did not do this cleanup, because the task was read-only.
+
+## C. Open items for a human
+
+- **Ryan:**
+  - decide the lookup route (V6);
+  - confirm the C10 reading;
+  - provide the test-tenant key.
+- **AAA and Mikhail:** accept or reject the PUT exception, and say whether §B.8 counts as a proven-fix exception.
+- **Still unverified:**
+  - `buf`, api-linter, oasdiff and spectral results;
+  - the candidate check on PR 1's generated spec;
+  - the `eng-svc-users-api` handlers;
+  - whether `iac-api-eval` fires on PR 1;
+  - gateway route matching;
+  - CODEOWNERS for `aaa/`.
