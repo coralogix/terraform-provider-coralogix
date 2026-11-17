@@ -15,10 +15,19 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = "github.com/coralogix/terraform-provider-coralogix"
-EXTRA_ROOT_TEST_FILES = {
-    "coralogix_ip_access": ("data_source_ip_access_test.go",),
-    "coralogix_recording_rules_groups_set": ("data_source_coralogix_recording_rules_group_test.go",),
-    "coralogix_webhook": ("webhook_generated_lifecycle_test.go",),
+EXTRA_ROOT_TESTS = {
+    "coralogix_ip_access": {
+        "data_source_ip_access_test.go": ("TestAccCoralogixDataSourceIpAccess",),
+        "resource_ip_access_test.go": ("TestIpAccessResource",),
+        "ip_access_generated_live_test.go": ("TestIpAccessGeneratedLiveAcceptance",),
+    },
+    "coralogix_recording_rules_groups_set": {
+        "data_source_coralogix_recording_rules_group_test.go":
+            ("TestAccCoralogixDataSourceRecordingRulesGroupsSet_basic",),
+    },
+    "coralogix_webhook": {
+        "webhook_generated_lifecycle_test.go": ("TestAccCoralogixResourceWebhookGeneratedTypes",),
+    },
 }
 
 
@@ -35,13 +44,13 @@ def resources() -> dict[str, list[tuple[str, str]]]:
 
 def listed_names(package: str) -> list[str]:
     result = subprocess.run(
-        ["go", "test", "-list", "^TestAcc", package], cwd=ROOT,
+        ["go", "test", "-list", "^Test", package], cwd=ROOT,
         text=True, capture_output=True, check=False,
     )
     if result.returncode:
         raise ValueError(f"list tests in {package}: {result.stderr.strip()}")
     return [line for line in result.stdout.splitlines()
-            if re.fullmatch(r"TestAcc\w+", line)]
+            if re.fullmatch(r"Test\w+", line)]
 
 
 def root_names(tf_name: str, available: list[str]) -> list[str]:
@@ -52,14 +61,18 @@ def root_names(tf_name: str, available: list[str]) -> list[str]:
         prefix = f"{kind}_coralogix_{stem}"
         paths.extend(path for path in provider.glob(prefix + "*_test.go")
                      if path.name[len(prefix):].startswith(("_", ".")))
-    for name in EXTRA_ROOT_TEST_FILES.get(tf_name, ()):
-        path = provider / name
-        if not path.is_file():
-            raise ValueError(f"missing mapped acceptance test file: {path}")
-        paths.append(path)
     declared = set()
     for path in paths:
         declared.update(re.findall(r"^func (TestAcc\w+)\(", path.read_text(), re.M))
+    for name, expected in EXTRA_ROOT_TESTS.get(tf_name, {}).items():
+        path = provider / name
+        if not path.is_file():
+            raise ValueError(f"missing mapped acceptance test file: {path}")
+        found = set(re.findall(r"^func (Test\w+)\(", path.read_text(), re.M))
+        for test_name in expected:
+            if test_name not in found or test_name not in available:
+                raise ValueError(f"mapped acceptance test is missing: {test_name}")
+        declared.update(expected)
     return sorted(declared.intersection(available))
 
 
@@ -126,11 +139,10 @@ def select(component: str, new_out: str | None = None,
     root_package = MODULE + "/internal/provider"
     generated_package = root_package + "/generated/" + out
     root = root_names(tf_name, listed_names("./internal/provider"))
-    generated = listed_names("./internal/provider/generated/" + out)
+    generated = [name for name in listed_names("./internal/provider/generated/" + out)
+                 if name.startswith("TestAcc")]
     if out == "dashboard":
         root = [name for name in root if not re.search(r"Dashboards?Folder", name)]
-    else:
-        generated = [name for name in generated if name.startswith("TestAcc")]
     shards: list[dict] = []
     assigned_root: set[str] = set()
     assigned_generated: set[str] = set()

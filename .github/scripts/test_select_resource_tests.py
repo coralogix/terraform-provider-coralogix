@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import pathlib
+import re
 import tempfile
 import unittest
 from unittest import mock
@@ -44,16 +45,31 @@ class SelectorTests(unittest.TestCase):
             root = pathlib.Path(directory)
             provider = root / "internal/provider"
             provider.mkdir(parents=True)
-            cases = {
-                "coralogix_ip_access": ("data_source_ip_access_test.go", "TestAccCoralogixDataSourceIpAccess"),
-                "coralogix_recording_rules_groups_set": ("data_source_coralogix_recording_rules_group_test.go", "TestAccCoralogixDataSourceRecordingRulesGroupsSet_basic"),
-                "coralogix_webhook": ("webhook_generated_lifecycle_test.go", "TestAccCoralogixResourceWebhookGeneratedTypes"),
-            }
-            for file_name, test_name in cases.values():
-                (provider / file_name).write_text(f"func {test_name}(t *testing.T) {{}}\n")
+            for files in selector.EXTRA_ROOT_TESTS.values():
+                for file_name, names in files.items():
+                    (provider / file_name).write_text(
+                        "".join(f"func {name}(t *testing.T) {{}}\n" for name in names)
+                    )
             with mock.patch.object(selector, "ROOT", root):
-                for tf_name, (_, test_name) in cases.items():
-                    self.assertEqual(selector.root_names(tf_name, [test_name]), [test_name])
+                for tf_name, files in selector.EXTRA_ROOT_TESTS.items():
+                    names = [name for expected in files.values() for name in expected]
+                    self.assertEqual(selector.root_names(tf_name, names), sorted(names))
+                with self.assertRaisesRegex(ValueError, "mapped acceptance test is missing"):
+                    selector.root_names("coralogix_ip_access", [])
+
+    def test_workflow_acceptance_names_without_testacc_are_mapped(self):
+        provider = selector.ROOT / "internal/provider"
+        workflow = (selector.ROOT / ".github/workflows/acceptance-tests.yml").read_text()
+        patterns = re.findall(r"^\s+[A-Z0-9_]*PATTERN:.*'([^']+)'$", workflow, re.M)
+        names = {name for path in provider.glob("*_test.go")
+                 for name in re.findall(r"^func (Test\w+)\(", path.read_text(), re.M)
+                 if not name.startswith("TestAcc")}
+        selected = {name for name in names
+                    if any(re.search(pattern, name) for pattern in patterns)}
+        mapped = {name for files in selector.EXTRA_ROOT_TESTS.values()
+                  for expected in files.values() for name in expected
+                  if not name.startswith("TestAcc")}
+        self.assertEqual(selected, mapped)
 
     def test_dashboard_includes_handwritten_and_every_generated_subtest(self):
         with tempfile.TemporaryDirectory() as directory:
