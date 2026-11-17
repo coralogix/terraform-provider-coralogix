@@ -18,9 +18,11 @@ resource "coralogix_rules_group" "rules_group_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 1
+  # Leave order out unless this rule-group must sit at a fixed position. Without it the rule-group is
+  # added last and keeps its position. Coralogix renumbers order when a rule-group is deleted or the
+  # rule-groups are reordered in the UI, so a configured order can show up as a change in the next plan.
+  # To pin a position, set a unique order on every rule-group:
+  # order = 1
 
   rule_subgroups {
     rules {
@@ -103,9 +105,6 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 4
 
   rule_subgroups {
     rules {
@@ -126,9 +125,6 @@ resource "coralogix_rules_group" "remove_fields_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 3
   rule_subgroups {
     rules {
       remove_fields {
@@ -146,9 +142,6 @@ resource "coralogix_rules_group" "parse_json_field_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 2
   rule_subgroups {
     rules {
       parse_json_field {

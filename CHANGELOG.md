@@ -80,6 +80,13 @@
 #### tools/iac-codegen
 - FEAT: `collection: set` supports a map-of-objects Get response with list-of-objects write requests, preserving each API operation's wire shape while exposing one Terraform set.
 - CHORE: Bump the generator to `v0.1.0-beta.85`; its map-to-set generation is covered by a golden fixture.
+
+#### resource/coralogix_parsing_rules
+- DOC: `order` says that the API renumbers it when a rule-group is deleted or the rule-groups are reordered in the UI, so a configured value can drift, recommends leaving it out unless a fixed position is needed, and notes that rule-groups created together without `order` can share one. The example no longer sets it.
+
+#### resource/coralogix_rules_group
+- DOC: The same `order` description and example change as `coralogix_parsing_rules`.
+
 # Release 3.25.0
 
 #### provider
