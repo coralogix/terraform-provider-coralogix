@@ -21,6 +21,43 @@ import (
 type accCheck struct {
 	Path, Value string
 	Absent      bool
+	// Elem makes the check one of a set element: the element of Path (".*" at its end) must hold every
+	// attribute of Elem with its value. The position of a set element is not known, so the check
+	// finds the element by its values.
+	Elem map[string]string
+}
+
+// Call is the Go call of the check.
+func (c accCheck) Call() string {
+	if c.Elem == nil {
+		return "resource.TestCheckResourceAttr(resourceAddress, " + strconv.Quote(c.Path) + ", " + c.Expr() + ")"
+	}
+	keys := slices.Sorted(maps.Keys(c.Elem))
+	var b strings.Builder
+	b.WriteString("resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, " + strconv.Quote(c.Path) + ", map[string]string{")
+	for _, k := range keys {
+		b.WriteString("\n\t\t\t" + strconv.Quote(k) + ": " + accCheck{Value: c.Elem[k]}.Expr() + ",")
+	}
+	b.WriteString("\n\t\t})")
+	return b.String()
+}
+
+// setElementCheck turns the checks of the one element of a set into one check of the element. An
+// attribute below another set, an absent attribute, and the count of a list stay out: the key of an
+// element of a set below the element is not known either.
+func setElementCheck(tfPath string, checks []accCheck) []accCheck {
+	elem := map[string]string{}
+	for _, c := range checks {
+		rest, ok := strings.CutPrefix(c.Path, tfPath+".")
+		if !ok || c.Absent || c.Elem != nil || strings.Contains(rest, "*") {
+			continue
+		}
+		elem[rest] = c.Value
+	}
+	if len(elem) == 0 {
+		return nil
+	}
+	return []accCheck{{Path: tfPath, Elem: elem}}
 }
 
 // Expr is the Go expression of the expected value. A value with a placeholder is rendered at run time.
@@ -309,7 +346,7 @@ func dataSourceStep(crud *crudData, name *dsNameLookup, checks []accCheck, skip 
 		out.Config += fmt.Sprintf("\n\ndata %q \"by_name\" {\n  %s = %s.test.%s\n}", resourceType, name.Attr, resourceType, name.Attr)
 	}
 	for _, check := range checks {
-		if !check.Absent && !slices.Contains(out.Pairs, check.Path) && !slices.Contains(skip, check.Path) {
+		if !check.Absent && check.Elem == nil && !slices.Contains(out.Pairs, check.Path) && !slices.Contains(skip, check.Path) {
 			out.Pairs = append(out.Pairs, check.Path)
 		}
 	}
@@ -720,8 +757,10 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 		return false // skipped, or the released provider does not have it
 	}
 	if a.Extra {
+		// extraAttributes are not API fields; a made-up map key is not valid. An optional one is in
+		// the minimal config only when `minimal` lists it, like any optional attribute.
 		_, ok := s.file.Values[key]
-		return ok // extraAttributes are not API fields; a made-up map key is not valid
+		return ok && (a.Required || mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key))
 	}
 	switch {
 	case !a.Required && !a.Optional:
@@ -981,6 +1020,29 @@ func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, [
 	return hcl, checks, err
 }
 
+var (
+	plainString = regexp.MustCompile(`^"([^"\\$%]*)"$`)
+)
+
+// literalState returns the state value of a string or bool attribute whose line in the file is a
+// plain literal: Terraform requires the applied value of a configured attribute to equal its
+// config. An expression, a template, and a number stay unchecked (a number can read back in another
+// spelling).
+func literalState(a *tfAttr, expr string) (string, bool) {
+	expr = strings.TrimSpace(expr)
+	switch a.Kind {
+	case "String":
+		if m := plainString.FindStringSubmatch(expr); m != nil {
+			return m[1], true
+		}
+	case "Bool":
+		if expr == "true" || expr == "false" {
+			return expr, true
+		}
+	}
+	return "", false
+}
+
 func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	if mode == accMinimal && slices.Contains(s.minimal, key) {
 		mode = accFull
@@ -1000,6 +1062,8 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 		var checks []accCheck
 		if a.WriteOnly {
 			checks = []accCheck{{Path: tfPath, Absent: true}}
+		} else if state, ok := literalState(a, v); ok {
+			checks = []accCheck{{Path: tfPath, Value: state}}
 		}
 		return strings.TrimSpace(v), checks, nil
 	}
@@ -1060,7 +1124,7 @@ func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode)
 		return "", nil, err
 	}
 	if a.Kind == "SetNested" {
-		checks = nil
+		checks = setElementCheck(element, checks)
 	}
 	checks = append([]accCheck{{Path: tfPath + ".#", Value: "1"}}, checks...)
 	return "[\n" + indentLines(objectHCL(body)+",") + "\n]", checks, nil

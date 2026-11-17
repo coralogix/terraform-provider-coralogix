@@ -173,7 +173,9 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.description", resourceAddress, "policies.0.description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.enabled", resourceAddress, "policies.0.enabled"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.name", resourceAddress, "policies.0.name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.priority", resourceAddress, "policies.0.priority"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.quota_based_priority_override.usage_tiers.#", resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.quota_based_priority_override.usage_tiers.0.priority", resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.0.priority"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.actions.rule_type", resourceAddress, "policies.0.actions.rule_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.services.rule_type", resourceAddress, "policies.0.services.rule_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "policies.0.subsystems.rule_type", resourceAddress, "policies.0.subsystems.rule_type"),
@@ -187,7 +189,9 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.priority", "low"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "high"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.actions.rule_type", "includes"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.services.rule_type", "includes"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.subsystems.rule_type", "includes"),
@@ -201,7 +205,9 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.enabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.priority", "low"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "high"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.actions.rule_type", "includes"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.services.rule_type", "includes"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.subsystems.rule_type", "includes"),
@@ -212,6 +218,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "policies.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.priority", "low"),
 	)
 }
 
@@ -219,6 +226,7 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "policies.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "policies.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.priority", "low"),
 	)
 }
 

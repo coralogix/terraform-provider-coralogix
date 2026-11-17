@@ -1,2 +1,5 @@
 # The acceptance file of the synthetic box thing, which is read from its List.
 resource: BoxThing
+# A plain literal is checked in the state; an expression is not.
+values:
+  name: '"fixed-name"'

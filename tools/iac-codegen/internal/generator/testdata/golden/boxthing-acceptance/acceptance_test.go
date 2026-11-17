@@ -61,17 +61,17 @@ func render(run, text string) string {
 const prerequisites = ``
 
 const fullConfig = `resource "coralogix_box_thing" "test" {
-  name = "@{run}-name"
+  name = "fixed-name"
   description = "@{run}-description"
 }`
 
 const updatedConfig = `resource "coralogix_box_thing" "test" {
-  name = "@{run}-name-updated"
+  name = "fixed-name"
   description = "@{run}-description-updated"
 }`
 
 const minimalConfig = `resource "coralogix_box_thing" "test" {
-  name = "@{run}-name"
+  name = "fixed-name"
 }`
 
 func config(run, resourceBlock string) string {
@@ -80,21 +80,21 @@ func config(run, resourceBlock string) string {
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", "fixed-name"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", "fixed-name"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", "fixed-name"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", ""),
 	)
 }

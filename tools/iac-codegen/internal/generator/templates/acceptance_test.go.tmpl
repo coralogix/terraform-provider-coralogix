@@ -126,7 +126,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 {{- if .Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
 {{- else}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 {{- end}}
 	)
@@ -138,7 +138,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 {{- if .Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
 {{- else}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 {{- end}}
 	)
@@ -150,7 +150,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 {{- if .Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
 {{- else}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 {{- end}}
 {{- range .Minimal.Absent}}
@@ -166,7 +166,7 @@ func removedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		minimalChecks(run),
 {{- range .Minimal.Kept}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 	)
 }
@@ -179,7 +179,7 @@ func upgradeFullChecks(run string) resource.TestCheckFunc {
 {{- if .Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
 {{- else}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 {{- end}}
 	)
@@ -193,7 +193,7 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 {{- if .Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
 {{- else}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 {{- end}}
 	)
@@ -209,7 +209,7 @@ func upgrade{{.Ident}}Checks(run string) resource.TestCheckFunc {
 {{- if .Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
 {{- else}}
-		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+		{{.Call}},
 {{- end}}
 {{- end}}
 	)

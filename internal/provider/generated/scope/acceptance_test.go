@@ -116,6 +116,7 @@ const dataSourceConfig = `data "coralogix_scope" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "default_expression", resourceAddress, "default_expression"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "display_name", resourceAddress, "display_name"),
 	)
@@ -123,6 +124,7 @@ func dataSourceChecks() resource.TestCheckFunc {
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "default_expression", "<v1>true"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "display_name", render(run, "@{run}-display_name")),
 	)
@@ -130,6 +132,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "default_expression", "<v1>false"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "display_name", render(run, "@{run}-display_name-updated")),
 	)
@@ -137,6 +140,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "default_expression", "<v1>true"),
 		resource.TestCheckResourceAttr(resourceAddress, "display_name", render(run, "@{run}-display_name")),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
 	)
@@ -144,6 +148,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "default_expression", "<v1>true"),
 		resource.TestCheckResourceAttr(resourceAddress, "display_name", render(run, "@{run}-display_name")),
 	)
 }

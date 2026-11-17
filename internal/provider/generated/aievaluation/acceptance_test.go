@@ -20,7 +20,7 @@ import (
 const resourceAddress = "coralogix_ai_evaluation.test"
 
 // requiredEnv are the variables that the test config reads, besides the API key.
-var requiredEnv = []string{}
+var requiredEnv = []string{"AI_EVALUATION_APPLICATION", "AI_EVALUATION_SUBSYSTEM"}
 
 // providerFactories serve the provider as the binary does: the SDKv2 and the framework providers
 // behind one mux, so a prerequisite can be any resource of the provider.
@@ -61,39 +61,39 @@ func render(run, text string) string {
 const prerequisites = ``
 
 const fullConfig = `resource "coralogix_ai_evaluation" "test" {
-  application = "@{run}-application"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     allowed_topics = {
       topics = ["@{run}-topics"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }`
 
 const updatedConfig = `resource "coralogix_ai_evaluation" "test" {
-  application = "@{run}-application"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     allowed_topics = {
       topics = ["@{run}-topics-updated"]
     }
   }
   is_enabled = false
-  subsystem = "@{run}-subsystem"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 1
 }`
 
 const minimalConfig = `resource "coralogix_ai_evaluation" "test" {
-  application = "@{run}-application"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     allowed_topics = {
       topics = ["@{run}-topics"]
     }
   }
-  subsystem = "@{run}-subsystem"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }`
@@ -104,10 +104,10 @@ func config(run, resourceBlock string) string {
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{run}-application")),
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
 		resource.TestCheckResourceAttr(resourceAddress, "config.allowed_topics.topics.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
-		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{run}-subsystem")),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
 		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
 		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
 	)
@@ -115,10 +115,10 @@ func fullChecks(run string) resource.TestCheckFunc {
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{run}-application")),
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
 		resource.TestCheckResourceAttr(resourceAddress, "config.allowed_topics.topics.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "false"),
-		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{run}-subsystem")),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
 		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
 		resource.TestCheckResourceAttr(resourceAddress, "threshold", "1"),
 	)
@@ -126,9 +126,9 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{run}-application")),
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
 		resource.TestCheckResourceAttr(resourceAddress, "config.allowed_topics.topics.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{run}-subsystem")),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
 		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
 		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
 		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
@@ -150,7 +150,6 @@ var importStep = resource.TestStep{
 func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
-		t.Skip("the API refuses an application that does not exist, and the test cannot create one")
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
@@ -167,7 +166,6 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 	// minimal-lifecycle creates the resource with only the required attributes, imports it, sets every
 	// attribute, and removes them again.
 	t.Run("minimal-lifecycle", func(t *testing.T) {
-		t.Skip("the API refuses an application that does not exist, and the test cannot create one")
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
@@ -188,7 +186,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
 	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
 	t.Run("values-and-choices", func(t *testing.T) {
-		t.Skip("the API refuses an application that does not exist, and the test cannot create one")
+		t.Skip("the API fails with a 500 when one apply updates several evaluations of the same application")
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
@@ -244,241 +242,241 @@ func TestConfigsValidateAiEvaluationGenerated(t *testing.T) {
 // that no config before it sets.
 
 const variant1Config = `resource "coralogix_ai_evaluation" "test" {
-  application = "@{run}-application"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
       categories = ["PHONE_NUMBER"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem"
-  target = "response"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
+  target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_2" {
-  application = "@{run}-application-2"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     competition = {
       competitors = ["@{run}-competitors"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-2"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_3" {
-  application = "@{run}-application-3"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_completeness = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-3"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_4" {
-  application = "@{run}-application-4"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_context_adherence = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-4"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_5" {
-  application = "@{run}-application-5"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_context_relevance = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-5"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_6" {
-  application = "@{run}-application-6"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_correctness = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-6"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_7" {
-  application = "@{run}-application-7"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_task_adherence = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-7"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_8" {
-  application = "@{run}-application-8"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     language_mismatch = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-8"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_9" {
-  application = "@{run}-application-9"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     prompt_injection = {
       additional_context = "@{run}-additional_context-9"
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-9"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_10" {
-  application = "@{run}-application-10"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     restricted_topics = {
       topics = ["@{run}-topics"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-10"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }`
 
 const variant2Config = `resource "coralogix_ai_evaluation" "test" {
-  application = "@{run}-application"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sexism = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_2" {
-  application = "@{run}-application-2"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_allowed_tables = {
       tables = ["@{run}-tables"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-2"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_3" {
-  application = "@{run}-application-3"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_hallucination = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-3"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_4" {
-  application = "@{run}-application-4"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_read_only = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-4"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_5" {
-  application = "@{run}-application-5"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_restricted_tables = {
       tables = ["@{run}-tables"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-5"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_6" {
-  application = "@{run}-application-6"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     toxicity = {}
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-6"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_7" {
-  application = "@{run}-application-7"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
       categories = ["EMAIL_ADDRESS"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-7"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_8" {
-  application = "@{run}-application-8"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
       categories = ["CREDIT_CARD"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-8"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_9" {
-  application = "@{run}-application-9"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
       categories = ["IBAN_CODE"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-9"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }
 
 resource "coralogix_ai_evaluation" "test_10" {
-  application = "@{run}-application-10"
+  application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
       categories = ["US_SSN"]
     }
   }
   is_enabled = true
-  subsystem = "@{run}-subsystem-10"
+  subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
 }`

@@ -102,23 +102,37 @@ const dataSourceConfig = `data "coralogix_integration" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "integration_key", resourceAddress, "integration_key"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "version", resourceAddress, "version"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "integration_key", "aws-resource-catalog"),
+		resource.TestCheckResourceAttr(resourceAddress, "version", "0.1.0"),
+	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "integration_key", "aws-resource-catalog"),
+		resource.TestCheckResourceAttr(resourceAddress, "version", "0.1.0"),
+	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "integration_key", "aws-resource-catalog"),
+		resource.TestCheckResourceAttr(resourceAddress, "version", "0.1.0"),
+	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "integration_key", "aws-resource-catalog"),
+		resource.TestCheckResourceAttr(resourceAddress, "version", "0.1.0"),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }

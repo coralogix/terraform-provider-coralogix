@@ -82,7 +82,6 @@ const minimalConfig = `resource "coralogix_ai_custom_evaluation" "test" {
   instructions = "{prompt}"
   policy_type = "quality"
   name = "@{run}-name"
-  criteria = { acceptable = { flags = "Does not mention competitor products.", examples = ["User: which tool should I use?\nAssistant: Our product is a strong fit."] }, prohibited = { flags = "Mentions a competitor product.", examples = ["User: which tool should I use?\nAssistant: CompetitorX is a strong fit."] } }
 }`
 
 func config(run, resourceBlock string) string {

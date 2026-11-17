@@ -187,15 +187,23 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "attachment_config", resourceAddress, "attachment_config"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "config_overrides.#", resourceAddress, "config_overrides.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "config_overrides.0.message_config.fields.#", resourceAddress, "config_overrides.0.message_config.fields.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "connector_type", resourceAddress, "connector_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "entity_type", resourceAddress, "entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "parent_id", resourceAddress, "parent_id"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "attachment_config", resourceAddress, "attachment_config"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "config_overrides.#", resourceAddress, "config_overrides.#"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "config_overrides.0.message_config.fields.#", resourceAddress, "config_overrides.0.message_config.fields.#"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "connector_type", resourceAddress, "connector_type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "entity_type", resourceAddress, "entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "parent_id", resourceAddress, "parent_id"),
 	)
 }
 
@@ -203,9 +211,17 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "attachment_config", "AUTO"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", "logsImmediateResolved"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.message_config.fields.*", map[string]string{
+			"field_name": "body",
+			"template":   "{}",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "connector_type", "generic_https"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "parent_id", "preset_system_generic_https_alerts_empty"),
 	)
 }
 
@@ -213,17 +229,33 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "attachment_config", "AUTO"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", "logsImmediateResolved"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.message_config.fields.*", map[string]string{
+			"field_name": "body",
+			"template":   "{}",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "connector_type", "generic_https"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "parent_id", "preset_system_generic_https_alerts_empty"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", "logsImmediateResolved"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.message_config.fields.*", map[string]string{
+			"field_name": "body",
+			"template":   "{}",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "connector_type", "generic_https"),
+		resource.TestCheckResourceAttr(resourceAddress, "entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "parent_id", "preset_system_generic_https_alerts_empty"),
 		resource.TestCheckResourceAttr(resourceAddress, "attachment_config", "AUTO"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
 	)
@@ -232,9 +264,17 @@ func minimalChecks(run string) resource.TestCheckFunc {
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", "logsImmediateResolved"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "config_overrides.0.message_config.fields.*", map[string]string{
+			"field_name": "body",
+			"template":   "{}",
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "connector_type", "generic_https"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "parent_id", "preset_system_generic_https_alerts_empty"),
 	)
 }
 

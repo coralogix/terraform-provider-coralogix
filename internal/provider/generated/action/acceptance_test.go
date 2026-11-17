@@ -130,6 +130,8 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "applications.#", resourceAddress, "applications.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "is_hidden", resourceAddress, "is_hidden"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "is_private", resourceAddress, "is_private"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "source_type", resourceAddress, "source_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "subsystems.#", resourceAddress, "subsystems.#"),
@@ -144,6 +146,8 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_hidden", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_private", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "source_type", "DataMap"),
 		resource.TestCheckResourceAttr(resourceAddress, "subsystems.#", "1"),
@@ -158,6 +162,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_hidden", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_private", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "source_type", "DataMap"),
 		resource.TestCheckResourceAttr(resourceAddress, "subsystems.#", "1"),
@@ -170,6 +176,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "is_private", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "source_type", "DataMap"),
 		resource.TestCheckResourceAttr(resourceAddress, "url", "http://a"),
@@ -181,6 +188,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "is_private", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "source_type", "DataMap"),
 		resource.TestCheckResourceAttr(resourceAddress, "url", "http://a"),

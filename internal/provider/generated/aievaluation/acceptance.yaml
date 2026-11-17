@@ -2,14 +2,29 @@
 #
 # An evaluation belongs to an AI application that already exists in the tenant, and only one
 # evaluation can use an application, a subsystem, and a target at a time. The API refuses a made-up
-# application, and no resource creates one, so the live subtests cannot make a config. The handwritten
-# TestAccCoralogixResourceAIEvaluation lists the applications of the tenant, takes one that is free
-# for the target, and covers every config variant; TestAccCoralogixResourceAIEvaluationGeneratedUpgrade
-# covers the upgrade. The offline tests of this file (the failure paths and the config validation)
-# need no tenant and stay active.
+# application and no resource creates one, so the test reads an existing one from the environment:
+# the CI team has 20 of them, which the preparation step of the acceptance workflow creates (see
+# AI_EVALUATION_APPLICATION there). The handwritten TestAccCoralogixResourceAIEvaluation takes any
+# free application of the tenant at random, so the test uses the last one and the two rarely meet.
+#
+# The target is "prompt": every evaluation type accepts it, and prompt_injection accepts no other.
+#
+# To run it locally, name an application and a subsystem of your team that has no evaluation yet:
+#
+#   TF_ACC=1 CORALOGIX_API_KEY=<key> CORALOGIX_ENV=EU2 AI_EVALUATION_APPLICATION=<app> \
+#     AI_EVALUATION_SUBSYSTEM=<subsystem> \
+#     go test ./internal/provider/generated/aievaluation -run TestAccCoralogixResourceAiEvaluationGenerated
 resource: AiEvaluation
+env: [AI_EVALUATION_APPLICATION, AI_EVALUATION_SUBSYSTEM]
 
+values:
+  application: '"@{env.AI_EVALUATION_APPLICATION}"'
+  subsystem: '"@{env.AI_EVALUATION_SUBSYSTEM}"'
+  target: '"prompt"'
+
+# A step of values-and-choices holds one evaluation for each type of config, all on the one
+# application. Live runs on EU2 create them, but the apply that changes several of them at once
+# fails with a 500 on some of the updates (a different set each run). The handwritten
+# TestAccCoralogixResourceAIEvaluation covers every type, each on its own free application.
 skipTests:
-  full-lifecycle: the API refuses an application that does not exist, and the test cannot create one
-  minimal-lifecycle: the API refuses an application that does not exist, and the test cannot create one
-  values-and-choices: the API refuses an application that does not exist, and the test cannot create one
+  values-and-choices: the API fails with a 500 when one apply updates several evaluations of the same application

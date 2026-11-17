@@ -873,10 +873,10 @@ func TestAcceptanceChecksRemovedComputedAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defaults, kept := s.removed(attrs, full)
-	if got := fmt.Sprint(defaults); got != "[{disabled false false} {tier basic false}]" {
+	if got := fmt.Sprint(defaults); got != "[{disabled false false map[]} {tier basic false map[]}]" {
 		t.Errorf("defaults = %s, want disabled and tier", got)
 	}
-	if got := fmt.Sprint(kept); got != "[{limit 1 false}]" {
+	if got := fmt.Sprint(kept); got != "[{limit 1 false map[]}]" {
 		t.Errorf("kept = %s, want limit with its full value", got)
 	}
 }
@@ -1083,5 +1083,52 @@ func TestAcceptanceObjectAndComputedExtras(t *testing.T) {
 	}
 	if !strings.Contains(body, `schedule = { start_time = "07:30" }`) || strings.Contains(body, "policy") {
 		t.Fatalf("config lacks the object of the acceptance file, or sets the other extra:\n%s", body)
+	}
+}
+
+// A values line that is a plain string or bool literal gets a state check; an expression, a
+// template, an escape, and a number do not.
+func TestLiteralStateOfValuesLines(t *testing.T) {
+	str, boolean, num := &tfAttr{Kind: "String"}, &tfAttr{Kind: "Bool"}, &tfAttr{Kind: "Int64"}
+	for _, c := range []struct {
+		a    *tfAttr
+		expr string
+		want string
+		ok   bool
+	}{
+		{str, ` "Standard User" `, "Standard User", true},
+		{str, `"@{env.TEAM}"`, "@{env.TEAM}", true},
+		{boolean, "false", "false", true},
+		{str, "coralogix_other.x.id", "", false},
+		{str, `"a-${var.b}"`, "", false},
+		{str, `"a\"b"`, "", false},
+		{num, "1", "", false},
+		{str, `["a"]`, "", false},
+	} {
+		got, ok := literalState(c.a, c.expr)
+		if got != c.want || ok != c.ok {
+			t.Errorf("literalState(%s, %q) = %q, %v, want %q, %v", c.a.Kind, c.expr, got, ok, c.want, c.ok)
+		}
+	}
+}
+
+// An optional extra attribute with a values line is in the full and updated configs, and in the
+// minimal config only when `minimal` lists it. A required one is in every config.
+func TestMinimalConfigLeavesOutOptionalExtraAttributes(t *testing.T) {
+	optional := &tfAttr{Name: "criteria", Extra: true, Optional: true, Kind: "SingleNested"}
+	required := &tfAttr{Name: "doc", Extra: true, Required: true, Kind: "String"}
+	s := testSynth(t, "values:\n  criteria: '{}'\n  doc: '\"x\"'\n")
+	for _, c := range []struct {
+		a    *tfAttr
+		mode accMode
+		want bool
+	}{{optional, accFull, true}, {optional, accUpdated, true}, {optional, accMinimal, false}, {required, accMinimal, true}} {
+		if got := s.include(c.a, c.a.Name, c.mode, true); got != c.want {
+			t.Errorf("include(%s, mode %v) = %v, want %v", c.a.Name, c.mode, got, c.want)
+		}
+	}
+	s = testSynth(t, "values:\n  criteria: '{}'\nminimal: [criteria]\n")
+	if !s.include(optional, "criteria", accMinimal, true) {
+		t.Error("a listed extra attribute must be in the minimal config")
 	}
 }

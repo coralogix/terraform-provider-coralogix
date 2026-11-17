@@ -302,6 +302,9 @@ jobs:
           SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+          # The generated ai_evaluation test uses the last of the 20 AI applications of the prepared team.
+          AI_EVALUATION_APPLICATION: ${{ secrets.CI_PREP_AI_APPLICATION_PREFIX }}-20
+          AI_EVALUATION_SUBSYSTEM: ci-acceptance
           RUN_PATTERN: ${{ matrix.pattern }}
           ACC_SKIP_PATTERN: ${{ matrix.skip }}
         run: &non_dashboard_shard_run |
@@ -372,6 +375,9 @@ jobs:
           SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+          # The generated ai_evaluation test uses the last of the 20 AI applications of the prepared team.
+          AI_EVALUATION_APPLICATION: ${{ secrets.CI_PREP_AI_APPLICATION_PREFIX }}-20
+          AI_EVALUATION_SUBSYSTEM: ci-acceptance
         run: &non_dashboard_unsharded_run |
           shard_patterns=(
             "$NON_DASHBOARD_SHARD_ALERTS_AND_SCHEDULER"

@@ -101,24 +101,39 @@ const dataSourceConfig = `data "coralogix_ip_access" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "enable_coralogix_customer_support_access", resourceAddress, "enable_coralogix_customer_support_access"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "ip_access.#", resourceAddress, "ip_access.#"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "enable_coralogix_customer_support_access", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "ip_access.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "ip_access.*", map[string]string{
+			"enabled":  "false",
+			"ip_range": "100.64.0.0/10",
+			"name":     render(run, "@{run}-name"),
+		}),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "enable_coralogix_customer_support_access", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "ip_access.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "ip_access.*", map[string]string{
+			"enabled":  "false",
+			"ip_range": "10.0.0.0/8",
+			"name":     render(run, "@{run}-name-updated"),
+		}),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "enable_coralogix_customer_support_access", "disabled"),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }

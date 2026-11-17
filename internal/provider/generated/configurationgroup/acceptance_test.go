@@ -193,7 +193,11 @@ func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "family.active", resourceAddress, "family.active"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "family.description", resourceAddress, "family.description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "family.preset.chart_name", resourceAddress, "family.preset.chart_name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "family.preset.chart_version", resourceAddress, "family.preset.chart_version"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "family.preset.integration_version", resourceAddress, "family.preset.integration_version"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "priority_order", resourceAddress, "priority_order"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "tags.#", resourceAddress, "tags.#"),
@@ -204,7 +208,11 @@ func dataSourceChecks() resource.TestCheckFunc {
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "family.active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "family.description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.chart_name", "chart_name_otel_integration"),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.chart_version", "0.0.353"),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.integration_version", "0.9.0"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "priority_order", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
@@ -215,7 +223,11 @@ func fullChecks(run string) resource.TestCheckFunc {
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "family.active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "family.description", render(run, "@{run}-description-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.chart_name", "chart_name_otel_integration"),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.chart_version", "0.0.353"),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.integration_version", "0.9.0"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "priority_order", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
@@ -225,6 +237,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.chart_name", "chart_name_otel_integration"),
+		resource.TestCheckResourceAttr(resourceAddress, "family.preset.chart_version", "0.0.353"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "priority_order", "0"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
