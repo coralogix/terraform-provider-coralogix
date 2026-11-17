@@ -73,8 +73,9 @@ types:
       UnionItem.first:
         fields: {label: {name: title}}
       # Any key of a field line is a place line. The second place requires the label, and the first does not.
+      # descriptionSuffix adds text after the description of the contract, here only for the second place.
       UnionItem.second:
-        fields: {label: {required: true, markdownDescription: The label of the second tag.}}
+        fields: {label: {required: true, descriptionSuffix: The second place requires it.}}
 
   # The same component holds its value in an object in two places. The first place inlines the
   # value, and names the note remark. The items of the list keep the object and the note.

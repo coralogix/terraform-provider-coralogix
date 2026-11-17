@@ -465,6 +465,14 @@ func shapeIssue(location string, err error) issue.Issue {
 			Remediation: "Delete name from dataSource.lookup, or give the API a List that the data source can use.",
 		}
 	}
+	if errors.Is(err, errDescriptionSuffix) {
+		return issue.Issue{
+			Code:        "OVERRIDE_INVALID",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Use description or markdownDescription for the whole text of the field, or delete one of the keys.",
+		}
+	}
 	if errors.Is(err, errStaleOverrideKey) {
 		return issue.Issue{
 			Code:        "OVERRIDE_UNUSED",

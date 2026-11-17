@@ -148,7 +148,10 @@ type tfAttr struct {
 	PlainDescription bool
 	// VerbatimDescription: a description or markdownDescription line of the field states the text.
 	VerbatimDescription bool
-	DeprecationMessage  string
+	// DescriptionSuffix is the text of a descriptionSuffix line. It is added to Description
+	// after everything else has settled (applyDescriptionSuffixes), so it is the last part.
+	DescriptionSuffix  string
+	DeprecationMessage string
 	// Sensitive: Terraform hides the value (a sensitive line).
 	Sensitive bool
 	Default   string // Go expression of a static default, or ""
@@ -494,6 +497,9 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 // errStaleOverrideKey reports a key of a field line that the generator already applies.
 var errStaleOverrideKey = errors.New("the generator already applies this key, so it changes nothing")
 
+// errDescriptionSuffix reports a descriptionSuffix line that cannot add to a description.
+var errDescriptionSuffix = errors.New("descriptionSuffix has nothing to add to")
+
 // applyOverrides applies the behavior-overrides file to the attributes. A field with a line
 // keeps the released behavior that the line states.
 func applyOverrides(out *tfResource, file *overrides.File) error {
@@ -555,7 +561,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
-					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
+					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, DescriptionSuffix: line.DescriptionSuffix, Deprecation: line.Deprecation}
 				}
 				if a.TypedArm {
 					line.Validators = nil
@@ -595,7 +601,43 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	// always null there, so those checks never run.
 	stripComputedConfig(out.Attributes)
 	addEnumValues(out.Attributes, file.EnumValuesInDescription)
+	applyDescriptionSuffixes(out.Attributes)
 	return applyConfigChecks(out, file)
+}
+
+// applyDescriptionSuffixes appends the suffix of each descriptionSuffix line to the description of
+// its attribute, after one space, in every attribute below attrs. It runs after addEnumValues, so
+// the Terraform-only text comes last, after the contract text and the list of valid values. The
+// suffix is cleared once it is applied, so an attribute that the tree holds twice gets it once.
+func applyDescriptionSuffixes(attrs []*tfAttr) {
+	for _, a := range attrs {
+		if a.DescriptionSuffix != "" {
+			a.Description += " " + a.DescriptionSuffix
+			a.DescriptionSuffix = ""
+		}
+		applyDescriptionSuffixes(a.Attributes)
+	}
+}
+
+// applyDescriptionSuffix records the descriptionSuffix of a line on the attribute. It adds to the
+// description that the contract gives the field, so the contract must have one, and it must not
+// already say the same. A description or markdownDescription key, also one that a place line laid
+// over this line, states the whole text instead.
+func applyDescriptionSuffix(a *tfAttr, l overrides.Field) error {
+	if l.DescriptionSuffix == nil {
+		return nil
+	}
+	suffix := *l.DescriptionSuffix
+	switch {
+	case l.Description != nil || l.MarkdownDescription != nil:
+		return fmt.Errorf("%w: descriptionSuffix adds to the description of the contract, and description or markdownDescription replaces it, so a line (a place line laid over it too) sets one of them", errDescriptionSuffix)
+	case a.Description == "":
+		return fmt.Errorf("%w: the API contract gives %s.%s no description. State the whole text with description or markdownDescription, or ask for a description in the contract", errDescriptionSuffix, a.Component, a.Property)
+	case strings.Contains(a.Description, suffix):
+		return fmt.Errorf("descriptionSuffix: the contract description of %s.%s already contains this text: %w", a.Component, a.Property, errStaleOverrideKey)
+	}
+	a.DescriptionSuffix = suffix
+	return nil
 }
 
 // addEnumValues appends the accepted values of the enum validator of an attribute to its
@@ -691,6 +733,9 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	}
 	if l.MarkdownDescription != nil {
 		a.Description, a.PlainDescription, a.VerbatimDescription = *l.MarkdownDescription, false, true
+	}
+	if err := applyDescriptionSuffix(a, l); err != nil {
+		return err
 	}
 	a.DeprecationMessage = l.Deprecation
 	a.Sensitive = l.Sensitive

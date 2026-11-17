@@ -27,6 +27,7 @@ types:
         required: true
       createTime:
         useStateForUnknown: true
+        descriptionSuffix: "Terraform keeps it after the first apply."
       labels:
         description: "The labels."
         readEmptyAs: "null"
@@ -44,6 +45,7 @@ types:
         default: alpha
         useStateForUnknown: true
         deprecation: "Use another field."
+        descriptionSuffix: "Changing it replaces the rule."
         validators: [{enum: true}]
       targets:
         description: "The targets."

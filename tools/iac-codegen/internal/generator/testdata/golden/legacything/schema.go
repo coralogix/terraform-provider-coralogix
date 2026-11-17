@@ -37,7 +37,7 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "",
+				MarkdownDescription: "When the thing was created. Terraform keeps it after the first apply.",
 			},
 			"labels": schema.SingleNestedAttribute{
 				Optional: true,
@@ -70,7 +70,7 @@ func Schema() schema.Schema {
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
 							},
-							MarkdownDescription: "",
+							MarkdownDescription: "The kind of the rule. Changing it replaces the rule.",
 						},
 						"targets": schema.ListNestedAttribute{
 							Optional: true,
