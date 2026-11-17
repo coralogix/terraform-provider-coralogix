@@ -15,6 +15,11 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = "github.com/coralogix/terraform-provider-coralogix"
+EXTRA_ROOT_TEST_FILES = {
+    "coralogix_ip_access": ("data_source_ip_access_test.go",),
+    "coralogix_recording_rules_groups_set": ("data_source_coralogix_recording_rules_group_test.go",),
+    "coralogix_webhook": ("webhook_generated_lifecycle_test.go",),
+}
 
 
 def resources() -> dict[str, list[tuple[str, str]]]:
@@ -47,6 +52,11 @@ def root_names(tf_name: str, available: list[str]) -> list[str]:
         prefix = f"{kind}_coralogix_{stem}"
         paths.extend(path for path in provider.glob(prefix + "*_test.go")
                      if path.name[len(prefix):].startswith(("_", ".")))
+    for name in EXTRA_ROOT_TEST_FILES.get(tf_name, ()):
+        path = provider / name
+        if not path.is_file():
+            raise ValueError(f"missing mapped acceptance test file: {path}")
+        paths.append(path)
     declared = set()
     for path in paths:
         declared.update(re.findall(r"^func (TestAcc\w+)\(", path.read_text(), re.M))

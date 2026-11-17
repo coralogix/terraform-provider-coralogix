@@ -34,6 +34,22 @@ class SelectorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "ambiguous resource mapping"):
                 selector.select("Thing")
 
+    def test_noncanonical_handwritten_test_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            provider = root / "internal/provider"
+            provider.mkdir(parents=True)
+            cases = {
+                "coralogix_ip_access": ("data_source_ip_access_test.go", "TestAccCoralogixDataSourceIpAccess"),
+                "coralogix_recording_rules_groups_set": ("data_source_coralogix_recording_rules_group_test.go", "TestAccCoralogixDataSourceRecordingRulesGroupsSet_basic"),
+                "coralogix_webhook": ("webhook_generated_lifecycle_test.go", "TestAccCoralogixResourceWebhookGeneratedTypes"),
+            }
+            for file_name, test_name in cases.values():
+                (provider / file_name).write_text(f"func {test_name}(t *testing.T) {{}}\n")
+            with mock.patch.object(selector, "ROOT", root):
+                for tf_name, (_, test_name) in cases.items():
+                    self.assertEqual(selector.root_names(tf_name, [test_name]), [test_name])
+
     def test_dashboard_includes_handwritten_and_every_generated_subtest(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
