@@ -18,13 +18,16 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )
 
 // Options are the explicit resource generation choices.
 type Options struct {
-	Resource     string
-	OutputDir    string
+	Resource  string
+	OutputDir string
+	// SDKDir selects a local SDK module and its OpenAPI. Empty keeps pinned SDK generation.
+	SDKDir       string
 	OperationIDs model.OperationIDs
 	// OverridesPath is the behavior-overrides file of a resource that users
 	// already have. "" uses the file in OutputDir, when it exists.
@@ -72,7 +75,13 @@ func Generate(start string, options Options) error {
 	if _, err := validateOptions(options); err != nil {
 		return err
 	}
-	input, err := source.Resolve(start)
+	var input source.Input
+	var err error
+	if options.SDKDir == "" {
+		input, err = source.Resolve(start)
+	} else {
+		input, err = resolveLocalSDK(start, options.SDKDir)
+	}
 	if err != nil {
 		return err
 	}
@@ -80,6 +89,55 @@ func Generate(start string, options Options) error {
 		return err
 	}
 	return generateFromInput(options, input, input.ModuleRoot)
+}
+
+// resolveLocalSDK reads the preview contract and SDK from the same module tree.
+// It does not change the provider's pinned SDK requirement.
+func resolveLocalSDK(start, sdkDir string) (source.Input, error) {
+	root, err := filepath.Abs(start)
+	if err != nil {
+		return source.Input{}, fmt.Errorf("resolve provider directory: %w", err)
+	}
+	for {
+		data, readErr := os.ReadFile(filepath.Join(root, "go.mod"))
+		if readErr == nil {
+			mod, parseErr := modfile.Parse("go.mod", data, nil)
+			if parseErr != nil {
+				return source.Input{}, fmt.Errorf("parse %s/go.mod: %w", root, parseErr)
+			}
+			if mod.Module != nil && mod.Module.Mod.Path == providerModulePath {
+				break
+			}
+		} else if !errors.Is(readErr, os.ErrNotExist) {
+			return source.Input{}, fmt.Errorf("read %s/go.mod: %w", root, readErr)
+		}
+		parent := filepath.Dir(root)
+		if parent == root {
+			return source.Input{}, fmt.Errorf("find provider module from %s", start)
+		}
+		root = parent
+	}
+	sdkDir, err = filepath.Abs(sdkDir)
+	if err != nil {
+		return source.Input{}, fmt.Errorf("resolve SDK directory: %w", err)
+	}
+	modPath := filepath.Join(sdkDir, "go.mod")
+	data, err := os.ReadFile(modPath)
+	if err != nil {
+		return source.Input{}, fmt.Errorf("read local SDK module %s: %w", modPath, err)
+	}
+	mod, err := modfile.Parse(modPath, data, nil)
+	if err != nil {
+		return source.Input{}, fmt.Errorf("parse local SDK module %s: %w", modPath, err)
+	}
+	if mod.Module == nil || mod.Module.Mod.Path != source.SDKModule {
+		return source.Input{}, fmt.Errorf("local SDK %s must declare module %s", modPath, source.SDKModule)
+	}
+	openAPI, err := os.ReadFile(filepath.Join(sdkDir, "openapi.yaml"))
+	if err != nil {
+		return source.Input{}, fmt.Errorf("read local SDK OpenAPI: %w", err)
+	}
+	return source.Input{ModuleRoot: root, Module: providerModulePath, SDKDir: sdkDir, SDKModule: source.SDKModule, OpenAPI: openAPI}, nil
 }
 
 // Check validates a local candidate OpenAPI document without rendering files.
@@ -500,7 +558,11 @@ func sdkIssues(refs []sdkcheck.Ref, loaded map[string]*packages.Package, input s
 		if ref.Rule == ruleProviderClientSet {
 			return sdkcheck.Source{Module: input.Module, Dir: input.ModuleRoot, Remediation: "Load the provider clientset from the same provider checkout."}
 		}
-		return sdkcheck.Source{Module: input.SDKModule, Version: input.SDKVersion, Dir: input.SDKDir, Remediation: "Load the Go SDK and OpenAPI from the same provider-pinned module version."}
+		remediation := "Load the Go SDK and OpenAPI from the same provider-pinned module version."
+		if input.SDKVersion == "" {
+			remediation = "Add the local SDK module to go.work and use that directory for --sdk-dir."
+		}
+		return sdkcheck.Source{Module: input.SDKModule, Version: input.SDKVersion, Dir: input.SDKDir, Remediation: remediation}
 	})
 }
 
