@@ -297,6 +297,8 @@ func (r *Resource) get(ctx context.Context, id string) (*member_service.Member, 
 	if pageToken != nil && *pageToken != "" {
 		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
+	// The pages ended without the item, or the List is unpaged and its one page does not hold
+	// it: the resource does not exist.
 	return nil, nil
 }
 

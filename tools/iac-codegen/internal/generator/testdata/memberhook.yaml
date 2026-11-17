@@ -26,8 +26,9 @@ paths:
         in: query
         required: false
         schema:
-          type: string
-          minLength: 0
+          type: integer
+          format: int64
+          minimum: 0
       responses:
         '200':
           description: ok
@@ -114,8 +115,9 @@ components:
       - nextPageToken
       properties:
         nextPageToken:
-          type: string
-          minLength: 0
+          type: integer
+          format: int64
+          minimum: 0
         members:
           type: array
           items:

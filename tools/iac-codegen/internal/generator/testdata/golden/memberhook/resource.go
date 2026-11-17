@@ -324,25 +324,25 @@ func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Mem
 			return &out.Members[i], nil
 		}
 	}
-	pageRequest := func(token string) func() member_hook_service.ApiMemberHookServiceSearchMembersRequest {
+	pageRequest := func(token int64) func() member_hook_service.ApiMemberHookServiceSearchMembersRequest {
 		return func() member_hook_service.ApiMemberHookServiceSearchMembersRequest {
 			return request().PageToken(token)
 		}
 	}
-	pageExecute := func(token string) (*member_hook_service.MemberHookSearchResponse, *http.Response, error) {
+	pageExecute := func(token int64) (*member_hook_service.MemberHookSearchResponse, *http.Response, error) {
 		if r.hooks.Get != nil {
 			return r.hooks.Get(ctx, pageRequest(token))
 		}
 		return pageRequest(token)().Execute()
 	}
 	pageToken := out.NextPageToken
-	for page := 1; pageToken != "" && page < 100; page++ {
+	for page := 1; pageToken != 0 && page < 100; page++ {
 		out, httpResp, err = pageExecute(pageToken)
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
 		if out == nil {
-			pageToken = ""
+			pageToken = 0
 			break
 		}
 		if got, ok := ctx.Value(getResultKey{}).(*getResult); ok {
@@ -355,9 +355,11 @@ func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Mem
 		}
 		pageToken = out.NextPageToken
 	}
-	if pageToken != "" {
+	if pageToken != 0 {
 		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
+	// The pages ended without the item, or the List is unpaged and its one page does not hold
+	// it: the resource does not exist.
 	return nil, nil
 }
 

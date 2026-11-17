@@ -177,15 +177,15 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 		delete(schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any), "nextPageToken")
 	})
 	refused(spec, memberOverrides, "cannot read where the pages end")
-	// A next page token of another type must be refused: the generated loop compares it with
-	// "" and sends it to the builder method, so any other type fails at provider build.
+	// A next page token of another type must be refused: the generated loop compares the token
+	// with its zero value and sends it to the builder method, so any other type fails at
+	// provider build. Integers are accepted (the users API pages with an int).
 	spec = mutated(func(doc map[string]any) {
 		schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
 		token := schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any)["nextPageToken"].(map[string]any)
-		token["type"] = "integer"
-		token["format"] = "int64"
+		token["type"] = "boolean"
 	})
-	refused(spec, memberOverrides, "want a string or *string next page token")
+	refused(spec, memberOverrides, "want a string, an integer, or their pointer as the next page token")
 	// A batch write whose response array has no createResult line must be refused: the
 	// generated call could not tell the created item from the failed ones.
 	overrides := string(mustRead(t, memberOverrides))

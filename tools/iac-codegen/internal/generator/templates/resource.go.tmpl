@@ -832,13 +832,14 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 		}
 	}
 {{- if .GetNextPage}}
+	{{- $tokenType := "string"}}{{if .GetNextPageInt}}{{$tokenType = "int64"}}{{end}}
 	{{- if .GetHooks}}
-		pageRequest := func(token {{if .GetNextPageValue}}string{{else}}*string{{end}}) func() {{$sdk}}.{{.GetRequest}} {
+		pageRequest := func(token {{$tokenType}}) func() {{$sdk}}.{{.GetRequest}} {
 			return func() {{$sdk}}.{{.GetRequest}} {
 				return request().{{.GetNextPage}}({{if .GetNextPageValue}}token{{else}}*token{{end}})
 			}
 		}
-		pageExecute := func(token {{if .GetNextPageValue}}string{{else}}*string{{end}}) (*{{$sdk}}.{{.GetResponse}}, *http.Response, error) {
+		pageExecute := func(token {{if .GetNextPageValue}}{{$tokenType}}{{else}}*{{$tokenType}}{{end}}) (*{{$sdk}}.{{.GetResponse}}, *http.Response, error) {
 			if r.hooks.Get != nil {
 				return r.hooks.Get(ctx, pageRequest(token))
 			}
@@ -847,18 +848,18 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	{{- end}}
 	{{- if .GetNextPageValue}}
 	pageToken := out.{{.GetNextPageField}}
-	for page := 1; pageToken != "" && page < 100; page++ {
+	for page := 1; {{if .GetNextPageInt}}pageToken != 0{{else}}pageToken != ""{{end}} && page < 100; page++ {
 		out, httpResp, err = {{if .GetHooks}}pageExecute(pageToken){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}(pageToken).Execute(){{end}}
 	{{- else}}
 	pageToken := out.{{.GetNextPageField}}
-	for page := 1; pageToken != nil && *pageToken != "" && page < 100; page++ {
+	for page := 1; pageToken != nil && *pageToken != {{if .GetNextPageInt}}0{{else}}""{{end}} && page < 100; page++ {
 		out, httpResp, err = {{if .GetHooks}}pageExecute(pageToken){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}(*pageToken).Execute(){{end}}
 	{{- end}}
 		if err != nil {
 			return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 		}
 		if out == nil {
-			pageToken = {{if .GetNextPageValue}}""{{else}}nil{{end}}
+			pageToken = {{if .GetNextPageInt}}0{{else if .GetNextPageValue}}""{{else}}nil{{end}}
 			break
 		}
 		{{- if .GetHooks}}
@@ -874,16 +875,18 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 		pageToken = out.{{.GetNextPageField}}
 	}
 {{- if .GetNextPageValue}}
-	if pageToken != "" {
+	if pageToken != {{if .GetNextPageInt}}0{{else}}""{{end}} {
 		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
 {{- else}}
-	if pageToken != nil && *pageToken != "" {
+	if pageToken != nil && *pageToken != {{if .GetNextPageInt}}0{{else}}""{{end}} {
 		return nil, fmt.Errorf("read 100 pages of the %s List without finding the item", TypeName)
 	}
 {{- end}}
-	return nil, nil
 {{- end}}
+	// The pages ended without the item, or the List is unpaged and its one page does not hold
+	// it: the resource does not exist.
+	return nil, nil
 {{- else if .Get.IDs}}
 	if len(out.{{.Get.Response}}) == 0 { return nil, nil }
 	return &out.{{.Get.Response}}[0], nil
@@ -953,6 +956,19 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
+{{- if .Update.Items}}
+	if out == nil || len(out.{{.Update.Response}}) == 0 {
+		return nil, nil
+	}
+	// The batch Update answers the users it wrote; the one whose id the request carried is the
+	// updated resource.
+	for i := range out.{{.Update.Response}} {
+		if got, ok := apiID(&out.{{.Update.Response}}[i]); ok && got == id {
+			return &out.{{.Update.Response}}[i], nil
+		}
+	}
+	return nil, nil
+{{- else}}
 	if out == nil {
 		return nil, nil
 	}

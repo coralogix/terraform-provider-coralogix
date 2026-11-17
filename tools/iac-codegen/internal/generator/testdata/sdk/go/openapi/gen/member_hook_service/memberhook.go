@@ -2,6 +2,7 @@ package member_hook_service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -74,7 +75,7 @@ type CreateMemberResult struct {
 // The response of the search: the next page token is a value, which is the branch this
 // fixture exercises.
 type MemberHookSearchResponse struct {
-	NextPageToken string
+	NextPageToken int64
 	Members       []Member
 }
 
@@ -144,8 +145,8 @@ func (r ApiMemberHookServiceSearchMembersRequest) Status(status MemberStatus) Ap
 	return r
 }
 
-func (r ApiMemberHookServiceSearchMembersRequest) PageToken(pageToken string) ApiMemberHookServiceSearchMembersRequest {
-	r.client.SearchPageTokens = append(r.client.SearchPageTokens, pageToken)
+func (r ApiMemberHookServiceSearchMembersRequest) PageToken(pageToken int64) ApiMemberHookServiceSearchMembersRequest {
+	r.client.SearchPageTokens = append(r.client.SearchPageTokens, fmt.Sprintf("%d", pageToken))
 	return r
 }
 

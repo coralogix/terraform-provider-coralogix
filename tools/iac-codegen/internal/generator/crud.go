@@ -75,6 +75,9 @@ type crudData struct {
 	GetNextPageField string
 	// GetNextPageValue is true when the response field holds the token by value, not pointer.
 	GetNextPageValue bool
+	// GetNextPageInt is true when the token is an integer: the loop compares it with 0, and
+	// the builder method takes the number, not a string.
+	GetNextPageInt bool
 	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
 	// without one as a resource that does not exist.
 	Arms []string
@@ -189,6 +192,9 @@ type crudOp struct {
 	// ResponseValue: the response field is a value, not a pointer. openapi-generator uses a value
 	// for a required field.
 	ResponseValue bool
+	// UpdateItems: the Update answers the array of resources it wrote (api.batchWrite). The
+	// generated Update selects the item whose id is the id of the resource from the array.
+	UpdateItems bool
 	// ResponseID is the response field that holds only the id of the resource: a Create response
 	// that does not return the resource. The generated call then reads the resource with Get.
 	ResponseID string
@@ -599,7 +605,15 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 				out.Response, out.IDs = field.Name, setter.Name
 				return out, nil
 			}
-			// Create and Update answer with the array of resources they wrote. Without
+			if o.name == "update" {
+				// The Update answers the array of users it wrote (api.batchWrite). The request
+				// carries the id (updateIDInBody), so the generated Update selects the item
+				// whose id matches the state. No createResult: there is no created/failed
+				// distinction on an update of existing users.
+				out.Response, out.ResponseValue, out.UpdateItems = field.Name, true, true
+				return out, nil
+			}
+			// Create answers with the array of resources it wrote. Without
 			// api.batchWrite.createResult the generated call could not tell the created item
 			// from the failed ones, so the shape is refused.
 			return out, fmt.Errorf("the %s response is a batch write array; name what Create returns with api.batchWrite.createResult", o.name)
@@ -775,13 +789,18 @@ func getPage(ix *refIndex, r *model.Resource, out *crudData) error {
 	if err != nil {
 		return err
 	}
-	// The generated loop compares the token with "" and sends it to the builder method, so a
-	// token of any other type fails at provider build instead of with a generator diagnostic.
-	if want := strings.TrimPrefix(field.Want, "*"); want != "string" {
-		return fmt.Errorf("get.response.%s: the SDK field is %s, want a string or *string next page token", r.NextPage.Name, field.Want)
+	// The generated loop compares the token with its zero value and sends it to the builder
+	// method. A string token compares with ""; an integer token (the users API pages with an
+	// int) compares with 0. Any other type fails with a generator diagnostic.
+	want := strings.TrimPrefix(field.Want, "*")
+	switch want {
+	case "string", "int", "int32", "int64", "uint32", "uint64":
+	default:
+		return fmt.Errorf("get.response.%s: the SDK field is %s, want a string, an integer, or their pointer as the next page token", r.NextPage.Name, field.Want)
 	}
 	out.GetNextPage, out.GetNextPageField = next.Name, field.Name
 	out.GetNextPageValue = !strings.HasPrefix(field.Want, "*")
+	out.GetNextPageInt = want != "string"
 	return nil
 }
 
