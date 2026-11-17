@@ -29,17 +29,6 @@ func TestGoldenOutputFromListBatch(t *testing.T) {
 	if diff := compareDirectories(golden, out); diff != "" {
 		t.Fatalf("memberthing golden differs; run with -update:\n%s", diff)
 	}
-	compileGenerated(t, out, input)
-}
-
-func TestFromListPagingRuntime(t *testing.T) {
-	input, loadDir := syntheticInput(t)
-	input.OpenAPI = []byte(mustRead(t, filepath.Join("testdata", "memberthing.yaml")))
-	out := filepath.Join(t.TempDir(), "memberthing")
-	options := Options{Resource: "Member", OutputDir: out, OverridesPath: filepath.Join("testdata", "memberthing-overrides.yaml")}
-	if err := generateFromInput(options, input, loadDir); err != nil {
-		t.Fatal(err)
-	}
 	const semantics = `package memberthing
 import (
  "context"
@@ -138,81 +127,67 @@ func TestGoldenOutputMemberHook(t *testing.T) {
 
 func TestMemberThingNegativeKeys(t *testing.T) {
 	input, _ := syntheticInput(t)
-	var doc map[string]any
-	data := mustRead(t, filepath.Join("testdata", "memberthing.yaml"))
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		t.Fatal(err)
-	}
-	// A List whose GET lost the page-token query parameter must be refused: the model cannot
-	// read the next page.
-	paths := doc["paths"].(map[string]any)
-	get := paths["/members/v1"].(map[string]any)["get"].(map[string]any)
-	params := get["parameters"].([]any)
-	kept := params[:0]
-	for _, p := range params {
-		if p.(map[string]any)["name"] != "page_token" {
-			kept = append(kept, p)
+	// refused runs the spec through the validator and requires the named error.
+	refused := func(spec []byte, overrides string, want string) {
+		t.Helper()
+		file, err := readOverrides(overrides)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file)
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("the spec must be refused with %q: %v", want, err)
 		}
 	}
-	get["parameters"] = kept
-	spec, err := yaml.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
+	// mutated unmarshals the fixture contract, lets the case change it, and marshals it back.
+	mutated := func(change func(doc map[string]any)) []byte {
+		t.Helper()
+		var doc map[string]any
+		if err := yaml.Unmarshal(mustRead(t, filepath.Join("testdata", "memberthing.yaml")), &doc); err != nil {
+			t.Fatal(err)
+		}
+		change(doc)
+		spec, err := yaml.Marshal(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return spec
 	}
-	file, err := readOverrides(filepath.Join("testdata", "memberthing-overrides.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "get.page") {
-		t.Fatalf("a paged List without a page-token parameter must be refused with the get.page error: %v", err)
-	}
+	memberOverrides := filepath.Join("testdata", "memberthing-overrides.yaml")
+	// A List whose GET lost the page-token query parameter must be refused: the model cannot
+	// read the next page.
+	spec := mutated(func(doc map[string]any) {
+		paths := doc["paths"].(map[string]any)
+		get := paths["/members/v1"].(map[string]any)["get"].(map[string]any)
+		params := get["parameters"].([]any)
+		kept := params[:0]
+		for _, p := range params {
+			if p.(map[string]any)["name"] != "page_token" {
+				kept = append(kept, p)
+			}
+		}
+		get["parameters"] = kept
+	})
+	refused(spec, memberOverrides, "get.page")
 	// A List with paging parameters but no next-page property the model can read must be
 	// refused: the generated Get would drop resources beyond the first page.
-	data = mustRead(t, filepath.Join("testdata", "memberthing.yaml"))
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		t.Fatal(err)
-	}
-	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
-	delete(schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any), "nextPageToken")
-	spec, err = yaml.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	file, err = readOverrides(filepath.Join("testdata", "memberthing-overrides.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "cannot read where the pages end") {
-		t.Fatalf("a List with paging parameters but no readable next-page property must be refused: %v", err)
-	}
+	spec = mutated(func(doc map[string]any) {
+		schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+		delete(schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any), "nextPageToken")
+	})
+	refused(spec, memberOverrides, "cannot read where the pages end")
 	// A next page token of another type must be refused: the generated loop compares it with
 	// "" and sends it to the builder method, so any other type fails at provider build.
-	data = mustRead(t, filepath.Join("testdata", "memberthing.yaml"))
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		t.Fatal(err)
-	}
-	schemas = doc["components"].(map[string]any)["schemas"].(map[string]any)
-	token := schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any)["nextPageToken"].(map[string]any)
-	token["type"] = "integer"
-	token["format"] = "int64"
-	spec, err = yaml.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	file, err = readOverrides(filepath.Join("testdata", "memberthing-overrides.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := validateOpenAPIWith(spec, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file); err == nil || !strings.Contains(err.Error(), "want a string or *string next page token") {
-		t.Fatalf("a non-string next page token must be refused: %v", err)
-	}
+	spec = mutated(func(doc map[string]any) {
+		schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+		token := schemas["SearchMembersResponse"].(map[string]any)["properties"].(map[string]any)["nextPageToken"].(map[string]any)
+		token["type"] = "integer"
+		token["format"] = "int64"
+	})
+	refused(spec, memberOverrides, "want a string or *string next page token")
 	// A batch write whose response array has no createResult line must be refused: the
 	// generated call could not tell the created item from the failed ones.
-	data = mustRead(t, filepath.Join("testdata", "memberthing.yaml"))
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		t.Fatal(err)
-	}
-	overrides := string(mustRead(t, filepath.Join("testdata", "memberthing-overrides.yaml")))
+	overrides := string(mustRead(t, memberOverrides))
 	stripped := strings.Replace(overrides,
 		"    createResult:\n      resource: member\n      status: status\n      created:\n      - CREATE_MEMBER_STATUS_CREATED\n      - CREATE_MEMBER_STATUS_INVITED\n      message: message\n", "", 1)
 	stripped = strings.Replace(stripped,
@@ -224,17 +199,14 @@ func TestMemberThingNegativeKeys(t *testing.T) {
 	if err := os.WriteFile(without, []byte(stripped), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	file, err = readOverrides(without)
+	strippedOverrides, err := readOverrides(without)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = validateOpenAPIWith(data, "Member", Options{}.OperationIDs, input.SDKModule, input.Module, file)
-	if err == nil {
-		t.Fatal("a batch write response without createResult must be refused")
-	}
+	_, err = validateOpenAPIWith(mustRead(t, filepath.Join("testdata", "memberthing.yaml")), "Member", Options{}.OperationIDs, input.SDKModule, input.Module, strippedOverrides)
 	// The model refuses the undecipherable batch Create response at the contract gate, and the
 	// renderer refuses one that the model passes but the createResult line does not describe.
-	if !strings.Contains(err.Error(), "RESOURCE_LIFECYCLE_INCOMPLETE") && !strings.Contains(err.Error(), "batch write array") {
+	if err == nil || !strings.Contains(err.Error(), "RESOURCE_LIFECYCLE_INCOMPLETE") && !strings.Contains(err.Error(), "batch write array") {
 		t.Fatalf("the refusal must be the batch Create response shape: %v", err)
 	}
 }

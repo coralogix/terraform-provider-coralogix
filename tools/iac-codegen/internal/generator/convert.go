@@ -55,9 +55,10 @@ type convData struct {
 	// CreateBody and UpdateBody are the SDK request body types. They are the SDK
 	// types of the roots, unless the body wraps the resource (CreateWrap, UpdateWrap).
 	CreateBody, UpdateBody string
-	// CreateSliceBody and UpdateSliceBody: the request is an array of the body items
-	// (api batch writes). The generated call sends []body{*body}.
-	CreateSliceBody, UpdateSliceBody bool
+	// UpdateSliceBody: the Update request is an array of the body items (api batch writes).
+	// The generated call sends []body{*body}. Create hard-codes the same shape under
+	// .Create.Result, so it needs no flag.
+	UpdateSliceBody bool
 	// CreateWrap and UpdateWrap are set when the request body has one field that holds
 	// the resource. The roots are then the resource type, and expand wraps them.
 	CreateWrap, UpdateWrap *bodyWrap
@@ -873,7 +874,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file)}
 	// A batch write sends the body item of one resource inside the array the API takes.
-	out.CreateSliceBody, out.UpdateSliceBody = r.Create.BodyItems, r.Update.BodyItems
+	out.UpdateSliceBody = r.Update.BodyItems
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
 	}

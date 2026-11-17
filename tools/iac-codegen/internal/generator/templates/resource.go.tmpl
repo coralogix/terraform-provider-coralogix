@@ -838,8 +838,6 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 				return request().{{.GetNextPage}}({{if .GetNextPageValue}}token{{else}}*token{{end}})
 			}
 		}
-	{{- end}}
-	{{- if .GetHooks}}
 		pageExecute := func(token {{if .GetNextPageValue}}string{{else}}*string{{end}}) (*{{$sdk}}.{{.GetResponse}}, *http.Response, error) {
 			if r.hooks.Get != nil {
 				return r.hooks.Get(ctx, pageRequest(token))

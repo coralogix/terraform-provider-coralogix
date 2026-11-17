@@ -304,10 +304,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		// The Delete of an overwrite resource is the write, with every list empty.
 		// A remove through a body (api.delete.ids) sends the id array beside the
 		// fixed values, so Delete has a body then.
-		{"delete", r.Delete, &out.Delete, r.Overwrite, false},
-	}
-	if r.Policy.DeleteIDs != "" {
-		ops[3].body = true
+		{"delete", r.Delete, &out.Delete, r.Overwrite || r.Policy.DeleteIDs != "", false},
 	}
 	for _, o := range ops {
 		if o.name == "delete" && file.Upserts() {
@@ -511,15 +508,14 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 				// A pointer field takes the address of a variable of the field's type, so the
 				// template declares the value with the type of the SDK field. A named SDK type
 				// renders with its package; a builtin renders bare.
+				setter := crudQuery{Method: f.Name, Value: value}
 				if strings.HasPrefix(f.Want, "*") {
-					typeName := f.Want[1:]
-					if !slices.Contains([]string{"string", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint32", "uint64", "float32", "float64", "byte", "rune"}, typeName) {
-						typeName = ix.pkg.Name + "." + typeName
+					setter.Type = f.Want[1:]
+					if !slices.Contains([]string{"string", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint32", "uint64", "float32", "float64", "byte", "rune"}, setter.Type) {
+						setter.Type = ix.pkg.Name + "." + setter.Type
 					}
-					out.DeleteValues = append(out.DeleteValues, crudQuery{Method: f.Name, Value: value, Type: typeName})
-				} else {
-					out.DeleteValues = append(out.DeleteValues, crudQuery{Method: f.Name, Value: value})
 				}
+				out.DeleteValues = append(out.DeleteValues, setter)
 			}
 		}
 	}
@@ -585,13 +581,13 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 			if field.Want != "[]"+resource {
 				return out, fmt.Errorf("batch response needs []%s", resource)
 			}
-			if o.name == "get" && r.GetFromList {
-				// The Get is the List (api.getFromList). A List that pages its result is
-				// supported: the generated Get follows the next page token.
-				out.Response, out.FromList = field.Name, true
-				return out, nil
-			}
 			if o.name == "get" {
+				if r.GetFromList {
+					// The Get is the List (api.getFromList). A List that pages its result is
+					// supported: the generated Get follows the next page token.
+					out.Response, out.FromList = field.Name, true
+					return out, nil
+				}
 				builder, err := ix.typeRef("get")
 				if err != nil {
 					return out, err
