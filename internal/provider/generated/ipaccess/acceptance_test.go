@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest"
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
@@ -153,7 +154,10 @@ func TestAccCoralogixResourceIpAccessGenerated(t *testing.T) {
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck:                 func() { preCheck(t) },
+			PreCheck: func() {
+				preCheck(t)
+				acctest.RequireDisposableIpAccessTeam(t, config(run, fullConfig), config(run, updatedConfig))
+			},
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
@@ -170,7 +174,10 @@ func TestAccCoralogixResourceIpAccessGenerated(t *testing.T) {
 	t.Run("minimal-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck:                 func() { preCheck(t) },
+			PreCheck: func() {
+				preCheck(t)
+				acctest.RequireDisposableIpAccessTeam(t, config(run, minimalConfig), config(run, fullConfig))
+			},
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},

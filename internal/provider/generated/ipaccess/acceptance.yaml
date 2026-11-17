@@ -6,7 +6,13 @@
 # made-up first enum value would enable it, and the preflight of the handwritten live tests
 # refuses a team that has it enabled. The test belongs in the serialized ip-access shard of
 # .github/workflows/acceptance-tests.yml, because the settings are shared by every test of the team.
+#
+# The test also refuses to run unless IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION is set (the ip-access
+# shard sets it) and the team has no IP access entry and has support access disabled, because the
+# resource replaces the settings of the whole team and its delete removes them. The leftovers hook
+# runs that check before every subtest (acctest.RequireDisposableIpAccessTeam).
 resource: CompanyIpAccessSettings
+leftovers: internal/acctest.RequireDisposableIpAccessTeam
 
 values:
   enable_coralogix_customer_support_access: '"disabled"'
