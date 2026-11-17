@@ -16,6 +16,14 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = "github.com/coralogix/terraform-provider-coralogix"
 EXTRA_ROOT_TESTS = {
+    "coralogix_api_key": {
+        "resource_coralogix_api_key_test.go":
+            ("TestApiKeyResource", "TestApiKeyResourceWithAccessPolicy"),
+    },
+    "coralogix_custom_role": {
+        "resource_coralogix_custom_role_test.go":
+            ("TestCustomRole", "TestCustomRoleWithUppercasePermissions"),
+    },
     "coralogix_ip_access": {
         "data_source_ip_access_test.go": ("TestAccCoralogixDataSourceIpAccess",),
         "resource_ip_access_test.go": ("TestIpAccessResource",),
@@ -104,13 +112,16 @@ def subtest_matches(pattern: str, parent: str, child: str) -> bool:
 
 def required_inputs(out: str) -> list[str]:
     acceptance = ROOT / "internal/provider/generated" / out / "acceptance.yaml"
-    values = ["CORALOGIX_API_KEY", "CORALOGIX_DOMAIN"]
+    values = ["CORALOGIX_API_KEY",
+              "CORALOGIX_ENV" if out == "ipaccess" else "CORALOGIX_DOMAIN"]
     if acceptance.exists():
         match = re.search(r"^env:\s*\[([^]]*)\]", acceptance.read_text(), re.M)
         if match:
             values.extend(item.strip() for item in match.group(1).split(",") if item.strip())
     if out == "team":
         values.append("CORALOGIX_ORG_API_KEY")
+    if out == "ipaccess":
+        values.extend(("TF_ACC_PROVIDER_NAMESPACE", "IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION"))
     return sorted(set(values))
 
 

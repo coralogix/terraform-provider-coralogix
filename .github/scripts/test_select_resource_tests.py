@@ -28,6 +28,24 @@ class SelectorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "invalid output directory"):
                 selector.select("Thing", "../thing", "coralogix_thing")
 
+    def test_generated_tests_follow_the_selected_resource_package(self):
+        def listed(package):
+            if package.endswith("/generated/newthing"):
+                return ["TestAccNewThingGenerated", "TestGeneratedUnit"]
+            if package.endswith("/generated/other"):
+                return ["TestAccOtherGenerated"]
+            return []
+
+        with mock.patch.object(selector, "resources", return_value={}), \
+             mock.patch.object(selector, "root_names", return_value=[]), \
+             mock.patch.object(selector, "listed_names", side_effect=listed):
+            selected = selector.select("NewThing", "newthing", "coralogix_new_thing")
+        self.assertEqual(["TestAccNewThingGenerated"],
+                         selected["shards"][0]["expected"])
+        self.assertEqual(selector.MODULE + "/internal/provider/generated/newthing",
+                         selected["shards"][0]["package"])
+        self.assertNotIn("TestAccOtherGenerated", selected["shards"][0]["expected"])
+
     def test_ambiguous_existing_mapping_fails(self):
         mapping = {"Thing": [("thing", "coralogix_thing"),
                              ("other", "coralogix_other")]}
@@ -60,16 +78,30 @@ class SelectorTests(unittest.TestCase):
     def test_workflow_acceptance_names_without_testacc_are_mapped(self):
         provider = selector.ROOT / "internal/provider"
         workflow = (selector.ROOT / ".github/workflows/acceptance-tests.yml").read_text()
-        patterns = re.findall(r"^\s+[A-Z0-9_]*PATTERN:.*'([^']+)'$", workflow, re.M)
-        names = {name for path in provider.glob("*_test.go")
-                 for name in re.findall(r"^func (Test\w+)\(", path.read_text(), re.M)
-                 if not name.startswith("TestAcc")}
-        selected = {name for name in names
-                    if any(re.search(pattern, name) for pattern in patterns)}
+        patterns = re.findall(r"^\s+[A-Z0-9_]+:.*'(\^Test[^']*)'", workflow, re.M)
+        selected = set()
+        for path in provider.glob("*_test.go"):
+            source = path.read_text()
+            tests = list(re.finditer(r"^func (Test\w+)\(", source, re.M))
+            for index, match in enumerate(tests):
+                name = match.group(1)
+                if name.startswith("TestAcc"):
+                    continue
+                end = tests[index + 1].start() if index + 1 < len(tests) else len(source)
+                body = source[match.start():end]
+                if "resource.Test(t," in body and any(re.search(pattern, name) for pattern in patterns):
+                    selected.add(name)
         mapped = {name for files in selector.EXTRA_ROOT_TESTS.values()
                   for expected in files.values() for name in expected
                   if not name.startswith("TestAcc")}
         self.assertEqual(selected, mapped)
+
+    def test_ip_access_live_test_requires_its_extra_inputs(self):
+        required = selector.required_inputs("ipaccess")
+        self.assertIn("CORALOGIX_ENV", required)
+        self.assertNotIn("CORALOGIX_DOMAIN", required)
+        self.assertIn("TF_ACC_PROVIDER_NAMESPACE", required)
+        self.assertIn("IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION", required)
 
     def test_dashboard_includes_handwritten_and_every_generated_subtest(self):
         with tempfile.TemporaryDirectory() as directory:
