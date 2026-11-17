@@ -20,6 +20,8 @@ TF_ACC=1 go test ./internal/provider/alerts/... -run TestAccAlert -v
 
 Acceptance tests use a shared Coralogix team. Jobs in one workflow run can run in parallel. Put tests that change the same account-wide resource collection in one shard. Check both legacy and framework test names when you change shard patterns.
 
+Before a live test clears account-wide state that it does not own, require an explicit disposable-team opt-in. Check that the state has no enabled access settings before deleting it.
+
 **Which acceptance jobs a pull request runs.** Two buckets: the dashboard jobs, and every other job. `.github/scripts/detect-test-scope.sh` reads the changed files of the pull request.
 
 ```

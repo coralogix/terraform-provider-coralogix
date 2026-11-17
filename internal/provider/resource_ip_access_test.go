@@ -88,12 +88,14 @@ func precheckIpAccessResource(t *testing.T) {
 	if !ok {
 		base = cxsdk.URLFromDomain(os.Getenv("CORALOGIX_DOMAIN"))
 	}
-	if err := clearIpAccessTestFixture(base, os.Getenv("CORALOGIX_API_KEY")); err != nil {
+	disposable := strings.EqualFold(os.Getenv("CORALOGIX_ENV"), "EU2") &&
+		os.Getenv(ipAccessGeneratedLiveAck) == ipAccessGeneratedLiveAckValue
+	if err := clearIpAccessTestFixture(base, os.Getenv("CORALOGIX_API_KEY"), disposable); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func clearIpAccessTestFixture(base, apiKey string) error {
+func clearIpAccessTestFixture(base, apiKey string, disposable bool) error {
 	status, body := sendIpAccessFidelityRequestNoTest(base, apiKey, http.MethodGet, "", nil)
 	if status == http.StatusNotFound {
 		return nil
@@ -107,13 +109,14 @@ func clearIpAccessTestFixture(base, apiKey string) error {
 		return fmt.Errorf("IP access preflight found enabled support access; refusing to delete")
 	}
 	entries := asObject(settings["ipAccess"])
-	if len(entries) > 1 {
-		return fmt.Errorf("IP access preflight found other entries; refusing to delete")
-	}
 	for _, raw := range entries {
 		entry := asObject(raw)
-		if entry["name"] != "random range from wikipedia" ||
-			entry["ipRange"] != "100.64.0.0/10" || entry["enabled"] != false {
+		if entry["enabled"] != false {
+			return fmt.Errorf("IP access preflight found an enabled or invalid entry; refusing to delete")
+		}
+		owned := entry["name"] == "random range from wikipedia" &&
+			entry["ipRange"] == "100.64.0.0/10"
+		if !owned && !disposable {
 			return fmt.Errorf("IP access preflight found an unowned entry; refusing to delete")
 		}
 	}
@@ -126,10 +129,13 @@ func clearIpAccessTestFixture(base, apiKey string) error {
 
 func TestClearIpAccessTestFixture(t *testing.T) {
 	for _, test := range []struct {
-		name      string
-		entry     map[string]any
-		getStatus int
-		delete    bool
+		name           string
+		entry          map[string]any
+		extraEntry     map[string]any
+		getStatus      int
+		allow          bool
+		supportEnabled bool
+		delete         bool
 	}{
 		{name: "absent", getStatus: http.StatusNotFound},
 		{name: "empty", delete: true},
@@ -139,16 +145,35 @@ func TestClearIpAccessTestFixture(t *testing.T) {
 		{name: "unowned entry", entry: map[string]any{
 			"name": "other", "ipRange": "100.64.0.0/10", "enabled": false,
 		}},
+		{name: "disposable unowned entry", entry: map[string]any{
+			"name": "other", "ipRange": "100.64.0.0/10", "enabled": false,
+		}, allow: true, delete: true},
+		{name: "disposable multiple entries", entry: map[string]any{
+			"name": "other", "ipRange": "100.64.0.0/10", "enabled": false,
+		}, extraEntry: map[string]any{
+			"name": "another", "ipRange": "192.0.2.0/24", "enabled": false,
+		}, allow: true, delete: true},
+		{name: "disposable enabled entry", entry: map[string]any{
+			"name": "other", "ipRange": "100.64.0.0/10", "enabled": true,
+		}, allow: true},
+		{name: "disposable enabled support access", allow: true, supportEnabled: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			fake := newIpAccessFidelityFake()
 			fake.getStatus = test.getStatus
+			if test.supportEnabled {
+				fake.settings["enableCoralogixCustomerSupportAccess"] = "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED"
+			}
 			if test.entry != nil {
-				fake.settings["ipAccess"] = map[string]any{"test-entry": test.entry}
+				entries := map[string]any{"test-entry": test.entry}
+				if test.extraEntry != nil {
+					entries["extra-entry"] = test.extraEntry
+				}
+				fake.settings["ipAccess"] = entries
 			}
 			server := httptest.NewServer(fake)
 			t.Cleanup(server.Close)
-			err := clearIpAccessTestFixture(server.URL, "test-key")
+			err := clearIpAccessTestFixture(server.URL, "test-key", test.allow)
 			if (err == nil) != (test.delete || test.getStatus == http.StatusNotFound) {
 				t.Fatalf("clear error = %v, want delete = %v", err, test.delete)
 			}
