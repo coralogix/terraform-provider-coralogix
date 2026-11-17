@@ -342,6 +342,9 @@ func TestFailurePaths{{.Name}}Generated(t *testing.T) {
 {{- if .FailNoDelete}}
 		NoDelete:       true,
 {{- end}}
+{{- if .FailReadFromList}}
+		ReadFromList:   true,
+{{- end}}
 		Config:         render("failure-paths", minimalConfig),
 	})
 }

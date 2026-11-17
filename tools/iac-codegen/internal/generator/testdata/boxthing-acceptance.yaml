@@ -1,0 +1,2 @@
+# The acceptance file of the synthetic box thing, which is read from its List.
+resource: BoxThing

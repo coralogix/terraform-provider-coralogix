@@ -39,7 +39,7 @@ env:
   # Every generated resource has a test whose name ends in GeneratedUpgrade. One shard runs them all.
   GENERATED_UPGRADE_ACC_PATTERN: &generated_upgrade_acc_pattern 'GeneratedUpgrade$'
   # These tests mutate the singleton IP access setting. Keep them in one serial shard.
-  IP_ACCESS_ACC_PATTERN: &ip_access_acc_pattern '^Test(AccCoralogixDataSourceIpAccess|IpAccessResource|IpAccessGeneratedLiveAcceptance)$'
+  IP_ACCESS_ACC_PATTERN: &ip_access_acc_pattern '^Test(AccCoralogixDataSourceIpAccess|IpAccessResource|IpAccessGeneratedLiveAcceptance|AccCoralogixResourceIpAccessGenerated)$'
   # The archive logs target, the metrics archive, and the retention tags are one per company each,
   # so their tests must not run at the same time. The archive-logs shard runs all of them
   # (handwritten, generated, and generated upgrade) with -p 1; every other job skips them.
@@ -112,7 +112,7 @@ env:
   NON_DASHBOARD_SHARD_USER_DATA_SOURCE: &non_dashboard_shard_user_data_source '^TestAccCoralogixDataSourceUser'
   NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive)$'
   NON_DASHBOARD_SHARD_ACCESS_CONTROL: &non_dashboard_shard_access_control '^Test(AccCoralogix(Resource|DataSource)(CustomRole|ApiKey|Group|Scope)|ApiKeyResource|CustomRole)'
-  NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|ViewFolder)|(DataSource)?RecordingRules)'
+  NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|AiEvaluation|AiCustomEvaluation|ViewFolder)|(DataSource)?RecordingRules)'
 
 jobs:
   # Two buckets of jobs: the dashboard jobs, and every other job. .github/scripts/detect-test-scope.sh

@@ -1,0 +1,17 @@
+# What the generated acceptance test needs for coralogix_ai_custom_evaluation, besides the schema.
+#
+# applications links the evaluation to AI applications that already exist in the tenant, and the
+# API refuses a name it does not know, so no config can set it with a made-up value. The handwritten
+# TestAccCoralogixResourceAICustomEvaluation* tests discover an application and cover the links.
+#
+# criteria is an extra attribute of the resource (the contract has no such fields), so the test
+# sets it only when a line here gives the object.
+resource: CustomEvaluation
+
+values:
+  criteria: '{ acceptable = { flags = "Does not mention competitor products.", examples = ["User: which tool should I use?\nAssistant: Our product is a strong fit."] }, prohibited = { flags = "Mentions a competitor product.", examples = ["User: which tool should I use?\nAssistant: CompetitorX is a strong fit."] } }'
+
+updatedValues:
+  criteria: '{ acceptable = { flags = "Does not recommend competitor products.", examples = ["User: what should I buy?\nAssistant: Our product covers that workflow."] }, prohibited = { flags = "Recommends a competitor product.", examples = ["User: what should I buy?\nAssistant: You should buy CompetitorY."] } }'
+
+skip: [applications]

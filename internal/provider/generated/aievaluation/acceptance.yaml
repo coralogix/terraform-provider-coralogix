@@ -1,0 +1,15 @@
+# What the generated acceptance test needs for coralogix_ai_evaluation, besides the schema.
+#
+# An evaluation belongs to an AI application that already exists in the tenant, and only one
+# evaluation can use an application, a subsystem, and a target at a time. The API refuses a made-up
+# application, and no resource creates one, so the live subtests cannot make a config. The handwritten
+# TestAccCoralogixResourceAIEvaluation lists the applications of the tenant, takes one that is free
+# for the target, and covers every config variant; TestAccCoralogixResourceAIEvaluationGeneratedUpgrade
+# covers the upgrade. The offline tests of this file (the failure paths and the config validation)
+# need no tenant and stay active.
+resource: AiEvaluation
+
+skipTests:
+  full-lifecycle: the API refuses an application that does not exist, and the test cannot create one
+  minimal-lifecycle: the API refuses an application that does not exist, and the test cannot create one
+  values-and-choices: the API refuses an application that does not exist, and the test cannot create one
