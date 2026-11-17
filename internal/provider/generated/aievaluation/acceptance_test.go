@@ -185,8 +185,10 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
 	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
 	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
-	t.Run("values-and-choices", func(t *testing.T) {
-		t.Skip("the API fails with a 500 when one apply updates several evaluations of the same application")
+	//
+	// This resource splits the steps: each is a subtest that applies the full config and then the
+	// step, and CI runs them in jobs of their own.
+	t.Run("values-and-choices-1", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
@@ -194,7 +196,215 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-2", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant2Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-3", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant3Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-4", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant4Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-5", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant5Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-6", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant6Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-7", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant7Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-8", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant8Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-9", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant9Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-10", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant10Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-11", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant11Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-12", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant12Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-13", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant13Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-14", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant14Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-15", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant15Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-16", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant16Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-17", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant17Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-18", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant18Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-19", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant19Config)},
+			},
+		})
+	})
+	t.Run("values-and-choices-20", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant20Config)},
 			},
 		})
 	})
@@ -230,11 +440,29 @@ func TestConfigsValidateAiEvaluationGenerated(t *testing.T) {
 		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
 		TypeName:       "coralogix_ai_evaluation",
 	}, map[string]string{
-		"full":     offline.Replace(fullConfig),
-		"updated":  offline.Replace(updatedConfig),
-		"minimal":  offline.Replace(minimalConfig),
-		"variant1": offline.Replace(variant1Config),
-		"variant2": offline.Replace(variant2Config),
+		"full":      offline.Replace(fullConfig),
+		"updated":   offline.Replace(updatedConfig),
+		"minimal":   offline.Replace(minimalConfig),
+		"variant1":  offline.Replace(variant1Config),
+		"variant2":  offline.Replace(variant2Config),
+		"variant3":  offline.Replace(variant3Config),
+		"variant4":  offline.Replace(variant4Config),
+		"variant5":  offline.Replace(variant5Config),
+		"variant6":  offline.Replace(variant6Config),
+		"variant7":  offline.Replace(variant7Config),
+		"variant8":  offline.Replace(variant8Config),
+		"variant9":  offline.Replace(variant9Config),
+		"variant10": offline.Replace(variant10Config),
+		"variant11": offline.Replace(variant11Config),
+		"variant12": offline.Replace(variant12Config),
+		"variant13": offline.Replace(variant13Config),
+		"variant14": offline.Replace(variant14Config),
+		"variant15": offline.Replace(variant15Config),
+		"variant16": offline.Replace(variant16Config),
+		"variant17": offline.Replace(variant17Config),
+		"variant18": offline.Replace(variant18Config),
+		"variant19": offline.Replace(variant19Config),
+		"variant20": offline.Replace(variant20Config),
 	})
 }
 
@@ -252,9 +480,9 @@ const variant1Config = `resource "coralogix_ai_evaluation" "test" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_2" {
+const variant2Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     competition = {
@@ -265,9 +493,9 @@ resource "coralogix_ai_evaluation" "test_2" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_3" {
+const variant3Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_completeness = {}
@@ -276,9 +504,9 @@ resource "coralogix_ai_evaluation" "test_3" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_4" {
+const variant4Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_context_adherence = {}
@@ -287,9 +515,9 @@ resource "coralogix_ai_evaluation" "test_4" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_5" {
+const variant5Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_context_relevance = {}
@@ -298,9 +526,9 @@ resource "coralogix_ai_evaluation" "test_5" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_6" {
+const variant6Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_correctness = {}
@@ -309,9 +537,9 @@ resource "coralogix_ai_evaluation" "test_6" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_7" {
+const variant7Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     hallucination_task_adherence = {}
@@ -320,9 +548,9 @@ resource "coralogix_ai_evaluation" "test_7" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_8" {
+const variant8Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     language_mismatch = {}
@@ -331,22 +559,22 @@ resource "coralogix_ai_evaluation" "test_8" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_9" {
+const variant9Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     prompt_injection = {
-      additional_context = "@{run}-additional_context-9"
+      additional_context = "@{run}-additional_context"
     }
   }
   is_enabled = true
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_10" {
+const variant10Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     restricted_topics = {
@@ -359,7 +587,7 @@ resource "coralogix_ai_evaluation" "test_10" {
   threshold = 0
 }`
 
-const variant2Config = `resource "coralogix_ai_evaluation" "test" {
+const variant11Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sexism = {}
@@ -368,9 +596,9 @@ const variant2Config = `resource "coralogix_ai_evaluation" "test" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_2" {
+const variant12Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_allowed_tables = {
@@ -381,9 +609,9 @@ resource "coralogix_ai_evaluation" "test_2" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_3" {
+const variant13Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_hallucination = {}
@@ -392,9 +620,9 @@ resource "coralogix_ai_evaluation" "test_3" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_4" {
+const variant14Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_read_only = {}
@@ -403,9 +631,9 @@ resource "coralogix_ai_evaluation" "test_4" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_5" {
+const variant15Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     sql_restricted_tables = {
@@ -416,9 +644,9 @@ resource "coralogix_ai_evaluation" "test_5" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_6" {
+const variant16Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     toxicity = {}
@@ -427,9 +655,9 @@ resource "coralogix_ai_evaluation" "test_6" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_7" {
+const variant17Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
@@ -440,9 +668,9 @@ resource "coralogix_ai_evaluation" "test_7" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_8" {
+const variant18Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
@@ -453,9 +681,9 @@ resource "coralogix_ai_evaluation" "test_8" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_9" {
+const variant19Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {
@@ -466,9 +694,9 @@ resource "coralogix_ai_evaluation" "test_9" {
   subsystem = "@{env.AI_EVALUATION_SUBSYSTEM}"
   target = "prompt"
   threshold = 0
-}
+}`
 
-resource "coralogix_ai_evaluation" "test_10" {
+const variant20Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
     pii = {

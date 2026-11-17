@@ -22,9 +22,6 @@ values:
   subsystem: '"@{env.AI_EVALUATION_SUBSYSTEM}"'
   target: '"prompt"'
 
-# A step of values-and-choices holds one evaluation for each type of config, all on the one
-# application. Live runs on EU2 create them, but the apply that changes several of them at once
-# fails with a 500 on some of the updates (a different set each run). The handwritten
-# TestAccCoralogixResourceAIEvaluation covers every type, each on its own free application.
-skipTests:
-  values-and-choices: the API fails with a 500 when one apply updates several evaluations of the same application
+# A step of values-and-choices holds one evaluation: several evaluations of the one application
+# that one apply updates make the API fail with a 500 on some of the updates.
+stepCopies: 1
