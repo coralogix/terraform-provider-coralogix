@@ -105,13 +105,14 @@
           "policyType": "quality",
           "safe": "",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "name",
           "violates": ""
         },
         "status": 409
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_ai_custom_evaluation | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: A custom evaluation with name 'taken' already exists\"}\noperation - Update"
+      "error: Unable to update ai_custom_evaluation | id 00000000-0000-4000-8000-000000001002: 409 Conflict — {\"code\":409,\"message\":\"Already Exists: A custom evaluation with name 'taken' already exists\"}"
     ],
     "state": {
       "application_ids": [],

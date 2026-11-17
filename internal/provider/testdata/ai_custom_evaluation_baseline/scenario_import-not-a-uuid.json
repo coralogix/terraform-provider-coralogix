@@ -13,7 +13,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_ai_custom_evaluation not-a-uuid is in state, but no longer exists in Coralogix backend | not-a-uuid will be recreated when you apply"
+      "warning: Resource disappeared during read | ai_custom_evaluation with id not-a-uuid was not found. Terraform removed it from state."
     ],
     "state": null
   }

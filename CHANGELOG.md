@@ -21,6 +21,15 @@
 #### provider
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
 
+#### resource/coralogix_ai_custom_evaluation
+- CHORE: The resource is generated from the API contract. The schema, the import, and the state are the same, except as listed below. A new field of the custom evaluation in the API contract is a new attribute without a hand edit. A field that the API adds to an example of `criteria` makes the read fail, because the resource shows the conversation and the score only.
+- FIX: A destroy no longer treats every 404 as success: a 404 of a route that does not exist is an error, and only a 404 for the custom evaluation itself is a custom evaluation that is gone already.
+- FIX: A refresh no longer removes the resource from state when the API route is missing. Before, a 404 of the list route read as a deleted custom evaluation. Now a missing custom evaluation is one that the list lacks, and a 404 of the list is an error.
+- FIX: An update sends one `PATCH` with an update mask that names the fields that changed. Before, it sent every field, and a second `PATCH` cleared the examples whenever the plan had none. A change of only `applications` sends no `PATCH`.
+- FIX: Removing the examples of `criteria` no longer needs a second request, so a failure of that request can no longer leave the other fields changed and the state unchanged.
+- FIX: An update of a custom evaluation whose linked application was renamed outside Terraform no longer fails with `Provider produced inconsistent result after apply` for `applications`. The state keeps the configured selector while the linked ids are the same.
+- CHORE: API errors read `Unable to create ai_custom_evaluation`, `Unable to update ai_custom_evaluation`, and so on. A missing custom evaluation on refresh reads `Resource disappeared during read`, and an update of a missing one reads `Resource no longer exists`.
+
 #### resource/coralogix_alert
 - FIX: The state after create or update holds the `access_policy` that Coralogix writes for an alert created without one, as a read or an import does. Before, an alert created without `access_policy` had a null value in state until the next refresh, and an import of the same alert showed the policy. Create and update read the alert once more to get it. A policy that lists only some permissions is no longer reported as changed when Coralogix stores the others as `deny`. A configured `access_policy = ""` stays in state after create and update.
 - FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.

@@ -176,6 +176,7 @@
           "policyType": "quality",
           "safe": "friendly",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "safe,violates,examples",
           "violates": "hostile"
         },
         "status": 200
@@ -280,6 +281,7 @@
           "policyType": "quality",
           "safe": "friendly",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "safe,violates,examples",
           "violates": "hostile"
         },
         "status": 200
@@ -396,6 +398,7 @@
           "policyType": "quality",
           "safe": "friendly",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "safe,violates,examples",
           "violates": "hostile"
         },
         "status": 200
