@@ -167,7 +167,8 @@ func userFidelityVars(run string) map[string]string {
 		"USER_A_UPPER": strings.ToUpper(userA),
 		// USER_A_RENAMED is the username that a PUT asks user A to take.
 		"USER_A_RENAMED": fmt.Sprintf("tf-acc-user-%s-a-renamed@coralogix.com", run),
-		// PARTIAL is part of both usernames, so a search for it shows the partial match.
+		// PARTIAL is part of both usernames; the API matches exactly, so a search for it
+		// finds nothing (the recording proved the filter is not a partial match).
 		"PARTIAL": fmt.Sprintf("tf-acc-user-%s-", run),
 	}
 }
@@ -706,12 +707,11 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string, memberCap in
 }
 
 // ensureUserFidelityRunIsNew refuses to record when a user of this run id already exists. The API
-// matches the username exactly, so this searches the two usernames of the run's first case (the
-// preflight ran before the fake taught us the filter is exact; a prefix search finds nothing).
+// matches the username exactly, so this searches every username the run creates.
 func ensureUserFidelityRunIsNew(t *testing.T, base, apiKey, run string) {
 	t.Helper()
 	vars := userFidelityVars(run)
-	for _, name := range []string{vars["USER_A"], vars["USER_B"]} {
+	for _, name := range []string{vars["USER_A"], vars["USER_B"], vars["USER_A_RENAMED"]} {
 		status, body := sendUserFidelityRequest(t, base, apiKey, fidelityStep{Method: http.MethodGet, Path: "?page_size=1&username=" + url.QueryEscape(name)})
 		if status != http.StatusOK {
 			t.Fatalf("preflight search answered %d; refusing to record against this team: %s", status, compact(body))

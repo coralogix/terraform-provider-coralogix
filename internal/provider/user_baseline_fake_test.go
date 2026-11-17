@@ -238,15 +238,14 @@ func userFakeError(status int) (int, any) {
 	return status, map[string]any{"code": status, "message": message}
 }
 
-// search matches the username as a case-insensitive part of the stored username, and pages with
-// an offset token. The last page has no next page token.
+// search matches the username exactly, case-insensitively, and pages with an offset token. The
+// last page has no next page token.
 func (f *userFake) search(query url.Values) (int, any) {
 	if f.searchStatus != 0 {
 		return userFakeError(f.searchStatus)
 	}
-	// The real API filters by exact username, case-insensitively: the EU2 fidelity recording
-	// shows a search for the run prefix returns no users while the full username matches.
-	// An empty filter lists the whole team (the data source without a username pages it).
+	// The real API filters by exact username, case-insensitively (EU2 recording); an empty
+	// filter lists the whole team (the data source without a username pages it).
 	filter := query.Get("username")
 	matches := make([]map[string]any, 0, len(f.users))
 	for _, user := range f.users {
@@ -265,17 +264,13 @@ func (f *userFake) search(query url.Values) (int, any) {
 	// The real gateway 400s a page_token it cannot parse, an empty-but-present one included
 	// (EU2 recording): the fake does the same instead of treating it as the first offset.
 	// An ABSENT page_token is the first page and starts at offset 0.
-	rawToken, present := query["page_token"]
 	offset := 0
-	if present {
-		if len(rawToken) != 1 || rawToken[0] == "" {
-			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: parsing field \"page_token\": <domain>: parsing \"\": invalid syntax"}
+	if _, present := query["page_token"]; present {
+		token := query.Get("page_token")
+		var err error
+		if offset, err = strconv.Atoi(token); err != nil {
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: parsing field \"page_token\": <domain>: parsing \"" + token + "\": invalid syntax"}
 		}
-		parsed, err := strconv.Atoi(rawToken[0])
-		if err != nil {
-			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: parsing field \"page_token\": <domain>: parsing \"" + rawToken[0] + "\": invalid syntax"}
-		}
-		offset = parsed
 	}
 	if offset > len(matches) {
 		offset = len(matches)
@@ -382,7 +377,7 @@ func (f *userFake) update(body any) (int, any) {
 			// The real API quotes the requested id and the team (EU2 recording): the message
 			// carries the unknown userId, which the replay redactor maps to its placeholder.
 			id, _ := request["userId"].(string)
-			return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found: user " + id + " not found in team 19641"}
+			return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found: user " + id + " not found in team 10001"}
 		}
 		template := asObject(request["userTemplate"])
 		user["firstName"], _ = template["firstName"].(string)
