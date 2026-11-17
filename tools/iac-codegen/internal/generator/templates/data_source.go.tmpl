@@ -227,8 +227,8 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- else}}
 	id := configured.Value{{.IDTFType}}()
-{{- if .Get.IDs}}
-	if configured.IsUnknown() || id == "" {
+{{- if .Get.Items}}
+	if configured.IsUnknown() || id == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
 		resp.Diagnostics.AddError("Unable to read coralogix_"+TypeName, fmt.Sprintf("id must be set to a non-empty %s id.", TypeName))
 		return
 	}

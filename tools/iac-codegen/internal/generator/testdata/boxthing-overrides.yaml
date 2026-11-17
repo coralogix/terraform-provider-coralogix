@@ -1,0 +1,34 @@
+# A released resource whose Get is the List of its collection path: no operation reads one box thing
+# by its id. The generated call lists the box things and selects the one whose id is the id of the
+# resource. Update takes the id in its path and a mask in its body.
+resource: BoxThing
+mode: existing
+typeName: box_thing
+
+markdownDescription: "A box thing."
+
+validators:
+  inferred: false
+
+api:
+  idProperty: id
+  updateMaskInBody: true
+  getFromList: {}
+  operations:
+    create: BoxThingsService_CreateBoxThing
+    get: BoxThingsService_ListBoxThings
+    update: BoxThingsService_UpdateBoxThing
+    delete: BoxThingsService_DeleteBoxThing
+
+types:
+  BoxThing:
+    fields:
+      id:
+        markdownDescription: "Box thing ID."
+      name:
+        required: true
+        markdownDescription: "Display name."
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "Description. Defaults to an empty string."

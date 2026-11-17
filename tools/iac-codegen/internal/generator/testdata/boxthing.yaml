@@ -1,0 +1,166 @@
+# A released resource that no operation reads by its id: its Get is the List of the collection path
+# (api.getFromList). Create answers with the box thing in a wrapper, Update takes the id in its path
+# and a mask in its body, and Delete takes the id in its path.
+openapi: 3.1.0
+info:
+  title: boxthing
+  version: 1.0.0
+paths:
+  /box/v1/things:
+    post:
+      description: Creates a box thing.
+      operationId: BoxThingsService_CreateBoxThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create a box thing.
+              properties:
+                name:
+                  description: Display name of the box thing.
+                  maxLength: 256
+                  minLength: 1
+                  type: string
+                description:
+                  description: Human-readable description.
+                  maxLength: 65536
+                  minLength: 0
+                  type: string
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CreateBoxThingResponse"
+          description: ''
+      tags:
+        - Box Things Service
+    get:
+      description: Lists the box things.
+      operationId: BoxThingsService_ListBoxThings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ListBoxThingsResponse"
+          description: ''
+      tags:
+        - Box Things Service
+  /box/v1/things/{id}:
+    delete:
+      description: Deletes a box thing.
+      operationId: BoxThingsService_DeleteBoxThing
+      parameters:
+        - description: Unique identifier of the box thing to delete.
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DeleteBoxThingResponse"
+          description: ''
+      tags:
+        - Box Things Service
+    patch:
+      description: Updates a box thing.
+      operationId: BoxThingsService_UpdateBoxThing
+      parameters:
+        - description: Unique identifier of the box thing to update.
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to update a box thing.
+              properties:
+                name:
+                  description: Display name of the box thing.
+                  maxLength: 256
+                  minLength: 1
+                  type: string
+                  x-coralogix-presence: true
+                description:
+                  description: Human-readable description.
+                  maxLength: 65536
+                  minLength: 0
+                  type: string
+                  x-coralogix-presence: true
+                updateMask:
+                  description: Comma-separated list of field paths to update.
+                  maxLength: 1024
+                  minLength: 1
+                  pattern: "^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$"
+                  type: string
+                  x-coralogix-presence: true
+              type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UpdateBoxThingResponse"
+          description: ''
+      tags:
+        - Box Things Service
+components:
+  schemas:
+    BoxThing:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the box thing.
+        name:
+          maxLength: 256
+          minLength: 1
+          type: string
+          description: Display name of the box thing.
+        description:
+          maxLength: 65536
+          minLength: 0
+          type: string
+          description: Human-readable description.
+      description: A box thing.
+    CreateBoxThingResponse:
+      type: object
+      properties:
+        item:
+          allOf:
+            - "$ref": "#/components/schemas/BoxThing"
+          description: The new box thing.
+    UpdateBoxThingResponse:
+      type: object
+      properties:
+        item:
+          allOf:
+            - "$ref": "#/components/schemas/BoxThing"
+          description: The updated box thing.
+    ListBoxThingsResponse:
+      required:
+        - items
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            "$ref": "#/components/schemas/BoxThing"
+          description: The box things.
+    DeleteBoxThingResponse:
+      type: object
+      properties:
+        id:
+          type: string

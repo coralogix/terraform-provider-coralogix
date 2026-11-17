@@ -430,6 +430,9 @@ func buildNameLookup(r *model.Resource, refs []sdkcheck.Ref, conv *convData, cru
 // resource keeps the List only with name in dataSource.lookup. A new resource keeps it when the
 // List can serve the lookup.
 func dropUnusedList(r *model.Resource, file *overrides.File) {
+	if r.GetFromList {
+		return // the List is the Get, and the generated Get reads it
+	}
 	if file != nil && file.DataSource.LooksUpName() {
 		return
 	}
@@ -448,6 +451,8 @@ var errDataSourceLookup = errors.New("the data source cannot look up the name")
 func nameLookupProblem(r *model.Resource, conv *convData) (string, string) {
 	l := r.List
 	switch {
+	case r.GetFromList:
+		return "", "the resource is read from its List (api.getFromList), and the data source looks up the id only"
 	case r.Singleton:
 		return "", "a singleton has no List"
 	case l == nil && r.ListProblem != "":

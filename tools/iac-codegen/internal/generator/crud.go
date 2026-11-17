@@ -146,7 +146,11 @@ func sortedVersions(file *overrides.File) []int64 {
 //
 //	client.<Method>(ctx[, id]).<Body>(body).Execute()
 type crudOp struct {
-	IDs      string // SDK query setter of a batch Get that returns a resource array
+	IDs string // SDK query setter of a batch Get that returns a resource array
+	// FromList: the Get is the List of the resource (api.getFromList). It takes no id, and the
+	// generated call selects the item whose id is the id of the resource. Response is the field
+	// that holds the items.
+	FromList bool
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
 	Response string // response field that holds the resource; "" when there is none, or the response is the resource
@@ -170,6 +174,11 @@ type crudOp struct {
 	// instead of reading it with Get.
 	Copy []string
 }
+
+// Items reports whether the call answers with an array of resources, from which the resource is
+// selected: a batch Get by ids, or the List of a getFromList resource. No item means that the
+// resource does not exist.
+func (o crudOp) Items() bool { return o.IDs != "" || o.FromList }
 
 // buildCRUD maps the operations and their SDK names to the template data.
 // Create, Get, and Update must return the resource. Delete must not have a
@@ -476,6 +485,9 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 			if field.Want != "[]"+resource {
 				return out, fmt.Errorf("batch response needs []%s", resource)
 			}
+			if o.name == "get" && r.GetFromList {
+				return getFromListOp(r, field.Name, out)
+			}
 			builder, err := ix.typeRef("get")
 			if err != nil {
 				return out, err
@@ -492,6 +504,17 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		}
 		out.Response, out.ResponseValue = field.Name, field.Want == resource
 	}
+	return out, nil
+}
+
+// getFromListOp sets the Get of a resource that is read from its List: the call lists the items, in
+// the response field items, and the generated code selects the one with the id of the resource. A
+// List that pages its result is refused: one call would miss a resource on a later page.
+func getFromListOp(r *model.Resource, items string, out crudOp) (crudOp, error) {
+	if len(r.PageParameters) != 0 || r.NextPage != nil || r.List != nil && r.List.Paged {
+		return out, errors.New("api.getFromList: the List pages its result, which the generated Get does not read yet")
+	}
+	out.Response, out.FromList = items, true
 	return out, nil
 }
 
