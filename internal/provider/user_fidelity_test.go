@@ -639,12 +639,16 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string, memberCap in
 	}
 	run := newUserFidelityRunID(t)
 	mutated := false
+	// Every case has its own users (caseRun = <run>-<n>), so the failure-path cleanup must
+	// run for each case-specific run id, not the bare one.
 	t.Cleanup(func() {
 		if !mutated {
 			return
 		}
-		if err := cleanupUserFidelity(base, apiKey, run); err != nil {
-			t.Errorf("could not deactivate the users of this recording: %v", err)
+		for ci := range cases.Cases {
+			if err := cleanupUserFidelity(base, apiKey, fmt.Sprintf("%s-%d", run, ci+1)); err != nil {
+				t.Errorf("could not deactivate the users of case %d: %v", ci+1, err)
+			}
 		}
 	})
 	ensureUserFidelityRunIsNew(t, base, apiKey, run)
