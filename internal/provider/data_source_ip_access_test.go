@@ -24,7 +24,7 @@ var ipAccessDataSourceName = "data.coralogix_ip_access.test2"
 
 func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { precheckIpAccessResource(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

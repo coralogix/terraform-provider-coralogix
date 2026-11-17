@@ -16,6 +16,8 @@ go run ./cmd/tfgen generate \
 
 The command walks to the provider root. It reads the Management SDK version from the provider `go.mod`. It then reads `openapi.yaml` from that exact module version in the local Go module cache. SDK inspection runs with `GOPROXY=off` and `GOSUMDB=off`. The command stops if required local module data is missing. It does not fetch OpenAPI from a live service.
 
+For a local preview SDK, add the provider root, this module, and the SDK root to a temporary `go.work`. Then pass `--sdk-dir /path/to/sdk` to `generate`. This reads that SDK's `openapi.yaml` and checks that the Go packages come from the same directory. The SDK directory must declare `github.com/coralogix/coralogix-management-sdk` in `go.mod`. The provider's `go.mod` stays pinned to its released SDK.
+
 Check a candidate OpenAPI document before its SDK is released:
 
 ```sh
