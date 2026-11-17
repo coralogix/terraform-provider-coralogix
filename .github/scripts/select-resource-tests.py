@@ -48,6 +48,31 @@ MIGRATION_GATES = {
     "GlobalRouterMigration": "CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC",
     "UserMigration": "CORALOGIX_USER_MIGRATION_ACC",
 }
+ROOT_TEST_INPUTS = {
+    "TestAccCoralogixResourceIntegrationWithSensitiveData": ("GCP_SERVICE_ACCOUNT_KEY",),
+    "TestAccCoralogixResourceSlackConnector": (
+        "SLACK_INTEGRATION_ID", "SLACK_INTEGRATION_CHANNEL", "SLACK_INTEGRATION_CHANNEL_UPDATED"),
+    "TestAccCoralogixResourcePagerdutyConnector": ("PD_CONNECTOR_KEY",),
+    "TestAccCoralogixResourcePagerdutyIncidentsConnector": ("PD_INTEGRATION_ID",),
+    "TestAccCoralogixResourceMicrosoftTeamsConnector": (
+        "MS_TEAMS_INTEGRATION_ID", "MS_TEAMS_TEAM_ID", "MS_TEAMS_CHANNEL_ID"),
+    "TestAccCoralogixResourceEventbridgeConnector": ("EVENTBRIDGE_INTEGRATION_ID",),
+    "TestAccCoralogixResourceIncidentIOConnector": (
+        "INCIDENT_IO_API_KEY", "INCIDENT_IO_ALERT_EVENTS_URL", "INCIDENT_IO_ALERT_SOURCE_TOKEN"),
+    "TestAccCoralogixResourceGlobalRouter": (
+        "SLACK_INTEGRATION_ID", "SLACK_INTEGRATION_CHANNEL",
+        "SLACK_INTEGRATION_CHANNEL_UPDATED", "PD_CONNECTOR_KEY"),
+    "TestAccCoralogixResourceAlert_logs_less_than_with_routing": (
+        "SLACK_INTEGRATION_ID", "SLACK_INTEGRATION_CHANNEL", "SLACK_INTEGRATION_CHANNEL_UPDATED"),
+    "TestAccCoralogixResourceAlert_destinations_deletion": (
+        "SLACK_INTEGRATION_ID", "SLACK_INTEGRATION_CHANNEL"),
+    "TestAccCoralogixResourceAlert_analytics_immediate": ("CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
+    "TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy": (
+        "CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
+    "TestAccCoralogixResourceAlert_analytics_threshold": ("CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
+    "TestAccCoralogixResourceDataEnrichmentsParitySurface": (
+        "CORALOGIX_AWS_ENRICHMENT_RESOURCE_TYPE",),
+}
 
 
 def resources() -> dict[str, list[tuple[str, str]]]:
@@ -140,6 +165,7 @@ def required_inputs(out: str, selected_names: list[str]) -> list[str]:
         values.append("CORALOGIX_GENERATED_UPGRADE_ACC")
     for name in selected_names:
         values.extend(gate for stem, gate in MIGRATION_GATES.items() if stem in name)
+        values.extend(ROOT_TEST_INPUTS.get(name, ()))
     return sorted(set(values))
 
 

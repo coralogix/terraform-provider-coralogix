@@ -113,6 +113,31 @@ class SelectorTests(unittest.TestCase):
         required = selector.required_inputs("dashboard", ["TestAccCoralogixResourceDashboardGenerated"])
         self.assertNotIn("CORALOGIX_DASHBOARD_MIGRATION_ACC", required)
 
+    def test_handwritten_input_gates_follow_selected_tests(self):
+        required = selector.required_inputs(
+            "integration", ["TestAccCoralogixResourceIntegrationWithSensitiveData"])
+        self.assertIn("GCP_SERVICE_ACCOUNT_KEY", required)
+        for name, inputs in selector.ROOT_TEST_INPUTS.items():
+            self.assertTrue(set(inputs).issubset(selector.required_inputs("other", [name])), name)
+
+    def test_direct_handwritten_skip_inputs_have_a_mapping(self):
+        provider = selector.ROOT / "internal/provider"
+        for path in provider.glob("*_test.go"):
+            source = path.read_text()
+            functions = list(re.finditer(r"^func\s+(\w+)\(", source, re.M))
+            for index, match in enumerate(functions):
+                if not match.group(1).startswith("TestAcc"):
+                    continue
+                end = functions[index + 1].start() if index + 1 < len(functions) else len(source)
+                body = source[match.start():end]
+                if "t.Skip" not in body or "resource.Test(t," not in body and "resource.ParallelTest(t," not in body:
+                    continue
+                inputs = re.findall(r'os\.Getenv\("([A-Z][A-Z0-9_]+)"\)', body)
+                for call in re.findall(r'testAccRequiredEnvVarsPreCheck\((.*?)\)', body, re.S):
+                    inputs.extend(re.findall(r'"([A-Z][A-Z0-9_]+)"', call))
+                declared = selector.required_inputs("other", [match.group(1)])
+                self.assertTrue(set(inputs).issubset(declared), match.group(1))
+
     def test_singleton_tests_share_one_serial_shard(self):
         root = ["TestAccCoralogixResourceQuotaAllocationRuleSet"]
         generated = ["TestAccCoralogixResourceQuotaAllocationRuleSetGenerated"]

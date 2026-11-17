@@ -22,6 +22,8 @@ Acceptance tests use a shared Coralogix team. Jobs in one workflow run can run i
 
 Before a live test clears account-wide state that it does not own, require an explicit disposable-team opt-in. Check that the state has no enabled access settings before deleting it.
 
+When a resource selector includes handwritten acceptance tests, report the environment inputs from those tests and their prechecks. Fail before a live run when an input is missing, so a skip cannot hide missing coverage.
+
 **Which acceptance jobs a pull request runs.** Two buckets: the dashboard jobs, and every other job. `.github/scripts/detect-test-scope.sh` reads the changed files of the pull request.
 
 ```
