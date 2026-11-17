@@ -52,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       resources: ${{ steps.regenerate.outputs.resources }}
+      failed: ${{ steps.regenerate.outputs.failed }}
       sdk_sha: ${{ steps.sdk.outputs.sha }}
       sdk_short_sha: ${{ steps.sdk.outputs.short_sha }}
     steps:
@@ -83,10 +84,15 @@ jobs:
         id: regenerate
         env:
           SDK_SHA: ${{ steps.sdk.outputs.sha }}
+          FAILED_RESOURCES_FILE: ${{ runner.temp }}/failed
         run: |
           set -euo pipefail
           tools/iac-codegen/scripts/regenerate-from-sdk.sh "$SDK_SHA" > "$RUNNER_TEMP/resources"
           echo "resources=$(paste -sd, - < "$RUNNER_TEMP/resources")" >> "$GITHUB_OUTPUT"
+          echo "failed=$(paste -sd, - < "$FAILED_RESOURCES_FILE")" >> "$GITHUB_OUTPUT"
+          if [[ -s "$FAILED_RESOURCES_FILE" ]]; then
+            echo "::warning::The generator failed on $(paste -sd, - < "$FAILED_RESOURCES_FILE"). They keep their committed files."
+          fi
           if [[ ! -s "$RUNNER_TEMP/resources" ]]; then
             echo "The generated code is the same with ${SDK_REPO}@${SDK_SHA}. No pull request."
           fi
@@ -102,6 +108,7 @@ jobs:
         env:
           SDK_SHA: ${{ steps.sdk.outputs.sha }}
           RESOURCES: ${{ steps.regenerate.outputs.resources }}
+          FAILED: ${{ steps.regenerate.outputs.failed }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
@@ -112,6 +119,11 @@ jobs:
             echo "Regenerated resources:"
             tr , '\n' <<<"$RESOURCES" | sed 's/.*/- `&`/'
             echo
+            if [[ -n "$FAILED" ]]; then
+              echo "Not regenerated: the generator failed on these resources, so they keep their committed files and the generated resources check fails until they are fixed. The [run log](${RUN_URL}) has the errors."
+              tr , '\n' <<<"$FAILED" | sed 's/.*/- `&`/'
+              echo
+            fi
             echo "Changelog:"
             echo
             echo '```markdown'
@@ -206,11 +218,12 @@ jobs:
   notify:
     name: Notify Slack
     needs: [build, open-pr]
-    # Post a ready pull request, or a failure. Nothing when the generated code is unchanged
-    # or the open pull request already has this content.
+    # Post a ready pull request, a resource that the generator failed on, or a failure. Nothing
+    # when the generated code is unchanged or the open pull request already has this content.
     if: >-
       always() && (
         contains(needs.*.result, 'failure') ||
+        needs.build.outputs.failed != '' ||
         needs.open-pr.outputs.operation == 'created' ||
         needs.open-pr.outputs.operation == 'updated'
       )
@@ -225,6 +238,7 @@ jobs:
           OPERATION: ${{ needs.open-pr.outputs.operation }}
           PR_URL: ${{ needs.open-pr.outputs.url }}
           RESOURCES: ${{ needs.build.outputs.resources }}
+          GENERATOR_FAILED: ${{ needs.build.outputs.failed }}
           SDK_SHA: ${{ needs.build.outputs.sdk_sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -239,6 +253,7 @@ jobs:
           printf 'url = "%s"\n' "$SLACK_WEBHOOK_URL" > "$curl_config"
 
           resources=$(printf '%s' "$RESOURCES" | tr ',' '\n' | sed '/^$/d; s/.*/`&`/' | paste -sd, - | sed 's/,/, /g')
+          not_regenerated=$(printf '%s' "$GENERATOR_FAILED" | tr ',' '\n' | sed '/^$/d; s/.*/`&`/' | paste -sd, - | sed 's/,/, /g')
           sdk="\`${SDK_SHA:0:7}\`"
           if [ "$FAILED" = "true" ]; then
             title=":rotating_light: Regenerating the generated resources from Management SDK ${SDK_SHA:0:7} failed"
@@ -246,10 +261,16 @@ jobs:
             if [ -n "$resources" ]; then
               body="${body}"$'\n'"*Resources:* ${resources}"
             fi
-          else
+          elif [ "$OPERATION" = "created" ] || [ "$OPERATION" = "updated" ]; then
             if [ "$OPERATION" = "created" ]; then state="is ready for review"; else state="was updated and is ready for review"; fi
             title=":robot_face: Generated resources PR ${state}: ${RESOURCES}"
             body="*<${PR_URL}|Generated resources PR>* ${state}."$'\n'"*Regenerated resources:* ${resources}"$'\n'"*Management SDK:* ${sdk}"
+          else
+            title=":warning: The generator failed on ${GENERATOR_FAILED} with Management SDK ${SDK_SHA:0:7}"
+            body="*<${RUN_URL}|Regenerating the generated resources>* from Management SDK ${sdk} opened no new pull request content."
+          fi
+          if [ -n "$not_regenerated" ]; then
+            body="${body}"$'\n'"*Not regenerated, the generator failed:* ${not_regenerated}"
           fi
           jq -n --arg title "$title" --arg body "$body" '{
             text: $title,
