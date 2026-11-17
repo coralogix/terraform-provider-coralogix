@@ -722,6 +722,10 @@ jobs:
           CORALOGIX_ENV: EU2
           CORALOGIX_API_KEY: ${{ secrets.CI_PREP_CORALOGIX_API_KEY }}
           CORALOGIX_SLO_V2_APM_SERVICE: ci-acceptance-apm
+          # The handwritten ai_evaluation upgrade test skips the application that the generated test
+          # reserves and cleans up (see the same variables in the non-dashboard jobs).
+          AI_EVALUATION_APPLICATION: ${{ secrets.CI_PREP_AI_APPLICATION_PREFIX }}-20
+          AI_EVALUATION_SUBSYSTEM: ci-acceptance
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
