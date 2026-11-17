@@ -1132,3 +1132,19 @@ func TestMinimalConfigLeavesOutOptionalExtraAttributes(t *testing.T) {
 		t.Error("a listed extra attribute must be in the minimal config")
 	}
 }
+
+// A values line that upgradeValues replaces gets no state check: the upgrade test applies the
+// replacing value but reuses the checks of the normal configs.
+func TestNoLiteralCheckForAnUpgradeValuesLine(t *testing.T) {
+	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
+	other := &tfAttr{Name: "other", Kind: "String", Optional: true}
+	s := testSynth(t, "values:\n  label: '\"fixed\"'\n  other: '\"fixed\"'\nupgradeValues:\n  label: '\"upgrade\"'\nupgradeFrom: \"1.0.0\"\n")
+	_, checks, err := s.makeValue(label, "label", "label", accFull)
+	if err != nil || len(checks) != 0 {
+		t.Errorf("label checks = %v, %v, want none: upgradeValues replaces it", checks, err)
+	}
+	_, checks, err = s.makeValue(other, "other", "other", accFull)
+	if err != nil || len(checks) != 1 || checks[0].Value != "fixed" {
+		t.Errorf("other checks = %v, %v, want one check of fixed", checks, err)
+	}
+}

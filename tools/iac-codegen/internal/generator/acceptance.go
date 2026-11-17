@@ -1062,8 +1062,12 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 		var checks []accCheck
 		if a.WriteOnly {
 			checks = []accCheck{{Path: tfPath, Absent: true}}
-		} else if state, ok := literalState(a, v); ok {
-			checks = []accCheck{{Path: tfPath, Value: state}}
+		} else if _, upgrade := s.file.UpgradeValues[key]; !upgrade {
+			// A line that upgradeValues replaces has another value in the upgrade test, which
+			// reuses the checks of the normal configs, so no check names its value.
+			if state, ok := literalState(a, v); ok {
+				checks = []accCheck{{Path: tfPath, Value: state}}
+			}
 		}
 		return strings.TrimSpace(v), checks, nil
 	}

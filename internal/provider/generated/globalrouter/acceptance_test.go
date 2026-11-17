@@ -263,9 +263,6 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.0.entity_type", resourceAddress, "fallback_targets.0.entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.0.target.custom_details.key", resourceAddress, "fallback_targets.0.target.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.environment", resourceAddress, "routing_labels.environment"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.service", resourceAddress, "routing_labels.service"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.team", resourceAddress, "routing_labels.team"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.#", resourceAddress, "rules.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.custom_details.key", resourceAddress, "rules.0.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.entity_type", resourceAddress, "rules.0.entity_type"),
@@ -279,9 +276,6 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.0.entity_type", resourceAddress, "fallback_targets.0.entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.0.target.custom_details.key", resourceAddress, "fallback_targets.0.target.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.environment", resourceAddress, "routing_labels.environment"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.service", resourceAddress, "routing_labels.service"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.team", resourceAddress, "routing_labels.team"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.#", resourceAddress, "rules.#"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.custom_details.key", resourceAddress, "rules.0.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.entity_type", resourceAddress, "rules.0.entity_type"),
@@ -299,9 +293,6 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", "tf-acc-generated-global-router"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", "tf-acc-generated-global-router"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", "tf-acc-generated-global-router"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
@@ -319,9 +310,6 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", "tf-acc-generated-global-router-updated"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", "tf-acc-generated-global-router-updated"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", "tf-acc-generated-global-router-updated"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
@@ -334,9 +322,6 @@ func updatedChecks(run string) resource.TestCheckFunc {
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", "tf-acc-generated-global-router"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", "tf-acc-generated-global-router"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", "tf-acc-generated-global-router"),
 		resource.TestCheckResourceAttr(resourceAddress, "disabled", "false"),
 	)
 }
@@ -349,9 +334,6 @@ func upgradeFullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", "tf-acc-generated-global-router-upgrade"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", "tf-acc-generated-global-router-upgrade"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", "tf-acc-generated-global-router-upgrade"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
@@ -365,9 +347,6 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", "tf-acc-generated-global-router-upgrade"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", "tf-acc-generated-global-router-upgrade"),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", "tf-acc-generated-global-router-upgrade"),
 	)
 }
 
