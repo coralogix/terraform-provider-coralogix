@@ -11,7 +11,8 @@
 #     logs_anomaly and metric_anomaly percentage_of_deviation are Float64 (Float32 here).
 #   - Hooks: ModifyPlan (group_by, override.priority fallback), ValidateConfig (priority deprecation,
 #     no-data-policy warnings, analytics no_data_policy not empty, group_by checks, group_by_for needs
-#     group_by, analytics rules at most 5), schedule and access_policy conversion.
+#     group_by, analytics rules at most 5, analytics evaluation period longer than timeframe warning),
+#     schedule and access_policy conversion.
 resource: AlertDef
 mode: existing
 markdownDescription: "Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/."
