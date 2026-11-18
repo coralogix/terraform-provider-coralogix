@@ -1,5 +1,8 @@
 # Unreleased
 
+#### data-source/coralogix_alert
+- FEAT: Add `case_settings.destinations.connector_config_overrides`, `case_settings.destinations.connector_config_overrides.field_name`, `case_settings.destinations.connector_config_overrides.template` from the API contract of Management SDK `v1.9.4-0.20261118150732-288a531562ab`.
+
 #### tools/iac-codegen
 - FEAT: `readAfterWrite: true` in `behavior-overrides.yaml` (with `getHooks: true`) makes Create and Update read the resource with Get after a write whose response holds the resource, so `AfterGet` runs after a write too and the state after a write equals the state after a Read. A write that already reads back, or a line without `getHooks`, is an error.
 - FIX: A `behavior-overrides.yaml` field line on a component that the Get response does not reach, such as an item that only a request sends, fails with `OVERRIDE_UNUSED`. Before, the generator accepted it and ignored it.
@@ -37,6 +40,7 @@
 - CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261116113014-362e16dcfafe`.
 - FIX: `type_definition.logs_ratio_threshold.group_by_for = "Both"` no longer needs `group_by`. `"Numerator Only"` and `"Denominator Only"` still need a non-empty `group_by`, because the API stores `"Both"` for an alert without group-by keys.
 - FIX: An alert with a webhook in `notification_group.webhooks_settings` that sets only `integration_id` or `recipients` no longer shows a perpetual in-place update that sets `notify_on` and `retriggering_period` to `(known after apply)`.
+- FEAT: Add `case_settings.destinations.connector_config_overrides`, `case_settings.destinations.connector_config_overrides.field_name`, `case_settings.destinations.connector_config_overrides.template` from the API contract of Management SDK `v1.9.4-0.20261118150732-288a531562ab`.
 
 #### resource/coralogix_dashboard
 - FEAT: Show a deprecation warning for attributes that the API deprecates: `highlighted` of a widget, `show_inner_arc` and `show_outer_arc` of a gauge, `value_field` of the gauge of a dynamic widget, `resolution` of a line chart query definition, and `value` of a spans field value in a variable query.
