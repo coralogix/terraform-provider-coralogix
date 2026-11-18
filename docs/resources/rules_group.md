@@ -33,9 +33,11 @@ resource "coralogix_rules_group" "rules_group_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 1
+  # Leave order out unless this rule-group must sit at a fixed position. Without it the rule-group is
+  # added last and keeps its position. Coralogix renumbers order when a rule-group is deleted or the
+  # rule-groups are reordered in the UI, so a configured order can show up as a change in the next plan.
+  # To pin a position, set a unique order on every rule-group:
+  # order = 1
 
   rule_subgroups {
     rules {
@@ -118,9 +120,6 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 4
 
   rule_subgroups {
     rules {
@@ -141,9 +140,6 @@ resource "coralogix_rules_group" "remove_fields_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 3
   rule_subgroups {
     rules {
       remove_fields {
@@ -161,9 +157,6 @@ resource "coralogix_rules_group" "parse_json_field_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  # order must be unique across every rule-group in the account. Terraform plans each
-  # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 2
   rule_subgroups {
     rules {
       parse_json_field {
@@ -193,7 +186,7 @@ resource "coralogix_rules_group" "parse_json_field_example" {
 - `creator` (String) Rule-group creator.
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.
+- `order` (Number) Determines the index of the rule-group between the other rule-groups (1 based indexing). Leave it out unless a rule-group must sit at a fixed position: without it a new rule-group is added last, and an existing one keeps its current position. The API treats order as a rank and renumbers it: deleting a rule-group lowers the order of every rule-group after it by one, and reordering the rule-groups in the Coralogix UI renumbers all of them. A configured order can therefore drift from the value the API returns, and the next plan then shows a change of order that nothing in the configuration caused. To move a rule-group, set order to the new position. Terraform does not renumber the other rule-groups, and cannot keep the value unique, because rule-groups are separate resources that are planned in isolation, so when you pin positions, set a unique order on every rule-group; two rule-groups sharing an order are only rejected - if at all - by the API. Terraform creates rule-groups in parallel, so rule-groups created together in one apply without order can end up with the same order; when their relative position matters, create them one at a time (terraform apply -parallelism=1, or depends_on between them). Removing order from the configuration keeps the current order.
 - `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedblock--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["Critical" "Debug" "Error" "Info" "Verbose" "Warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
