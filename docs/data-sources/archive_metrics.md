@@ -17,7 +17,7 @@ Coralogix archive-metrics. Configures the S3, IBM or GCS bucket Coralogix archiv
 
 ### Read-Only
 
-- `gcs` (Attributes) Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. (see [below for nested schema](#nestedatt--gcs))
+- `gcs` (Attributes) Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. Only GCP environments (US3) accept `gcs`, and they do not accept `s3`; other regions reject `gcs`. The bucket must be in the location of your Coralogix domain (`us-central1` for US3), and the Coralogix archive service account needs Storage Object Admin on it; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. (see [below for nested schema](#nestedatt--gcs))
 - `ibm` (Attributes) (see [below for nested schema](#nestedatt--ibm))
 - `id` (String) The fixed id of this singleton: there is one per company.
 - `prefix` (String)

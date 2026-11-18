@@ -34,8 +34,9 @@ resource "coralogix_archive_metrics" "example" {
   }
 }
 
-# The archive has exactly one destination: `s3`, `ibm` or `gcs`. To archive into Google Cloud
-# Storage, replace the `s3` block above with:
+# The archive has exactly one destination: `s3`, `ibm` or `gcs`. `gcs` works in GCP environments
+# (US3) only, where `s3` is not accepted. To archive into Google Cloud Storage, replace the `s3`
+# block above with:
 #
 # resource "coralogix_archive_metrics" "example" {
 #   gcs = {
@@ -49,7 +50,7 @@ resource "coralogix_archive_metrics" "example" {
 
 ### Optional
 
-- `gcs` (Attributes) Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. (see [below for nested schema](#nestedatt--gcs))
+- `gcs` (Attributes) Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. Only GCP environments (US3) accept `gcs`, and they do not accept `s3`; other regions reject `gcs`. The bucket must be in the location of your Coralogix domain (`us-central1` for US3), and the Coralogix archive service account needs Storage Object Admin on it; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. (see [below for nested schema](#nestedatt--gcs))
 - `ibm` (Attributes) (see [below for nested schema](#nestedatt--ibm))
 - `retention_policy` (Attributes) The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform. (see [below for nested schema](#nestedatt--retention_policy))
 - `s3` (Attributes) (see [below for nested schema](#nestedatt--s3))

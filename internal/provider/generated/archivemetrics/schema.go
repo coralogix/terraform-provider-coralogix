@@ -31,7 +31,7 @@ func Schema() schema.Schema {
 						MarkdownDescription: "The name of the Google Cloud Storage bucket to store the archived metrics in.",
 					},
 				},
-				MarkdownDescription: "Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`.",
+				MarkdownDescription: "Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. Only GCP environments (US3) accept `gcs`, and they do not accept `s3`; other regions reject `gcs`. The bucket must be in the location of your Coralogix domain (`us-central1` for US3), and the Coralogix archive service account needs Storage Object Admin on it; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/.",
 			},
 			"ibm": schema.SingleNestedAttribute{
 				Optional: true,

@@ -19,8 +19,9 @@ resource "coralogix_archive_metrics" "example" {
   }
 }
 
-# The archive has exactly one destination: `s3`, `ibm` or `gcs`. To archive into Google Cloud
-# Storage, replace the `s3` block above with:
+# The archive has exactly one destination: `s3`, `ibm` or `gcs`. `gcs` works in GCP environments
+# (US3) only, where `s3` is not accepted. To archive into Google Cloud Storage, replace the `s3`
+# block above with:
 #
 # resource "coralogix_archive_metrics" "example" {
 #   gcs = {

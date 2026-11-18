@@ -3,12 +3,12 @@
 page_title: "coralogix_archive_logs Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
+  Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. In a GCP environment (US3), the bucket is a Google Cloud Storage bucket and region is its location, for example us-central1; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 ---
 
 # coralogix_archive_logs (Data Source)
 
-Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
+Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. In a GCP environment (US3), the bucket is a Google Cloud Storage bucket and `region` is its location, for example `us-central1`; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 
 
 
@@ -19,7 +19,7 @@ Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and tra
 
 - `active` (Boolean) Whether archiving to this target is active.
 - `archiving_format_id` (String) The archiving format ID.
-- `bucket` (String) The bucket name to store the archived logs in.
+- `bucket` (String) The bucket name to store the archived logs in. In a GCP environment (US3) this is a Google Cloud Storage bucket.
 - `enable_tags` (Boolean)
 - `id` (String) The fixed id of this singleton: there is one per company.
-- `region` (String) The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions
+- `region` (String) The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions. In a GCP environment (US3) it is the location of the Google Cloud Storage bucket, for example `us-central1`.
