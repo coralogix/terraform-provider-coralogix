@@ -979,6 +979,8 @@ var requiredAttrs = map[string]bool{
 	"type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields.key":                      true,
 	"type_definition.tracing_threshold.tracing_filter.tracing_label_filters.subsystem_name.values":                true,
 	"case_settings.destinations.condition":                                                                        true,
+	"case_settings.destinations.connector_config_overrides.field_name":                                            true,
+	"case_settings.destinations.connector_config_overrides.template":                                              true,
 	"case_settings.destinations.connector_id":                                                                     true,
 	"case_settings.enrichment_queries.query":                                                                      true,
 	"data_sources.data_set":                                                                                       true,
@@ -1512,6 +1514,12 @@ func expandAlertDefCaseDestination(ctx context.Context, p path.Path, m *AlertDef
 	}
 	out := &alert_definitions_service.AlertDefCaseDestination{}
 	out.Condition = valueOf(expandString(m.Condition))
+	if items := expandElements[V3ConnectorConfigFieldModel](ctx, p.AtName("connector_config_overrides"), m.ConnectorConfigOverrides, diags); items != nil {
+		out.ConnectorConfigOverrides = make([]alert_definitions_service.V3ConnectorConfigField, 0, len(items))
+		for i := range items {
+			out.ConnectorConfigOverrides = append(out.ConnectorConfigOverrides, *expandV3ConnectorConfigField(ctx, p.AtName("connector_config_overrides").AtListIndex(i), &items[i], diags))
+		}
+	}
 	out.ConnectorId = valueOf(expandString(m.ConnectorId))
 	out.PresetId = expandString(m.PresetId)
 	return out
@@ -1523,6 +1531,14 @@ func flattenAlertDefCaseDestination(ctx context.Context, p path.Path, v *alert_d
 	}
 	out := &AlertDefCaseDestinationModel{}
 	out.Condition = types.StringPointerValue(&v.Condition)
+	out.ConnectorConfigOverrides = types.ListNull(types.ObjectType{AttrTypes: v3ConnectorConfigFieldAttrTypes()})
+	if v.ConnectorConfigOverrides != nil {
+		items := make([]V3ConnectorConfigFieldModel, 0, len(v.ConnectorConfigOverrides))
+		for i := range v.ConnectorConfigOverrides {
+			items = append(items, *flattenV3ConnectorConfigField(ctx, p.AtName("connector_config_overrides").AtListIndex(i), &v.ConnectorConfigOverrides[i], diags))
+		}
+		out.ConnectorConfigOverrides = flattenList(ctx, types.ObjectType{AttrTypes: v3ConnectorConfigFieldAttrTypes()}, items, diags)
+	}
 	out.ConnectorId = types.StringPointerValue(&v.ConnectorId)
 	out.PresetId = types.StringPointerValue(v.PresetId)
 	return out
@@ -1530,9 +1546,37 @@ func flattenAlertDefCaseDestination(ctx context.Context, p path.Path, v *alert_d
 
 func alertDefCaseDestinationAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"condition":    types.StringType,
-		"connector_id": types.StringType,
-		"preset_id":    types.StringType,
+		"condition":                  types.StringType,
+		"connector_config_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: v3ConnectorConfigFieldAttrTypes()}},
+		"connector_id":               types.StringType,
+		"preset_id":                  types.StringType,
+	}
+}
+
+func expandV3ConnectorConfigField(ctx context.Context, p path.Path, m *V3ConnectorConfigFieldModel, diags *diag.Diagnostics) *alert_definitions_service.V3ConnectorConfigField {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.V3ConnectorConfigField{}
+	out.FieldName = expandString(m.FieldName)
+	out.Template = expandString(m.Template)
+	return out
+}
+
+func flattenV3ConnectorConfigField(ctx context.Context, p path.Path, v *alert_definitions_service.V3ConnectorConfigField, diags *diag.Diagnostics) *V3ConnectorConfigFieldModel {
+	if v == nil {
+		return nil
+	}
+	out := &V3ConnectorConfigFieldModel{}
+	out.FieldName = types.StringPointerValue(v.FieldName)
+	out.Template = types.StringPointerValue(v.Template)
+	return out
+}
+
+func v3ConnectorConfigFieldAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"field_name": types.StringType,
+		"template":   types.StringType,
 	}
 }
 
@@ -3197,33 +3241,6 @@ func v3SourceOverridesAttrTypes() map[string]attr.Type {
 		"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: v3ConnectorConfigFieldAttrTypes()}},
 		"preset_overrides":    types.ListType{ElemType: types.ObjectType{AttrTypes: v3MessageConfigFieldAttrTypes()}},
 		"payload_type":        types.StringType,
-	}
-}
-
-func expandV3ConnectorConfigField(ctx context.Context, p path.Path, m *V3ConnectorConfigFieldModel, diags *diag.Diagnostics) *alert_definitions_service.V3ConnectorConfigField {
-	if m == nil {
-		return nil
-	}
-	out := &alert_definitions_service.V3ConnectorConfigField{}
-	out.FieldName = expandString(m.FieldName)
-	out.Template = expandString(m.Template)
-	return out
-}
-
-func flattenV3ConnectorConfigField(ctx context.Context, p path.Path, v *alert_definitions_service.V3ConnectorConfigField, diags *diag.Diagnostics) *V3ConnectorConfigFieldModel {
-	if v == nil {
-		return nil
-	}
-	out := &V3ConnectorConfigFieldModel{}
-	out.FieldName = types.StringPointerValue(v.FieldName)
-	out.Template = types.StringPointerValue(v.Template)
-	return out
-}
-
-func v3ConnectorConfigFieldAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"field_name": types.StringType,
-		"template":   types.StringType,
 	}
 }
 

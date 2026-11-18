@@ -87,10 +87,16 @@ type AnalyticsThresholdTypeModel struct {
 	UseRowsAsPermutations   types.Bool                `tfsdk:"use_rows_as_permutations"`
 }
 
+type V3ConnectorConfigFieldModel struct {
+	FieldName types.String `tfsdk:"field_name"`
+	Template  types.String `tfsdk:"template"`
+}
+
 type AlertDefCaseDestinationModel struct {
-	Condition   types.String `tfsdk:"condition"`
-	ConnectorId types.String `tfsdk:"connector_id"`
-	PresetId    types.String `tfsdk:"preset_id"`
+	Condition                types.String `tfsdk:"condition"`
+	ConnectorConfigOverrides types.List   `tfsdk:"connector_config_overrides"`
+	ConnectorId              types.String `tfsdk:"connector_id"`
+	PresetId                 types.String `tfsdk:"preset_id"`
 }
 
 type AlertDefCaseEnrichmentQueryModel struct {
@@ -331,11 +337,6 @@ type MetricThresholdTypeModel struct {
 	NoDataPolicy               types.Object              `tfsdk:"no_data_policy"`
 	Rules                      types.Set                 `tfsdk:"rules"`
 	UndetectedValuesManagement types.Object              `tfsdk:"undetected_values_management"`
-}
-
-type V3ConnectorConfigFieldModel struct {
-	FieldName types.String `tfsdk:"field_name"`
-	Template  types.String `tfsdk:"template"`
 }
 
 type V3MessageConfigFieldModel struct {

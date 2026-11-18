@@ -2166,12 +2166,28 @@ func Schema() schema.Schema {
 					"destinations": schema.ListNestedAttribute{
 						Optional: true,
 						Computed: true,
-						Default:  listdefault.StaticValue(types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{"condition": types.StringType, "connector_id": types.StringType, "preset_id": types.StringType}}, []attr.Value{})),
+						Default:  listdefault.StaticValue(types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{"condition": types.StringType, "connector_config_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "connector_id": types.StringType, "preset_id": types.StringType}}, []attr.Value{})),
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"condition": schema.StringAttribute{
 									Required:            true,
 									MarkdownDescription: "Notification Center routing condition, rendered to true or false against the case notification context to decide whether this destination is notified. Use \"true\" to notify on every case notification; otherwise filter on caseMetadata.notificationReason (for example caseActivated, caseResolved, casePriorityChanged, caseUnacknowledged). The expression syntax is documented with Notification Center routing conditions.",
+								},
+								"connector_config_overrides": schema.ListNestedAttribute{
+									Optional: true,
+									NestedObject: schema.NestedAttributeObject{
+										Attributes: map[string]schema.Attribute{
+											"field_name": schema.StringAttribute{
+												Required:            true,
+												MarkdownDescription: "The name of the configuration field",
+											},
+											"template": schema.StringAttribute{
+												Required:            true,
+												MarkdownDescription: "The template for the configuration field",
+											},
+										},
+									},
+									MarkdownDescription: "Per-destination overrides of the connector configuration. Each item names one connector config field and a template that replaces the connector's value for this destination only. Only fields that the connector's schema marks as rendered (templated) can be overridden, for example Slack `channel`, email `emailAddresses`, PagerDuty `integrationKey`, and generic HTTPS `url`, `additionalHeaders`, and `additionalBodyFields`; any other field, an unknown field, a value of the wrong type, or a template that does not render is rejected with 400. Templates are rendered against the case notification context. Each `fieldName` must be non-empty and may appear at most once per destination; an omitted `template` is treated as an empty template. Overrides are not part of a destination's identity: two destinations with the same `connectorId`, `presetId`, and `condition` are rejected as duplicates even when their overrides differ. An empty or omitted list means no overrides: the connector's own configuration is used. Replace is a full overwrite: omitting the list removes any previously configured overrides. Order is not significant: reads return the overrides sorted by `fieldName`, each template exactly as sent, and return an empty list when the destination has no overrides.",
 								},
 								"connector_id": schema.StringAttribute{
 									Required:            true,
