@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
@@ -28,7 +29,19 @@ import (
 
 var tcoPoliciesResourceName = "coralogix_tco_policies_logs.test"
 
+// The archive retention id that the logs and traces TCO fixtures use. It is different in every
+// account, so the tests read it from the environment. CI sets it from a secret.
+var tcoArchiveRetentionID = os.Getenv("TCO_ARCHIVE_RETENTION_ID")
+
+func testAccTCOArchiveRetentionPreCheck(t *testing.T) {
+	t.Helper()
+	if tcoArchiveRetentionID == "" {
+		t.Skip("TCO_ARCHIVE_RETENTION_ID must be set for this acceptance test")
+	}
+}
+
 func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
+	testAccTCOArchiveRetentionPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -51,7 +64,7 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "web"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.archive_retention_id", tcoArchiveRetentionID),
 					// No targets were configured, so the default target the backend injects must
 					// not land in state — otherwise every subsequent plan drifts.
 					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.targets"),
@@ -130,7 +143,7 @@ policies = [{
 		rule_type        = "is"
 		names            = ["mobile", "web"]
 	}
-	archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
+	archive_retention_id = "` + tcoArchiveRetentionID + `"
 },
 {
 	name            = "Example tco_policy from terraform 2"
