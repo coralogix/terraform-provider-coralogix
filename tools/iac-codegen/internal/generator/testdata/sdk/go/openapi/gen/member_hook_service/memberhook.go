@@ -101,6 +101,7 @@ type MemberHookServiceAPIService struct {
 	CreateResults    *CreateMembersResponse
 	CreateBodies     [][]CreateMemberRequest
 	UpdateBodies     []UpdateMemberRequest
+	UpdateResponses  []*UpdateMembersResponse
 	DeleteBody       *UpdateMemberStatusRequest
 }
 
@@ -173,7 +174,12 @@ func (r ApiMemberHookServiceUpdateMembersRequest) UpdateMemberRequest(updateMemb
 }
 
 func (r ApiMemberHookServiceUpdateMembersRequest) Execute() (*UpdateMembersResponse, *http.Response, error) {
-	return nil, nil, nil
+	if len(r.client.UpdateResponses) == 0 {
+		return nil, nil, nil
+	}
+	resp := r.client.UpdateResponses[0]
+	r.client.UpdateResponses = r.client.UpdateResponses[1:]
+	return resp, nil, nil
 }
 
 func (r ApiMemberHookServiceUpdateMembersStatusesRequest) UpdateMemberStatusRequest(updateMemberStatusRequest UpdateMemberStatusRequest) ApiMemberHookServiceUpdateMembersStatusesRequest {

@@ -122,6 +122,73 @@ func TestGoldenOutputMemberHook(t *testing.T) {
 	if diff := compareDirectories(golden, out); diff != "" {
 		t.Fatalf("memberhook golden differs; run with -update:\n%s", diff)
 	}
+	// The runtime semantics of the memberhook fixture: an integer page token that the generated
+	// Get follows to a later page, and the readAfterWrite of the batch write (getHooks with
+	// readAfterWrite): the generated Create and Update read the written resource back with Get,
+	// so the AfterGet hook sees the state that a later Read sees.
+	const semantics = `package memberhook
+import (
+ "context"
+ "testing"
+
+ "example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
+)
+func ptr(s string) *string { return &s }
+func int64Ptr(i int64) *int64 { return &i }
+func TestReadPagesWithAnIntegerToken(t *testing.T) {
+ var token int64 = 42
+ client := &member_hook_service.MemberHookServiceAPIService{
+  SearchResponses: []*member_hook_service.MemberHookSearchResponse{
+   {NextPageToken: &token, Members: []member_hook_service.Member{{MemberId: ptr("first")}}},
+   {Members: []member_hook_service.Member{{MemberId: ptr("third")}}},
+  },
+ }
+ r := &Resource{client: client}
+ got, err := r.get(context.Background(), "third")
+ if err != nil || got == nil || *got.MemberId != "third" { t.Fatalf("paged read = %v, %v", got, err) }
+ if client.SearchPageCalls != 2 { t.Fatalf("page calls = %d", client.SearchPageCalls) }
+ if len(client.SearchPageTokens) != 1 || client.SearchPageTokens[0] != "42" {
+  t.Fatalf("page tokens = %v", client.SearchPageTokens)
+ }
+}
+func TestCreateReadsTheWrittenResourceBack(t *testing.T) {
+ created := member_hook_service.CREATEMEMBERSTATUS_CREATE_MEMBER_STATUS_CREATED
+ client := &member_hook_service.MemberHookServiceAPIService{
+  CreateResults: &member_hook_service.CreateMembersResponse{Results: []member_hook_service.CreateMemberResult{{
+   Status: &created, Member: &member_hook_service.Member{MemberId: ptr("new-id"), Login: ptr("a@b.c")},
+  }}},
+  SearchResponses: []*member_hook_service.MemberHookSearchResponse{
+   {Members: []member_hook_service.Member{{MemberId: ptr("new-id"), Login: ptr("fresh@b.c")}}},
+  },
+ }
+ r := &Resource{client: client}
+ got, err := r.create(context.Background(), &member_hook_service.CreateMemberRequest{})
+ if err != nil || got == nil || got.Login == nil || *got.Login != "fresh@b.c" {
+  t.Fatalf("batch create readAfterWrite = %v, %v", got, err)
+ }
+ if client.SearchPageCalls != 1 { t.Fatalf("reads after write = %d", client.SearchPageCalls) }
+}
+func TestUpdateReadsTheWrittenResourceBack(t *testing.T) {
+ client := &member_hook_service.MemberHookServiceAPIService{
+  UpdateBodies: []member_hook_service.UpdateMemberRequest{{}},
+  UpdateResponses: []*member_hook_service.UpdateMembersResponse{
+   {Members: []member_hook_service.Member{{MemberId: ptr("same-id"), Login: ptr("stale@b.c")}}},
+  },
+  SearchResponses: []*member_hook_service.MemberHookSearchResponse{
+   {Members: []member_hook_service.Member{{MemberId: ptr("same-id"), Login: ptr("fresh@b.c")}}},
+  },
+ }
+ r := &Resource{client: client}
+ got, err := r.update(context.Background(), "same-id", &member_hook_service.UpdateMemberRequest{})
+ if err != nil || got == nil || got.Login == nil || *got.Login != "fresh@b.c" {
+  t.Fatalf("batch update readAfterWrite = %v, %v", got, err)
+ }
+ if client.SearchPageCalls != 1 { t.Fatalf("reads after write = %d", client.SearchPageCalls) }
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	compileGenerated(t, out, input)
 }
 

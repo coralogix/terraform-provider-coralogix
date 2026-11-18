@@ -277,7 +277,7 @@ func (r *Resource) create(ctx context.Context, body *member_hook_service.CreateM
 		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)
 	}
 	// The result holds the resource that the API created, with the id that the API gave it.
-	return result.Member, nil
+	return r.readAfterWrite(ctx, result.Member), nil
 }
 
 // getResultKey is the key of the getResult that a CRUD method puts in its context.
@@ -375,7 +375,7 @@ func (r *Resource) update(ctx context.Context, id string, body *member_hook_serv
 	// updated resource.
 	for i := range out.Members {
 		if got, ok := apiID(&out.Members[i]); ok && got == id {
-			return &out.Members[i], nil
+			return r.readAfterWrite(ctx, &out.Members[i]), nil
 		}
 	}
 	return nil, nil
@@ -456,12 +456,37 @@ func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) 
 	return id.ValueString(), diags
 }
 
+// readAfterWrite reads the resource that a write returned with Get, so that the AfterGet hook sees the
+// values next to the resource, as a Read does, and the state after the write is the state of a later
+// Read. When the read fails, the write response stands: the write succeeded, and the next Read adds
+// what the response lacked.
+func (r *Resource) readAfterWrite(ctx context.Context, written *member_hook_service.Member) *member_hook_service.Member {
+	id, ok := apiID(written)
+	if !ok || id == "" {
+		return written
+	}
+	v, err := r.get(ctx, id)
+	if err != nil || v == nil {
+		return written
+	}
+	// The id of the write is the id of the resource, also when Get leaves it out.
+	if got, ok := apiID(v); !ok || got == "" {
+		setAPIID(v, id)
+	}
+	return v
+}
+
 // apiID returns the id that v holds, and false when v holds none.
 func apiID(v *member_hook_service.Member) (string, bool) {
 	if v == nil || v.MemberId == nil {
 		return "", false
 	}
 	return *v.MemberId, *v.MemberId != ""
+}
+
+// setAPIID sets the id that v holds.
+func setAPIID(v *member_hook_service.Member, id string) {
+	v.MemberId = &id
 }
 
 // idStateValue returns the value of the id attribute for id.

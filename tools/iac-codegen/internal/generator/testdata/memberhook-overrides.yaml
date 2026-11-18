@@ -1,5 +1,6 @@
 resource: Member
 getHooks: true
+readAfterWrite: true
 mode: existing
 typeName: member
 markdownDescription: A resource that users already have, read from its List and written in batches.

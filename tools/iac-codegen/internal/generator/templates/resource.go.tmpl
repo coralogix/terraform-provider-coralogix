@@ -729,7 +729,11 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)
 	}
 	// The result holds the resource that the API created, with the id that the API gave it.
+{{- if .ReadAfterWrite}}
+	return r.readAfterWrite(ctx, result.{{.Create.Result.Resource}}), nil
+{{- else}}
 	return result.{{.Create.Result.Resource}}, nil
+{{- end}}
 }
 {{- else}}
 	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
@@ -964,7 +968,11 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	// updated resource.
 	for i := range out.{{.Update.Response}} {
 		if got, ok := apiID(&out.{{.Update.Response}}[i]); ok && got == id {
+{{- if .ReadAfterWrite}}
+			return r.readAfterWrite(ctx, &out.{{.Update.Response}}[i]), nil
+{{- else}}
 			return &out.{{.Update.Response}}[i], nil
+{{- end}}
 		}
 	}
 	return nil, nil
