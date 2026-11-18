@@ -18,3 +18,12 @@ resource "coralogix_archive_metrics" "example" {
     bucket = "<your-bucket-name>"
   }
 }
+
+# The archive has exactly one destination: `s3`, `ibm` or `gcs`. To archive into Google Cloud
+# Storage, replace the `s3` block above with:
+#
+# resource "coralogix_archive_metrics" "example" {
+#   gcs = {
+#     bucket = "<your-bucket-name>"
+#   }
+# }

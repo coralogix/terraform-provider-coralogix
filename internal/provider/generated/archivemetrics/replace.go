@@ -25,6 +25,7 @@ var updateFields = []struct {
 	attr          string
 	serverDefault bool
 }{
+	{attr: "gcs", serverDefault: false},
 	{attr: "ibm", serverDefault: false},
 	{attr: "retention_policy", serverDefault: false},
 	{attr: "s3", serverDefault: false},

@@ -23,6 +23,16 @@ func Schema() schema.Schema {
 				Default:             stringdefault.StaticString(SingletonID),
 				MarkdownDescription: "The fixed id of this singleton: there is one per company.",
 			},
+			"gcs": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"bucket": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "The name of the Google Cloud Storage bucket to store the archived metrics in.",
+					},
+				},
+				MarkdownDescription: "Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`.",
+			},
 			"ibm": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
@@ -84,7 +94,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "",
 			},
 		},
-		MarkdownDescription: "Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
+		MarkdownDescription: "Coralogix archive-metrics. Configures the S3, IBM or GCS bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
 	}
 }
 
@@ -94,6 +104,7 @@ func ConfigValidators() []resource.ConfigValidator {
 		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("ibm"),
 			path.MatchRoot("s3"),
+			path.MatchRoot("gcs"),
 		),
 	}
 }
