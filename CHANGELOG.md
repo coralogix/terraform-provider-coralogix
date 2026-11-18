@@ -1,5 +1,8 @@
 # Unreleased
 
+#### data-source/coralogix_parsing_rules
+- DOC: The same `order` description as `coralogix_parsing_rules`.
+
 #### data-source/coralogix_alert
 - FEAT: Add `case_settings.destinations.connector_config_overrides`, `case_settings.destinations.connector_config_overrides.field_name`, `case_settings.destinations.connector_config_overrides.template` from the API contract of Management SDK `v1.9.4-0.20261118150732-288a531562ab`.
 
@@ -96,7 +99,7 @@
 - CHORE: Bump the generator to `v0.1.0-beta.85`; its map-to-set generation is covered by a golden fixture.
 
 #### resource/coralogix_parsing_rules
-- DOC: `order` says that the API renumbers it when a rule-group is deleted or the rule-groups are reordered in the UI, so a configured value can drift, recommends leaving it out unless a fixed position is needed, and notes that rule-groups created together without `order` can share one. The example no longer sets it.
+- DOC: `order` starts with the text of the API contract (the service renumbers it when a rule-group is deleted or the rule-groups are reordered in the UI, and groups can share one), so a change of the contract reaches the docs, and adds the Terraform advice after it: leave it out unless a fixed position is needed, because a configured value can drift. The example no longer sets it.
 
 #### resource/coralogix_rules_group
 - DOC: The same `order` description and example change as `coralogix_parsing_rules`.
