@@ -52,8 +52,18 @@ Read-Only:
 Read-Only:
 
 - `condition` (String) Notification Center routing condition, rendered to true or false against the case notification context to decide whether this destination is notified. Use "true" to notify on every case notification; otherwise filter on caseMetadata.notificationReason (for example caseActivated, caseResolved, casePriorityChanged, caseUnacknowledged). The expression syntax is documented with Notification Center routing conditions.
+- `connector_config_overrides` (Attributes List) Per-destination overrides of the connector configuration. Each item names one connector config field and a template that replaces the connector's value for this destination only. Only fields that the connector's schema marks as rendered (templated) can be overridden, for example Slack `channel`, email `emailAddresses`, PagerDuty `integrationKey`, and generic HTTPS `url`, `additionalHeaders`, and `additionalBodyFields`; any other field, an unknown field, a value of the wrong type, or a template that does not render is rejected with 400. Templates are rendered against the case notification context. Each `fieldName` must be non-empty and may appear at most once per destination; an omitted `template` is treated as an empty template. Overrides are not part of a destination's identity: two destinations with the same `connectorId`, `presetId`, and `condition` are rejected as duplicates even when their overrides differ. An empty or omitted list means no overrides: the connector's own configuration is used. Replace is a full overwrite: omitting the list removes any previously configured overrides. Order is not significant: reads return the overrides sorted by `fieldName`, each template exactly as sent, and return an empty list when the destination has no overrides. (see [below for nested schema](#nestedatt--case_settings--destinations--connector_config_overrides))
 - `connector_id` (String) ID of the Notification Center connector to notify. The connector must support the CASES entity type; list compatible connectors with GET /notifications/notification-center/v1/connectors?supported_by_entity_type=CASES.
 - `preset_id` (String) Optional Notification Center preset ID used to render the notification. The preset must be defined for the CASES entity type and for the selected connector's type; list compatible presets with GET /notifications/notification-center/v1/presets:summariesList?entity_type=CASES&connector_type=<type>. When omitted, the connector type's default preset is used.
+
+<a id="nestedatt--case_settings--destinations--connector_config_overrides"></a>
+### Nested Schema for `case_settings.destinations.connector_config_overrides`
+
+Read-Only:
+
+- `field_name` (String) The name of the configuration field
+- `template` (String) The template for the configuration field
+
 
 
 <a id="nestedatt--case_settings--enrichment_queries"></a>

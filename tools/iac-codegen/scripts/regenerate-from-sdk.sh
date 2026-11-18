@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Pin the Management SDK at a ref, regenerate the resources of tools/iac-codegen/auto-regenerate.txt,
-# the docs, and add a changelog entry for each resource whose generated files changed: its
+# Pin the Management SDK at a ref, regenerate each resource of internal/provider/codegen.go whose
+# SDK service changed since the previous pin, and the docs, and add a changelog entry for each
+# resource whose generated files changed: its
 # package under internal/provider/generated or its examples, the paths that
 # check-generated-resources.sh compares.
 # Usage: regenerate-from-sdk.sh <SDK ref: commit SHA, tag, or branch>
 # Prints the Terraform name of each changed resource, one per line, and nothing when the
 # generated code is unchanged. TFGEN can name a prebuilt generator.
+# A resource that the generator fails on keeps its committed files, and the regeneration goes on
+# with the others. Its Terraform name goes to stderr and, one per line, to the file that
+# FAILED_RESOURCES_FILE names.
 set -euo pipefail
 
 if [[ $# -ne 1 || -z $1 ]]; then
@@ -23,6 +27,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 # Progress goes to stderr: stdout is the list of changed resources.
+previous=$(go list -m -f '{{.Version}}' "$sdk")
 go get "$sdk@$ref" >&2
 go mod tidy >&2
 # The generator reads openapi.yaml of the pinned SDK from the module cache with GOPROXY=off.
@@ -36,12 +41,62 @@ else
   (cd tools/iac-codegen && go build -o "$binary" ./cmd/tfgen)
 fi
 
-# Only resources of tools/iac-codegen/auto-regenerate.txt; the check fails when a generated one is missing.
-"$scripts/check-auto-regenerate-list.sh" >"$work/resources"
-while read -r resource out _; do
-  printf 'Generating %s into %s\n' "$resource" "$out" >&2
-  "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2
+# The SDK services whose generated Go package or spec differ between the previous pin and this one.
+# The generator reads a resource only from its service, and an SDK sync regenerates the package
+# and the spec of each service whose contract changed.
+go mod download "$sdk@$previous" >&2
+cache=$(go env GOMODCACHE)/github.com/coralogix/coralogix-management-sdk
+for dir in go/openapi/gen specs; do
+  [[ -d "$cache@$previous/$dir" && -d "$cache@$version/$dir" ]] || continue
+  diff -rq "$cache@$previous/$dir" "$cache@$version/$dir" || true
+done | sed -nE \
+  -e 's#^Files .*/go/openapi/gen/([^/]+)/.* differ$#\1#p' \
+  -e 's#^Only in .*/go/openapi/gen/([^/:]+)(/[^:]*)?: .*$#\1#p' \
+  -e 's#^Only in .*/go/openapi/gen: (.+)$#\1#p' \
+  -e 's#^Files .*/specs/([^/]+)\.json and .* differ$#\1#p' \
+  -e 's#^Only in .*/specs: (.+)\.json$#\1#p' |
+  sort -u >"$work/services"
+printf 'SDK services changed since %s: %s\n' "$previous" "$(paste -sd, - <"$work/services")" >&2
+
+# A generated resource uses the SDK services that its package imports.
+"$scripts/codegen-list.sh" --names >"$work/resources"
+: >"$work/selected"
+while read -r resource out name; do
+  { grep -hoE 'coralogix-management-sdk/go/openapi/gen/[A-Za-z0-9_]+' "internal/provider/generated/$out"/*.go || true; } |
+    sed 's#.*/##' | sort -u >"$work/imports"
+  if [[ -n $(comm -12 "$work/imports" "$work/services") ]]; then
+    printf '%s %s %s\n' "$resource" "$out" "$name" >>"$work/selected"
+  fi
 done <"$work/resources"
+
+failed=${FAILED_RESOURCES_FILE:-$work/failed}
+: >"$failed"
+if [[ ! -s "$work/selected" ]]; then
+  printf '%s\n' 'No generated resource uses a changed SDK service.' >&2
+  exit 0
+fi
+while read -r resource out name; do
+  printf 'Generating %s into %s\n' "$resource" "$out" >&2
+  if "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2 </dev/null; then
+    continue
+  fi
+  # The generator can stop after it wrote some files: put back the committed ones.
+  for path in "internal/provider/generated/$out" "examples/resources/$name" "examples/data-sources/$name"; do
+    rm -rf "$path"
+    # A resource without a data source has no committed data source example.
+    if git cat-file -e "HEAD:$path" 2>/dev/null; then
+      git checkout HEAD -- "$path"
+    fi
+  done
+  printf 'The generator failed on %s. It keeps its committed files.\n' "$name" >&2
+  printf '%s\n' "$name" >>"$failed"
+done <"$work/selected"
+# A failure on every one of several resources is a broken setup, such as a missing Go toolchain,
+# not a contract that one resource cannot express yet.
+if [[ $(wc -l <"$work/selected") -gt 1 && $(wc -l <"$failed") -eq $(wc -l <"$work/selected") ]]; then
+  printf '%s\n' 'The generator failed on every changed resource.' >&2
+  exit 1
+fi
 make generate >&2
 
 # changelog_entries adds the entries of one doc kind (resources or data-sources) of a resource and

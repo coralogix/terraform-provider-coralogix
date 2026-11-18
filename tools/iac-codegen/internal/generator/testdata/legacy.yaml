@@ -96,7 +96,7 @@ components:
         name:
           type: string
           pattern: '^[\s\S]*$'
-        createTime: {type: string, format: date-time, readOnly: true}
+        createTime: {type: string, format: date-time, readOnly: true, description: When the thing was created.}
         labels: {$ref: '#/components/schemas/LegacyLabels'}
         rules:
           type: array
@@ -112,6 +112,7 @@ components:
         name: {type: string, deprecated: true}
         managed: {type: boolean}
         kind:
+          description: The kind of the rule.
           allOf:
             - {$ref: '#/components/schemas/legacy.Kind'}
           default: ALPHA

@@ -118,6 +118,7 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "active", resourceAddress, "active"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "owner.team_id", resourceAddress, "owner.team_id"),
 	)
 }
 
@@ -125,6 +126,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "active", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "owner.team_id", render(run, "@{env.TEST_TEAM_ID}")),
 	)
 }
 
@@ -132,12 +134,14 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "active", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "owner.team_id", render(run, "@{env.TEST_TEAM_ID}")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "owner.team_id", render(run, "@{env.TEST_TEAM_ID}")),
 		resource.TestCheckResourceAttr(resourceAddress, "active", "true"),
 	)
 }
@@ -145,6 +149,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "owner.team_id", render(run, "@{env.TEST_TEAM_ID}")),
 	)
 }
 

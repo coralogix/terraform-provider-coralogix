@@ -1,0 +1,28 @@
+# What the generated acceptance test needs for coralogix_ip_access, besides the schema.
+#
+# The resource holds the IP access settings of the whole team, and an enabled range that does not
+# cover the caller locks the key out of the team. So every entry is disabled, the ranges are
+# private ones that nothing in the test uses, and customer support access stays disabled: the
+# made-up first enum value would enable it, and the preflight of the handwritten live tests
+# refuses a team that has it enabled. The test belongs in the serialized ip-access shard of
+# .github/workflows/acceptance-tests.yml, because the settings are shared by every test of the team.
+#
+# The test also refuses to run unless IP_ACCESS_GENERATED_LIVE_ALLOW_MUTATION is set (the ip-access
+# shard sets it) and the team has no IP access entry and has support access disabled, because the
+# resource replaces the settings of the whole team and its delete removes them. The leftovers hook
+# runs that check before every subtest (acctest.RequireDisposableIpAccessTeam).
+resource: CompanyIpAccessSettings
+leftovers: internal/acctest.RequireDisposableIpAccessTeam
+
+values:
+  enable_coralogix_customer_support_access: '"disabled"'
+  ip_access[].enabled: "false"
+  ip_access[].ip_range: '"100.64.0.0/10"'
+
+updatedValues:
+  ip_access[].ip_range: '"10.0.0.0/8"'
+
+# A config with no attribute leaves the enum at its unspecified value in the state after Create,
+# while the next read gives the value that the team has, so the import step cannot match. Every
+# real config sets it.
+minimal: [enable_coralogix_customer_support_access]

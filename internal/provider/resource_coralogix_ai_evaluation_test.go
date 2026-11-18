@@ -330,6 +330,12 @@ func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.Evalua
 	})
 
 	for _, application := range applications {
+		// The generated test of the resource (internal/provider/generated/aievaluation) uses this
+		// application, subsystem, and target in another package that can run at the same time, and
+		// its reservations are not shared with this process.
+		if testAccAIApplicationIsGeneratedTestSlot(application) {
+			continue
+		}
 		target, available, err := testAccAIApplicationTarget(
 			application,
 			targetCandidates,
@@ -356,6 +362,13 @@ func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.Evalua
 
 	t.Fatalf("no AI applications found without existing %s AI evaluation for any target", evaluationType)
 	return aiEvaluationApplication{}, ""
+}
+
+// testAccAIApplicationIsGeneratedTestSlot reports whether the application is the one that the
+// generated acceptance test names with AI_EVALUATION_APPLICATION and AI_EVALUATION_SUBSYSTEM.
+func testAccAIApplicationIsGeneratedTestSlot(application aiEvaluationApplication) bool {
+	name := os.Getenv("AI_EVALUATION_APPLICATION")
+	return name != "" && application.application == name && application.subsystem == os.Getenv("AI_EVALUATION_SUBSYSTEM")
 }
 
 func testAccDiscoverAIApplications() ([]aiEvaluationApplication, error) {

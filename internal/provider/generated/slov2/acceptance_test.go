@@ -231,38 +231,54 @@ func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.#", resourceAddress, "sli.apm_sli.filters.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.key", resourceAddress, "sli.apm_sli.filters.0.key"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.match_operator", resourceAddress, "sli.apm_sli.filters.0.match_operator"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.values.#", resourceAddress, "sli.apm_sli.filters.0.values.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.values.0", resourceAddress, "sli.apm_sli.filters.0.values.0"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "product_type", resourceAddress, "product_type"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "window.slo_time_frame", resourceAddress, "window.slo_time_frame"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress, "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress, "window.slo_time_frame", "7_days"),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress, "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress, "window.slo_time_frame", "7_days"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress, "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress, "window.slo_time_frame", "7_days"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
 	)
 }
@@ -270,17 +286,25 @@ func minimalChecks(run string) resource.TestCheckFunc {
 func upgradeFullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress, "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress, "window.slo_time_frame", "7_days"),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress, "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress, "window.slo_time_frame", "7_days"),
 	)
 }
 

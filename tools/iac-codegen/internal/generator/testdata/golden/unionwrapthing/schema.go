@@ -122,7 +122,7 @@ func Schema() schema.Schema {
 							Attributes: map[string]schema.Attribute{
 								"title": schema.StringAttribute{
 									Optional:            true,
-									MarkdownDescription: "",
+									MarkdownDescription: "The label of a tag.",
 								},
 							},
 							MarkdownDescription: "",
@@ -132,7 +132,7 @@ func Schema() schema.Schema {
 							Attributes: map[string]schema.Attribute{
 								"label": schema.StringAttribute{
 									Required:            true,
-									MarkdownDescription: "The label of the second tag.",
+									MarkdownDescription: "The label of a tag. The second place requires it.",
 								},
 							},
 							MarkdownDescription: "",

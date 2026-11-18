@@ -122,8 +122,10 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "logs_query.applications.#", resourceAddress, "logs_query.applications.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "logs_query.lucene", resourceAddress, "logs_query.lucene"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "logs_query.subsystems.#", resourceAddress, "logs_query.subsystems.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "metric_labels.key", resourceAddress, "metric_labels.key"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "permutations.limit", resourceAddress, "permutations.limit"),
 	)
 }
@@ -132,8 +134,10 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "logs_query.applications.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "logs_query.lucene", "remote_addr_enriched:/.*/"),
 		resource.TestCheckResourceAttr(resourceAddress, "logs_query.subsystems.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "metric_labels.key", render(run, "@{run}-metric_labels")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-e2m")),
 		resource.TestCheckResourceAttr(resourceAddress, "permutations.limit", "1"),
 	)
 }
@@ -142,21 +146,26 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "logs_query.applications.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "logs_query.lucene", "remote_addr_enriched:/.*/"),
 		resource.TestCheckResourceAttr(resourceAddress, "logs_query.subsystems.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "metric_labels.key", render(run, "@{run}-metric_labels-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-e2m")),
 		resource.TestCheckResourceAttr(resourceAddress, "permutations.limit", "2"),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-e2m")),
 		resource.TestCheckNoResourceAttr(resourceAddress, "data_source"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-e2m")),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }

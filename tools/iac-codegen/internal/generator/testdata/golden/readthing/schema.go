@@ -36,7 +36,7 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "",
+				MarkdownDescription: "When the thing was created.",
 			},
 			"labels": schema.SingleNestedAttribute{
 				Optional: true,
@@ -68,7 +68,7 @@ func Schema() schema.Schema {
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
 							},
-							MarkdownDescription: "",
+							MarkdownDescription: "The kind of the rule.",
 						},
 						"targets": schema.ListNestedAttribute{
 							Optional: true,

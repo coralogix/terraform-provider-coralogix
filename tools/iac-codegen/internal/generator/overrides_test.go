@@ -827,7 +827,7 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 // component of a field that the user sets, as an API returns a server copy of a request value.
 func legacySpecWithReadOnlyCopy(t *testing.T, component string) []byte {
 	t.Helper()
-	old := "        createTime: {type: string, format: date-time, readOnly: true}\n"
+	old := "        createTime: {type: string, format: date-time, readOnly: true, description: When the thing was created.}\n"
 	spec := string(legacySpec(t))
 	if !strings.Contains(spec, old) {
 		t.Fatal("testdata/legacy.yaml has no createTime")

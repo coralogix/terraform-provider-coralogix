@@ -207,6 +207,7 @@
           "policyType": "quality",
           "safe": "",
           "shouldIncludeSystemPrompt": false,
+          "updateMask": "safe,violates,examples",
           "violates": ""
         },
         "status": 200

@@ -38,8 +38,8 @@ const (
 
 // TestIpAccessGeneratedLiveAcceptance creates the resource with released provider 3.25.0, checks
 // that the generated provider plans no change, then exercises generated update, import, data-source
-// reads, and cleanup against EU2. It runs in the serialized IP access acceptance shard and requires
-// an empty test team with support access disabled; it creates only disabled documentation ranges.
+// reads, and cleanup against EU2. It runs in the serialized IP access acceptance shard on an
+// acknowledged disposable team. It creates only disabled documentation ranges.
 func TestIpAccessGeneratedLiveAcceptance(t *testing.T) {
 	if os.Getenv("TF_ACC") != "1" {
 		t.Skip("requires TF_ACC=1")
@@ -61,7 +61,9 @@ func TestIpAccessGeneratedLiveAcceptance(t *testing.T) {
 	if !ok {
 		t.Fatal("SDK does not recognize EU2")
 	}
-	ensureIpAccessFidelityTeamSafe(t, base, apiKey)
+	if err := clearIpAccessTestFixture(base, apiKey, true); err != nil {
+		t.Fatal(err)
+	}
 
 	name := "codex-" + uuid.NewString()[:8]
 	firstRange := "192.0.2.0/24"

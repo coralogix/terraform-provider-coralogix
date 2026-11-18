@@ -532,11 +532,11 @@ var aiceScenarios = map[string]func(h *grHarness){
 		s = h.Apply("update: swap the examples", s, aiceWith(aiceConfig("n"), j{"criteria": aiceCriteria("", l{"b"}, "", l{"a"})}))
 		h.RefreshPlan("refresh and replan", s)
 	},
-	"criteria-examples-clear-fails": func(h *grHarness) {
+	// The released resource cleared the examples with a second call. One call with a mask does it.
+	"criteria-examples-cleared-in-one-call": func(h *grHarness) {
 		s := h.Apply("create with examples", h.null(), aiceWith(aiceConfig("n"), j{"criteria": aiceCriteria("", l{"ok"}, "", l{})}))
-		h.aice().updateScript = []int{0, 500}
-		s = h.Apply("update: the first call works and the call that clears the examples answers 500", s, aiceWith(aiceConfig("n-renamed"), j{}))
-		h.RefreshPlan("refresh after the failed update", s)
+		s = h.Apply("update: rename and remove the examples", s, aiceWith(aiceConfig("n-renamed"), j{}))
+		h.RefreshPlan("refresh and replan", s)
 	},
 	"criteria-examples-changed-outside": func(h *grHarness) {
 		cfg := aiceWith(aiceConfig("n"), j{"criteria": aiceCriteria("", l{"ok"}, "", l{"bad"})})
@@ -585,7 +585,7 @@ var aiceScenarios = map[string]func(h *grHarness){
 		h.aice().listStatus = 500
 		h.Refresh("refresh: the list answers 500", s)
 	},
-	"read-list-not-found": func(h *grHarness) {
+	"read-route-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("n"))
 		h.aice().listStatus = 404
 		h.Refresh("refresh: the list answers 404", s)
@@ -594,6 +594,12 @@ var aiceScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create", h.null(), aiceConfig("gone"))
 		h.aice().forgetOutside(aiceFirstEvalID)
 		h.Destroy("destroy: the API answers 404", s)
+	},
+	// A 404 with no message of its own is a missing route, not a deleted evaluation.
+	"delete-route-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), aiceConfig("n"))
+		h.aice().deleteStatus = 404
+		h.Destroy("destroy: the route answers 404", s)
 	},
 	"delete-api-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiceConfig("broken"))

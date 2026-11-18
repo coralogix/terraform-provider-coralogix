@@ -1,5 +1,8 @@
 # Unreleased
 
+#### data-source/coralogix_alert
+- FEAT: Add `case_settings.destinations.connector_config_overrides`, `case_settings.destinations.connector_config_overrides.field_name`, `case_settings.destinations.connector_config_overrides.template` from the API contract of Management SDK `v1.9.4-0.20261118150732-288a531562ab`.
+
 #### tools/iac-codegen
 - FEAT: `readAfterWrite: true` in `behavior-overrides.yaml` (with `getHooks: true`) makes Create and Update read the resource with Get after a write whose response holds the resource, so `AfterGet` runs after a write too and the state after a write equals the state after a Read. A write that already reads back, or a line without `getHooks`, is an error.
 - FIX: A `behavior-overrides.yaml` field line on a component that the Get response does not reach, such as an item that only a request sends, fails with `OVERRIDE_UNUSED`. Before, the generator accepted it and ignored it.
@@ -17,9 +20,19 @@
 - FEAT: An `extraAttributes` entry can be a set of objects (`type: set` with `attributes`), can have a static `default` that is an object or `[]` (as a field line does), and can have the validators `sizeAtMost`, `valuesAre`, and `lengthBetween`. The validators of an extra attribute are now checked when the file is read, as those of a field line are.
 - FEAT: `maskPaths` on an `extraAttributes` entry of a resource whose Update is a PATCH with an update mask makes a change of that attribute put the named API fields in the mask, for a Terraform-only object that a `BeforeWrite` hook sends through fields that a `skip` line removed.
 - FEAT: `api.getFromList` for an existing resource that no call reads by its id: the generated Get lists the collection once and selects the item with the id of the resource. Update takes the id in its path or in its body. A List that pages is refused. Needs the SDK `iac` module that has the key.
+- FEAT: `descriptionSuffix` on a field line of `behavior-overrides.yaml` adds Terraform-only text after the description that the API contract gives the field, instead of replacing it as `description` and `markdownDescription` do. A field without a contract description, a line that also has `description` or `markdownDescription`, and an empty suffix are errors.
 
 #### provider
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
+
+#### resource/coralogix_ai_custom_evaluation
+- CHORE: The resource is generated from the API contract. The schema, the import, and the state are the same, except as listed below. A new field of the custom evaluation in the API contract is a new attribute without a hand edit. A field that the API adds to an example of `criteria` makes the read fail, because the resource shows the conversation and the score only.
+- FIX: A destroy no longer treats every 404 as success: a 404 of a route that does not exist is an error, and only a 404 for the custom evaluation itself is a custom evaluation that is gone already.
+- FIX: A refresh no longer removes the resource from state when the API route is missing. Before, a 404 of the list route read as a deleted custom evaluation. Now a missing custom evaluation is one that the list lacks, and a 404 of the list is an error.
+- FIX: An update sends one `PATCH` with an update mask that names the fields that changed. Before, it sent every field, and a second `PATCH` cleared the examples whenever the plan had none. A change of only `applications` sends no `PATCH`.
+- FIX: Removing the examples of `criteria` no longer needs a second request, so a failure of that request can no longer leave the other fields changed and the state unchanged.
+- FIX: An update of a custom evaluation whose linked application was renamed outside Terraform no longer fails with `Provider produced inconsistent result after apply` for `applications`. The state keeps the configured selector while the linked ids are the same.
+- CHORE: API errors read `Unable to create ai_custom_evaluation`, `Unable to update ai_custom_evaluation`, and so on. A missing custom evaluation on refresh reads `Resource disappeared during read`, and an update of a missing one reads `Resource no longer exists`.
 
 #### resource/coralogix_alert
 - FIX: The state after create or update holds the `access_policy` that Coralogix writes for an alert created without one, as a read or an import does. Before, an alert created without `access_policy` had a null value in state until the next refresh, and an import of the same alert showed the policy. Create and update read the alert once more to get it. A policy that lists only some permissions is no longer reported as changed when Coralogix stores the others as `deny`. A configured `access_policy = ""` stays in state after create and update.
@@ -27,6 +40,7 @@
 - CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261116113014-362e16dcfafe`.
 - FIX: `type_definition.logs_ratio_threshold.group_by_for = "Both"` no longer needs `group_by`. `"Numerator Only"` and `"Denominator Only"` still need a non-empty `group_by`, because the API stores `"Both"` for an alert without group-by keys.
 - FIX: An alert with a webhook in `notification_group.webhooks_settings` that sets only `integration_id` or `recipients` no longer shows a perpetual in-place update that sets `notify_on` and `retriggering_period` to `(known after apply)`.
+- FEAT: Add `case_settings.destinations.connector_config_overrides`, `case_settings.destinations.connector_config_overrides.field_name`, `case_settings.destinations.connector_config_overrides.template` from the API contract of Management SDK `v1.9.4-0.20261118150732-288a531562ab`.
 
 #### resource/coralogix_dashboard
 - FEAT: Show a deprecation warning for attributes that the API deprecates: `highlighted` of a widget, `show_inner_arc` and `show_outer_arc` of a gauge, `value_field` of the gauge of a dynamic widget, `resolution` of a line chart query definition, and `value` of a spans field value in a variable query.

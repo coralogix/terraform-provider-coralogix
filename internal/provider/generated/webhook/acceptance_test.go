@@ -120,32 +120,44 @@ data "coralogix_webhook" "by_name" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "custom.method", resourceAddress, "custom.method"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "custom.url", resourceAddress, "custom.url"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "custom.method", resourceAddress, "custom.method"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "custom.url", resourceAddress, "custom.url"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "custom.method", "post"),
+		resource.TestCheckResourceAttr(resourceAddress, "custom.url", "https://example.com/webhook"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "custom.method", "post"),
+		resource.TestCheckResourceAttr(resourceAddress, "custom.url", "https://example.com/webhook-updated"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "custom.method", "post"),
+		resource.TestCheckResourceAttr(resourceAddress, "custom.url", "https://example.com/webhook"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "custom.method", "post"),
+		resource.TestCheckResourceAttr(resourceAddress, "custom.url", "https://example.com/webhook"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }

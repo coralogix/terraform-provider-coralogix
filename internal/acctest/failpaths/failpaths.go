@@ -38,6 +38,9 @@ type Spec struct {
 	// NoDelete: the API cannot remove the resource. Delete makes no call, warns, and removes the
 	// resource from the state.
 	NoDelete bool
+	// ReadFromList: Read lists the resources and selects its own by id, so a resource that is gone
+	// is a list without it (a 200), and a 404 is the failure of the list route.
+	ReadFromList bool
 	// Config is the minimal config of the resource: one resource block of HCL that holds literal values
 	// only. A config with a reference to another resource skips the test.
 	Config string
@@ -60,6 +63,9 @@ var (
 	failGone  = failureReply{http.StatusNotFound, replyGone}
 	failRoute = failureReply{http.StatusNotFound, replyRoute}
 	failError = failureReply{http.StatusInternalServerError, replyFail}
+	// failEmptyList is the answer of a List that has no item: no list field, which every
+	// generated response reads as no items.
+	failEmptyList = failureReply{http.StatusOK, `{}`}
 )
 
 // failureAPI answers every request with the same reply, which a test changes.
@@ -146,7 +152,7 @@ func Run(t *testing.T, spec Spec) {
 		}
 	})
 	t.Run("read", func(t *testing.T) {
-		h.api.set(failGone)
+		h.api.set(h.goneForRead())
 		resp := h.read(prior)
 		h.requireCall(t, "read")
 		requireNoError(t, "read of a resource that is gone", resp.Diagnostics)
@@ -603,7 +609,7 @@ func (h *failureHarness) priorState() tftypes.Value {
 	default:
 		return tftypes.NewValue(h.typ, attrs)
 	}
-	h.api.set(failGone)
+	h.api.set(h.goneForRead())
 	var first tftypes.Value
 	for i, id := range ids {
 		attrs[h.spec.IDAttr] = id
@@ -616,6 +622,14 @@ func (h *failureHarness) priorState() tftypes.Value {
 		}
 	}
 	return first
+}
+
+// goneForRead is what the API answers to a Read of a resource that is gone.
+func (h *failureHarness) goneForRead() failureReply {
+	if h.spec.ReadFromList {
+		return failEmptyList
+	}
+	return failGone
 }
 
 func (h *failureHarness) apply(prior, planned, cfg tftypes.Value) *tfprotov6.ApplyResourceChangeResponse {
