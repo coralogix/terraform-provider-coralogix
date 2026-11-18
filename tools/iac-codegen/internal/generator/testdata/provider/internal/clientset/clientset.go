@@ -15,6 +15,8 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/key_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
+	"example.com/iac-test-sdk/go/openapi/gen/member_service"
 	"example.com/iac-test-sdk/go/openapi/gen/method_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
@@ -34,36 +36,38 @@ import (
 )
 
 type ClientSet struct {
-	Overwrite      *overwrite_things_service.OverwriteThingsServiceAPIService
-	ActionThing    *action_things_service.ActionThingsServiceAPIService
-	Folder         *folder_things_service.FolderThingsServiceAPIService
-	Flat           *flat_things_service.FlatThingsServiceAPIService
-	Box            *box_things_service.BoxThingsServiceAPIService
-	WrappedID      *wrapped_things_service.WrappedThingsServiceAPIService
-	Client         *things_service.ThingsServiceAPIService
-	SettingsClient *settings_service.SettingsServiceAPIService
-	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
-	Archived       *archived_things_service.ArchivedThingsServiceAPIService
-	Config         *config_things_service.ConfigThingsServiceAPIService
-	Wrap           *wrap_things_service.WrapThingsServiceAPIService
-	UnionWrap      *union_wrap_things_service.UnionWrapThingsServiceAPIService
-	Custom         *custom_things_service.CustomThingsServiceAPIService
-	Shared         *shared_things_service.SharedThingsServiceAPIService
-	Echo           *echo_things_service.EchoThingsServiceAPIService
-	Eval           *eval_things_service.EvalThingsServiceAPIService
-	Suppressed     *suppressed_things_service.SuppressedThingsServiceAPIService
-	RulebookClient *rulebook_service.RulebookServiceAPIService
-	UpsertClient   *upsert_service.UpsertServiceAPIService
-	StorageClient  *storage_service.StorageServiceAPIService
-	Rename         *rename_things_service.RenameThingsServiceAPIService
-	Parse          *parse_things_service.ParseThingsServiceAPIService
-	Filter         *filter_things_service.FilterThingsServiceAPIService
-	Typed          *typed_things_service.TypedThingsServiceAPIService
-	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
-	Retag          *retag_things_service.RetagThingsServiceAPIService
-	Default        *default_things_service.DefaultThingsServiceAPIService
-	Key            *key_things_service.KeyThingsServiceAPIService
-	Method         *method_things_service.MethodThingsServiceAPIService
+	Overwrite        *overwrite_things_service.OverwriteThingsServiceAPIService
+	ActionThing      *action_things_service.ActionThingsServiceAPIService
+	Folder           *folder_things_service.FolderThingsServiceAPIService
+	Flat             *flat_things_service.FlatThingsServiceAPIService
+	Box              *box_things_service.BoxThingsServiceAPIService
+	WrappedID        *wrapped_things_service.WrappedThingsServiceAPIService
+	MemberClient     *member_service.MemberServiceAPIService
+	MemberHookClient *member_hook_service.MemberHookServiceAPIService
+	Client           *things_service.ThingsServiceAPIService
+	SettingsClient   *settings_service.SettingsServiceAPIService
+	Legacy           *legacy_things_service.LegacyThingsServiceAPIService
+	Archived         *archived_things_service.ArchivedThingsServiceAPIService
+	Config           *config_things_service.ConfigThingsServiceAPIService
+	Wrap             *wrap_things_service.WrapThingsServiceAPIService
+	UnionWrap        *union_wrap_things_service.UnionWrapThingsServiceAPIService
+	Custom           *custom_things_service.CustomThingsServiceAPIService
+	Shared           *shared_things_service.SharedThingsServiceAPIService
+	Echo             *echo_things_service.EchoThingsServiceAPIService
+	Eval             *eval_things_service.EvalThingsServiceAPIService
+	Suppressed       *suppressed_things_service.SuppressedThingsServiceAPIService
+	RulebookClient   *rulebook_service.RulebookServiceAPIService
+	UpsertClient     *upsert_service.UpsertServiceAPIService
+	StorageClient    *storage_service.StorageServiceAPIService
+	Rename           *rename_things_service.RenameThingsServiceAPIService
+	Parse            *parse_things_service.ParseThingsServiceAPIService
+	Filter           *filter_things_service.FilterThingsServiceAPIService
+	Typed            *typed_things_service.TypedThingsServiceAPIService
+	GroupSet         *group_set_things_service.GroupSetThingsServiceAPIService
+	Retag            *retag_things_service.RetagThingsServiceAPIService
+	Default          *default_things_service.DefaultThingsServiceAPIService
+	Key              *key_things_service.KeyThingsServiceAPIService
+	Method           *method_things_service.MethodThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -172,4 +176,8 @@ func (c *ClientSet) RetagThings() *retag_things_service.RetagThingsServiceAPISer
 
 func (c *ClientSet) UnionWrapThings() *union_wrap_things_service.UnionWrapThingsServiceAPIService {
 	return c.UnionWrap
+}
+func (c *ClientSet) Member() *member_service.MemberServiceAPIService { return c.MemberClient }
+func (c *ClientSet) MemberHook() *member_hook_service.MemberHookServiceAPIService {
+	return c.MemberHookClient
 }

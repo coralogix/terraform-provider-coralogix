@@ -1,0 +1,51 @@
+resource: Member
+getHooks: true
+readAfterWrite: true
+mode: existing
+typeName: member
+markdownDescription: A resource that users already have, read from its List and written in batches.
+validators:
+  inferred: false
+api:
+  requestWrapper: template
+  updateIDInBody: true
+  updateIDOutsideWrapper: true
+  idProperty: memberId
+  getFromList:
+    query:
+      status: MEMBER_STATUS_ACTIVE
+  operations:
+    create: MemberHookService_CreateMembers
+    get: MemberHookService_SearchMembers
+    update: MemberHookService_UpdateMembers
+    delete: MemberHookService_UpdateMembersStatuses
+  delete:
+    ids: memberIds
+    values:
+      status: MEMBER_STATUS_INACTIVE
+  batchWrite:
+    createResult:
+      resource: member
+      status: status
+      created:
+      - CREATE_MEMBER_STATUS_CREATED
+      - CREATE_MEMBER_STATUS_INVITED
+      message: message
+  createValues:
+    onboardingMode: ONBOARDING_MODE_NO_INVITE
+types:
+  Member:
+    fields:
+      memberId:
+        markdownDescription: The member id.
+      login:
+        markdownDescription: The login.
+      displayName:
+        markdownDescription: The display name.
+      groupIds:
+        computed: true
+      status:
+        computed: true
+        useStateForUnknown: true
+dataSource:
+  description: Reads a member. It only reads.

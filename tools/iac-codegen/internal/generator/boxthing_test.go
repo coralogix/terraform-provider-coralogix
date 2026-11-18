@@ -128,7 +128,7 @@ func TestBoxThingRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
-// A List that pages its result is refused: the generated Get reads one call of the List, and a tool
+// A List that pages its result is refused when the model cannot read where the pages end: a tool
 // that stopped at the first page would call a resource on a later page gone.
 func TestBoxThingPagedListIsRefused(t *testing.T) {
 	_, err := generateBoxThingWith(t, nil,
