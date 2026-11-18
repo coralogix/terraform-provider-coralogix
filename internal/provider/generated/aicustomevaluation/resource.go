@@ -246,11 +246,16 @@ func (r *Resource) get(ctx context.Context, id string) (*ai_evaluations_service.
 	if out == nil {
 		return nil, nil
 	}
+	// The Get is the List of the collection (api.getFromList). It selects the item whose id is
+	// the id of the resource, and follows the next page token until the item is found or the
+	// pages end.
 	for i := range out.Items {
 		if got, ok := apiID(&out.Items[i]); ok && got == id {
 			return &out.Items[i], nil
 		}
 	}
+	// The pages ended without the item, or the List is unpaged and its one page does not hold
+	// it: the resource does not exist.
 	return nil, nil
 }
 
