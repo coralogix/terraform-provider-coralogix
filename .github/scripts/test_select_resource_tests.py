@@ -120,6 +120,17 @@ class SelectorTests(unittest.TestCase):
         for name, inputs in selector.ROOT_TEST_INPUTS.items():
             self.assertTrue(set(inputs).issubset(selector.required_inputs("other", [name])), name)
 
+    def test_tco_tests_need_the_archive_retention_id(self):
+        for out, names in (
+            ("tcopolicieslogs", ["TestAccCoralogixResourceTCOPoliciesLogsCreate",
+                                 "TestAccCoralogixDataSourceTCOPoliciesLogs_basic"]),
+            ("tcopoliciestraces", ["TestAccCoralogixResourceTCOPoliciesTracesCreate",
+                                   "TestAccCoralogixDataSourceTCOPoliciesTraces_basic"]),
+        ):
+            self.assertIn("TCO_ARCHIVE_RETENTION_ID", selector.required_inputs(out, names))
+            # A selection of other tests does not need it.
+            self.assertNotIn("TCO_ARCHIVE_RETENTION_ID", selector.required_inputs(out, []))
+
     def test_direct_handwritten_skip_inputs_have_a_mapping(self):
         provider = selector.ROOT / "internal/provider"
         for path in provider.glob("*_test.go"):

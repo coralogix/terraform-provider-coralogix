@@ -72,6 +72,10 @@ ROOT_TEST_INPUTS = {
     "TestAccCoralogixResourceAlert_analytics_threshold": ("CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
     "TestAccCoralogixResourceDataEnrichmentsParitySurface": (
         "CORALOGIX_AWS_ENRICHMENT_RESOURCE_TYPE",),
+    "TestAccCoralogixResourceTCOPoliciesLogsCreate": ("TCO_ARCHIVE_RETENTION_ID",),
+    "TestAccCoralogixResourceTCOPoliciesTracesCreate": ("TCO_ARCHIVE_RETENTION_ID",),
+    "TestAccCoralogixDataSourceTCOPoliciesLogs_basic": ("TCO_ARCHIVE_RETENTION_ID",),
+    "TestAccCoralogixDataSourceTCOPoliciesTraces_basic": ("TCO_ARCHIVE_RETENTION_ID",),
 }
 
 

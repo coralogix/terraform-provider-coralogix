@@ -24,6 +24,7 @@ import (
 var tcoPoliciesTracesDataSourceName = "data." + tcoPoliciesTracesResourceName
 
 func TestAccCoralogixDataSourceTCOPoliciesTraces_basic(t *testing.T) {
+	testAccTCOArchiveRetentionPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

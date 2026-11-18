@@ -30,6 +30,7 @@ import (
 var tcoPoliciesTracesResourceName = "coralogix_tco_policies_traces.test"
 
 func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
+	testAccTCOArchiveRetentionPreCheck(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -59,7 +60,7 @@ func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.rule_type", "includes"),
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.names.#", "1"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.names.*", "GET"),
-					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.archive_retention_id", tcoArchiveRetentionID),
 
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.1.name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.1.priority", "medium"),
@@ -343,7 +344,7 @@ func testAccCoralogixResourceTCOPoliciesTraces() string {
 				        names = ["GET"]
 				    }
 				  }
-				  archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
+				  archive_retention_id = "` + tcoArchiveRetentionID + `"
 				},
 				{
 				  name       = "Example tco_policy from terraform 2"
