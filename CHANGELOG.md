@@ -32,6 +32,7 @@
 - CHORE: API errors read `Unable to create ai_custom_evaluation`, `Unable to update ai_custom_evaluation`, and so on. A missing custom evaluation on refresh reads `Resource disappeared during read`, and an update of a missing one reads `Resource no longer exists`.
 
 #### resource/coralogix_alert
+- FEAT: Plan shows a warning when `evaluation_period_minutes` of `type_definition.analytics_immediate` or `type_definition.analytics_threshold` is longer than its `timeframe_minutes`. The API accepts such an alert, but data between two evaluations is not evaluated.
 - FIX: The state after create or update holds the `access_policy` that Coralogix writes for an alert created without one, as a read or an import does. Before, an alert created without `access_policy` had a null value in state until the next refresh, and an import of the same alert showed the policy. Create and update read the alert once more to get it. A policy that lists only some permissions is no longer reported as changed when Coralogix stores the others as `deny`. A configured `access_policy = ""` stays in state after create and update.
 - FIX: Validation of an alert config is faster: 0.4 s against 32 s in 3.25.0 for 221 configs, offline. Plan time is the same.
 - CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261116113014-362e16dcfafe`.
