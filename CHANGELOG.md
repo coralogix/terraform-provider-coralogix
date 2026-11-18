@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.26.0
+
 #### data-source/coralogix_parsing_rules
 - DOC: The same `order` description as `coralogix_parsing_rules`.
 
