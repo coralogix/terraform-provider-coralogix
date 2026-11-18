@@ -33,11 +33,17 @@ var tcoPoliciesResourceName = "coralogix_tco_policies_logs.test"
 // account, so the tests read it from the environment. CI sets it from a secret.
 var tcoArchiveRetentionID = os.Getenv("TCO_ARCHIVE_RETENTION_ID")
 
+// A live run (TF_ACC is set) fails without the id, so a missing CI secret cannot hide these
+// tests behind a skip. A run without TF_ACC skips: resource.Test would skip it anyway.
 func testAccTCOArchiveRetentionPreCheck(t *testing.T) {
 	t.Helper()
-	if tcoArchiveRetentionID == "" {
-		t.Skip("TCO_ARCHIVE_RETENTION_ID must be set for this acceptance test")
+	if tcoArchiveRetentionID != "" {
+		return
 	}
+	if os.Getenv("TF_ACC") != "" {
+		t.Fatal("TCO_ARCHIVE_RETENTION_ID must be set for a live run of this test")
+	}
+	t.Skip("TCO_ARCHIVE_RETENTION_ID must be set for this acceptance test")
 }
 
 func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
