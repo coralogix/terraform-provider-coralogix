@@ -34,7 +34,7 @@ var createFields = []struct {
 	{attr: "first_name", serverDefault: true},
 	{attr: "last_name", serverDefault: true},
 	{attr: "status", serverDefault: false},
-	{attr: "username", serverDefault: false},
+	{attr: "user_name", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -103,7 +103,7 @@ var computedAttrs = map[string]bool{
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"username": true,
+	"user_name": true,
 }
 
 // omittedDefaults are the top-level attributes with a server default that a read can omit.

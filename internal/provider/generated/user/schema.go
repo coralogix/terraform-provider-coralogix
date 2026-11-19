@@ -89,7 +89,7 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "User ID.",
 			},
-			"username": schema.StringAttribute{
+			"user_name": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Unique username",
 			},

@@ -44,6 +44,7 @@ types:
       allowedLoginMode:
         releasedLimits: true
       username:
+        name: user_name
         required: true
         releasedLimits: true
   AccessType:

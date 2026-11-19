@@ -17,7 +17,7 @@ type RbacV2UserModel struct {
 	Status           types.String     `tfsdk:"status"`
 	UserAccountId    types.Int64      `tfsdk:"user_account_id"`
 	UserId           types.String     `tfsdk:"id"`
-	Username         types.String     `tfsdk:"username"`
+	Username         types.String     `tfsdk:"user_name"`
 }
 
 type PermanentAccessModel struct {

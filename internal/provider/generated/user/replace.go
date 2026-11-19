@@ -30,7 +30,7 @@ var updateFields = []struct {
 	{attr: "first_name", serverDefault: true},
 	{attr: "last_name", serverDefault: true},
 	{attr: "status", serverDefault: false},
-	{attr: "username", serverDefault: false},
+	{attr: "user_name", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the
