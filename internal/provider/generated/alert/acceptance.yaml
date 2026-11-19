@@ -27,7 +27,7 @@ updatedValues:
 
 skip:
   # Arms that sort before logs_immediate: a preview, and an alert that refers to other alerts.
-  - type_definition.analytics_immediate
+  - type_definition.analytics_result_count
   - type_definition.analytics_threshold
   - type_definition.flow
   - type_definition.logs_anomaly

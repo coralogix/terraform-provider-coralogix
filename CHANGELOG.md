@@ -1,5 +1,13 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- BREAKING: `type_definition.analytics_immediate` (preview) is now `type_definition.analytics_result_count`. The alert counts the rows that the DataPrime query returns. Rename the block in your configuration. The field numbers of the API are unchanged: only the name changes.
+- BREAKING: `type_definition.analytics_result_count.use_rows_as_permutations` (preview) is removed. `type_definition.analytics_threshold.use_rows_as_permutations` is unchanged.
+- CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261119102756-8205440d2722`.
+
+#### data-source/coralogix_alert
+- BREAKING: Same rename and removal as the resource: `type_definition.analytics_immediate` is `type_definition.analytics_result_count`, and `use_rows_as_permutations` is removed from it.
+
 #### tools/iac-codegen
 - FEAT: The generated `minimal-lifecycle` acceptance test has a plan-only import step. It fails when an import reads an empty list or object (`[]`, `{}`) where the minimal config has none, which an import with `ImportStateVerify` cannot show. Generator version `v0.1.0-beta.91`.
 

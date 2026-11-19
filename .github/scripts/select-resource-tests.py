@@ -66,8 +66,8 @@ ROOT_TEST_INPUTS = {
         "SLACK_INTEGRATION_ID", "SLACK_INTEGRATION_CHANNEL", "SLACK_INTEGRATION_CHANNEL_UPDATED"),
     "TestAccCoralogixResourceAlert_destinations_deletion": (
         "SLACK_INTEGRATION_ID", "SLACK_INTEGRATION_CHANNEL"),
-    "TestAccCoralogixResourceAlert_analytics_immediate": ("CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
-    "TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy": (
+    "TestAccCoralogixResourceAlert_analytics_result_count": ("CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
+    "TestAccCoralogixResourceAlert_analytics_result_count_noDataPolicy": (
         "CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
     "TestAccCoralogixResourceAlert_analytics_threshold": ("CORALOGIX_ALERTS_DATAPRIME_ENABLED",),
     "TestAccCoralogixResourceDataEnrichmentsParitySurface": (

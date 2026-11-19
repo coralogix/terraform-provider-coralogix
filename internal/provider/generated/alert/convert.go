@@ -717,7 +717,7 @@ var oneOfArms = map[string]bool{
 	"type_definition.logs_new_value":                                          true,
 	"type_definition.logs_unique_count":                                       true,
 	"type_definition.slo_threshold":                                           true,
-	"type_definition.analytics_immediate":                                     true,
+	"type_definition.analytics_result_count":                                  true,
 	"type_definition.analytics_threshold":                                     true,
 	"type_definition.metric_threshold.missing_values.min_non_null_values_pct": true,
 	"type_definition.metric_threshold.missing_values.replace_with_zero":       true,
@@ -732,8 +732,8 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"type_definition.analytics_immediate.no_data_policy":                                                              true,
-	"type_definition.analytics_immediate.no_data_policy.state":                                                        true,
+	"type_definition.analytics_result_count.no_data_policy":                                                           true,
+	"type_definition.analytics_result_count.no_data_policy.state":                                                     true,
 	"type_definition.analytics_threshold.no_data_policy":                                                              true,
 	"type_definition.analytics_threshold.no_data_policy.state":                                                        true,
 	"type_definition.analytics_threshold.rules.override.priority":                                                     true,
@@ -853,9 +853,9 @@ var computedAttrs = map[string]bool{
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
 	"type_definition": true,
-	"type_definition.analytics_immediate.dataprime_query":                                                         true,
-	"type_definition.analytics_immediate.dataprime_query.query":                                                   true,
-	"type_definition.analytics_immediate.timeframe_minutes":                                                       true,
+	"type_definition.analytics_result_count.dataprime_query":                                                      true,
+	"type_definition.analytics_result_count.dataprime_query.query":                                                true,
+	"type_definition.analytics_result_count.timeframe_minutes":                                                    true,
 	"type_definition.analytics_threshold.dataprime_query":                                                         true,
 	"type_definition.analytics_threshold.dataprime_query.query":                                                   true,
 	"type_definition.analytics_threshold.operator":                                                                true,
@@ -1179,8 +1179,8 @@ func expandCreateAlertDefinitionRequest(ctx context.Context, p path.Path, m *Ale
 	out.AlertDefProperties.PhantomMode = expandBool(m.PhantomMode)
 	out.AlertDefProperties.Priority = expandEnumMapped(p.AtName("priority"), m.Priority, alertDefPriorityToAPI, diags)
 	switch {
-	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsImmediate != nil:
-		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE")
+	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsResultCount != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_RESULT_COUNT")
 		out.AlertDefProperties.Type = &fixed
 	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsThreshold != nil:
 		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_THRESHOLD")
@@ -1228,11 +1228,11 @@ func expandCreateAlertDefinitionRequest(ctx context.Context, p path.Path, m *Ale
 	return out
 }
 
-func expandAnalyticsImmediateType(ctx context.Context, p path.Path, m *AnalyticsImmediateTypeModel, diags *diag.Diagnostics) *alert_definitions_service.AnalyticsImmediateType {
+func expandAnalyticsResultCountType(ctx context.Context, p path.Path, m *AnalyticsResultCountTypeModel, diags *diag.Diagnostics) *alert_definitions_service.AnalyticsResultCountType {
 	if m == nil {
 		return nil
 	}
-	out := &alert_definitions_service.AnalyticsImmediateType{}
+	out := &alert_definitions_service.AnalyticsResultCountType{}
 	out.DataprimeQuery = expandDataprimeAlertQuery(ctx, p.AtName("dataprime_query"), m.DataprimeQuery, diags)
 	out.EvaluationDelayMs = expandInt32(m.EvaluationDelayMs)
 	out.EvaluationPeriodMinutes = expandInt32(m.EvaluationPeriodMinutes)
@@ -1242,15 +1242,14 @@ func expandAnalyticsImmediateType(ctx context.Context, p path.Path, m *Analytics
 		out.NoDataPolicy = expandNoDataPolicy(ctx, p.AtName("no_data_policy"), &nested, diags)
 	}
 	out.TimeframeMinutes = expandInt32(m.TimeframeMinutes)
-	out.UseRowsAsPermutations = expandBool(m.UseRowsAsPermutations)
 	return out
 }
 
-func flattenAnalyticsImmediateType(ctx context.Context, p path.Path, v *alert_definitions_service.AnalyticsImmediateType, diags *diag.Diagnostics) *AnalyticsImmediateTypeModel {
+func flattenAnalyticsResultCountType(ctx context.Context, p path.Path, v *alert_definitions_service.AnalyticsResultCountType, diags *diag.Diagnostics) *AnalyticsResultCountTypeModel {
 	if v == nil {
 		return nil
 	}
-	out := &AnalyticsImmediateTypeModel{}
+	out := &AnalyticsResultCountTypeModel{}
 	out.DataprimeQuery = flattenDataprimeAlertQuery(ctx, p.AtName("dataprime_query"), v.DataprimeQuery, diags)
 	out.EvaluationDelayMs = types.Int32PointerValue(v.EvaluationDelayMs)
 	out.EvaluationPeriodMinutes = types.Int32PointerValue(v.EvaluationPeriodMinutes)
@@ -1261,7 +1260,6 @@ func flattenAnalyticsImmediateType(ctx context.Context, p path.Path, v *alert_de
 		out.NoDataPolicy = value
 	}
 	out.TimeframeMinutes = types.Int32PointerValue(v.TimeframeMinutes)
-	out.UseRowsAsPermutations = types.BoolPointerValue(v.UseRowsAsPermutations)
 	return out
 }
 
@@ -1315,7 +1313,7 @@ func expandCreateAlertDefinitionRequestTypeDefinition(ctx context.Context, p pat
 	if m == nil {
 		return
 	}
-	out.AlertDefProperties.AnalyticsImmediate = expandAnalyticsImmediateType(ctx, p.AtName("analytics_immediate"), m.AnalyticsImmediate, diags)
+	out.AlertDefProperties.AnalyticsResultCount = expandAnalyticsResultCountType(ctx, p.AtName("analytics_result_count"), m.AnalyticsResultCount, diags)
 	out.AlertDefProperties.AnalyticsThreshold = expandAnalyticsThresholdType(ctx, p.AtName("analytics_threshold"), m.AnalyticsThreshold, diags)
 	out.AlertDefProperties.Flow = expandFlowType(ctx, p.AtName("flow"), m.Flow, diags)
 	out.AlertDefProperties.LogsAnomaly = expandLogsAnomalyType(ctx, p.AtName("logs_anomaly"), m.LogsAnomaly, diags)
@@ -3922,8 +3920,8 @@ func expandReplaceAlertDefinitionRequest(ctx context.Context, p path.Path, m *Al
 	out.AlertDefProperties.PhantomMode = expandBool(m.PhantomMode)
 	out.AlertDefProperties.Priority = expandEnumMapped(p.AtName("priority"), m.Priority, alertDefPriorityToAPI, diags)
 	switch {
-	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsImmediate != nil:
-		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE")
+	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsResultCount != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_RESULT_COUNT")
 		out.AlertDefProperties.Type = &fixed
 	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsThreshold != nil:
 		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_THRESHOLD")
@@ -3976,7 +3974,7 @@ func expandReplaceAlertDefinitionRequestTypeDefinition(ctx context.Context, p pa
 	if m == nil {
 		return
 	}
-	out.AlertDefProperties.AnalyticsImmediate = expandAnalyticsImmediateType(ctx, p.AtName("analytics_immediate"), m.AnalyticsImmediate, diags)
+	out.AlertDefProperties.AnalyticsResultCount = expandAnalyticsResultCountType(ctx, p.AtName("analytics_result_count"), m.AnalyticsResultCount, diags)
 	out.AlertDefProperties.AnalyticsThreshold = expandAnalyticsThresholdType(ctx, p.AtName("analytics_threshold"), m.AnalyticsThreshold, diags)
 	out.AlertDefProperties.Flow = expandFlowType(ctx, p.AtName("flow"), m.Flow, diags)
 	out.AlertDefProperties.LogsAnomaly = expandLogsAnomalyType(ctx, p.AtName("logs_anomaly"), m.LogsAnomaly, diags)
@@ -4045,7 +4043,7 @@ func flattenAlertDefTypeDefinition(ctx context.Context, p path.Path, v *alert_de
 		return nil
 	}
 	out := &AlertDefTypeDefinitionModel{}
-	out.AnalyticsImmediate = flattenAnalyticsImmediateType(ctx, p.AtName("analytics_immediate"), v.AlertDefProperties.AnalyticsImmediate, diags)
+	out.AnalyticsResultCount = flattenAnalyticsResultCountType(ctx, p.AtName("analytics_result_count"), v.AlertDefProperties.AnalyticsResultCount, diags)
 	out.AnalyticsThreshold = flattenAnalyticsThresholdType(ctx, p.AtName("analytics_threshold"), v.AlertDefProperties.AnalyticsThreshold, diags)
 	out.Flow = flattenFlowType(ctx, p.AtName("flow"), v.AlertDefProperties.Flow, diags)
 	out.LogsAnomaly = flattenLogsAnomalyType(ctx, p.AtName("logs_anomaly"), v.AlertDefProperties.LogsAnomaly, diags)
@@ -4061,7 +4059,7 @@ func flattenAlertDefTypeDefinition(ctx context.Context, p path.Path, v *alert_de
 	out.TracingImmediate = flattenTracingImmediateType(ctx, p.AtName("tracing_immediate"), v.AlertDefProperties.TracingImmediate, diags)
 	out.TracingThreshold = flattenTracingThresholdType(ctx, p.AtName("tracing_threshold"), v.AlertDefProperties.TracingThreshold, diags)
 	arms := 0
-	if v.AlertDefProperties.AnalyticsImmediate != nil {
+	if v.AlertDefProperties.AnalyticsResultCount != nil {
 		arms++
 	}
 	if v.AlertDefProperties.AnalyticsThreshold != nil {
@@ -4107,7 +4105,7 @@ func flattenAlertDefTypeDefinition(ctx context.Context, p path.Path, v *alert_de
 		arms++
 	}
 	if arms != 1 {
-		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of analytics_immediate, analytics_threshold, flow, logs_anomaly, logs_immediate, logs_new_value, logs_ratio_threshold, logs_threshold, logs_time_relative_threshold, logs_unique_count, metric_anomaly, metric_threshold, slo_threshold, tracing_immediate, tracing_threshold; it must have exactly one.", arms))
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of analytics_result_count, analytics_threshold, flow, logs_anomaly, logs_immediate, logs_new_value, logs_ratio_threshold, logs_threshold, logs_time_relative_threshold, logs_unique_count, metric_anomaly, metric_threshold, slo_threshold, tracing_immediate, tracing_threshold; it must have exactly one.", arms))
 	}
 	return out
 }

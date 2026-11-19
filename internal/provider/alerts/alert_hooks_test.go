@@ -178,7 +178,7 @@ func TestFillReleasedReads(t *testing.T) {
 	v := &alertapi.AlertDef{AlertDefProperties: &alertapi.AlertDefProperties{
 		LogsThreshold:             &alertapi.LogsThresholdType{LogsFilter: &alertapi.V3LogsFilter{SimpleFilter: &alertapi.LogsSimpleFilter{}}},
 		MetricThreshold:           &alertapi.MetricThresholdType{},
-		AnalyticsImmediate:        &alertapi.AnalyticsImmediateType{},
+		AnalyticsResultCount:      &alertapi.AnalyticsResultCountType{},
 		LogsRatioThreshold:        &alertapi.LogsRatioThresholdType{Numerator: &alertapi.V3LogsFilter{SimpleFilter: &alertapi.LogsSimpleFilter{}}},
 		LogsTimeRelativeThreshold: &alertapi.LogsTimeRelativeThresholdType{},
 	}}
@@ -203,7 +203,7 @@ func TestFillReleasedReads(t *testing.T) {
 	if p.LogsThreshold.NoDataPolicy == nil || p.MetricThreshold.NoDataPolicy == nil {
 		t.Error("a missing no-data policy of a logs or metric threshold alert does not read as an empty policy")
 	}
-	if p.AnalyticsImmediate.NoDataPolicy != nil {
+	if p.AnalyticsResultCount.NoDataPolicy != nil {
 		t.Error("a missing no-data policy of an analytics alert must stay missing")
 	}
 }

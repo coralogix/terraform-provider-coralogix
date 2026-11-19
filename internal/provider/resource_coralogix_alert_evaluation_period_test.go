@@ -28,7 +28,7 @@ import (
 // back to null when the line is removed (the API resets an omitted period to its default), and
 // accepts a timeframe below the default after the removal.
 func TestAccCoralogixResourceAlert_analytics_evaluation_period(t *testing.T) {
-	for _, arm := range []string{"analytics_immediate", "analytics_threshold"} {
+	for _, arm := range []string{"analytics_result_count", "analytics_threshold"} {
 		t.Run(arm, func(t *testing.T) {
 			name := uuid.NewString()
 			attribute := fmt.Sprintf("type_definition.%s.evaluation_period_minutes", arm)

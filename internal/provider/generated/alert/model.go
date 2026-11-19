@@ -35,17 +35,16 @@ type NoDataPolicyModel struct {
 	State             types.String `tfsdk:"state"`
 }
 
-type AnalyticsImmediateTypeModel struct {
+type AnalyticsResultCountTypeModel struct {
 	DataprimeQuery          *DataprimeAlertQueryModel `tfsdk:"dataprime_query"`
 	EvaluationDelayMs       types.Int32               `tfsdk:"custom_evaluation_delay"`
 	EvaluationPeriodMinutes types.Int32               `tfsdk:"evaluation_period_minutes"`
 	NoDataPolicy            types.Object              `tfsdk:"no_data_policy"`
 	TimeframeMinutes        types.Int32               `tfsdk:"timeframe_minutes"`
-	UseRowsAsPermutations   types.Bool                `tfsdk:"use_rows_as_permutations"`
 }
 
 type AlertDefTypeDefinitionModel struct {
-	AnalyticsImmediate        *AnalyticsImmediateTypeModel        `tfsdk:"analytics_immediate"`
+	AnalyticsResultCount      *AnalyticsResultCountTypeModel      `tfsdk:"analytics_result_count"`
 	AnalyticsThreshold        *AnalyticsThresholdTypeModel        `tfsdk:"analytics_threshold"`
 	Flow                      *FlowTypeModel                      `tfsdk:"flow"`
 	LogsAnomaly               *LogsAnomalyTypeModel               `tfsdk:"logs_anomaly"`

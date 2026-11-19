@@ -41,10 +41,10 @@ func Schema() schema.Schema {
 			"type_definition": schema.SingleNestedAttribute{
 				Required: true,
 				Validators: []validator.Object{
-					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"analytics_immediate", "analytics_threshold", "flow", "logs_anomaly", "logs_immediate", "logs_new_value", "logs_ratio_threshold", "logs_threshold", "logs_time_relative_threshold", "logs_unique_count", "metric_anomaly", "metric_threshold", "slo_threshold", "tracing_immediate", "tracing_threshold"}, Required: true}}},
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"analytics_result_count", "analytics_threshold", "flow", "logs_anomaly", "logs_immediate", "logs_new_value", "logs_ratio_threshold", "logs_threshold", "logs_time_relative_threshold", "logs_unique_count", "metric_anomaly", "metric_threshold", "slo_threshold", "tracing_immediate", "tracing_threshold"}, Required: true}}},
 				},
 				Attributes: map[string]schema.Attribute{
-					"analytics_immediate": schema.SingleNestedAttribute{
+					"analytics_result_count": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"dataprime_query": schema.SingleNestedAttribute{
@@ -104,12 +104,8 @@ func Schema() schema.Schema {
 								},
 								MarkdownDescription: "The evaluation window duration in minutes",
 							},
-							"use_rows_as_permutations": schema.BoolAttribute{
-								Optional:            true,
-								MarkdownDescription: "Whether each result row is treated as a separate permutation. Defaults to false for immediate alerts to avoid high-cardinality alerts by mistake.",
-							},
 						},
-						MarkdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`.",
+						MarkdownDescription: "Analytics result count alert type definition (preview) — counts the rows that the DataPrime query returns.",
 					},
 					"analytics_threshold": schema.SingleNestedAttribute{
 						Optional: true,
@@ -2149,7 +2145,7 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Configuration for tracing-based threshold alerts",
 					},
 				},
-				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview).",
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_result_count (preview), analytics_threshold (preview).",
 			},
 			"case_settings": schema.SingleNestedAttribute{
 				Optional: true,

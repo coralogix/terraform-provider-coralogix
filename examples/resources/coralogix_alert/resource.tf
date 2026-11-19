@@ -815,16 +815,15 @@ resource "coralogix_alert" "test" {
 # Analytics alerts are in preview.
 
 # resource "coralogix_alert" "test" {
-#   name        = "analytics_immediate alert example"
-#   description = "Example of analytics_immediate alert from terraform"
+#   name        = "analytics_result_count alert example"
+#   description = "Example of analytics_result_count alert from terraform"
 #   priority    = "P3"
 
 #   type_definition = {
-#     analytics_immediate = {
+#     analytics_result_count = {
 #       dataprime_query = {
 #         query = "source logs | filter severity == 'error' | count"
 #       }
-#       use_rows_as_permutations = true
 #       timeframe_minutes        = 45
 #       custom_evaluation_delay  = 120000
 #       no_data_policy = {
