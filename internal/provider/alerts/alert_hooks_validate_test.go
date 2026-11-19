@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -290,6 +291,57 @@ func TestValidateAnalyticsRuleCount(t *testing.T) {
 		diags := validateAlertConfig(ctx, alertConfig(ctx, set))
 		if diags.HasError() != wantError {
 			t.Errorf("%d rules: errors = %v, want an error: %v", count, errorSummaries(diags), wantError)
+		}
+	}
+}
+
+func TestValidateEvaluationPeriodLongerThanTimeframe(t *testing.T) {
+	ctx := context.Background()
+	number := func(n int) tftypes.Value { return tftypes.NewValue(tftypes.Number, n) }
+	unknown := tftypes.NewValue(tftypes.Number, tftypes.UnknownValue)
+	null := tftypes.NewValue(tftypes.Number, nil)
+	tests := []struct {
+		name              string
+		period, timeframe tftypes.Value
+		wantWarn          bool
+	}{
+		{"longer warns", number(30), number(10), true},
+		{"equal does not warn", number(10), number(10), false},
+		{"shorter does not warn", number(5), number(10), false},
+		{"unknown period does not warn", unknown, number(10), false},
+		{"unknown timeframe does not warn", number(30), unknown, false},
+		{"null period does not warn", null, number(10), false},
+		{"null timeframe does not warn", number(30), null, false},
+	}
+	for _, arm := range analyticsArms {
+		for _, tt := range tests {
+			t.Run(arm+" "+tt.name, func(t *testing.T) {
+				set := map[string]tftypes.Value{
+					"type_definition": typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{
+						arm: {"evaluation_period_minutes": tt.period, "timeframe_minutes": tt.timeframe},
+					}),
+				}
+				diags := validateAlertConfig(ctx, alertConfig(ctx, set))
+				if diags.HasError() {
+					t.Fatalf("errors = %v", errorSummaries(diags))
+				}
+				warnings := diags.Warnings()
+				if (len(warnings) == 1) != tt.wantWarn || len(warnings) > 1 {
+					t.Fatalf("warnings = %v, want a warning: %v", warnings, tt.wantWarn)
+				}
+				if !tt.wantWarn {
+					return
+				}
+				want := path.Root("type_definition").AtName(arm).AtName("evaluation_period_minutes")
+				withPath, ok := warnings[0].(diag.DiagnosticWithPath)
+				if !ok || !withPath.Path().Equal(want) {
+					t.Errorf("warning path = %v, want %v", warnings[0], want)
+				}
+				if got := warnings[0].Detail(); got != "evaluation_period_minutes (30) is longer than timeframe_minutes (10): "+
+					"data between evaluations is not covered by any evaluation, so events can be missed." {
+					t.Errorf("warning detail = %q", got)
+				}
+			})
 		}
 	}
 }

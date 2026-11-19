@@ -59,6 +59,7 @@ func validateAlertConfig(ctx context.Context, config tfsdk.Config) diag.Diagnost
 	diags.Append(warnNoDataPolicyUnspecified(typeDefinition)...)
 	diags.Append(checkAnalyticsNoDataPolicy(typeDefinition)...)
 	diags.Append(checkAnalyticsRuleCount(ctx, config, typeDefinition)...)
+	diags.Append(warnEvaluationPeriodLongerThanTimeframe(typeDefinition)...)
 	diags.Append(checkWebhookTargets(ctx, config)...)
 	diags.Append(checkFlowAlertDefs(typeDefinition)...)
 	return diags
@@ -276,6 +277,34 @@ func checkAnalyticsRuleCount(ctx context.Context, config tfsdk.Config, typeDefin
 	response := &validator.ListResponse{}
 	listvalidator.SizeBetween(1, maxAnalyticsRules).ValidateList(ctx, request, response)
 	diags.Append(response.Diagnostics...)
+	return diags
+}
+
+// warnEvaluationPeriodLongerThanTimeframe warns when an analytics alert evaluates less often than its time
+// window covers. The API accepts it, but data between two evaluations is in no window. An omitted period
+// defaults to at most the timeframe on the server, so only two known values are compared.
+func warnEvaluationPeriodLongerThanTimeframe(typeDefinition types.Object) diag.Diagnostics {
+	var diags diag.Diagnostics
+	for _, arm := range analyticsArms {
+		if !armIsSet(typeDefinition, arm) {
+			continue
+		}
+		attrs := typeDefinition.Attributes()[arm].(types.Object).Attributes()
+		period, ok := attrs["evaluation_period_minutes"].(types.Int32)
+		if !ok || period.IsNull() || period.IsUnknown() {
+			continue
+		}
+		timeframe, ok := attrs["timeframe_minutes"].(types.Int32)
+		if !ok || timeframe.IsNull() || timeframe.IsUnknown() || period.ValueInt32() <= timeframe.ValueInt32() {
+			continue
+		}
+		diags.AddAttributeWarning(
+			path.Root("type_definition").AtName(arm).AtName("evaluation_period_minutes"),
+			"Evaluation Period Longer Than Timeframe",
+			fmt.Sprintf("evaluation_period_minutes (%d) is longer than timeframe_minutes (%d): data between evaluations "+
+				"is not covered by any evaluation, so events can be missed.", period.ValueInt32(), timeframe.ValueInt32()),
+		)
+	}
 	return diags
 }
 
