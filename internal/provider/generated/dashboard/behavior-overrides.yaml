@@ -1516,7 +1516,12 @@ types:
         validators:
         - {sizeAtLeast: 1}
       timeFrame: {requireOne: true}
-  ListValue: {fields: {values: {required: true}}}
+  ListValue:
+    fields:
+      values:
+        required: true
+        # The released resource read an empty list as [], so `values = []` round-trips, also after an import.
+        readNullAs: empty
   LogsQuery.Aggregation: {fields: {aggregation: {required: true}, id: {computed: true, useNonNullStateForUnknown: true}, isVisible: {computed: true, default: true}}}
   LogsSource: {fields: {strategy: {required: true}, dataModeType: {computed: true, useNonNullStateForUnknown: true, validators: [{enum: true}], enumAs: annotation, markdownDescription: "Data mode type. `unspecified` queries high-priority ('Frequent Search') data, and `archive` queries archive ('Monitoring') data. Removing the attribute keeps the previous value: set `unspecified` to query frequent-search data again."}}}
   LogsSource.Strategy.Duration: {fields: {durationField: {required: true}, startTimestampField: {required: true}}}
@@ -1555,12 +1560,13 @@ types:
         - {sizeAtLeast: 1}
         required: true
     at:
+      # The released resource read an empty keypath as null: the API returns [] for an absent one.
       RuleScope.field:
         fields:
-          keypath: {optional: true}
+          keypath: {optional: true, readEmptyAs: 'null'}
       Table.Column.field:
         fields:
-          keypath: {optional: true}
+          keypath: {optional: true, readEmptyAs: 'null'}
   PieChart.LogsQuery:
     fields:
       aggregation: {required: true}
@@ -1751,6 +1757,8 @@ types:
       refreshStrategy:
         validators:
         - {enum: true}
+      # The API returns {} when no regex is set. The released resource read it as null.
+      valueDisplayOptions: {readEmptyAs: 'null'}
   StaticSource:
     fields:
       valuesOrderDirection:

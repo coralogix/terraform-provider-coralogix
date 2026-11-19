@@ -144,6 +144,16 @@ var importStep = resource.TestStep{
 	ImportStateVerify: true,
 }
 
+// importPlanStep imports the resource with an import block, into a config that leaves every optional
+// attribute out, and fails when the plan is not a no-op. The import has no prior state, so the read
+// alone decides each empty value (null, [] or {}): a value that the API returns as [] or {} for an
+// attribute that the config leaves out shows up here as a change.
+var importPlanStep = resource.TestStep{
+	ResourceName:    resourceAddress,
+	ImportState:     true,
+	ImportStateKind: resource.ImportBlockWithID,
+}
+
 // TestAccCoralogixResourceDashboardsFolderGenerated runs one lifecycle per subtest, each on its own resource,
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
@@ -164,8 +174,8 @@ func TestAccCoralogixResourceDashboardsFolderGenerated(t *testing.T) {
 		})
 	})
 
-	// minimal-lifecycle creates the resource with only the required attributes, imports it, sets every
-	// attribute, and removes them again.
+	// minimal-lifecycle creates the resource with only the required attributes, imports it (also with
+	// a plan-only import that must show no change), sets every attribute, and removes them again.
 	t.Run("minimal-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
@@ -174,6 +184,7 @@ func TestAccCoralogixResourceDashboardsFolderGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
+				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
