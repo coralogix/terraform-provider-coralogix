@@ -1689,7 +1689,7 @@ func testAccAnalyticsAlertsPreCheck(t *testing.T) {
 	}
 }
 
-func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
+func TestAccCoralogixResourceAlert_analytics_result_count(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -1697,20 +1697,19 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Every optional leaf set, with the values the API evaluation probed.
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediate(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCount(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertResourceName, "name", "analytics immediate alert"),
+					resource.TestCheckResourceAttr(alertResourceName, "name", "analytics result count alert"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.dataprime_query.query", "source logs | filter severity == 'error' | count"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.dataprime_query.query", "source logs | filter severity == 'error' | count"),
 					// group_by is accepted for analytics and round-trips; it is not
 					// rejected the way it is for logs_immediate/tracing_immediate.
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.0", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay", "120000"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes", "45"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.auto_retire_seconds", "3600"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.custom_evaluation_delay", "120000"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.timeframe_minutes", "45"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.state", "ALERTING"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.auto_retire_seconds", "3600"),
 				),
 			},
 			{
@@ -1721,18 +1720,17 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 			// clears them. no_data_policy is Optional+Computed and sticky — the API
 			// keeps it when the config drops it — so it persists from the create step.
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.dataprime_query.query", "source logs | count"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes", "10"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.dataprime_query.query", "source logs | count"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_result_count.custom_evaluation_delay"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.timeframe_minutes", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.state", "ALERTING"),
 				),
 			},
 			// The minimal config must not drift on re-plan.
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
@@ -1741,12 +1739,12 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 	})
 }
 
-// TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy covers the
+// TestAccCoralogixResourceAlert_analytics_result_count_noDataPolicy covers the
 // Optional+Computed no_data_policy: a partial policy (auto_retire_seconds set, state
 // omitted) whose state the API materializes as UNSPECIFIED, and the fact that the
 // block is sticky — the API keeps it when the config drops it, so dropping it must
 // not fail apply nor drift.
-func TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy(t *testing.T) {
+func TestAccCoralogixResourceAlert_analytics_result_count_noDataPolicy(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -1754,14 +1752,14 @@ func TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy(t *testing.T
 		Steps: []resource.TestStep{
 			// Partial policy: state omitted, materialized to UNSPECIFIED on read.
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountPartialNoDataPolicy(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.auto_retire_seconds", "3600"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "UNSPECIFIED"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.auto_retire_seconds", "3600"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.state", "UNSPECIFIED"),
 				),
 			},
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountPartialNoDataPolicy(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
@@ -1769,14 +1767,14 @@ func TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy(t *testing.T
 			// Dropping the block does not clear it (the API keeps it) and must not
 			// crash or drift — it persists.
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.auto_retire_seconds", "3600"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "UNSPECIFIED"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.auto_retire_seconds", "3600"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.no_data_policy.state", "UNSPECIFIED"),
 				),
 			},
 			{
-				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
@@ -1850,19 +1848,18 @@ func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
 	})
 }
 
-func testAccCoralogixResourceAlertAnalyticsImmediate() string {
+func testAccCoralogixResourceAlertAnalyticsResultCount() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "analytics immediate alert"
-  description = "Example of analytics immediate alert from terraform"
+  name        = "analytics result count alert"
+  description = "Example of analytics result count alert from terraform"
   priority    = "P3"
   group_by    = ["coralogix.metadata.applicationName"]
 
   type_definition = {
-    analytics_immediate = {
+    analytics_result_count = {
       dataprime_query = {
         query = "source logs | filter severity == 'error' | count"
       }
-      use_rows_as_permutations = true
       custom_evaluation_delay  = 120000
       timeframe_minutes        = 45
       no_data_policy = {
@@ -1875,14 +1872,14 @@ func testAccCoralogixResourceAlertAnalyticsImmediate() string {
 `
 }
 
-func testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy() string {
+func testAccCoralogixResourceAlertAnalyticsResultCountPartialNoDataPolicy() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "analytics immediate alert"
-  description = "Example of analytics immediate alert from terraform"
+  name        = "analytics result count alert"
+  description = "Example of analytics result count alert from terraform"
   priority    = "P3"
 
   type_definition = {
-    analytics_immediate = {
+    analytics_result_count = {
       dataprime_query = {
         query = "source logs | count"
       }
@@ -1896,14 +1893,14 @@ func testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy() string
 `
 }
 
-func testAccCoralogixResourceAlertAnalyticsImmediateMinimal() string {
+func testAccCoralogixResourceAlertAnalyticsResultCountMinimal() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "analytics immediate alert"
-  description = "Example of analytics immediate alert from terraform"
+  name        = "analytics result count alert"
+  description = "Example of analytics result count alert from terraform"
   priority    = "P3"
 
   type_definition = {
-    analytics_immediate = {
+    analytics_result_count = {
       dataprime_query = {
         query = "source logs | count"
       }

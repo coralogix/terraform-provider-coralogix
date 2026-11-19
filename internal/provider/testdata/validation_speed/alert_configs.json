@@ -2,13 +2,13 @@
  {
   "name": "tfbaseline-analytics-validation",
   "type_definition": {
-   "analytics_immediate": {}
+   "analytics_result_count": {}
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },
@@ -22,10 +22,10 @@
   "group_by": [
    "app"
   ],
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "priority": "P2",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "custom_evaluation_delay": 120000,
     "dataprime_query": {
      "query": "source logs | groupby $l.applicationName as app, $l.subsystemName as sub aggregate count() as c"
@@ -34,15 +34,14 @@
      "auto_retire_seconds": 3600,
      "state": "ALERTING"
     },
-    "timeframe_minutes": 45,
-    "use_rows_as_permutations": true
+    "timeframe_minutes": 45
    }
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },
@@ -51,9 +50,9 @@
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },
@@ -62,9 +61,9 @@
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },
@@ -73,9 +72,9 @@
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },
@@ -84,10 +83,10 @@
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate-prio",
+  "name": "tfbaseline-analytics-result-count-prio",
   "priority": "P1",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },
@@ -96,9 +95,9 @@
   }
  },
  {
-  "name": "tfbaseline-analytics-immediate",
+  "name": "tfbaseline-analytics-result-count",
   "type_definition": {
-   "analytics_immediate": {
+   "analytics_result_count": {
     "dataprime_query": {
      "query": "source logs | count"
     },

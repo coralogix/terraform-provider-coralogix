@@ -161,18 +161,17 @@ func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 		config string
 	}{
 		{
-			name: "analytics_immediate",
+			name: "analytics_result_count",
 			config: `{
 				"id": "an-alert-id",
-				"name": "analytics immediate alert",
+				"name": "analytics result count alert",
 				"enabled": true,
 				"priority": "P3",
 				"phantom_mode": false,
 				"type_definition": {
-					"analytics_immediate": {
+					"analytics_result_count": {
 						"dataprime_query": {"query": "source logs | count"},
 						"no_data_policy": null,
-						"use_rows_as_permutations": null,
 						"timeframe_minutes": 10,
 						"custom_evaluation_delay": null
 					}
@@ -233,16 +232,15 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 
 	prior := alertValueFromJSON(t, object, `{
 		"id": "an-alert-id",
-		"name": "analytics immediate alert",
+		"name": "analytics result count alert",
 		"enabled": true,
 		"priority": "P3",
 		"phantom_mode": false,
 		"deleted": false,
 		"type_definition": {
-			"analytics_immediate": {
+			"analytics_result_count": {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
-				"use_rows_as_permutations": true,
 				"timeframe_minutes": 10,
 				"custom_evaluation_delay": 120000
 			}
@@ -251,15 +249,14 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 
 	config := alertValueFromJSON(t, object, `{
 		"id": "an-alert-id",
-		"name": "analytics immediate alert",
+		"name": "analytics result count alert",
 		"enabled": true,
 		"priority": "P3",
 		"phantom_mode": false,
 		"type_definition": {
-			"analytics_immediate": {
+			"analytics_result_count": {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
-				"use_rows_as_permutations": null,
 				"timeframe_minutes": 10,
 				"custom_evaluation_delay": null
 			}
@@ -268,16 +265,15 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 
 	want := alertValueFromJSON(t, object, `{
 		"id": "an-alert-id",
-		"name": "analytics immediate alert",
+		"name": "analytics result count alert",
 		"enabled": true,
 		"priority": "P3",
 		"phantom_mode": false,
 		"deleted": false,
 		"type_definition": {
-			"analytics_immediate": {
+			"analytics_result_count": {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
-				"use_rows_as_permutations": null,
 				"timeframe_minutes": 10,
 				"custom_evaluation_delay": null
 			}

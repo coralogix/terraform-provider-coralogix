@@ -43,7 +43,7 @@ var armsWithoutGroupBy = []string{"logs_immediate", "logs_new_value", "tracing_i
 // analytics arms of type_definition, whose no_data_policy must not be empty: the API returns a missing one
 // as null. The other arms that have a no_data_policy are in noDataPolicyReadAsEmpty (alert_hooks_defaults.go),
 // and TestNoDataPolicyArmsAreClassified fails for a new arm with a no_data_policy that is in neither.
-var analyticsArms = []string{"analytics_immediate", "analytics_threshold"}
+var analyticsArms = []string{"analytics_result_count", "analytics_threshold"}
 
 // validateAlertConfig checks what no attribute validator of the generated schema states.
 func validateAlertConfig(ctx context.Context, config tfsdk.Config) diag.Diagnostics {

@@ -46,9 +46,9 @@ api:
 unwrap: [LogsTimeWindow, LogsRatioTimeWindow, LogsNewValueTimeWindow, LogsUniqueValueTimeWindow, TracingTimeWindow, TracingFilter, FlowStagesGroups, Recipients]
 groups:
   type_definition:
-    fields: [logsImmediate, logsThreshold, logsAnomaly, logsRatioThreshold, logsNewValue, logsUniqueCount, logsTimeRelativeThreshold, metricThreshold, metricAnomaly, tracingImmediate, tracingThreshold, flow, sloThreshold, analyticsImmediate, analyticsThreshold]
+    fields: [logsImmediate, logsThreshold, logsAnomaly, logsRatioThreshold, logsNewValue, logsUniqueCount, logsTimeRelativeThreshold, metricThreshold, metricAnomaly, tracingImmediate, tracingThreshold, flow, sloThreshold, analyticsResultCount, analyticsThreshold]
     requireOne: true
-    markdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview)."
+    markdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_result_count (preview), analytics_threshold (preview)."
 types:
   AlertDef:
     fields:
@@ -74,10 +74,10 @@ types:
       incidentsSettings: {computed: true, useStateForUnknown: true}
       notificationGroup: {computed: true, default: {}}
       # The API type follows the arm that is set. The response type is ignored on read.
-      type: {requestValueBy: {logsImmediate: ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED, logsThreshold: ALERT_DEF_TYPE_LOGS_THRESHOLD, logsAnomaly: ALERT_DEF_TYPE_LOGS_ANOMALY, logsRatioThreshold: ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD, logsNewValue: ALERT_DEF_TYPE_LOGS_NEW_VALUE, logsUniqueCount: ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT, logsTimeRelativeThreshold: ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD, metricThreshold: ALERT_DEF_TYPE_METRIC_THRESHOLD, metricAnomaly: ALERT_DEF_TYPE_METRIC_ANOMALY, tracingImmediate: ALERT_DEF_TYPE_TRACING_IMMEDIATE, tracingThreshold: ALERT_DEF_TYPE_TRACING_THRESHOLD, flow: ALERT_DEF_TYPE_FLOW, sloThreshold: ALERT_DEF_TYPE_SLO_THRESHOLD, analyticsImmediate: ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE, analyticsThreshold: ALERT_DEF_TYPE_ANALYTICS_THRESHOLD}}
+      type: {requestValueBy: {logsImmediate: ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED, logsThreshold: ALERT_DEF_TYPE_LOGS_THRESHOLD, logsAnomaly: ALERT_DEF_TYPE_LOGS_ANOMALY, logsRatioThreshold: ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD, logsNewValue: ALERT_DEF_TYPE_LOGS_NEW_VALUE, logsUniqueCount: ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT, logsTimeRelativeThreshold: ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD, metricThreshold: ALERT_DEF_TYPE_METRIC_THRESHOLD, metricAnomaly: ALERT_DEF_TYPE_METRIC_ANOMALY, tracingImmediate: ALERT_DEF_TYPE_TRACING_IMMEDIATE, tracingThreshold: ALERT_DEF_TYPE_TRACING_THRESHOLD, flow: ALERT_DEF_TYPE_FLOW, sloThreshold: ALERT_DEF_TYPE_SLO_THRESHOLD, analyticsResultCount: ALERT_DEF_TYPE_ANALYTICS_RESULT_COUNT, analyticsThreshold: ALERT_DEF_TYPE_ANALYTICS_THRESHOLD}}
       sloThreshold: {requireOne: true}
       analyticsThreshold: {markdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`."}
-      analyticsImmediate: {markdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`."}
+      analyticsResultCount: {markdownDescription: "Analytics result count alert type definition (preview) — counts the rows that the DataPrime query returns."}
     extraAttributes:
       access_policy:
         type: string
@@ -221,7 +221,7 @@ types:
   DataprimeAlertQuery:
     fields:
       query: {required: true, validators: [{lengthAtLeast: 1}, {lengthAtMost: 65535}], markdownDescription: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."}
-  AnalyticsImmediateType:
+  AnalyticsResultCountType:
     fields:
       dataprimeQuery: {required: true}
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}

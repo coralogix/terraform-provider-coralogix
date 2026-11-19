@@ -35,7 +35,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `phantom_mode` (Boolean) When `true`, the alert is evaluated but stays silent: it sends no notifications and opens no incident of its own. Use it for alerts that serve as building blocks of a flow alert, which then notifies and opens the incident. The Coralogix API rejects a phantom alert whose `notification_group` sets `group_by_keys`, `webhooks_settings`, `destinations` or `router`. Omit `notification_group` or leave it empty. Defaults to `false`.
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
-- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview). (see [below for nested schema](#nestedatt--type_definition))
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_result_count (preview), analytics_threshold (preview). (see [below for nested schema](#nestedatt--type_definition))
 
 <a id="nestedatt--case_settings"></a>
 ### Nested Schema for `case_settings`
@@ -234,7 +234,7 @@ Read-Only:
 
 Read-Only:
 
-- `analytics_immediate` (Attributes) Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
+- `analytics_result_count` (Attributes) Analytics result count alert type definition (preview) — counts the rows that the DataPrime query returns. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count))
 - `analytics_threshold` (Attributes) Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
 - `flow` (Attributes) Configuration for flow-based alerts (see [below for nested schema](#nestedatt--type_definition--flow))
 - `logs_anomaly` (Attributes) Configuration for log-based anomaly detection alerts (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
@@ -250,28 +250,27 @@ Read-Only:
 - `tracing_immediate` (Attributes) Configuration for immediate tracing-based alerts (see [below for nested schema](#nestedatt--type_definition--tracing_immediate))
 - `tracing_threshold` (Attributes) Configuration for tracing-based threshold alerts (see [below for nested schema](#nestedatt--type_definition--tracing_threshold))
 
-<a id="nestedatt--type_definition--analytics_immediate"></a>
-### Nested Schema for `type_definition.analytics_immediate`
+<a id="nestedatt--type_definition--analytics_result_count"></a>
+### Nested Schema for `type_definition.analytics_result_count`
 
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--dataprime_query))
+- `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--dataprime_query))
 - `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). May exceed timeframeMinutes, in which case data between evaluations is not covered by any evaluation.
-- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--no_data_policy))
 - `timeframe_minutes` (Number) The evaluation window duration in minutes
-- `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. Defaults to false for immediate alerts to avoid high-cardinality alerts by mistake.
 
-<a id="nestedatt--type_definition--analytics_immediate--dataprime_query"></a>
-### Nested Schema for `type_definition.analytics_immediate.dataprime_query`
+<a id="nestedatt--type_definition--analytics_result_count--dataprime_query"></a>
+### Nested Schema for `type_definition.analytics_result_count.dataprime_query`
 
 Read-Only:
 
 - `query` (String) The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix.
 
 
-<a id="nestedatt--type_definition--analytics_immediate--no_data_policy"></a>
-### Nested Schema for `type_definition.analytics_immediate.no_data_policy`
+<a id="nestedatt--type_definition--analytics_result_count--no_data_policy"></a>
+### Nested Schema for `type_definition.analytics_result_count.no_data_policy`
 
 Read-Only:
 

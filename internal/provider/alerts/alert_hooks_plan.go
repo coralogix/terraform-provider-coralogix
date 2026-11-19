@@ -57,7 +57,7 @@ var groupByArms = []string{"metric_threshold", "metric_anomaly", "logs_new_value
 // armsWithConfiguredGroupBy are the arms of type_definition for which the API does not compute group_by.
 var armsWithConfiguredGroupBy = []string{
 	"logs_immediate", "logs_threshold", "logs_ratio_threshold", "logs_time_relative_threshold", "logs_anomaly",
-	"logs_unique_count", "analytics_immediate", "analytics_threshold", "tracing_immediate",
+	"logs_unique_count", "analytics_result_count", "analytics_threshold", "tracing_immediate",
 }
 
 // groupByInput is the attribute of the arm whose change makes the API compute group_by again. An arm of

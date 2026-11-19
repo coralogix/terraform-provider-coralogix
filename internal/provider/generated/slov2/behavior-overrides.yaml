@@ -34,7 +34,7 @@ groups:
     markdownDescription: "SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided."
   window:
     fields: [sloTimeFrame]
-    markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
+    markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified."
 
 types:
   Slo:
@@ -71,11 +71,14 @@ types:
         markdownDescription: "SLI based on request metrics."
       windowBasedMetricSli:
         markdownDescription: "SLI based on time-window metrics."
+      # The API's new SLI definition. Its APM request-based latency threshold uses an exclusive
+      # minimum, which the generator cannot express. The released resource has no such attribute.
+      sliDefinition: {skip: true}
       apmSli:
         requireOne: true
         markdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`."
       sloTimeFrame:
-        markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
+        markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified."
         validators: [{enum: true}]
       # The released resource does not show these server values.
       createTime: {skip: true}

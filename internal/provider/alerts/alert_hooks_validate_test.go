@@ -144,7 +144,7 @@ func TestValidatePriorityDeprecation(t *testing.T) {
 		{"logs_ratio_threshold warns", "logs_ratio_threshold", true, true},
 		{"logs_time_relative_threshold warns", "logs_time_relative_threshold", true, true},
 		{"analytics_threshold warns", "analytics_threshold", true, true},
-		{"analytics_immediate does not warn", "analytics_immediate", true, false},
+		{"analytics_result_count does not warn", "analytics_result_count", true, false},
 		{"metric_anomaly does not warn", "metric_anomaly", true, false},
 		{"logs_immediate does not warn", "logs_immediate", true, false},
 		{"tracing_threshold does not warn", "tracing_threshold", true, false},
@@ -231,7 +231,7 @@ func TestValidateGroupByFor(t *testing.T) {
 
 func TestValidateAnalyticsNoDataPolicy(t *testing.T) {
 	ctx := context.Background()
-	policyType := attributeType(alert.Schema().Type().TerraformType(ctx), "type_definition", "analytics_immediate", "no_data_policy")
+	policyType := attributeType(alert.Schema().Type().TerraformType(ctx), "type_definition", "analytics_result_count", "no_data_policy")
 	cases := []struct {
 		name      string
 		policy    tftypes.Value

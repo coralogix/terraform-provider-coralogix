@@ -329,7 +329,7 @@ type AlertTypeDefinitionModel struct {
 	TracingThreshold          types.Object `tfsdk:"tracing_threshold"`            // TracingThresholdModel
 	Flow                      types.Object `tfsdk:"flow"`                         // FlowModel
 	SloThreshold              types.Object `tfsdk:"slo_threshold"`                // SloThresholdModel
-	AnalyticsImmediate        types.Object `tfsdk:"analytics_immediate"`          // AnalyticsImmediateModel
+	AnalyticsResultCount      types.Object `tfsdk:"analytics_result_count"`       // AnalyticsResultCountModel
 	AnalyticsThreshold        types.Object `tfsdk:"analytics_threshold"`          // AnalyticsThresholdModel
 }
 
@@ -673,10 +673,9 @@ type DataprimeQueryModel struct {
 	Query types.String `tfsdk:"query"`
 }
 
-type AnalyticsImmediateModel struct {
+type AnalyticsResultCountModel struct {
 	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
 	NoDataPolicy          types.Object `tfsdk:"no_data_policy"`  // NoDataPolicyModel
-	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
 	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
 	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
