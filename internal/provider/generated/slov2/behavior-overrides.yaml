@@ -87,6 +87,7 @@ types:
         validators: [{exactlyOneOf: [sli]}]
         markdownDescription: "Definition of the SLI: request-based or window-based, from custom metric queries or from APM. Replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be provided. The API returns it for every SLO, also for one created with `sli`, so this attribute is computed: removing it keeps the value the API derived, and an unknown value is not sent."
       apmSli:
+        requireOne: true
         markdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`."
       sloTimeFrame:
         markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified."

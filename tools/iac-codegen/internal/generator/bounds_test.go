@@ -85,6 +85,16 @@ func TestExclusiveBoundsExact(t *testing.T) {
 			want:   map[string]any{"type": "integer", "format": "int32", "maximum": 2147483646},
 		},
 		{
+			name:   "an int64 bound that float64 cannot hold has no safe form",
+			schema: `{type: integer, format: int64, exclusiveMaximum: 9007199254740994}`,
+			want:   map[string]any{"type": "integer", "format": "int64", "exclusiveMaximum": 9007199254740994},
+		},
+		{
+			name:   "an int64 bound that float64 holds is rewritten",
+			schema: `{type: integer, format: int64, exclusiveMaximum: 9007199254740993}`,
+			want:   map[string]any{"type": "integer", "format": "int64", "maximum": 9007199254740992},
+		},
+		{
 			name:   "OpenAPI 3.0 form",
 			schema: `{type: integer, minimum: 5, exclusiveMinimum: true, maximum: 8, exclusiveMaximum: true}`,
 			want:   map[string]any{"type": "integer", "minimum": 6, "maximum": 7},

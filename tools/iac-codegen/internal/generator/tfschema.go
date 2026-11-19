@@ -466,7 +466,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		// supplies the declared default, and Get returns it or omits it. The
 		// plan modifier makes removal unknown until Update clears the value and
 		// Get returns that default.
-		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		value, err := serverDefaultValueFor(f.Type, *declaredDefault(f), b.file, r.Name, f.Name)
 		if err != nil {
 			return nil, fmt.Errorf("server default: %w", err)
 		}
@@ -1204,6 +1204,25 @@ func declaredDefault(f *model.ResourceField) *string {
 // configuration sets another value.
 func updateOnly(f *model.ResourceField) bool {
 	return f.Behavior == model.Normal && f.Create == nil && f.Update != nil
+}
+
+// serverDefaultValueFor is serverDefaultValue for a field of component. An enum that the overrides
+// map to Terraform values has its default in the Terraform spelling, as the state holds it. The
+// default is compared with the state, so the API spelling would never match.
+func serverDefaultValueFor(t *model.Type, value string, file *overrides.File, component, property string) (string, error) {
+	if t.Kind == model.Enum && file != nil {
+		if enum, ok := file.Enums[enumKeyFor(file, component, property, t.Schema)]; ok {
+			if !slices.Contains(t.Values, value) {
+				return "", fmt.Errorf("%q is not one of %v", value, t.Values)
+			}
+			tf := enum.TFValue(value)
+			if value == t.EnumZero && enum.Zero != "" {
+				tf = enum.Zero
+			}
+			return fmt.Sprintf("types.StringValue(%q)", tf), nil
+		}
+	}
+	return serverDefaultValue(t, value)
 }
 
 // serverDefaultValue returns the typed Terraform value used only to detect
@@ -2087,7 +2106,7 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 		// requires the field always returns the stored value, so the element needs no match.
 		return fmt.Errorf("%s: a nested server default inside a set is unsupported unless the response requires it", p.dotted())
 	}
-	value, err := serverDefaultValue(f.Type, d)
+	value, err := serverDefaultValueFor(f.Type, d, b.file, component, f.Name)
 	if err != nil {
 		return fmt.Errorf("server default: %w", err)
 	}

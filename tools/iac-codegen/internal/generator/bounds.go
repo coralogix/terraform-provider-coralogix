@@ -58,7 +58,7 @@ func rewriteExclusiveBounds(m *yaml.Node) bool {
 	if typ == nil || typ.Kind != yaml.ScalarNode || typ.Value != "number" && typ.Value != "integer" {
 		return false
 	}
-	num := numeric{step: stepOf(m, typ.Value)}
+	num := numeric{step: stepOf(m, typ.Value), integer: typ.Value == "integer"}
 	if format := mapValue(m, "format"); format != nil && format.Kind == yaml.ScalarNode {
 		num.format = format.Value
 	}
@@ -71,8 +71,9 @@ func rewriteExclusiveBounds(m *yaml.Node) bool {
 // two values that it accepts (nil when they are not discrete), and its format, which decides the
 // type that the generated validator takes.
 type numeric struct {
-	step   *big.Rat
-	format string
+	step    *big.Rat
+	format  string
+	integer bool
 }
 
 // stepOf is the distance between two values that the schema accepts: its multipleOf, 1 for an
@@ -103,9 +104,14 @@ func stepOf(m *yaml.Node, typ string) *big.Rat {
 // edge rounds the bound back onto the edge, and the inclusive form would then accept the value that
 // the contract excludes. The validator of format float takes a float32, one of int32 an int32, and
 // the others a float64 (a number) or an int64 that the generator reads from a float64.
-func excludesEdge(bound, edge *big.Rat, lower bool, format string) bool {
+//
+// An integer bound must also survive the conversion exactly. The generator reads the bound from a
+// float64, so an int64 bound above 2^53 that float64 cannot hold would round to a neighbour: a valid
+// value next to the edge would then be refused. A number bound has no such limit: a decimal like
+// 0.001 is the same float64 as the value that a client sends.
+func excludesEdge(bound, edge *big.Rat, lower bool, num numeric) bool {
 	f, _ := bound.Float64()
-	switch format {
+	switch num.format {
 	case "float":
 		f = float64(float32(f))
 	case "int32":
@@ -119,6 +125,9 @@ func excludesEdge(bound, edge *big.Rat, lower bool, format string) bool {
 	}
 	rounded := new(big.Rat).SetFloat64(f)
 	if rounded == nil { // infinite
+		return false
+	}
+	if num.integer && rounded.Cmp(bound) != 0 {
 		return false
 	}
 	if lower {
@@ -174,7 +183,7 @@ func replaceBound(m *yaml.Node, exclusiveKey, inclusiveKey string, bound *yaml.N
 		whole.Sub(whole, big.NewInt(1))
 	}
 	result := new(big.Rat).Mul(new(big.Rat).SetInt(whole), step)
-	if !excludesEdge(result, edge, lower, num.format) {
+	if !excludesEdge(result, edge, lower, num) {
 		return false
 	}
 	if existing := mapValue(m, inclusiveKey); keepInclusive && existing != nil && existing != bound {

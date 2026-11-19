@@ -171,7 +171,7 @@ var serverAttrs = map[string]bool{
 // defaultAttrs are the nested attributes with a server default, by path. A
 // request does not send an unknown value of one, so the server stores the default.
 var defaultAttrs = map[string]attr.Value{
-	"sli_definition.window_based.missing_data_strategy": types.StringValue("MISSING_DATA_STRATEGY_UNCOUNTED"),
+	"sli_definition.window_based.missing_data_strategy": types.StringValue("uncounted"),
 }
 
 // defaultObjects are the objects that hold an attribute with a server default, by path.

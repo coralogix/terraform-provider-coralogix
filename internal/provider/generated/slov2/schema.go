@@ -39,7 +39,7 @@ func Schema() schema.Schema {
 						Optional:           true,
 						DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 						Validators: []validator.Object{
-							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"error_config", "latency_config"}, Required: false}}},
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"error_config", "latency_config"}, Required: true}}},
 						},
 						Attributes: map[string]schema.Attribute{
 							"error_config": schema.SingleNestedAttribute{
@@ -670,7 +670,7 @@ func Schema() schema.Schema {
 								Optional: true,
 								Computed: true,
 								PlanModifiers: []planmodifier.String{
-									serverDefaultModifier{value: types.StringValue("MISSING_DATA_STRATEGY_UNCOUNTED")},
+									serverDefaultModifier{value: types.StringValue("uncounted")},
 								},
 								MarkdownDescription: "How a window without data is counted.",
 							},

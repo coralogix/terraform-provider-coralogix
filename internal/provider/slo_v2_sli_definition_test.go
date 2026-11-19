@@ -133,6 +133,15 @@ func (f *sliProbeFake) store(id string, body map[string]any) map[string]any {
 	} else if legacy, ok := slo["requestBasedMetricSli"]; ok {
 		slo["sliDefinition"] = map[string]any{"requestBased": map[string]any{"custom": legacy}}
 	}
+	// The contract says that the server stores uncounted when a window-based SLI omits the strategy.
+	// That is from the contract, not from a probe.
+	if definition, ok := slo["sliDefinition"].(map[string]any); ok {
+		if window, ok := definition["windowBased"].(map[string]any); ok {
+			if _, set := window["missingDataStrategy"]; !set {
+				window["missingDataStrategy"] = "MISSING_DATA_STRATEGY_UNCOUNTED"
+			}
+		}
+	}
 	slo["id"] = id
 	slo["creator"] = "support@coralogix.com"
 	slo["labels"] = map[string]any{}
@@ -299,5 +308,37 @@ func TestSloV2NeedsOneOfSliAndSliDefinition(t *testing.T) {
 	h.Validate("neither", neither)
 	if !hasErrorDiag(h.steps[len(h.steps)-1].ValidateDiags) {
 		t.Error("a config with neither sli nor sli_definition must be rejected")
+	}
+}
+
+// A window-based sli_definition that leaves out missing_data_strategy gets the server default back.
+// The state holds the Terraform spelling of the enum, so the default that the plan keeps for an
+// omitted value must be in that spelling too, or every plan proposes an update.
+func TestSloV2WindowBasedServerDefaultPlansClean(t *testing.T) {
+	fake := newSliProbeFake(t)
+	h := newProtocolHarness(t, "coralogix_slo_v2", fake)
+
+	config := map[string]any{
+		"name":                        "sli-definition-window",
+		"target_threshold_percentage": 99.0,
+		"window":                      map[string]any{"slo_time_frame": "7_days"},
+		"sli_definition": map[string]any{
+			"window_based": map[string]any{
+				"window": "1_minute",
+				"custom": map[string]any{
+					"comparison_operator": "greater_than",
+					"query":               map[string]any{"query": "sum(rate(a[1m]))"},
+					"threshold":           1.0,
+				},
+			},
+		},
+	}
+	h.Apply("create a window-based SLI without missing_data_strategy", h.null(), config)
+	step := h.steps[len(h.steps)-1]
+	requireCleanStep(t, step)
+	window, _ := stateAttribute(step.State, "sli_definition").(map[string]any)
+	inner, _ := window["window_based"].(map[string]any)
+	if got := inner["missing_data_strategy"]; got != "uncounted" {
+		t.Fatalf("state holds missing_data_strategy %v, want the Terraform spelling uncounted", got)
 	}
 }

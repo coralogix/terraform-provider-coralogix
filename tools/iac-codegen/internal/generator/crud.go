@@ -259,7 +259,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if file != nil && file.TypeName != "" {
 		out.TypeName = file.TypeName
 	}
-	if err := updateOnlyAttrs(r, out); err != nil {
+	if err := updateOnlyAttrs(r, file, out); err != nil {
 		return nil, err
 	}
 	if err := resourceIDData(r, ix, file, out); err != nil {
@@ -720,12 +720,12 @@ func cxsdkNames(ix *refIndex, out *crudData) error {
 }
 
 // updateOnlyAttrs lists the fields that only Update takes, with the server default that create stores.
-func updateOnlyAttrs(r *model.Resource, out *crudData) error {
+func updateOnlyAttrs(r *model.Resource, file *overrides.File, out *crudData) error {
 	for _, f := range r.Fields {
 		if !updateOnly(f) {
 			continue
 		}
-		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		value, err := serverDefaultValueFor(f.Type, *declaredDefault(f), file, r.Name, f.Name)
 		if err != nil {
 			return fmt.Errorf("%s: server default: %w", f.Name, err)
 		}
