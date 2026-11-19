@@ -32,6 +32,8 @@ api:
   requestWrapper: userTemplate
   createValues:
     onboardingMode: ONBOARDING_MODE_NO_INVITE
+dataSource:
+  description: Reads a user. It looks the user up by its id.
 types:
   rbac.v2.User:
     fields:
