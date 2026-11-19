@@ -1,4 +1,4 @@
-# Behavior overrides for the user resource (CX-65729 stack 2 candidate).
+# Behavior overrides for the user resource (CX-65729 stack 3).
 # The Users API has no single-resource reads or writes: Create is a batch POST,
 # the read is the Search list, Update is a batch PUT, and the remove is a PATCH
 # that deactivates the users named in the body.
@@ -37,6 +37,10 @@ dataSource:
 types:
   rbac.v2.User:
     fields:
+      userId:
+        name: id
+        readOnly: true
+        markdownDescription: "User ID."
       allowedLoginMode:
         releasedLimits: true
       username:

@@ -105,7 +105,7 @@ func (r *Resource) Configure(_ context.Context, req resource.ConfigureRequest, r
 
 // ImportState sets the id. The Read after the import sets the other attributes.
 func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("user_id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -137,7 +137,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if id, ok := apiID(v); diags.HasError() && ok {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user_id"), idStateValue(id))...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idStateValue(id))...)
 	}
 }
 
@@ -383,7 +383,7 @@ func Expand(ctx context.Context, m *RbacV2UserModel) (*users_management_service.
 // stateID returns the id in the state.
 func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) {
 	var id types.String
-	diags := state.GetAttribute(ctx, path.Root("user_id"), &id)
+	diags := state.GetAttribute(ctx, path.Root("id"), &id)
 	return id.ValueString(), diags
 }
 

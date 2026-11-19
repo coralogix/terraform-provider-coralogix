@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -48,18 +47,7 @@ func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest,
 // Schema is the schema of the resource with every attribute computed, except the id, which the
 // configuration sets.
 func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	s := Schema()
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(s)
-	if a, ok := s.Attributes["id"]; ok {
-		// The copy makes "id" the lookup attribute. Here it is a value of the resource.
-		resp.Schema.Attributes["id"] = utils.ConvertAttribute(a)
-	}
-	id := s.Attributes["user_id"]
-	resp.Schema.Attributes["user_id"] = schema.StringAttribute{
-		Required:            true,
-		Description:         id.GetDescription(),
-		MarkdownDescription: id.GetMarkdownDescription(),
-	}
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())
 	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
 		"": "Reads a user. It looks the user up by its id.",
 	})
@@ -82,7 +70,7 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 // A 404 of a route that does not exist is an error too.
 func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var configured types.String
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("user_id"), &configured)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &configured)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

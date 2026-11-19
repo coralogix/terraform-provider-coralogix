@@ -82,12 +82,12 @@ func Schema() schema.Schema {
 				Computed:            true,
 				MarkdownDescription: "Associated account id. An account can have many users.",
 			},
-			"user_id": schema.StringAttribute{
+			"id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "Unique user id",
+				MarkdownDescription: "User ID.",
 			},
 			"username": schema.StringAttribute{
 				Required:            true,

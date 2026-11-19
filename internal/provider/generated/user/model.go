@@ -16,7 +16,7 @@ type RbacV2UserModel struct {
 	LastName         types.String     `tfsdk:"last_name"`
 	Status           types.String     `tfsdk:"status"`
 	UserAccountId    types.Int64      `tfsdk:"user_account_id"`
-	UserId           types.String     `tfsdk:"user_id"`
+	UserId           types.String     `tfsdk:"id"`
 	Username         types.String     `tfsdk:"username"`
 }
 

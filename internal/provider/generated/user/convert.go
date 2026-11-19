@@ -98,7 +98,7 @@ var computedAttrs = map[string]bool{
 	"group_ids":       true,
 	"last_name":       true,
 	"user_account_id": true,
-	"user_id":         true,
+	"id":              true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
