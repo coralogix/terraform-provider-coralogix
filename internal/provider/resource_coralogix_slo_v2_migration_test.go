@@ -15,7 +15,9 @@
 package provider
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -76,6 +78,16 @@ func TestAccCoralogixResourceSloV2SLIsGeneratedUpgrade(t *testing.T) {
       }`, ""),
 			apm: true,
 		},
+		{
+			// The released provider read a float32 as its float64, 99.9000015258789 for 99.9, and
+			// configs copied from its state or written by tools for it hold that text. This build
+			// must keep it, though its own read shows the float32 as 99.9. The update to the shortest
+			// decimal is an update in place, and the import reads that form.
+			name:    "apm-latency-float32-text",
+			initial: sloV2Float32Text(testAccCoralogixSLOV2APMSLI(service, sloV2QuantileLatency("0.949999988079071"), ""), "99.9000015258789"),
+			updated: sloV2Float32Text(testAccCoralogixSLOV2APMSLI(service, sloV2QuantileLatency("0.95"), ""), "99.9"),
+			apm:     true,
+		},
 	}
 
 	for _, tc := range cases {
@@ -133,4 +145,25 @@ func requireSLOV2UpgradeAcceptance(t *testing.T) {
 	if namespace := os.Getenv(resource.EnvTfAccProviderNamespace); namespace != "coralogix" {
 		t.Fatalf("set %s=coralogix to run the registry-backed coralogix_slo_v2 upgrade tests", resource.EnvTfAccProviderNamespace)
 	}
+}
+
+// sloV2QuantileLatency is the latency_config of an APM SLI with the quantile percentile.
+func sloV2QuantileLatency(percentile string) string {
+	return fmt.Sprintf(`
+      latency_config = {
+        time_window = "5_minutes"
+        threshold   = 500.0
+        quantile = {
+          percentile = %s
+        }
+      }`, percentile)
+}
+
+// sloV2Float32Text sets target_threshold_percentage of an APM SLO config to the text target.
+func sloV2Float32Text(config, target string) string {
+	const line = "target_threshold_percentage = 99.0"
+	if !strings.Contains(config, line) {
+		panic("the APM SLO config has no " + line)
+	}
+	return strings.Replace(config, line, "target_threshold_percentage = "+target, 1)
 }

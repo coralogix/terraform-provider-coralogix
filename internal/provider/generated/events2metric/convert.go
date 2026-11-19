@@ -255,6 +255,9 @@ var requiredAttrs = map[string]bool{
 // list, set, or map, or a missing object outside a oneOf from an empty one
 // (contract 2.2, 2.9). So the state keeps the form that the configuration
 // has, and Terraform sees no difference.
+// A Float32 value that is the same float32 as the prior value keeps the prior
+// form too: Terraform compares numbers by their decimal text, so 99.9 in the
+// configuration and 99.9000015258789 in the state would differ.
 func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 	attrs := state.Schema.GetAttributes()
@@ -291,6 +294,12 @@ func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Dia
 		return v
 	}
 	switch v := v.(type) {
+	case types.Float32:
+		// The API stores a float32, and a read returns its shortest decimal (99.9). A prior
+		// value in another form of the same float32 (99.9000015258789) stays.
+		if prior, ok := p.(types.Float32); ok && prior.ValueFloat32() == v.ValueFloat32() {
+			return prior
+		}
 	case types.Object:
 		if prior, ok := p.(types.Object); ok {
 			return priorEmptyObject(ctx, at, v, prior, diags)

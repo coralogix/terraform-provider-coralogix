@@ -95,7 +95,7 @@ const fullConfig = `resource "coralogix_slo_v2" "test" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }`
 
 const updatedConfig = `resource "coralogix_slo_v2" "test" {
@@ -131,7 +131,7 @@ const updatedConfig = `resource "coralogix_slo_v2" "test" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }`
 
 const minimalConfig = `resource "coralogix_slo_v2" "test" {
@@ -154,7 +154,7 @@ const minimalConfig = `resource "coralogix_slo_v2" "test" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }`
 
 // upgradeFullConfig is the full config without the attributes that provider 3.21.0 does not have.
@@ -190,7 +190,7 @@ const upgradeFullConfig = `resource "coralogix_slo_v2" "test" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }`
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
@@ -213,7 +213,7 @@ const upgradeMinimalConfig = `resource "coralogix_slo_v2" "test" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }`
 
 func config(run, resourceBlock string) string {
@@ -562,7 +562,7 @@ const variant1Config = `resource "coralogix_slo_v2" "test" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }
 
 resource "coralogix_slo_v2" "test_2" {
@@ -578,7 +578,7 @@ resource "coralogix_slo_v2" "test_2" {
       grouping_keys = ["http_method"]
       latency_config = {
         quantile = {
-          percentile = 0.9
+          percentile = 0.95
         }
         threshold = 1.5
         time_window = "5_minutes"
@@ -604,5 +604,5 @@ resource "coralogix_slo_v2" "test_2" {
   window = {
     slo_time_frame = "7_days"
   }
-  target_threshold_percentage = 99.5
+  target_threshold_percentage = 99.9
 }`

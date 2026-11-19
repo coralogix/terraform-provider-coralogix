@@ -2,9 +2,11 @@ package echothing
 
 import (
 	"context"
+	"math/big"
 	"slices"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -243,6 +245,97 @@ func TestFloat32ReadsBackAsItsShortestDecimal(t *testing.T) {
 	if sent == nil || sent.Ratio == nil || *sent.Ratio != float32(0.1) || len(sent.Buckets) != 2 || sent.Buckets[0] != float32(0.1) {
 		t.Fatalf("Create detail = %+v, want ratio 0.1 and buckets [0.1 2.5] as float32", sent)
 	}
+}
+
+// exactFloat32 is a Float32 that holds the decimal text s exactly, as a configuration does.
+func exactFloat32(t *testing.T, s string) types.Float32 {
+	t.Helper()
+	f, _, err := big.ParseFloat(s, 10, 512, big.ToNearestEven)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := types.Float32Type.ValueFromTerraform(context.Background(), tftypes.NewValue(tftypes.Number, f))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v.(types.Float32)
+}
+
+// A Float32 keeps the form of the plan or the state when it is the same float32 as the value that
+// the API returns. Terraform compares numbers by their decimal text, so a configured
+// 99.9000015258789 (the float64 of the float32 99.9) next to a state of 99.9 would plan a change on
+// every run, and Create would fail with an inconsistent result. Without a prior value, after an
+// import, the state takes the shortest decimal; a prior value of another float32 takes the API value.
+func TestFloat32KeepsThePriorFormOfTheSameFloat32(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Items: []echo_things_service.EchoItem{{
+		Key: "k", Detail: &echo_things_service.Detail{Text: "t", Ratio: ptr(float32(99.9)), Buckets: []float32{0.95, 2.5}},
+	}}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	detail := path.Root("entries").AtMapKey("k").AtName("detail")
+	read := func(prior tftypes.Value) tfsdk.State {
+		t.Helper()
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: prior}
+		resp := &frameworkresource.ReadResponse{State: state}
+		r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatal(resp.Diagnostics)
+		}
+		return resp.State
+	}
+	withDetail := func(state tfsdk.State, ratio, bucket string) tftypes.Value {
+		t.Helper()
+		buckets, d := types.ListValue(types.Float32Type, []attr.Value{exactFloat32(t, bucket), exactFloat32(t, "2.5")})
+		if d.HasError() {
+			t.Fatal(d)
+		}
+		d.Append(state.SetAttribute(ctx, detail.AtName("ratio"), exactFloat32(t, ratio))...)
+		d.Append(state.SetAttribute(ctx, detail.AtName("buckets"), buckets)...)
+		if d.HasError() {
+			t.Fatal(d)
+		}
+		return state.Raw.Copy()
+	}
+	check := func(state tfsdk.State, ratio, bucket string) {
+		t.Helper()
+		var gotRatio types.Float32
+		var gotBuckets []types.Float32
+		d := state.GetAttribute(ctx, detail.AtName("ratio"), &gotRatio)
+		d.Append(state.GetAttribute(ctx, detail.AtName("buckets"), &gotBuckets)...)
+		if d.HasError() {
+			t.Fatal(d)
+		}
+		// Terraform compares numbers by this text (cty rawNumberEqual).
+		text := func(v types.Float32) string {
+			raw, err := v.ToTerraformValue(ctx)
+			var f *big.Float
+			if err == nil {
+				err = raw.As(&f)
+			}
+			if err != nil || f == nil {
+				t.Fatalf("value %v: %v", v, err)
+			}
+			return f.Text('f', -1)
+		}
+		if text(gotRatio) != ratio || len(gotBuckets) != 2 || text(gotBuckets[0]) != bucket {
+			t.Fatalf("ratio %v, buckets %v, want %s and [%s 2.5]", gotRatio, gotBuckets, ratio, bucket)
+		}
+	}
+
+	imported := read(thingValue(root, "thing-1", "name"))
+	check(imported, "99.9", "0.95")
+
+	check(read(withDetail(imported, "99.9000015258789", "0.949999988079071")), "99.9000015258789", "0.949999988079071")
+	check(read(withDetail(imported, "99.8", "0.9")), "99.9", "0.95")
+
+	plan := withDetail(imported, "99.9000015258789", "0.949999988079071")
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
+	r.Create(ctx, frameworkresource.CreateRequest{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan}}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	check(resp.State, "99.9000015258789", "0.949999988079071")
 }
 
 // A set of an enum maps each element through the enums line, the zero value too: the API value

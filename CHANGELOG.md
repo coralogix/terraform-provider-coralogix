@@ -3,6 +3,16 @@
 #### resource/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
 - CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.
+- FIX: A decimal attribute that the API stores as a float32, such as `target_threshold_percentage` or `percentile`, keeps the text of the configuration when it is the same float32. A value written as its float64, `99.9000015258789` for `99.9` (as the state of provider 3.21.0 and earlier holds it), no longer plans an update on every run or fails the apply with an inconsistent result. An import still reads the shortest decimal, `99.9`.
+
+#### resource/coralogix_alert
+- FIX: `type_definition.logs_anomaly.percentage_of_deviation` and `type_definition.metric_anomaly.percentage_of_deviation` keep the configured text of the same float32, as for `coralogix_slo_v2`.
+
+#### resource/coralogix_dashboard
+- FIX: `single_numeric` defaults of textbox variables keep the configured text of the same float32, as for `coralogix_slo_v2`.
+
+#### resource/coralogix_events2metric
+- FIX: Histogram `buckets` keep the configured text of the same float32, as for `coralogix_slo_v2`.
 
 #### data-source/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the same attribute as on the resource.
@@ -11,6 +21,7 @@
 - FIX: The server default of an enum that the overrides map to Terraform values is in the Terraform spelling. The plan modifier compares it with the state, which holds that spelling, so before this change the API spelling never matched, and every plan proposed an update for an attribute that left the value out.
 - FEAT: `keepUnsetComputedState: true` makes the generated `ModifyPlan` plan no change when the plan differs from the state only in unknown values that the configuration does not set. It is for an API that fills a field from another field. An attribute with a server default is skipped, so a dropped value still plans a change, and the key refuses a server default inside a set of objects.
 - FEAT: An exclusive numeric bound is read as the inclusive bound that accepts the same values, when the values are the multiples of a step (`multipleOf`, or 1 for an integer). `exclusiveMinimum: 0` with `multipleOf: 0.001` is read as `minimum: 0.001`, and an integer `exclusiveMaximum: 11` as `maximum: 10`. Before, the generator rejected every exclusive bound with `NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED`. A number with no `multipleOf` is still rejected. Generator version `v0.1.0-beta.92`.
+- FIX: A read keeps the prior Float32 value (the plan, or the state) when it is the same float32 as the API value. Terraform compares numbers by their decimal text, so before this change a configured `99.9000015258789` drifted from the `99.9` that the read wrote. A Float32 inside a set is not covered. Generator version `v0.1.0-beta.93`.
 
 # Release 3.26.1
 
