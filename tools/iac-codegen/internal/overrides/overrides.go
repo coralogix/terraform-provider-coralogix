@@ -40,6 +40,13 @@ type File struct {
 	// value that no plan modifier of one attribute can state: one that reads another attribute, or
 	// that changes values inside the items of a set.
 	ModifyPlan bool `yaml:"modifyPlan"`
+	// KeepUnsetComputedState makes the plan equal the state when the two differ only in unknown
+	// values that the configuration does not set. Terraform marks every computed attribute that the
+	// configuration leaves out unknown as soon as anything changes, and for an optional and computed
+	// object that the server fills (a copy of another field) it also plans a change from the state
+	// to null, because a nested value that the user can set looks as if the configuration wrote it.
+	// Without this key such an attribute shows "known after apply" on every plan.
+	KeepUnsetComputedState bool `yaml:"keepUnsetComputedState"`
 	// ReadEmptyAs: "null" reads an empty list or set of objects or strings as null in every object of the
 	// resource, as a released resource did for the repeated fields of its API: the API cannot tell an
 	// empty list from a missing one, and a configuration that leaves the attribute out must plan no

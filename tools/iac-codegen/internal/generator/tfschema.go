@@ -22,6 +22,9 @@ type tfResource struct {
 	AfterFlatten bool
 	// ModifyPlanHook: the Hooks have a ModifyPlan, that the generated ModifyPlan calls last.
 	ModifyPlanHook bool
+	// PlanKeepsState: the generated ModifyPlan keeps the state when only unset unknown values
+	// differ (the keepUnsetComputedState line), as it does with an equality line.
+	PlanKeepsState bool
 	// EqualityFile: the package has equality.go, with the document comparisons.
 	EqualityFile bool
 	// EqualityPlan: equality.go also defines ModifyPlan, for the equality lines of fields and the
@@ -71,6 +74,10 @@ type tfResource struct {
 	// require, with that default. A read that omits one keeps a prior value equal to the
 	// default: the API can leave out a value that equals its default.
 	OmittedDefaults []defaultPath
+	// ServerDefaultTop are the top-level attributes with a server default, by path. When one has a
+	// configuration of null and a state that is not its default, its plan is unknown on purpose: the
+	// update resets it to the default. The keepUnsetComputedState step must not undo that.
+	ServerDefaultTop []string
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -227,6 +234,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
 		out.ModifyPlanHook = file.ModifyPlan
+		out.PlanKeepsState = file.KeepUnsetComputedState
 	}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
@@ -465,6 +473,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		a.Computed = true
 		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
 		out.HasServerDefaults = true
+		out.ServerDefaultTop = append(out.ServerDefaultTop, rootPath(groups, terraformName(r.Policy, r.Name, f.Name)).dotted())
 		if !f.Get.Required {
 			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: terraformName(r.Policy, r.Name, f.Name), Value: value})
 		}

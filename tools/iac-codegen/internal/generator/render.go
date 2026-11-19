@@ -90,14 +90,18 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 
 // planEquality decides whether the package has equality.go, and whether its ModifyPlan applies.
 func planEquality(data *tfResource, files map[string]string) error {
-	data.EqualityFile = data.Conv.UsesEquality() || len(data.EnumAliases) != 0
-	data.EqualityPlan = data.Conv.UsesFieldEquality() || len(data.EnumAliases) != 0
+	data.EqualityFile = data.Conv.UsesEquality() || len(data.EnumAliases) != 0 || data.PlanKeepsState
+	data.EqualityPlan = data.Conv.UsesFieldEquality() || len(data.EnumAliases) != 0 || data.PlanKeepsState
 	if !data.EqualityFile {
 		return nil
 	}
-	if data.EqualityPlan && data.HasServerDefaults {
+	if data.PlanKeepsState && data.SetServerDefaults {
+		return fmt.Errorf("keepUnsetComputedState and the server default of an attribute inside a set of objects in one resource are not supported")
+	}
+	if (data.Conv.UsesFieldEquality() || len(data.EnumAliases) != 0) && data.HasServerDefaults {
 		// ModifyPlan keeps the state in place of every unknown that the configuration does
-		// not set. A server default plans unknown on purpose, and would be lost.
+		// not set. A server default plans unknown on purpose, and would be lost. The step of
+		// keepUnsetComputedState skips the attributes with a server default instead.
 		return fmt.Errorf("equality or an enum alias and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
 	}
 	files["equality.go"] = "equality.go.tmpl"

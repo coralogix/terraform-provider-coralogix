@@ -7,6 +7,9 @@ mode: existing
 typeName: slo_v2
 
 markdownDescription: "Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/"
+# The API fills sli and sliDefinition from each other, so the plan keeps both as they are when only
+# unset computed values differ (probed on eu2: a read returns both, whichever one was written).
+keepUnsetComputedState: true
 
 schema:
   version: 0
@@ -28,10 +31,14 @@ api:
 
 # The released resource holds the SLI arms in sli, and the time frame in window.
 groups:
+  # A read returns the legacy arm for an SLO that was created with sliDefinition, when the SLI can be
+  # expressed with it (probed on eu2). So the group is optional and computed, and it is not sent
+  # when it is unknown.
   sli:
     fields: [requestBasedMetricSli, windowBasedMetricSli, apmSli]
-    requireOne: true
-    markdownDescription: "SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided."
+    optional: true
+    computed: true
+    markdownDescription: "Deprecated SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli. Use sli_definition instead. Exactly one of sli or sli_definition must be provided. The API fills this block from sli_definition when the SLI can be expressed with it, so this attribute is computed."
   window:
     fields: [sloTimeFrame]
     markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified."
@@ -71,11 +78,15 @@ types:
         markdownDescription: "SLI based on request metrics."
       windowBasedMetricSli:
         markdownDescription: "SLI based on time-window metrics."
-      # The API's new SLI definition. Its APM request-based latency threshold uses an exclusive
-      # minimum, which the generator cannot express. The released resource has no such attribute.
-      sliDefinition: {skip: true}
+      # A read returns sliDefinition for every SLO, also for one created with a legacy arm (probed on
+      # eu2). So it is computed. It keeps no state for unknown: when a legacy arm changes, the server
+      # prefers sliDefinition over the legacy arms, so an old sliDefinition in the request would undo
+      # the change. An unknown value is not sent, and the server derives it from the legacy arm.
+      sliDefinition:
+        computed: true
+        validators: [{exactlyOneOf: [sli]}]
+        markdownDescription: "Definition of the SLI: request-based or window-based, from custom metric queries or from APM. Replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be provided. The API returns it for every SLO, also for one created with `sli`, so this attribute is computed: removing it keeps the value the API derived, and an unknown value is not sent."
       apmSli:
-        requireOne: true
         markdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`."
       sloTimeFrame:
         markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified."

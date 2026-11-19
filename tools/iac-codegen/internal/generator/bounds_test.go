@@ -65,6 +65,26 @@ func TestExclusiveBoundsExact(t *testing.T) {
 			want:   map[string]any{"type": "number", "multipleOf": 1e-20, "exclusiveMinimum": 1},
 		},
 		{
+			name:   "a step finer than float32 at the bound has no safe form for a float",
+			schema: `{type: number, format: float, multipleOf: 1e-8, exclusiveMinimum: 1}`,
+			want:   map[string]any{"type": "number", "format": "float", "multipleOf": 1e-8, "exclusiveMinimum": 1},
+		},
+		{
+			name:   "a float32 step that float32 holds is rewritten",
+			schema: `{type: number, format: float, multipleOf: 0.5, exclusiveMinimum: 1}`,
+			want:   map[string]any{"type": "number", "format": "float", "multipleOf": 0.5, "minimum": 1.5},
+		},
+		{
+			name:   "a bound outside int32 has no safe form",
+			schema: `{type: integer, format: int32, exclusiveMinimum: 2147483647}`,
+			want:   map[string]any{"type": "integer", "format": "int32", "exclusiveMinimum": 2147483647},
+		},
+		{
+			name:   "a bound that int32 holds is rewritten",
+			schema: `{type: integer, format: int32, exclusiveMaximum: 2147483647}`,
+			want:   map[string]any{"type": "integer", "format": "int32", "maximum": 2147483646},
+		},
+		{
 			name:   "OpenAPI 3.0 form",
 			schema: `{type: integer, minimum: 5, exclusiveMinimum: true, maximum: 8, exclusiveMaximum: true}`,
 			want:   map[string]any{"type": "integer", "minimum": 6, "maximum": 7},

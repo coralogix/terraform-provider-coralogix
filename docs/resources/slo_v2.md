@@ -228,7 +228,6 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 ### Required
 
 - `name` (String) SLO name.
-- `sli` (Attributes) SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided. (see [below for nested schema](#nestedatt--sli))
 - `target_threshold_percentage` (Number) The target threshold percentage.
 - `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified. (see [below for nested schema](#nestedatt--window))
 
@@ -238,12 +237,71 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 - `labels` (Map of String) Optional map of labels to attach to the SLO.
 - `ownership_tags` (Attributes) Service, environment and team ownership of the SLO, used by the SLO hub's ownership filters. At least one dimension must be configured - the backend drops an ownership block that holds no values. Removing the block clears the tags on the next apply. (see [below for nested schema](#nestedatt--ownership_tags))
 - `product_type` (String) Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = "unspecified"` to reset it.
+- `sli` (Attributes) Deprecated SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli. Use sli_definition instead. Exactly one of sli or sli_definition must be provided. The API fills this block from sli_definition when the SLI can be expressed with it, so this attribute is computed. (see [below for nested schema](#nestedatt--sli))
+- `sli_definition` (Attributes) Definition of the SLI: request-based or window-based, from custom metric queries or from APM. Replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be provided. The API returns it for every SLO, also for one created with `sli`, so this attribute is computed: removing it keeps the value the API derived, and an unknown value is not sent. (see [below for nested schema](#nestedatt--sli_definition))
 
 ### Read-Only
 
 - `apm_sli_metadata` (Attributes) Read-only copy of `sli.apm_sli` that the backend materializes for APM SLOs. Null for metric SLIs. It is never sent on create or replace. (see [below for nested schema](#nestedatt--apm_sli_metadata))
 - `grouping` (Attributes) Grouping configuration for SLO evaluations. Read-only: the backend derives it from the SLI - the `by (...)` clause of a metric query, or `service_name` for an APM SLI - and rejects writes. It is unrelated to the writable `sli.apm_sli.grouping_keys`. (see [below for nested schema](#nestedatt--grouping))
 - `id` (String) SLO ID.
+
+<a id="nestedatt--window"></a>
+### Nested Schema for `window`
+
+Required:
+
+- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified.
+
+
+<a id="nestedatt--ownership_tags"></a>
+### Nested Schema for `ownership_tags`
+
+Optional:
+
+- `environment` (Attributes) Environment ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured. (see [below for nested schema](#nestedatt--ownership_tags--environment))
+- `service` (Attributes) Service ownership. `static_values` must name services that exist in the APM Service Catalog. Exactly one of `static_values` or `label_keys` must be configured. (see [below for nested schema](#nestedatt--ownership_tags--service))
+- `team` (Attributes) Team ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured. (see [below for nested schema](#nestedatt--ownership_tags--team))
+
+<a id="nestedatt--ownership_tags--environment"></a>
+### Nested Schema for `ownership_tags.environment`
+
+Optional:
+
+- `label_keys` (List of String) Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
+- `static_values` (List of String) Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+
+Read-Only:
+
+- `resolved_values` (List of String) Read-only union of `static_values` and the values resolved from `label_keys`.
+
+
+<a id="nestedatt--ownership_tags--service"></a>
+### Nested Schema for `ownership_tags.service`
+
+Optional:
+
+- `label_keys` (List of String) Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
+- `static_values` (List of String) Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+
+Read-Only:
+
+- `resolved_values` (List of String) Read-only union of `static_values` and the values resolved from `label_keys`.
+
+
+<a id="nestedatt--ownership_tags--team"></a>
+### Nested Schema for `ownership_tags.team`
+
+Optional:
+
+- `label_keys` (List of String) Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
+- `static_values` (List of String) Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+
+Read-Only:
+
+- `resolved_values` (List of String) Read-only union of `static_values` and the values resolved from `label_keys`.
+
+
 
 <a id="nestedatt--sli"></a>
 ### Nested Schema for `sli`
@@ -361,60 +419,201 @@ Required:
 
 
 
-<a id="nestedatt--window"></a>
-### Nested Schema for `window`
+<a id="nestedatt--sli_definition"></a>
+### Nested Schema for `sli_definition`
+
+Optional:
+
+- `request_based` (Attributes) Count per request: the SLI is the ratio of good events to total events over the SLO time frame. (see [below for nested schema](#nestedatt--sli_definition--request_based))
+- `window_based` (Attributes) Count per time window: the SLI is the ratio of good windows to all windows over the SLO time frame. (see [below for nested schema](#nestedatt--sli_definition--window_based))
+
+<a id="nestedatt--sli_definition--request_based"></a>
+### Nested Schema for `sli_definition.request_based`
+
+Optional:
+
+- `apm` (Attributes) Good and total events generated from APM span data for the selected services. (see [below for nested schema](#nestedatt--sli_definition--request_based--apm))
+- `custom` (Attributes) Custom metric queries for the good and total events. (see [below for nested schema](#nestedatt--sli_definition--request_based--custom))
+
+<a id="nestedatt--sli_definition--request_based--apm"></a>
+### Nested Schema for `sli_definition.request_based.apm`
 
 Required:
 
-- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified.
-
-
-<a id="nestedatt--ownership_tags"></a>
-### Nested Schema for `ownership_tags`
+- `selector` (Attributes) Services and filters to count spans of. Required. (see [below for nested schema](#nestedatt--sli_definition--request_based--apm--selector))
 
 Optional:
 
-- `environment` (Attributes) Environment ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured. (see [below for nested schema](#nestedatt--ownership_tags--environment))
-- `service` (Attributes) Service ownership. `static_values` must name services that exist in the APM Service Catalog. Exactly one of `static_values` or `label_keys` must be configured. (see [below for nested schema](#nestedatt--ownership_tags--service))
-- `team` (Attributes) Team ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured. (see [below for nested schema](#nestedatt--ownership_tags--team))
+- `availability` (Attributes) A span is good when it has no error. (see [below for nested schema](#nestedatt--sli_definition--request_based--apm--availability))
+- `latency` (Attributes) A span is good when its duration is <= `thresholdMs`. With the `APM_SOURCE_E2M` metric source, any `thresholdMs` is accepted. With `APM_SOURCE_SPAN_METRICS`, `thresholdMs` must be one of the bucket bounds of the selected service's span duration histogram; rejected otherwise. (see [below for nested schema](#nestedatt--sli_definition--request_based--apm--latency))
 
-<a id="nestedatt--ownership_tags--environment"></a>
-### Nested Schema for `ownership_tags.environment`
+<a id="nestedatt--sli_definition--request_based--apm--selector"></a>
+### Nested Schema for `sli_definition.request_based.apm.selector`
 
-Optional:
+Required:
 
-- `label_keys` (List of String) Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
-- `static_values` (List of String) Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
-
-Read-Only:
-
-- `resolved_values` (List of String) Read-only union of `static_values` and the values resolved from `label_keys`.
-
-
-<a id="nestedatt--ownership_tags--service"></a>
-### Nested Schema for `ownership_tags.service`
+- `services` (List of String) Service names to monitor. Required. Exactly one service.
 
 Optional:
 
-- `label_keys` (List of String) Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
-- `static_values` (List of String) Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+- `filters` (Attributes List) Filters on the labels of the APM metrics, narrowing the spans they cover. At most 20, each with at most 50 values, and keys and values of at most 256 characters. With the `APM_SOURCE_E2M` metric source, keys must be labels of the account's service catalog span duration metric; others are rejected. (see [below for nested schema](#nestedatt--sli_definition--request_based--apm--selector--filters))
+- `grouping_keys` (List of String) Labels to group SLO results by. At most 6. With the `APM_SOURCE_E2M` metric source, each must be a label of the account's service catalog span duration metric; others are rejected.
 
-Read-Only:
+<a id="nestedatt--sli_definition--request_based--apm--selector--filters"></a>
+### Nested Schema for `sli_definition.request_based.apm.selector.filters`
 
-- `resolved_values` (List of String) Read-only union of `static_values` and the values resolved from `label_keys`.
+Required:
 
-
-<a id="nestedatt--ownership_tags--team"></a>
-### Nested Schema for `ownership_tags.team`
+- `key` (String) Label or tag name to filter on.
+- `values` (List of String) Values to match, with OR semantics.
 
 Optional:
 
-- `label_keys` (List of String) Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
-- `static_values` (List of String) Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+- `match_operator` (String) How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.
 
-Read-Only:
 
-- `resolved_values` (List of String) Read-only union of `static_values` and the values resolved from `label_keys`.
+
+<a id="nestedatt--sli_definition--request_based--apm--availability"></a>
+### Nested Schema for `sli_definition.request_based.apm.availability`
+
+
+<a id="nestedatt--sli_definition--request_based--apm--latency"></a>
+### Nested Schema for `sli_definition.request_based.apm.latency`
+
+Required:
+
+- `threshold_ms` (Number) Latency threshold in milliseconds, greater than 0, with at most 3 decimal places (whole microseconds). A span is good when its duration is <= this value. Required.
+
+
+
+<a id="nestedatt--sli_definition--request_based--custom"></a>
+### Nested Schema for `sli_definition.request_based.custom`
+
+Required:
+
+- `good_events` (Attributes) Query defining good events. (see [below for nested schema](#nestedatt--sli_definition--request_based--custom--good_events))
+- `total_events` (Attributes) Query defining total events. (see [below for nested schema](#nestedatt--sli_definition--request_based--custom--total_events))
+
+<a id="nestedatt--sli_definition--request_based--custom--good_events"></a>
+### Nested Schema for `sli_definition.request_based.custom.good_events`
+
+Required:
+
+- `query` (String) Query string for the metric.
+
+
+<a id="nestedatt--sli_definition--request_based--custom--total_events"></a>
+### Nested Schema for `sli_definition.request_based.custom.total_events`
+
+Required:
+
+- `query` (String) Query string for the metric.
+
+
+
+
+<a id="nestedatt--sli_definition--window_based"></a>
+### Nested Schema for `sli_definition.window_based`
+
+Required:
+
+- `window` (String) Size of each evaluated time window. Required.
+
+Optional:
+
+- `apm` (Attributes) Window value generated from APM span data for the selected services. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm))
+- `custom` (Attributes) Custom metric query yielding the value of each window, and how it is compared to a threshold. (see [below for nested schema](#nestedatt--sli_definition--window_based--custom))
+- `missing_data_strategy` (String) How a window without data is counted.
+
+<a id="nestedatt--sli_definition--window_based--apm"></a>
+### Nested Schema for `sli_definition.window_based.apm`
+
+Required:
+
+- `selector` (Attributes) Services and filters to aggregate spans of. Required. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm--selector))
+
+Optional:
+
+- `availability` (Attributes) Each window's value is its ratio of spans without an error, from 0 to 1. A window is good when its value is >= `thresholdRatio`. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm--availability))
+- `latency` (Attributes) Each window's value is its aggregated span duration, in milliseconds. A window is good when its value is <= `thresholdMs`. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm--latency))
+
+<a id="nestedatt--sli_definition--window_based--apm--selector"></a>
+### Nested Schema for `sli_definition.window_based.apm.selector`
+
+Required:
+
+- `services` (List of String) Service names to monitor. Required. Exactly one service.
+
+Optional:
+
+- `filters` (Attributes List) Filters on the labels of the APM metrics, narrowing the spans they cover. At most 20, each with at most 50 values, and keys and values of at most 256 characters. With the `APM_SOURCE_E2M` metric source, keys must be labels of the account's service catalog span duration metric; others are rejected. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm--selector--filters))
+- `grouping_keys` (List of String) Labels to group SLO results by. At most 6. With the `APM_SOURCE_E2M` metric source, each must be a label of the account's service catalog span duration metric; others are rejected.
+
+<a id="nestedatt--sli_definition--window_based--apm--selector--filters"></a>
+### Nested Schema for `sli_definition.window_based.apm.selector.filters`
+
+Required:
+
+- `key` (String) Label or tag name to filter on.
+- `values` (List of String) Values to match, with OR semantics.
+
+Optional:
+
+- `match_operator` (String) How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.
+
+
+
+<a id="nestedatt--sli_definition--window_based--apm--availability"></a>
+### Nested Schema for `sli_definition.window_based.apm.availability`
+
+Required:
+
+- `threshold_ratio` (Number) Availability threshold as a ratio from 0 to 1 (not a percentage). A window is good when its value is >= this value. Required.
+
+
+<a id="nestedatt--sli_definition--window_based--apm--latency"></a>
+### Nested Schema for `sli_definition.window_based.apm.latency`
+
+Required:
+
+- `threshold_ms` (Number) Latency threshold in milliseconds, with at most 3 decimal places (whole microseconds). A window is good when its aggregated duration is <= this value. Required. Should be greater than 0; 0 is accepted only for compatibility and is deprecated.
+
+Optional:
+
+- `average` (Attributes) Aggregate by the mean span duration. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm--latency--average))
+- `quantile` (Attributes) Aggregate by a percentile of span durations. `percentile` is required, greater than 0 and at most 1; omitting it is the same as sending 0, which is rejected. (see [below for nested schema](#nestedatt--sli_definition--window_based--apm--latency--quantile))
+
+<a id="nestedatt--sli_definition--window_based--apm--latency--average"></a>
+### Nested Schema for `sli_definition.window_based.apm.latency.average`
+
+
+<a id="nestedatt--sli_definition--window_based--apm--latency--quantile"></a>
+### Nested Schema for `sli_definition.window_based.apm.latency.quantile`
+
+Optional:
+
+- `percentile` (Number) Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it.
+
+
+
+
+<a id="nestedatt--sli_definition--window_based--custom"></a>
+### Nested Schema for `sli_definition.window_based.custom`
+
+Required:
+
+- `comparison_operator` (String) How each window's value is compared to `threshold`. Required.
+- `query` (Attributes) Query yielding the value of each window. Required. (see [below for nested schema](#nestedatt--sli_definition--window_based--custom--query))
+- `threshold` (Number) Value each window is compared to, in the unit of the query's result. Required.
+
+<a id="nestedatt--sli_definition--window_based--custom--query"></a>
+### Nested Schema for `sli_definition.window_based.custom.query`
+
+Required:
+
+- `query` (String) Query string for the metric.
+
+
 
 
 

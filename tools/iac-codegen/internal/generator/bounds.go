@@ -2,6 +2,7 @@ package generator
 
 import (
 	"bytes"
+	"math"
 	"math/big"
 	"strconv"
 
@@ -57,10 +58,21 @@ func rewriteExclusiveBounds(m *yaml.Node) bool {
 	if typ == nil || typ.Kind != yaml.ScalarNode || typ.Value != "number" && typ.Value != "integer" {
 		return false
 	}
-	step := stepOf(m, typ.Value)
-	changedMin := rewriteBound(m, "exclusiveMinimum", "minimum", step, true)
-	changedMax := rewriteBound(m, "exclusiveMaximum", "maximum", step, false)
+	num := numeric{step: stepOf(m, typ.Value)}
+	if format := mapValue(m, "format"); format != nil && format.Kind == yaml.ScalarNode {
+		num.format = format.Value
+	}
+	changedMin := rewriteBound(m, "exclusiveMinimum", "minimum", num, true)
+	changedMax := rewriteBound(m, "exclusiveMaximum", "maximum", num, false)
 	return changedMin || changedMax
+}
+
+// numeric is what the rewrite of a bound needs to know about a number schema: the distance between
+// two values that it accepts (nil when they are not discrete), and its format, which decides the
+// type that the generated validator takes.
+type numeric struct {
+	step   *big.Rat
+	format string
 }
 
 // stepOf is the distance between two values that the schema accepts: its multipleOf, 1 for an
@@ -86,11 +98,25 @@ func stepOf(m *yaml.Node, typ string) *big.Rat {
 	return multiple
 }
 
-// excludesEdge reports whether the bound, read as a float64 as the validators do, is still beyond
-// the exclusive edge. A step finer than float64 precision at the edge rounds the bound back onto
-// the edge, and the inclusive form would then accept the value that the contract excludes.
-func excludesEdge(bound, edge *big.Rat, lower bool) bool {
+// excludesEdge reports whether the bound, converted to the type that the generated validator
+// takes, is still beyond the exclusive edge. A step finer than the precision of that type at the
+// edge rounds the bound back onto the edge, and the inclusive form would then accept the value that
+// the contract excludes. The validator of format float takes a float32, one of int32 an int32, and
+// the others a float64 (a number) or an int64 that the generator reads from a float64.
+func excludesEdge(bound, edge *big.Rat, lower bool, format string) bool {
 	f, _ := bound.Float64()
+	switch format {
+	case "float":
+		f = float64(float32(f))
+	case "int32":
+		if f < math.MinInt32 || f > math.MaxInt32 {
+			return false
+		}
+	case "int64":
+		if f < -(1<<63) || f >= 1<<63 {
+			return false
+		}
+	}
 	rounded := new(big.Rat).SetFloat64(f)
 	if rounded == nil { // infinite
 		return false
@@ -103,7 +129,7 @@ func excludesEdge(bound, edge *big.Rat, lower bool) bool {
 
 // rewriteBound turns the exclusive bound of m into the inclusive bound that holds the same values.
 // lower is true for a lower bound. It changes nothing when there is no exact form.
-func rewriteBound(m *yaml.Node, exclusiveKey, inclusiveKey string, step *big.Rat, lower bool) bool {
+func rewriteBound(m *yaml.Node, exclusiveKey, inclusiveKey string, num numeric, lower bool) bool {
 	exclusive := mapValue(m, exclusiveKey)
 	inclusive := mapValue(m, inclusiveKey)
 	if exclusive == nil || exclusive.Kind != yaml.ScalarNode {
@@ -118,15 +144,16 @@ func rewriteBound(m *yaml.Node, exclusiveKey, inclusiveKey string, step *big.Rat
 		if exclusive.Value != "true" || inclusive == nil {
 			return false
 		}
-		return replaceBound(m, exclusiveKey, inclusiveKey, inclusive, step, lower, false)
+		return replaceBound(m, exclusiveKey, inclusiveKey, inclusive, num, lower, false)
 	}
-	return replaceBound(m, exclusiveKey, inclusiveKey, exclusive, step, lower, true)
+	return replaceBound(m, exclusiveKey, inclusiveKey, exclusive, num, lower, true)
 }
 
 // replaceBound sets the inclusive bound to the nearest multiple of step inside the exclusive
 // bound at the node `bound`. When the schema has an inclusive bound too, and its form is the
 // OpenAPI 3.1 one, the tighter of the two stays.
-func replaceBound(m *yaml.Node, exclusiveKey, inclusiveKey string, bound *yaml.Node, step *big.Rat, lower, keepInclusive bool) bool {
+func replaceBound(m *yaml.Node, exclusiveKey, inclusiveKey string, bound *yaml.Node, num numeric, lower, keepInclusive bool) bool {
+	step := num.step
 	if step == nil {
 		return false
 	}
@@ -147,7 +174,7 @@ func replaceBound(m *yaml.Node, exclusiveKey, inclusiveKey string, bound *yaml.N
 		whole.Sub(whole, big.NewInt(1))
 	}
 	result := new(big.Rat).Mul(new(big.Rat).SetInt(whole), step)
-	if !excludesEdge(result, edge, lower) {
+	if !excludesEdge(result, edge, lower, num.format) {
 		return false
 	}
 	if existing := mapValue(m, inclusiveKey); keepInclusive && existing != nil && existing != bound {
