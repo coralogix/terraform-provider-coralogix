@@ -1,0 +1,142 @@
+// Copyright 2026 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package aaa
+
+import (
+	"context"
+	"strconv"
+
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	tfstack "github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+)
+
+// userHooks returns the handwritten steps around the generated coralogix_user. The resource and
+// the data source share them. They carry the released behaviors that the generator cannot
+// express (CX-65729 stack 3; the fidelity recording pins them in
+// internal/provider/testdata/user_baseline):
+//
+//   - the name object folds the flat firstName and lastName of the contract into the released
+//     name.given_name and name.family_name;
+//   - active is the released view of the status enum: ACTIVE is true, every other status is
+//     false, and the attribute defaults to true;
+//   - groups holds the group ids as their decimal strings, the values SCIM returned;
+//   - Create sends the fixed onboarding mode beside the template (api.createValues).
+func UserHooks() user.Hooks {
+	return user.Hooks{
+		BeforeWrite:  userBeforeWrite,
+		AfterFlatten: userAfterFlatten,
+	}
+}
+
+// userName is the object of the name extra attribute.
+type userName struct {
+	FamilyName basetypes.StringValue `tfsdk:"family_name"`
+	GivenName  basetypes.StringValue `tfsdk:"given_name"`
+}
+
+var userNameAttrTypes = map[string]attr.Type{
+	"family_name": basetypes.StringType{},
+	"given_name":  basetypes.StringType{},
+}
+
+// userBeforeWrite folds the released Terraform shape into the request body. The body is the
+// Create item (*CreateUserRequest, with the template and the fixed onboarding mode beside it)
+// or the Update item (*UpdateUserRequest); the template in it carries the resource fields.
+func userBeforeWrite(ctx context.Context, config tfstack.Config, body any) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var template *users_management_service.UserTemplate
+	switch request := body.(type) {
+	case *users_management_service.CreateUserRequest:
+		if request == nil {
+			return diags
+		}
+		// Create sends the batch item with its fixed onboarding mode (api.createValues).
+		// The generator does not render createValues yet, so the hook sets it.
+		mode := users_management_service.ONBOARDINGMODE_ONBOARDING_MODE_NO_INVITE
+		request.OnboardingMode = &mode
+		template = request.UserTemplate
+	case *users_management_service.UpdateUserRequest:
+		if request == nil {
+			return diags
+		}
+		template = request.UserTemplate
+	default:
+		return diags
+	}
+	if template == nil {
+		return diags
+	}
+	var model user.RbacV2UserModel
+	if d := config.Get(ctx, &model); d.HasError() {
+		diags.Append(d...)
+		return diags
+	}
+	// The name object folds into the flat fields. A null object sends neither, as the
+	// released resource did for a user without a name.
+	if !model.Name.IsNull() && !model.Name.IsUnknown() {
+		var name userName
+		if d := model.Name.As(ctx, &name, basetypes.ObjectAsOptions{}); d.HasError() {
+			diags.Append(d...)
+			return diags
+		}
+		given := name.GivenName.ValueString()
+		family := name.FamilyName.ValueString()
+		template.FirstName = &given
+		template.LastName = &family
+	}
+	// active carries the status: true is ACTIVE, false INACTIVE. The attribute defaults
+	// to true, so a create always sends a status, and the batch PUT never clears one.
+	status := users_management_service.USERSTATUS_USER_STATUS_ACTIVE
+	if !model.Active.IsNull() && !model.Active.IsUnknown() && !model.Active.ValueBool() {
+		status = users_management_service.USERSTATUS_USER_STATUS_INACTIVE
+	}
+	template.Status = &status
+	return diags
+}
+
+// userAfterFlatten projects the flat API fields into the extra attributes: the name object,
+// the active bool, and the groups set of decimal strings.
+func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_management_service.RbacV2User) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if m == nil || v == nil {
+		return diags
+	}
+	name := userName{
+		GivenName:  basetypes.NewStringPointerValue(v.FirstName),
+		FamilyName: basetypes.NewStringPointerValue(v.LastName),
+	}
+	object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
+		"given_name":  name.GivenName,
+		"family_name": name.FamilyName,
+	})
+	diags.Append(d...)
+	m.Name = object
+	// active is ACTIVE; every other status is inactive: an unknown status never reports a
+	// user as usable.
+	m.Active = basetypes.NewBoolValue(v.GetStatus() == users_management_service.USERSTATUS_USER_STATUS_ACTIVE)
+	// groups holds the group ids as their decimal strings, in the order of the API.
+	ids := make([]string, 0, len(v.GroupIds))
+	for _, id := range v.GroupIds {
+		ids = append(ids, strconv.FormatInt(id, 10))
+	}
+	set, d := basetypes.NewSetValueFrom(ctx, basetypes.StringType{}, ids)
+	diags.Append(d...)
+	m.Groups = set
+	return diags
+}

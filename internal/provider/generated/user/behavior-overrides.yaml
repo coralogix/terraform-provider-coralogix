@@ -7,6 +7,7 @@ mode: existing
 typeName: user
 validators:
   inferred: false
+afterFlatten: true
 api:
   getFromList: {}
   idProperty: userId
@@ -47,6 +48,39 @@ types:
         name: user_name
         required: true
         releasedLimits: true
+      firstName:
+        skip: true
+      lastName:
+        skip: true
+      status:
+        skip: true
+      userAccountId:
+        skip: true
+    extraAttributes:
+      name:
+        type: object
+        optional: true
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "The name of the user."
+        attributes:
+          given_name:
+            type: string
+            markdownDescription: "The given (first) name of the user."
+          family_name:
+            type: string
+            markdownDescription: "The family (last) name of the user."
+      active:
+        type: bool
+        optional: true
+        computed: true
+        default: true
+        markdownDescription: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`."
+      groups:
+        type: set
+        elementType: string
+        computed: true
+        markdownDescription: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
   AccessType:
     fields:
       accessType:

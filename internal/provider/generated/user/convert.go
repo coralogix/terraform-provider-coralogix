@@ -31,9 +31,6 @@ var createFields = []struct {
 }{
 	{attr: "access_type", serverDefault: false},
 	{attr: "allowed_login_mode", serverDefault: false},
-	{attr: "first_name", serverDefault: true},
-	{attr: "last_name", serverDefault: true},
-	{attr: "status", serverDefault: false},
 	{attr: "user_name", serverDefault: false},
 }
 
@@ -94,23 +91,16 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"first_name":      true,
-	"group_ids":       true,
-	"last_name":       true,
-	"user_account_id": true,
-	"id":              true,
+	"group_ids": true,
+	"id":        true,
+	"active":    true,
+	"groups":    true,
+	"name":      true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
 	"user_name": true,
-}
-
-// omittedDefaults are the top-level attributes with a server default that a read can omit.
-// A read without one keeps a prior value that equals the default.
-var omittedDefaults = map[string]attr.Value{
-	"first_name": types.StringValue(""),
-	"last_name":  types.StringValue(""),
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -133,11 +123,7 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 		if diags.HasError() {
 			return diags
 		}
-		kept := priorEmpty(ctx, name, v, p, &diags)
-		if d := omittedDefaults[name]; d != nil && v.IsNull() && p.Equal(d) {
-			kept = p
-		}
-		if !kept.Equal(v) {
+		if kept := priorEmpty(ctx, name, v, p, &diags); !kept.Equal(v) {
 			diags.Append(state.SetAttribute(ctx, path.Root(name), kept)...)
 		}
 	}
@@ -263,9 +249,6 @@ func expandRbacV2UserCreate(ctx context.Context, p path.Path, m *RbacV2UserModel
 	out := &users_management_service.UserTemplate{}
 	out.AccessType = expandAccessType(ctx, p.AtName("access_type"), m.AccessType, diags)
 	out.AllowedLoginMode = expandStrings[users_management_service.AllowedLoginMode](ctx, p.AtName("allowed_login_mode"), m.AllowedLoginMode, diags)
-	out.FirstName = expandString(m.FirstName)
-	out.LastName = expandString(m.LastName)
-	out.Status = expandEnum[users_management_service.UserStatus](m.Status)
 	out.Username = expandString(m.Username)
 	return out
 }
@@ -319,9 +302,6 @@ func expandRbacV2UserUpdate(ctx context.Context, p path.Path, m *RbacV2UserModel
 	out := &users_management_service.UserTemplate{}
 	out.AccessType = expandAccessType(ctx, p.AtName("access_type"), m.AccessType, diags)
 	out.AllowedLoginMode = expandStrings[users_management_service.AllowedLoginMode](ctx, p.AtName("allowed_login_mode"), m.AllowedLoginMode, diags)
-	out.FirstName = expandString(m.FirstName)
-	out.LastName = expandString(m.LastName)
-	out.Status = expandEnum[users_management_service.UserStatus](m.Status)
 	out.Username = expandString(m.Username)
 	return out
 }
@@ -333,13 +313,12 @@ func flattenRbacV2User(ctx context.Context, p path.Path, v *users_management_ser
 	out := &RbacV2UserModel{}
 	out.AccessType = flattenAccessType(ctx, p.AtName("access_type"), v.AccessType, diags)
 	out.AllowedLoginMode = flattenEnumsList(ctx, p.AtName("allowed_login_mode"), v.AllowedLoginMode, "ALLOWED_LOGIN_MODE_UNSPECIFIED", diags)
-	out.FirstName = types.StringPointerValue(v.FirstName)
 	out.GroupIds = flattenScalarsList(ctx, types.Int64Type, v.GroupIds, diags)
-	out.LastName = types.StringPointerValue(v.LastName)
-	out.Status = flattenEnum(v.Status, "USER_STATUS_UNSPECIFIED")
-	out.UserAccountId = types.Int64PointerValue(v.UserAccountId)
 	out.UserId = types.StringPointerValue(&v.UserId)
 	out.Username = types.StringPointerValue(&v.Username)
+	out.Active = types.BoolNull()
+	out.Groups = types.SetNull(types.StringType)
+	out.Name = types.ObjectNull(map[string]attr.Type{"family_name": types.StringType, "given_name": types.StringType})
 	return out
 }
 
@@ -574,14 +553,6 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
-}
-
-func expandInt64(v types.Int64) *int64 {
-	if v.IsNull() || v.IsUnknown() {
-		return nil
-	}
-	n := v.ValueInt64()
-	return &n
 }
 
 func flattenScalarsList[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.List {

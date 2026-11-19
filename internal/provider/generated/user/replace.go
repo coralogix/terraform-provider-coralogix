@@ -27,9 +27,6 @@ var updateFields = []struct {
 }{
 	{attr: "access_type", serverDefault: false},
 	{attr: "allowed_login_mode", serverDefault: false},
-	{attr: "first_name", serverDefault: true},
-	{attr: "last_name", serverDefault: true},
-	{attr: "status", serverDefault: false},
 	{attr: "user_name", serverDefault: false},
 }
 

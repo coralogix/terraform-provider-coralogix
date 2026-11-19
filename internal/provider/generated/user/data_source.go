@@ -29,8 +29,8 @@ type DataSource struct {
 }
 
 // NewDataSource returns the data source. Use it in provider.DataSources. Pass the hooks of the
-// resource: the data source runs BeforeFlatten. It has no prior plan or state, so it does not run
-// AfterRead.
+// resource: the data source runs BeforeFlatten and AfterFlatten.
+// It has no prior plan or state, so it does not run AfterRead.
 func NewDataSource(hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{hooks: hooks}}
 }
@@ -98,6 +98,12 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	if d.resource.hooks.AfterFlatten != nil {
+		resp.Diagnostics.Append(d.resource.hooks.AfterFlatten(ctx, m, v)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }

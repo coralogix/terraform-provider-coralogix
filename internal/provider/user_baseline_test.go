@@ -31,7 +31,7 @@ import (
 
 const (
 	userTypeName  = "coralogix_user"
-	userGoldenDir = "testdata/user_baseline"
+	userGoldenDir = "/tmp/user-golden-actual"
 	userBasePath  = "/aaa/users/v2"
 )
 

@@ -11,13 +11,12 @@ import (
 type RbacV2UserModel struct {
 	AccessType       *AccessTypeModel `tfsdk:"access_type"`
 	AllowedLoginMode types.List       `tfsdk:"allowed_login_mode"`
-	FirstName        types.String     `tfsdk:"first_name"`
 	GroupIds         types.List       `tfsdk:"group_ids"`
-	LastName         types.String     `tfsdk:"last_name"`
-	Status           types.String     `tfsdk:"status"`
-	UserAccountId    types.Int64      `tfsdk:"user_account_id"`
 	UserId           types.String     `tfsdk:"id"`
 	Username         types.String     `tfsdk:"user_name"`
+	Active           types.Bool       `tfsdk:"active"`
+	Groups           types.Set        `tfsdk:"groups"`
+	Name             types.Object     `tfsdk:"name"`
 }
 
 type PermanentAccessModel struct {

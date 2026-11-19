@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -53,34 +55,10 @@ func Schema() schema.Schema {
 				ElementType:         types.StringType,
 				MarkdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both.",
 			},
-			"first_name": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					serverDefaultModifier{value: types.StringValue("")},
-				},
-				MarkdownDescription: "User first name. Omitted when the user has no first name.",
-			},
 			"group_ids": schema.ListAttribute{
 				Computed:            true,
 				ElementType:         types.Int64Type,
 				MarkdownDescription: "IDs of the team groups this user is a member of.",
-			},
-			"last_name": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					serverDefaultModifier{value: types.StringValue("")},
-				},
-				MarkdownDescription: "User last name. Omitted when the user has no last name.",
-			},
-			"status": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "User status: [Active, Inactive]",
-			},
-			"user_account_id": schema.Int64Attribute{
-				Computed:            true,
-				MarkdownDescription: "Associated account id. An account can have many users.",
 			},
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -93,6 +71,35 @@ func Schema() schema.Schema {
 				Required:            true,
 				MarkdownDescription: "Unique username",
 			},
+			"active": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
+				MarkdownDescription: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.",
+			},
+			"groups": schema.SetAttribute{
+				Computed:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.",
+			},
+			"name": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"family_name": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "The family (last) name of the user.",
+					},
+					"given_name": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "The given (first) name of the user.",
+					},
+				},
+				MarkdownDescription: "The name of the user.",
+			},
 		},
 	}
 }
@@ -100,42 +107,6 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
-}
-
-// serverDefaultModifier distinguishes removal from a steady server default.
-// It never inserts the default into configuration or an API request. When a
-// user removes a different value, it makes the plan unknown. Update then sends
-// the field in the update mask without a body value, and the API resets it.
-type serverDefaultModifier struct{ value attr.Value }
-
-func (m serverDefaultModifier) Description(context.Context) string {
-	return "Resets a removed value to the server default."
-}
-
-func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
-	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
-		return false, false
-	}
-	if state.Equal(declared) {
-		return false, true
-	}
-	return true, false
-}
-
-func (m serverDefaultModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.Plan.Raw.IsNull() {
-		return
-	}
-	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
-	if unknown {
-		resp.PlanValue = types.StringUnknown()
-	} else if preserve {
-		resp.PlanValue = req.StateValue
-	}
 }
 
 // oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its
