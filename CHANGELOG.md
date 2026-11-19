@@ -1,5 +1,17 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
+- CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.
+
+#### data-source/coralogix_slo_v2
+- FEAT: Add `sli_definition`, the same attribute as on the resource.
+
+#### tools/iac-codegen
+- FIX: The server default of an enum that the overrides map to Terraform values is in the Terraform spelling. The plan modifier compares it with the state, which holds that spelling, so before this change the API spelling never matched, and every plan proposed an update for an attribute that left the value out.
+- FEAT: `keepUnsetComputedState: true` makes the generated `ModifyPlan` plan no change when the plan differs from the state only in unknown values that the configuration does not set. It is for an API that fills a field from another field. An attribute with a server default is skipped, so a dropped value still plans a change, and the key refuses a server default inside a set of objects.
+- FEAT: An exclusive numeric bound is read as the inclusive bound that accepts the same values, when the values are the multiples of a step (`multipleOf`, or 1 for an integer). `exclusiveMinimum: 0` with `multipleOf: 0.001` is read as `minimum: 0.001`, and an integer `exclusiveMaximum: 11` as `maximum: 10`. Before, the generator rejected every exclusive bound with `NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED`. A number with no `multipleOf` is still rejected. Generator version `v0.1.0-beta.92`.
+
 # Release 3.26.1
 
 #### resource/coralogix_alert

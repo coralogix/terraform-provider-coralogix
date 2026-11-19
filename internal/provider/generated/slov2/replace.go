@@ -31,6 +31,7 @@ var updateFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "ownership_tags", serverDefault: false},
 	{attr: "product_type", serverDefault: false},
+	{attr: "sli_definition", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "target_threshold_percentage", serverDefault: false},
 }

@@ -29,9 +29,10 @@ func Schema() schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"sli": schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.Object{
-					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"apm_sli", "request_based_metric_sli", "window_based_metric_sli"}, Required: true}}},
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"apm_sli", "request_based_metric_sli", "window_based_metric_sli"}, Required: false}}},
 				},
 				Attributes: map[string]schema.Attribute{
 					"apm_sli": schema.SingleNestedAttribute{
@@ -214,7 +215,7 @@ func Schema() schema.Schema {
 						MarkdownDescription: "SLI based on time-window metrics.",
 					},
 				},
-				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided.",
+				MarkdownDescription: "Deprecated SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli. Use sli_definition instead. Exactly one of sli or sli_definition must be provided. The API fills this block from sli_definition when the SLI can be expressed with it, so this attribute is computed.",
 			},
 			"apm_sli_metadata": schema.SingleNestedAttribute{
 				Computed: true,
@@ -427,6 +428,262 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = \"unspecified\"` to reset it.",
 			},
+			"sli_definition": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("sli")),
+					oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"request_based", "window_based"}, Required: true}}},
+				},
+				Attributes: map[string]schema.Attribute{
+					"request_based": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"apm", "custom"}, Required: true}}},
+						},
+						Attributes: map[string]schema.Attribute{
+							"apm": schema.SingleNestedAttribute{
+								Optional: true,
+								Validators: []validator.Object{
+									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"availability", "latency"}, Required: true}}},
+								},
+								Attributes: map[string]schema.Attribute{
+									"availability": schema.SingleNestedAttribute{
+										Optional:            true,
+										Attributes:          map[string]schema.Attribute{},
+										MarkdownDescription: "A span is good when it has no error.",
+									},
+									"latency": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"threshold_ms": schema.Float64Attribute{
+												Required:            true,
+												MarkdownDescription: "Latency threshold in milliseconds, greater than 0, with at most 3 decimal places (whole microseconds). A span is good when its duration is <= this value. Required.",
+											},
+										},
+										MarkdownDescription: "A span is good when its duration is <= `thresholdMs`. With the `APM_SOURCE_E2M` metric source, any `thresholdMs` is accepted. With `APM_SOURCE_SPAN_METRICS`, `thresholdMs` must be one of the bucket bounds of the selected service's span duration histogram; rejected otherwise.",
+									},
+									"selector": schema.SingleNestedAttribute{
+										Required: true,
+										Attributes: map[string]schema.Attribute{
+											"filters": schema.ListNestedAttribute{
+												Optional: true,
+												NestedObject: schema.NestedAttributeObject{
+													Attributes: map[string]schema.Attribute{
+														"key": schema.StringAttribute{
+															Required:            true,
+															MarkdownDescription: "Label or tag name to filter on.",
+														},
+														"match_operator": schema.StringAttribute{
+															Optional: true,
+															Computed: true,
+															Default:  stringdefault.StaticString("unspecified"),
+															Validators: []validator.String{
+																stringvalidator.OneOf("ends_with", "includes", "is", "starts_with", "unspecified"),
+															},
+															MarkdownDescription: "How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.",
+														},
+														"values": schema.ListAttribute{
+															Required:    true,
+															ElementType: types.StringType,
+															Validators: []validator.List{
+																listvalidator.SizeAtLeast(1),
+															},
+															MarkdownDescription: "Values to match, with OR semantics.",
+														},
+													},
+												},
+												MarkdownDescription: "Filters on the labels of the APM metrics, narrowing the spans they cover. At most 20, each with at most 50 values, and keys and values of at most 256 characters. With the `APM_SOURCE_E2M` metric source, keys must be labels of the account's service catalog span duration metric; others are rejected.",
+											},
+											"grouping_keys": schema.ListAttribute{
+												Optional:            true,
+												ElementType:         types.StringType,
+												MarkdownDescription: "Labels to group SLO results by. At most 6. With the `APM_SOURCE_E2M` metric source, each must be a label of the account's service catalog span duration metric; others are rejected.",
+											},
+											"services": schema.ListAttribute{
+												Required:            true,
+												ElementType:         types.StringType,
+												MarkdownDescription: "Service names to monitor. Required. Exactly one service.",
+											},
+										},
+										MarkdownDescription: "Services and filters to count spans of. Required.",
+									},
+								},
+								MarkdownDescription: "Good and total events generated from APM span data for the selected services.",
+							},
+							"custom": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"good_events": schema.SingleNestedAttribute{
+										Required: true,
+										Attributes: map[string]schema.Attribute{
+											"query": schema.StringAttribute{
+												Required:            true,
+												MarkdownDescription: "Query string for the metric.",
+											},
+										},
+										MarkdownDescription: "Query defining good events.",
+									},
+									"total_events": schema.SingleNestedAttribute{
+										Required: true,
+										Attributes: map[string]schema.Attribute{
+											"query": schema.StringAttribute{
+												Required:            true,
+												MarkdownDescription: "Query string for the metric.",
+											},
+										},
+										MarkdownDescription: "Query defining total events.",
+									},
+								},
+								MarkdownDescription: "Custom metric queries for the good and total events.",
+							},
+						},
+						MarkdownDescription: "Count per request: the SLI is the ratio of good events to total events over the SLO time frame.",
+					},
+					"window_based": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"apm", "custom"}, Required: true}}},
+						},
+						Attributes: map[string]schema.Attribute{
+							"apm": schema.SingleNestedAttribute{
+								Optional: true,
+								Validators: []validator.Object{
+									oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"availability", "latency"}, Required: true}}},
+								},
+								Attributes: map[string]schema.Attribute{
+									"availability": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"threshold_ratio": schema.Float32Attribute{
+												Required:            true,
+												MarkdownDescription: "Availability threshold as a ratio from 0 to 1 (not a percentage). A window is good when its value is >= this value. Required.",
+											},
+										},
+										MarkdownDescription: "Each window's value is its ratio of spans without an error, from 0 to 1. A window is good when its value is >= `thresholdRatio`.",
+									},
+									"latency": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"average", "quantile"}, Required: true}}},
+										},
+										Attributes: map[string]schema.Attribute{
+											"average": schema.SingleNestedAttribute{
+												Optional:            true,
+												Attributes:          map[string]schema.Attribute{},
+												MarkdownDescription: "Aggregate by the mean span duration.",
+											},
+											"quantile": schema.SingleNestedAttribute{
+												Optional: true,
+												Attributes: map[string]schema.Attribute{
+													"percentile": schema.Float32Attribute{
+														Optional: true,
+														Computed: true,
+														PlanModifiers: []planmodifier.Float32{
+															float32planmodifier.UseNonNullStateForUnknown(),
+														},
+														MarkdownDescription: "Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it.",
+													},
+												},
+												MarkdownDescription: "Aggregate by a percentile of span durations. `percentile` is required, greater than 0 and at most 1; omitting it is the same as sending 0, which is rejected.",
+											},
+											"threshold_ms": schema.Float64Attribute{
+												Required:            true,
+												MarkdownDescription: "Latency threshold in milliseconds, with at most 3 decimal places (whole microseconds). A window is good when its aggregated duration is <= this value. Required. Should be greater than 0; 0 is accepted only for compatibility and is deprecated.",
+											},
+										},
+										MarkdownDescription: "Each window's value is its aggregated span duration, in milliseconds. A window is good when its value is <= `thresholdMs`.",
+									},
+									"selector": schema.SingleNestedAttribute{
+										Required: true,
+										Attributes: map[string]schema.Attribute{
+											"filters": schema.ListNestedAttribute{
+												Optional: true,
+												NestedObject: schema.NestedAttributeObject{
+													Attributes: map[string]schema.Attribute{
+														"key": schema.StringAttribute{
+															Required:            true,
+															MarkdownDescription: "Label or tag name to filter on.",
+														},
+														"match_operator": schema.StringAttribute{
+															Optional: true,
+															Computed: true,
+															Default:  stringdefault.StaticString("unspecified"),
+															Validators: []validator.String{
+																stringvalidator.OneOf("ends_with", "includes", "is", "starts_with", "unspecified"),
+															},
+															MarkdownDescription: "How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.",
+														},
+														"values": schema.ListAttribute{
+															Required:    true,
+															ElementType: types.StringType,
+															Validators: []validator.List{
+																listvalidator.SizeAtLeast(1),
+															},
+															MarkdownDescription: "Values to match, with OR semantics.",
+														},
+													},
+												},
+												MarkdownDescription: "Filters on the labels of the APM metrics, narrowing the spans they cover. At most 20, each with at most 50 values, and keys and values of at most 256 characters. With the `APM_SOURCE_E2M` metric source, keys must be labels of the account's service catalog span duration metric; others are rejected.",
+											},
+											"grouping_keys": schema.ListAttribute{
+												Optional:            true,
+												ElementType:         types.StringType,
+												MarkdownDescription: "Labels to group SLO results by. At most 6. With the `APM_SOURCE_E2M` metric source, each must be a label of the account's service catalog span duration metric; others are rejected.",
+											},
+											"services": schema.ListAttribute{
+												Required:            true,
+												ElementType:         types.StringType,
+												MarkdownDescription: "Service names to monitor. Required. Exactly one service.",
+											},
+										},
+										MarkdownDescription: "Services and filters to aggregate spans of. Required.",
+									},
+								},
+								MarkdownDescription: "Window value generated from APM span data for the selected services.",
+							},
+							"custom": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"comparison_operator": schema.StringAttribute{
+										Required:            true,
+										MarkdownDescription: "How each window's value is compared to `threshold`. Required.",
+									},
+									"query": schema.SingleNestedAttribute{
+										Required: true,
+										Attributes: map[string]schema.Attribute{
+											"query": schema.StringAttribute{
+												Required:            true,
+												MarkdownDescription: "Query string for the metric.",
+											},
+										},
+										MarkdownDescription: "Query yielding the value of each window. Required.",
+									},
+									"threshold": schema.Float32Attribute{
+										Required:            true,
+										MarkdownDescription: "Value each window is compared to, in the unit of the query's result. Required.",
+									},
+								},
+								MarkdownDescription: "Custom metric query yielding the value of each window, and how it is compared to a threshold.",
+							},
+							"missing_data_strategy": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.String{
+									serverDefaultModifier{value: types.StringValue("uncounted")},
+								},
+								MarkdownDescription: "How a window without data is counted.",
+							},
+							"window": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "Size of each evaluated time window. Required.",
+							},
+						},
+						MarkdownDescription: "Count per time window: the SLI is the ratio of good windows to all windows over the SLO time frame.",
+					},
+				},
+				MarkdownDescription: "Definition of the SLI: request-based or window-based, from custom metric queries or from APM. Replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be provided. The API returns it for every SLO, also for one created with `sli`, so this attribute is computed: removing it keeps the value the API derived, and an unknown value is not sent.",
+			},
 			"window": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
@@ -455,6 +712,42 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// serverDefaultModifier distinguishes removal from a steady server default.
+// It never inserts the default into configuration or an API request. When a
+// user removes a different value, it makes the plan unknown. Update then sends
+// the field in the update mask without a body value, and the API resets it.
+type serverDefaultModifier struct{ value attr.Value }
+
+func (m serverDefaultModifier) Description(context.Context) string {
+	return "Resets a removed value to the server default."
+}
+
+func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
+	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
+		return false, false
+	}
+	if state.Equal(declared) {
+		return false, true
+	}
+	return true, false
+}
+
+func (m serverDefaultModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.StringUnknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 // oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its

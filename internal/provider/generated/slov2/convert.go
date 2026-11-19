@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
@@ -66,30 +67,6 @@ var sloProductTypeFromAPI = map[slos_service.SloProductType]string{
 	slos_service.SloProductType("SLO_PRODUCT_TYPE_APM"):         "apm",
 }
 
-// sloTimeFrameToAPI maps the Terraform values of the enum to its API values.
-var sloTimeFrameToAPI = map[string]slos_service.SloTimeFrame{
-	"unspecified":    slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"),
-	"1_day":          slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"),
-	"7_days":         slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"),
-	"14_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"),
-	"21_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"),
-	"28_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"),
-	"30_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"),
-	"calendar_month": slos_service.SloTimeFrame("SLO_TIME_FRAME_CALENDAR_MONTH"),
-}
-
-// sloTimeFrameFromAPI maps the API values of the enum to its Terraform values.
-var sloTimeFrameFromAPI = map[slos_service.SloTimeFrame]string{
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"):    "unspecified",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"):          "1_day",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"):         "7_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"):        "14_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"):        "21_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"):        "28_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"):        "30_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_CALENDAR_MONTH"): "calendar_month",
-}
-
 // comparisonOperatorToAPI maps the Terraform values of the enum to its API values.
 var comparisonOperatorToAPI = map[string]slos_service.ComparisonOperator{
 	"unspecified":            slos_service.ComparisonOperator("COMPARISON_OPERATOR_UNSPECIFIED"),
@@ -122,6 +99,30 @@ var missingDataStrategyFromAPI = map[slos_service.MissingDataStrategy]string{
 	slos_service.MissingDataStrategy("MISSING_DATA_STRATEGY_BAD"):       "bad",
 }
 
+// sloTimeFrameToAPI maps the Terraform values of the enum to its API values.
+var sloTimeFrameToAPI = map[string]slos_service.SloTimeFrame{
+	"unspecified":    slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"),
+	"1_day":          slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"),
+	"7_days":         slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"),
+	"14_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"),
+	"21_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"),
+	"28_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"),
+	"30_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"),
+	"calendar_month": slos_service.SloTimeFrame("SLO_TIME_FRAME_CALENDAR_MONTH"),
+}
+
+// sloTimeFrameFromAPI maps the API values of the enum to its Terraform values.
+var sloTimeFrameFromAPI = map[slos_service.SloTimeFrame]string{
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"):    "unspecified",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"):          "1_day",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"):         "7_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"):        "14_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"):        "21_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"):        "28_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"):        "30_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_CALENDAR_MONTH"): "calendar_month",
+}
+
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -136,6 +137,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "ownership_tags", serverDefault: false},
 	{attr: "product_type", serverDefault: false},
+	{attr: "sli_definition", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "target_threshold_percentage", serverDefault: false},
 }
@@ -166,6 +168,17 @@ var serverAttrs = map[string]bool{
 	"ownership_tags.team.resolved_values":        true,
 }
 
+// defaultAttrs are the nested attributes with a server default, by path. A
+// request does not send an unknown value of one, so the server stores the default.
+var defaultAttrs = map[string]attr.Value{
+	"sli_definition.window_based.missing_data_strategy": types.StringValue("uncounted"),
+}
+
+// defaultObjects are the objects that hold an attribute with a server default, by path.
+var defaultObjects = map[string]bool{
+	"sli_definition.window_based": true,
+}
+
 // requestValue returns v with a null value for each attribute that the server
 // sets. When the resource changes, Terraform plans these attributes as
 // unknown. A request does not send them, so a change check and an
@@ -179,7 +192,7 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		attrTypes := v.AttributeTypes(ctx)
 		out := make(map[string]attr.Value, len(attrTypes))
 		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] {
+			if serverAttrs[at+"."+name] || defaultAttrs[at+"."+name] != nil && child.IsUnknown() {
 				out[name] = nullValue(ctx, attrTypes[name], diags)
 			} else {
 				out[name] = requestValue(ctx, at+"."+name, child, diags)
@@ -262,26 +275,39 @@ func flatten(ctx context.Context, v *slos_service.Slo, prior *SloModel) (*SloMod
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
-	"sli.request_based_metric_sli":             true,
-	"sli.window_based_metric_sli":              true,
-	"sli.apm_sli":                              true,
-	"sli.apm_sli.error_config":                 true,
-	"sli.apm_sli.latency_config":               true,
-	"sli.apm_sli.latency_config.average":       true,
-	"sli.apm_sli.latency_config.quantile":      true,
-	"apm_sli_metadata.error_config":            true,
-	"apm_sli_metadata.latency_config":          true,
-	"apm_sli_metadata.latency_config.average":  true,
-	"apm_sli_metadata.latency_config.quantile": true,
+	"sli.request_based_metric_sli":                     true,
+	"sli.window_based_metric_sli":                      true,
+	"sli.apm_sli":                                      true,
+	"sli.apm_sli.error_config":                         true,
+	"sli.apm_sli.latency_config":                       true,
+	"sli.apm_sli.latency_config.average":               true,
+	"sli.apm_sli.latency_config.quantile":              true,
+	"apm_sli_metadata.error_config":                    true,
+	"apm_sli_metadata.latency_config":                  true,
+	"apm_sli_metadata.latency_config.average":          true,
+	"apm_sli_metadata.latency_config.quantile":         true,
+	"sli_definition.request_based":                     true,
+	"sli_definition.request_based.apm":                 true,
+	"sli_definition.request_based.apm.availability":    true,
+	"sli_definition.request_based.apm.latency":         true,
+	"sli_definition.request_based.custom":              true,
+	"sli_definition.window_based":                      true,
+	"sli_definition.window_based.apm":                  true,
+	"sli_definition.window_based.apm.availability":     true,
+	"sli_definition.window_based.apm.latency":          true,
+	"sli_definition.window_based.apm.latency.average":  true,
+	"sli_definition.window_based.apm.latency.quantile": true,
+	"sli_definition.window_based.custom":               true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"sli.apm_sli.filters.match_operator":                  true,
-	"sli.apm_sli.latency_config.quantile.percentile":      true,
-	"sli.apm_sli.latency_config.threshold":                true,
-	"sli.window_based_metric_sli.missing_data_strategy":   true,
+	"sli":                                true,
+	"sli.apm_sli.filters.match_operator": true,
+	"sli.apm_sli.latency_config.quantile.percentile":    true,
+	"sli.apm_sli.latency_config.threshold":              true,
+	"sli.window_based_metric_sli.missing_data_strategy": true,
 	"apm_sli_metadata":                                    true,
 	"apm_sli_metadata.error_config":                       true,
 	"apm_sli_metadata.filters":                            true,
@@ -304,28 +330,52 @@ var computedAttrs = map[string]bool{
 	"ownership_tags.service.resolved_values":              true,
 	"ownership_tags.team.resolved_values":                 true,
 	"product_type":                                        true,
+	"sli_definition":                                      true,
+	"sli_definition.request_based.apm.selector.filters.match_operator": true,
+	"sli_definition.window_based.apm.latency.quantile.percentile":      true,
+	"sli_definition.window_based.apm.selector.filters.match_operator":  true,
+	"sli_definition.window_based.missing_data_strategy":                true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"sli":                                             true,
-	"sli.apm_sli.filters.key":                         true,
-	"sli.apm_sli.filters.values":                      true,
-	"sli.apm_sli.latency_config.time_window":          true,
-	"sli.apm_sli.services":                            true,
-	"sli.request_based_metric_sli.good_events":        true,
-	"sli.request_based_metric_sli.good_events.query":  true,
-	"sli.request_based_metric_sli.total_events":       true,
-	"sli.request_based_metric_sli.total_events.query": true,
-	"sli.window_based_metric_sli.comparison_operator": true,
-	"sli.window_based_metric_sli.query":               true,
-	"sli.window_based_metric_sli.query.query":         true,
-	"sli.window_based_metric_sli.threshold":           true,
-	"sli.window_based_metric_sli.window":              true,
-	"name":                                            true,
-	"window":                                          true,
-	"window.slo_time_frame":                           true,
-	"target_threshold_percentage":                     true,
+	"sli.apm_sli.filters.key":                                      true,
+	"sli.apm_sli.filters.values":                                   true,
+	"sli.apm_sli.latency_config.time_window":                       true,
+	"sli.apm_sli.services":                                         true,
+	"sli.request_based_metric_sli.good_events":                     true,
+	"sli.request_based_metric_sli.good_events.query":               true,
+	"sli.request_based_metric_sli.total_events":                    true,
+	"sli.request_based_metric_sli.total_events.query":              true,
+	"sli.window_based_metric_sli.comparison_operator":              true,
+	"sli.window_based_metric_sli.query":                            true,
+	"sli.window_based_metric_sli.query.query":                      true,
+	"sli.window_based_metric_sli.threshold":                        true,
+	"sli.window_based_metric_sli.window":                           true,
+	"name":                                                         true,
+	"sli_definition.request_based.apm.latency.threshold_ms":        true,
+	"sli_definition.request_based.apm.selector":                    true,
+	"sli_definition.request_based.apm.selector.filters.key":        true,
+	"sli_definition.request_based.apm.selector.filters.values":     true,
+	"sli_definition.request_based.apm.selector.services":           true,
+	"sli_definition.request_based.custom.good_events":              true,
+	"sli_definition.request_based.custom.good_events.query":        true,
+	"sli_definition.request_based.custom.total_events":             true,
+	"sli_definition.request_based.custom.total_events.query":       true,
+	"sli_definition.window_based.apm.availability.threshold_ratio": true,
+	"sli_definition.window_based.apm.latency.threshold_ms":         true,
+	"sli_definition.window_based.apm.selector":                     true,
+	"sli_definition.window_based.apm.selector.filters.key":         true,
+	"sli_definition.window_based.apm.selector.filters.values":      true,
+	"sli_definition.window_based.apm.selector.services":            true,
+	"sli_definition.window_based.custom.comparison_operator":       true,
+	"sli_definition.window_based.custom.query":                     true,
+	"sli_definition.window_based.custom.query.query":               true,
+	"sli_definition.window_based.custom.threshold":                 true,
+	"sli_definition.window_based.window":                           true,
+	"window":                                                       true,
+	"window.slo_time_frame":                                        true,
+	"target_threshold_percentage":                                  true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -359,6 +409,10 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
+	// A read can leave out a nested value that equals its declared server default.
+	if d := defaultAttrs[at]; d != nil && v.IsNull() && p != nil && p.Equal(d) {
+		return p
+	}
 	if keepAPIValue(at, v, p) {
 		return v
 	}
@@ -438,7 +492,10 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 }
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
-// object outside a oneOf arm whose attributes are all empty.
+// object outside a oneOf arm whose attributes are all empty. The service fills
+// an omitted object that holds an attribute with a server default, so an
+// attribute that is "" or that equals its declared server default is empty
+// inside that object.
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -458,7 +515,7 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) {
+			if !emptyValue(at+"."+name, child) && !(defaultObjects[at] && defaultValue(at+"."+name, child)) {
 				return false
 			}
 		}
@@ -467,12 +524,26 @@ func emptyValue(at string, v attr.Value) bool {
 	return false
 }
 
+// defaultValue reports whether child, an attribute of an object at path at, is
+// "" or its declared server default.
+func defaultValue(at string, child attr.Value) bool {
+	if d := defaultAttrs[at]; d != nil && child.Equal(d) {
+		return true
+	}
+	s, ok := child.(types.String)
+	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
+}
+
 func expandSlo1(ctx context.Context, p path.Path, m *SloModel, diags *diag.Diagnostics) *slos_service.Slo1 {
 	if m == nil {
 		return nil
 	}
 	out := &slos_service.Slo1{}
-	expandSlo1Sli(ctx, p.AtName("sli"), m.Sli, out, diags)
+	if v := m.Sli; !v.IsNull() && !v.IsUnknown() {
+		var nested SloSliModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expandSlo1Sli(ctx, p.AtName("sli"), &nested, out, diags)
+	}
 	if m.Description.IsNull() {
 		// The API keeps a stored value that the request omits, so a removed value is sent as "".
 		out.Description = new(string)
@@ -483,6 +554,11 @@ func expandSlo1(ctx context.Context, p path.Path, m *SloModel, diags *diag.Diagn
 	out.Name = valueOf(expandString(m.Name))
 	out.OwnershipTags = expandSloOwnershipTags(ctx, p.AtName("ownership_tags"), m.OwnershipTags, diags)
 	out.ProductType = expandEnumMapped(p.AtName("product_type"), m.ProductType, sloProductTypeToAPI, diags)
+	if v := m.SliDefinition; !v.IsNull() && !v.IsUnknown() {
+		var nested SliModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.SliDefinition = expandSli(ctx, p.AtName("sli_definition"), &nested, diags)
+	}
 	expandSlo1Window(ctx, p.AtName("window"), m.Window, out, diags)
 	out.TargetThresholdPercentage = expandFloat32(m.TargetThresholdPercentage)
 	return out
@@ -720,6 +796,13 @@ func flattenRequestBasedMetricSli(ctx context.Context, p path.Path, v *slos_serv
 	return out
 }
 
+func requestBasedMetricSliAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"good_events":  types.ObjectType{AttrTypes: metricAttrTypes()},
+		"total_events": types.ObjectType{AttrTypes: metricAttrTypes()},
+	}
+}
+
 func expandMetric(ctx context.Context, p path.Path, m *MetricModel, diags *diag.Diagnostics) *slos_service.Metric {
 	if m == nil {
 		return nil
@@ -736,6 +819,317 @@ func flattenMetric(ctx context.Context, p path.Path, v *slos_service.Metric, dia
 	out := &MetricModel{}
 	out.Query = types.StringPointerValue(&v.Query)
 	return out
+}
+
+func metricAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query": types.StringType,
+	}
+}
+
+func expandSli(ctx context.Context, p path.Path, m *SliModel, diags *diag.Diagnostics) *slos_service.Sli {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.Sli{}
+	out.RequestBased = expandRequestBasedSli(ctx, p.AtName("request_based"), m.RequestBased, diags)
+	out.WindowBased = expandWindowBasedSli(ctx, p.AtName("window_based"), m.WindowBased, diags)
+	return out
+}
+
+func flattenSli(ctx context.Context, p path.Path, v *slos_service.Sli, diags *diag.Diagnostics) *SliModel {
+	if v == nil {
+		return nil
+	}
+	out := &SliModel{}
+	out.RequestBased = flattenRequestBasedSli(ctx, p.AtName("request_based"), v.RequestBased, diags)
+	out.WindowBased = flattenWindowBasedSli(ctx, p.AtName("window_based"), v.WindowBased, diags)
+	return out
+}
+
+func sliAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"request_based": types.ObjectType{AttrTypes: requestBasedSliAttrTypes()},
+		"window_based":  types.ObjectType{AttrTypes: windowBasedSliAttrTypes()},
+	}
+}
+
+func expandRequestBasedSli(ctx context.Context, p path.Path, m *RequestBasedSliModel, diags *diag.Diagnostics) *slos_service.RequestBasedSli {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.RequestBasedSli{}
+	out.Apm = expandApmRequestBasedSource(ctx, p.AtName("apm"), m.Apm, diags)
+	out.Custom = expandRequestBasedMetricSli(ctx, p.AtName("custom"), m.Custom, diags)
+	return out
+}
+
+func flattenRequestBasedSli(ctx context.Context, p path.Path, v *slos_service.RequestBasedSli, diags *diag.Diagnostics) *RequestBasedSliModel {
+	if v == nil {
+		return nil
+	}
+	out := &RequestBasedSliModel{}
+	out.Apm = flattenApmRequestBasedSource(ctx, p.AtName("apm"), v.Apm, diags)
+	out.Custom = flattenRequestBasedMetricSli(ctx, p.AtName("custom"), v.Custom, diags)
+	return out
+}
+
+func requestBasedSliAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"apm":    types.ObjectType{AttrTypes: apmRequestBasedSourceAttrTypes()},
+		"custom": types.ObjectType{AttrTypes: requestBasedMetricSliAttrTypes()},
+	}
+}
+
+func expandApmRequestBasedSource(ctx context.Context, p path.Path, m *ApmRequestBasedSourceModel, diags *diag.Diagnostics) *slos_service.ApmRequestBasedSource {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.ApmRequestBasedSource{}
+	if m.Availability != nil {
+		out.Availability = map[string]interface{}{}
+	}
+	out.Latency = expandApmRequestBasedLatency(ctx, p.AtName("latency"), m.Latency, diags)
+	out.Selector = valueOf(expandApmSelector(ctx, p.AtName("selector"), m.Selector, diags))
+	return out
+}
+
+func flattenApmRequestBasedSource(ctx context.Context, p path.Path, v *slos_service.ApmRequestBasedSource, diags *diag.Diagnostics) *ApmRequestBasedSourceModel {
+	if v == nil {
+		return nil
+	}
+	out := &ApmRequestBasedSourceModel{}
+	if v.Availability != nil {
+		out.Availability = &ApmRequestBasedAvailabilityModel{}
+	}
+	out.Latency = flattenApmRequestBasedLatency(ctx, p.AtName("latency"), v.Latency, diags)
+	out.Selector = flattenApmSelector(ctx, p.AtName("selector"), &v.Selector, diags)
+	return out
+}
+
+func apmRequestBasedSourceAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"availability": types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"latency":      types.ObjectType{AttrTypes: apmRequestBasedLatencyAttrTypes()},
+		"selector":     types.ObjectType{AttrTypes: apmSelectorAttrTypes()},
+	}
+}
+
+func expandApmRequestBasedLatency(ctx context.Context, p path.Path, m *ApmRequestBasedLatencyModel, diags *diag.Diagnostics) *slos_service.ApmRequestBasedLatency {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.ApmRequestBasedLatency{}
+	out.ThresholdMs = valueOf(expandFloat64(m.ThresholdMs))
+	return out
+}
+
+func flattenApmRequestBasedLatency(ctx context.Context, p path.Path, v *slos_service.ApmRequestBasedLatency, diags *diag.Diagnostics) *ApmRequestBasedLatencyModel {
+	if v == nil {
+		return nil
+	}
+	out := &ApmRequestBasedLatencyModel{}
+	out.ThresholdMs = types.Float64PointerValue(&v.ThresholdMs)
+	return out
+}
+
+func apmRequestBasedLatencyAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"threshold_ms": types.Float64Type,
+	}
+}
+
+func expandApmSelector(ctx context.Context, p path.Path, m *ApmSelectorModel, diags *diag.Diagnostics) *slos_service.ApmSelector {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.ApmSelector{}
+	if items := expandElements[ApmFilterModel](ctx, p.AtName("filters"), m.Filters, diags); items != nil {
+		out.Filters = make([]slos_service.ApmFilter, 0, len(items))
+		for i := range items {
+			out.Filters = append(out.Filters, *expandApmFilter(ctx, p.AtName("filters").AtListIndex(i), &items[i], diags))
+		}
+	}
+	out.GroupingKeys = expandStrings[string](ctx, p.AtName("grouping_keys"), m.GroupingKeys, diags)
+	out.Services = expandStrings[string](ctx, p.AtName("services"), m.Services, diags)
+	return out
+}
+
+func flattenApmSelector(ctx context.Context, p path.Path, v *slos_service.ApmSelector, diags *diag.Diagnostics) *ApmSelectorModel {
+	if v == nil {
+		return nil
+	}
+	out := &ApmSelectorModel{}
+	out.Filters = types.ListNull(types.ObjectType{AttrTypes: apmFilterAttrTypes()})
+	if v.Filters != nil {
+		items := make([]ApmFilterModel, 0, len(v.Filters))
+		for i := range v.Filters {
+			items = append(items, *flattenApmFilter(ctx, p.AtName("filters").AtListIndex(i), &v.Filters[i], diags))
+		}
+		out.Filters = flattenList(ctx, types.ObjectType{AttrTypes: apmFilterAttrTypes()}, items, diags)
+	}
+	out.GroupingKeys = flattenStringsList(ctx, v.GroupingKeys, diags)
+	out.Services = flattenStringsList(ctx, v.Services, diags)
+	return out
+}
+
+func apmSelectorAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"filters":       types.ListType{ElemType: types.ObjectType{AttrTypes: apmFilterAttrTypes()}},
+		"grouping_keys": types.ListType{ElemType: types.StringType},
+		"services":      types.ListType{ElemType: types.StringType},
+	}
+}
+
+func expandWindowBasedSli(ctx context.Context, p path.Path, m *WindowBasedSliModel, diags *diag.Diagnostics) *slos_service.WindowBasedSli {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.WindowBasedSli{}
+	out.Apm = expandApmWindowBasedSource(ctx, p.AtName("apm"), m.Apm, diags)
+	out.Custom = expandCustomWindowBasedSource(ctx, p.AtName("custom"), m.Custom, diags)
+	out.MissingDataStrategy = expandEnumMapped(p.AtName("missing_data_strategy"), m.MissingDataStrategy, missingDataStrategyToAPI, diags)
+	out.Window = valueOf(expandEnumMapped(p.AtName("window"), m.Window, windowSloWindowToAPI, diags))
+	return out
+}
+
+func flattenWindowBasedSli(ctx context.Context, p path.Path, v *slos_service.WindowBasedSli, diags *diag.Diagnostics) *WindowBasedSliModel {
+	if v == nil {
+		return nil
+	}
+	out := &WindowBasedSliModel{}
+	out.Apm = flattenApmWindowBasedSource(ctx, p.AtName("apm"), v.Apm, diags)
+	out.Custom = flattenCustomWindowBasedSource(ctx, p.AtName("custom"), v.Custom, diags)
+	out.MissingDataStrategy = flattenEnumMapped(p.AtName("missing_data_strategy"), v.MissingDataStrategy, missingDataStrategyFromAPI, diags)
+	out.Window = flattenEnumMapped(p.AtName("window"), &v.Window, windowSloWindowFromAPI, diags)
+	return out
+}
+
+func windowBasedSliAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"apm":                   types.ObjectType{AttrTypes: apmWindowBasedSourceAttrTypes()},
+		"custom":                types.ObjectType{AttrTypes: customWindowBasedSourceAttrTypes()},
+		"missing_data_strategy": types.StringType,
+		"window":                types.StringType,
+	}
+}
+
+func expandApmWindowBasedSource(ctx context.Context, p path.Path, m *ApmWindowBasedSourceModel, diags *diag.Diagnostics) *slos_service.ApmWindowBasedSource {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.ApmWindowBasedSource{}
+	out.Availability = expandApmWindowBasedAvailability(ctx, p.AtName("availability"), m.Availability, diags)
+	out.Latency = expandApmWindowBasedLatency(ctx, p.AtName("latency"), m.Latency, diags)
+	out.Selector = valueOf(expandApmSelector(ctx, p.AtName("selector"), m.Selector, diags))
+	return out
+}
+
+func flattenApmWindowBasedSource(ctx context.Context, p path.Path, v *slos_service.ApmWindowBasedSource, diags *diag.Diagnostics) *ApmWindowBasedSourceModel {
+	if v == nil {
+		return nil
+	}
+	out := &ApmWindowBasedSourceModel{}
+	out.Availability = flattenApmWindowBasedAvailability(ctx, p.AtName("availability"), v.Availability, diags)
+	out.Latency = flattenApmWindowBasedLatency(ctx, p.AtName("latency"), v.Latency, diags)
+	out.Selector = flattenApmSelector(ctx, p.AtName("selector"), &v.Selector, diags)
+	return out
+}
+
+func apmWindowBasedSourceAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"availability": types.ObjectType{AttrTypes: apmWindowBasedAvailabilityAttrTypes()},
+		"latency":      types.ObjectType{AttrTypes: apmWindowBasedLatencyAttrTypes()},
+		"selector":     types.ObjectType{AttrTypes: apmSelectorAttrTypes()},
+	}
+}
+
+func expandApmWindowBasedAvailability(ctx context.Context, p path.Path, m *ApmWindowBasedAvailabilityModel, diags *diag.Diagnostics) *slos_service.ApmWindowBasedAvailability {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.ApmWindowBasedAvailability{}
+	out.ThresholdRatio = valueOf(expandFloat32(m.ThresholdRatio))
+	return out
+}
+
+func flattenApmWindowBasedAvailability(ctx context.Context, p path.Path, v *slos_service.ApmWindowBasedAvailability, diags *diag.Diagnostics) *ApmWindowBasedAvailabilityModel {
+	if v == nil {
+		return nil
+	}
+	out := &ApmWindowBasedAvailabilityModel{}
+	out.ThresholdRatio = flattenFloat32(&v.ThresholdRatio)
+	return out
+}
+
+func apmWindowBasedAvailabilityAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"threshold_ratio": types.Float32Type,
+	}
+}
+
+func expandApmWindowBasedLatency(ctx context.Context, p path.Path, m *ApmWindowBasedLatencyModel, diags *diag.Diagnostics) *slos_service.ApmWindowBasedLatency {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.ApmWindowBasedLatency{}
+	if m.Average != nil {
+		out.Average = map[string]interface{}{}
+	}
+	out.Quantile = expandApmLatencyQuantile(ctx, p.AtName("quantile"), m.Quantile, diags)
+	out.ThresholdMs = valueOf(expandFloat64(m.ThresholdMs))
+	return out
+}
+
+func flattenApmWindowBasedLatency(ctx context.Context, p path.Path, v *slos_service.ApmWindowBasedLatency, diags *diag.Diagnostics) *ApmWindowBasedLatencyModel {
+	if v == nil {
+		return nil
+	}
+	out := &ApmWindowBasedLatencyModel{}
+	if v.Average != nil {
+		out.Average = &ApmLatencyAverageModel{}
+	}
+	out.Quantile = flattenApmLatencyQuantile(ctx, p.AtName("quantile"), v.Quantile, diags)
+	out.ThresholdMs = types.Float64PointerValue(&v.ThresholdMs)
+	return out
+}
+
+func apmWindowBasedLatencyAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"average":      types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"quantile":     types.ObjectType{AttrTypes: apmLatencyQuantileAttrTypes()},
+		"threshold_ms": types.Float64Type,
+	}
+}
+
+func expandCustomWindowBasedSource(ctx context.Context, p path.Path, m *CustomWindowBasedSourceModel, diags *diag.Diagnostics) *slos_service.CustomWindowBasedSource {
+	if m == nil {
+		return nil
+	}
+	out := &slos_service.CustomWindowBasedSource{}
+	out.ComparisonOperator = valueOf(expandEnumMapped(p.AtName("comparison_operator"), m.ComparisonOperator, comparisonOperatorToAPI, diags))
+	out.Query = valueOf(expandMetric(ctx, p.AtName("query"), m.Query, diags))
+	out.Threshold = valueOf(expandFloat32(m.Threshold))
+	return out
+}
+
+func flattenCustomWindowBasedSource(ctx context.Context, p path.Path, v *slos_service.CustomWindowBasedSource, diags *diag.Diagnostics) *CustomWindowBasedSourceModel {
+	if v == nil {
+		return nil
+	}
+	out := &CustomWindowBasedSourceModel{}
+	out.ComparisonOperator = flattenEnumMapped(p.AtName("comparison_operator"), &v.ComparisonOperator, comparisonOperatorFromAPI, diags)
+	out.Query = flattenMetric(ctx, p.AtName("query"), &v.Query, diags)
+	out.Threshold = flattenFloat32(&v.Threshold)
+	return out
+}
+
+func customWindowBasedSourceAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"comparison_operator": types.StringType,
+		"query":               types.ObjectType{AttrTypes: metricAttrTypes()},
+		"threshold":           types.Float32Type,
+	}
 }
 
 // expandSlo1Window writes the fields of a group, which the API holds in the parent object, to out.
@@ -772,12 +1166,26 @@ func flattenWindowBasedMetricSli(ctx context.Context, p path.Path, v *slos_servi
 	return out
 }
 
+func windowBasedMetricSliAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"comparison_operator":   types.StringType,
+		"missing_data_strategy": types.StringType,
+		"query":                 types.ObjectType{AttrTypes: metricAttrTypes()},
+		"threshold":             types.Float32Type,
+		"window":                types.StringType,
+	}
+}
+
 func expandSlo1Update(ctx context.Context, p path.Path, m *SloModel, diags *diag.Diagnostics) *slos_service.Slo1 {
 	if m == nil {
 		return nil
 	}
 	out := &slos_service.Slo1{}
-	expandSlo1UpdateSli(ctx, p.AtName("sli"), m.Sli, out, diags)
+	if v := m.Sli; !v.IsNull() && !v.IsUnknown() {
+		var nested SloSliModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expandSlo1UpdateSli(ctx, p.AtName("sli"), &nested, out, diags)
+	}
 	if m.Description.IsNull() {
 		// The API keeps a stored value that the request omits, so a removed value is sent as "".
 		out.Description = new(string)
@@ -788,6 +1196,11 @@ func expandSlo1Update(ctx context.Context, p path.Path, m *SloModel, diags *diag
 	out.Name = valueOf(expandString(m.Name))
 	out.OwnershipTags = expandSloOwnershipTags(ctx, p.AtName("ownership_tags"), m.OwnershipTags, diags)
 	out.ProductType = expandEnumMapped(p.AtName("product_type"), m.ProductType, sloProductTypeToAPI, diags)
+	if v := m.SliDefinition; !v.IsNull() && !v.IsUnknown() {
+		var nested SliModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.SliDefinition = expandSli(ctx, p.AtName("sli_definition"), &nested, diags)
+	}
 	expandSlo1UpdateWindow(ctx, p.AtName("window"), m.Window, out, diags)
 	out.TargetThresholdPercentage = expandFloat32(m.TargetThresholdPercentage)
 	return out
@@ -816,7 +1229,12 @@ func flattenSlo(ctx context.Context, p path.Path, v *slos_service.Slo, prior *Sl
 		return nil
 	}
 	out := &SloModel{}
-	out.Sli = flattenSloSli(ctx, p.AtName("sli"), v, diags)
+	out.Sli = types.ObjectNull(sloSliAttrTypes())
+	if nested := flattenSloSli(ctx, p.AtName("sli"), v, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, sloSliAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Sli = value
+	}
 	out.ApmSliMetadata = types.ObjectNull(apmSliAttrTypes())
 	if nested := flattenApmSli(ctx, p.AtName("apm_sli_metadata"), v.ApmSliMetadata, diags); nested != nil {
 		value, valueDiags := types.ObjectValueFrom(ctx, apmSliAttrTypes(), *nested)
@@ -843,6 +1261,12 @@ func flattenSlo(ctx context.Context, p path.Path, v *slos_service.Slo, prior *Sl
 	out.Name = types.StringPointerValue(&v.Name)
 	out.OwnershipTags = flattenSloOwnershipTags(ctx, p.AtName("ownership_tags"), v.OwnershipTags, diags)
 	out.ProductType = flattenEnumMapped(p.AtName("product_type"), v.ProductType, sloProductTypeFromAPI, diags)
+	out.SliDefinition = types.ObjectNull(sliAttrTypes())
+	if nested := flattenSli(ctx, p.AtName("sli_definition"), v.SliDefinition, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, sliAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.SliDefinition = value
+	}
 	out.Window = flattenSloWindow(ctx, p.AtName("window"), v, diags)
 	out.TargetThresholdPercentage = flattenFloat32(v.TargetThresholdPercentage)
 	return out
@@ -852,24 +1276,22 @@ func flattenSloSli(ctx context.Context, p path.Path, v *slos_service.Slo, diags 
 	if v == nil {
 		return nil
 	}
+	if v.ApmSli == nil && v.RequestBasedMetricSli == nil && v.WindowBasedMetricSli == nil {
+		return nil // the response has none of the fields: the group is null
+	}
 	out := &SloSliModel{}
 	out.ApmSli = flattenApmSli(ctx, p.AtName("apm_sli"), v.ApmSli, diags)
 	out.RequestBasedMetricSli = flattenRequestBasedMetricSli(ctx, p.AtName("request_based_metric_sli"), v.RequestBasedMetricSli, diags)
 	out.WindowBasedMetricSli = flattenWindowBasedMetricSli(ctx, p.AtName("window_based_metric_sli"), v.WindowBasedMetricSli, diags)
-	arms := 0
-	if v.ApmSli != nil {
-		arms++
-	}
-	if v.RequestBasedMetricSli != nil {
-		arms++
-	}
-	if v.WindowBasedMetricSli != nil {
-		arms++
-	}
-	if arms != 1 {
-		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of apm_sli, request_based_metric_sli, window_based_metric_sli; it must have exactly one.", arms))
-	}
 	return out
+}
+
+func sloSliAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"apm_sli":                  types.ObjectType{AttrTypes: apmSliAttrTypes()},
+		"request_based_metric_sli": types.ObjectType{AttrTypes: requestBasedMetricSliAttrTypes()},
+		"window_based_metric_sli":  types.ObjectType{AttrTypes: windowBasedMetricSliAttrTypes()},
+	}
 }
 
 func flattenV1Grouping(ctx context.Context, p path.Path, v *slos_service.V1Grouping, diags *diag.Diagnostics) *V1GroupingModel {

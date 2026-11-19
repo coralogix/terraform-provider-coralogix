@@ -8,7 +8,7 @@ import (
 )
 
 type SloModel struct {
-	Sli                       *SloSliModel           `tfsdk:"sli"`
+	Sli                       types.Object           `tfsdk:"sli"`
 	ApmSliMetadata            types.Object           `tfsdk:"apm_sli_metadata"`
 	Description               types.String           `tfsdk:"description"`
 	Grouping                  types.Object           `tfsdk:"grouping"`
@@ -17,6 +17,7 @@ type SloModel struct {
 	Name                      types.String           `tfsdk:"name"`
 	OwnershipTags             *SloOwnershipTagsModel `tfsdk:"ownership_tags"`
 	ProductType               types.String           `tfsdk:"product_type"`
+	SliDefinition             types.Object           `tfsdk:"sli_definition"`
 	Window                    *SloWindowModel        `tfsdk:"window"`
 	TargetThresholdPercentage types.Float32          `tfsdk:"target_threshold_percentage"`
 }
@@ -81,6 +82,64 @@ type MetricModel struct {
 type RequestBasedMetricSliModel struct {
 	GoodEvents  *MetricModel `tfsdk:"good_events"`
 	TotalEvents *MetricModel `tfsdk:"total_events"`
+}
+
+type ApmRequestBasedAvailabilityModel struct {
+}
+
+type ApmRequestBasedLatencyModel struct {
+	ThresholdMs types.Float64 `tfsdk:"threshold_ms"`
+}
+
+type ApmSelectorModel struct {
+	Filters      types.List `tfsdk:"filters"`
+	GroupingKeys types.List `tfsdk:"grouping_keys"`
+	Services     types.List `tfsdk:"services"`
+}
+
+type ApmRequestBasedSourceModel struct {
+	Availability *ApmRequestBasedAvailabilityModel `tfsdk:"availability"`
+	Latency      *ApmRequestBasedLatencyModel      `tfsdk:"latency"`
+	Selector     *ApmSelectorModel                 `tfsdk:"selector"`
+}
+
+type RequestBasedSliModel struct {
+	Apm    *ApmRequestBasedSourceModel `tfsdk:"apm"`
+	Custom *RequestBasedMetricSliModel `tfsdk:"custom"`
+}
+
+type ApmWindowBasedAvailabilityModel struct {
+	ThresholdRatio types.Float32 `tfsdk:"threshold_ratio"`
+}
+
+type ApmWindowBasedLatencyModel struct {
+	Average     *ApmLatencyAverageModel  `tfsdk:"average"`
+	Quantile    *ApmLatencyQuantileModel `tfsdk:"quantile"`
+	ThresholdMs types.Float64            `tfsdk:"threshold_ms"`
+}
+
+type ApmWindowBasedSourceModel struct {
+	Availability *ApmWindowBasedAvailabilityModel `tfsdk:"availability"`
+	Latency      *ApmWindowBasedLatencyModel      `tfsdk:"latency"`
+	Selector     *ApmSelectorModel                `tfsdk:"selector"`
+}
+
+type CustomWindowBasedSourceModel struct {
+	ComparisonOperator types.String  `tfsdk:"comparison_operator"`
+	Query              *MetricModel  `tfsdk:"query"`
+	Threshold          types.Float32 `tfsdk:"threshold"`
+}
+
+type WindowBasedSliModel struct {
+	Apm                 *ApmWindowBasedSourceModel    `tfsdk:"apm"`
+	Custom              *CustomWindowBasedSourceModel `tfsdk:"custom"`
+	MissingDataStrategy types.String                  `tfsdk:"missing_data_strategy"`
+	Window              types.String                  `tfsdk:"window"`
+}
+
+type SliModel struct {
+	RequestBased *RequestBasedSliModel `tfsdk:"request_based"`
+	WindowBased  *WindowBasedSliModel  `tfsdk:"window_based"`
 }
 
 type SloWindowModel struct {

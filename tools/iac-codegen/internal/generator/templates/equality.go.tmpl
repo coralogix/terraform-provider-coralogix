@@ -306,6 +306,10 @@ func normalizeEnumAliases(plan tftypes.Value) (tftypes.Value, error) {
 // configuration does not set unknown when the configuration changes, before equivalentDocument
 // keeps the state of the documents{{if .EnumAliases}} and the aliases are replaced{{end}}. When every known planned value is the
 // state, those unknown values are the only difference, and nothing changes.
+{{- if .PlanKeepsState}}
+// The keepUnsetComputedState line of behavior-overrides.yaml asks for this step: a computed value
+// that the server derives from another attribute keeps its state until that attribute changes.
+{{- end}}
 func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	plan := req.Plan.Raw
 {{- if .EnumAliases}}
@@ -337,6 +341,11 @@ func onlyUnsetUnknowns(plan, config, state tftypes.Value) bool {
 		if v.IsKnown() {
 			return v, nil
 		}
+{{- if or .DefaultPaths .ServerDefaultTop}}
+		if resetsToDefault[attributeKey(p)] {
+			return v, nil
+		}
+{{- end}}
 		if configured, ok := valueAt(config, p); !ok || !configured.IsNull() {
 			return v, nil
 		}
@@ -348,6 +357,31 @@ func onlyUnsetUnknowns(plan, config, state tftypes.Value) bool {
 	return err == nil && filled.Equal(state)
 }
 
+{{- if or .DefaultPaths .ServerDefaultTop}}
+// resetsToDefault are the attributes with a server default, by path. When the configuration drops
+// the value, the plan is unknown on purpose: the update resets the attribute to the default. That
+// unknown value is a change, not an unset computed value.
+var resetsToDefault = map[string]bool{
+{{- range .ServerDefaultTop}}
+	{{printf "%q" .}}: true,
+{{- end}}
+{{- range .DefaultPaths}}
+	{{printf "%q" .Path}}: true,
+{{- end}}
+}
+
+// attributeKey is the path p without the steps into a list, set, or map, as resetsToDefault names it.
+func attributeKey(p *tftypes.AttributePath) string {
+	var names []string
+	for _, step := range p.Steps() {
+		if name, ok := step.(tftypes.AttributeName); ok {
+			names = append(names, string(name))
+		}
+	}
+	return strings.Join(names, ".")
+}
+
+{{end}}
 // valueAt returns the value at the path p of v.
 func valueAt(v tftypes.Value, p *tftypes.AttributePath) (tftypes.Value, bool) {
 	found, _, err := tftypes.WalkAttributePath(v, p)

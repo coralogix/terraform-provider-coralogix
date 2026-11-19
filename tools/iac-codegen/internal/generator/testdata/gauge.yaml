@@ -1,0 +1,94 @@
+# A new resource whose numbers have exclusive bounds that an inclusive bound expresses exactly.
+# - latencyMs: a number with a step of 0.001 and an exclusive minimum of 0, so the least value is 0.001.
+# - retries: an integer with exclusive bounds 0 and 11, so the values are 1 to 10.
+openapi: 3.1.0
+info: {title: gauge, version: 1.0.0}
+paths:
+  /gauges:
+    post:
+      tags: [Gauges Service]
+      operationId: GaugesService_CreateGauge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateGaugeRequest
+              type: object
+              required: [name, latencyMs]
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                latencyMs: {$ref: '#/components/schemas/LatencyMs'}
+                retries: {$ref: '#/components/schemas/Retries'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Gauge'}
+  /gauges/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Gauges Service]
+      operationId: GaugesService_GetGauge
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Gauge'}
+    put:
+      tags: [Gauges Service]
+      operationId: GaugesService_ReplaceGauge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceGaugeRequest
+              type: object
+              required: [name, latencyMs]
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                latencyMs: {$ref: '#/components/schemas/LatencyMs'}
+                retries: {$ref: '#/components/schemas/Retries'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Gauge'}
+    delete:
+      tags: [Gauges Service]
+      operationId: GaugesService_DeleteGauge
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object, required: []}
+components:
+  schemas:
+    Gauge:
+      type: object
+      required: [id, name, latencyMs]
+      properties:
+        id: {type: string, readOnly: true, x-coralogix-presence: true}
+        name: {type: string, minLength: 1, x-coralogix-presence: true}
+        latencyMs: {$ref: '#/components/schemas/LatencyMs'}
+        retries: {$ref: '#/components/schemas/Retries'}
+    LatencyMs:
+      type: number
+      format: double
+      description: Greater than 0, with at most 3 decimal places.
+      exclusiveMinimum: 0
+      multipleOf: 0.001
+      x-coralogix-presence: true
+    Retries:
+      type: integer
+      format: int32
+      description: Between 1 and 10.
+      exclusiveMinimum: 0
+      exclusiveMaximum: 11
+      x-coralogix-presence: true

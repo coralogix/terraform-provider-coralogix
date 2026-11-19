@@ -22,6 +22,9 @@ type tfResource struct {
 	AfterFlatten bool
 	// ModifyPlanHook: the Hooks have a ModifyPlan, that the generated ModifyPlan calls last.
 	ModifyPlanHook bool
+	// PlanKeepsState: the generated ModifyPlan keeps the state when only unset unknown values
+	// differ (the keepUnsetComputedState line), as it does with an equality line.
+	PlanKeepsState bool
 	// EqualityFile: the package has equality.go, with the document comparisons.
 	EqualityFile bool
 	// EqualityPlan: equality.go also defines ModifyPlan, for the equality lines of fields and the
@@ -71,6 +74,10 @@ type tfResource struct {
 	// require, with that default. A read that omits one keeps a prior value equal to the
 	// default: the API can leave out a value that equals its default.
 	OmittedDefaults []defaultPath
+	// ServerDefaultTop are the top-level attributes with a server default, by path. When one has a
+	// configuration of null and a state that is not its default, its plan is unknown on purpose: the
+	// update resets it to the default. The keepUnsetComputedState step must not undo that.
+	ServerDefaultTop []string
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -227,6 +234,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
 		out.ModifyPlanHook = file.ModifyPlan
+		out.PlanKeepsState = file.KeepUnsetComputedState
 	}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
@@ -458,13 +466,14 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		// supplies the declared default, and Get returns it or omits it. The
 		// plan modifier makes removal unknown until Update clears the value and
 		// Get returns that default.
-		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		value, err := serverDefaultValueFor(f.Type, *declaredDefault(f), b.file, r.Name, f.Name)
 		if err != nil {
 			return nil, fmt.Errorf("server default: %w", err)
 		}
 		a.Computed = true
 		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
 		out.HasServerDefaults = true
+		out.ServerDefaultTop = append(out.ServerDefaultTop, rootPath(groups, terraformName(r.Policy, r.Name, f.Name)).dotted())
 		if !f.Get.Required {
 			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: terraformName(r.Policy, r.Name, f.Name), Value: value})
 		}
@@ -1195,6 +1204,25 @@ func declaredDefault(f *model.ResourceField) *string {
 // configuration sets another value.
 func updateOnly(f *model.ResourceField) bool {
 	return f.Behavior == model.Normal && f.Create == nil && f.Update != nil
+}
+
+// serverDefaultValueFor is serverDefaultValue for a field of component. An enum that the overrides
+// map to Terraform values has its default in the Terraform spelling, as the state holds it. The
+// default is compared with the state, so the API spelling would never match.
+func serverDefaultValueFor(t *model.Type, value string, file *overrides.File, component, property string) (string, error) {
+	if t.Kind == model.Enum && file != nil {
+		if enum, ok := file.Enums[enumKeyFor(file, component, property, t.Schema)]; ok {
+			if !slices.Contains(t.Values, value) {
+				return "", fmt.Errorf("%q is not one of %v", value, t.Values)
+			}
+			tf := enum.TFValue(value)
+			if value == t.EnumZero && enum.Zero != "" {
+				tf = enum.Zero
+			}
+			return fmt.Sprintf("types.StringValue(%q)", tf), nil
+		}
+	}
+	return serverDefaultValue(t, value)
 }
 
 // serverDefaultValue returns the typed Terraform value used only to detect
@@ -2078,7 +2106,7 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 		// requires the field always returns the stored value, so the element needs no match.
 		return fmt.Errorf("%s: a nested server default inside a set is unsupported unless the response requires it", p.dotted())
 	}
-	value, err := serverDefaultValue(f.Type, d)
+	value, err := serverDefaultValueFor(f.Type, d, b.file, component, f.Name)
 	if err != nil {
 		return fmt.Errorf("server default: %w", err)
 	}

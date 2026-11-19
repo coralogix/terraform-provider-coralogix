@@ -141,6 +141,7 @@ const minimalConfig = `resource "coralogix_slo_v2" "test" {
       filters = [
         {
           key = "http.status_code"
+          match_operator = "ends_with"
           values = ["@{run}-values"]
         },
       ]
@@ -274,6 +275,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
