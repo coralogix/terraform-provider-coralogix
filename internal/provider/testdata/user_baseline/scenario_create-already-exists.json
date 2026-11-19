@@ -38,7 +38,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating User | user \"tf-acc-user-1@coralogix.com\" already exists. Import it with `terraform import` instead of creating it: user already exists"
+      "error: Error creating User | user \"tf-acc-user-1@coralogix.com\" already exists. Import it with `terraform import` instead of creating it"
     ],
     "state": null
   }

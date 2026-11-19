@@ -167,7 +167,8 @@ func userFidelityVars(run string) map[string]string {
 		"USER_A_UPPER": strings.ToUpper(userA),
 		// USER_A_RENAMED is the username that a PUT asks user A to take.
 		"USER_A_RENAMED": fmt.Sprintf("tf-acc-user-%s-a-renamed@coralogix.com", run),
-		// PARTIAL is part of both usernames, so a search for it shows the partial match.
+		// PARTIAL is part of both usernames; the API matches exactly, so a search for it
+		// finds nothing (the recording proved the filter is not a partial match).
 		"PARTIAL": fmt.Sprintf("tf-acc-user-%s-", run),
 	}
 }
@@ -342,9 +343,20 @@ func (r *userFidelityRedactor) redactObject(object map[string]any) map[string]an
 				out[key] = placeholders
 				continue
 			}
-		case "totalCount", "teamId", "companyId", "accountId":
+		case "teamId", "companyId", "accountId":
 			if _, ok := item.(float64); ok {
 				out[key] = float64(1)
+				continue
+			}
+		case "totalCount":
+			// A zero count is fidelity, not member data: it is what an empty or past-the-end
+			// page answers. Only a non-zero count hides as 1.
+			if count, ok := item.(float64); ok {
+				if count == 0 {
+					out[key] = float64(0)
+				} else {
+					out[key] = float64(1)
+				}
 				continue
 			}
 		case "nextPageToken":
@@ -638,15 +650,21 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string, memberCap in
 	}
 	run := newUserFidelityRunID(t)
 	mutated := false
+	// Every case has its own users (caseRun = <run>-<n>), so the failure-path cleanup must
+	// run for each case-specific run id, not the bare one.
 	t.Cleanup(func() {
 		if !mutated {
 			return
 		}
-		if err := cleanupUserFidelity(base, apiKey, run); err != nil {
-			t.Errorf("could not deactivate the users of this recording: %v", err)
+		for ci := range cases.Cases {
+			if err := cleanupUserFidelity(base, apiKey, fmt.Sprintf("%s-%d", run, ci+1)); err != nil {
+				t.Errorf("could not deactivate the users of case %d: %v", ci+1, err)
+			}
 		}
 	})
-	ensureUserFidelityRunIsNew(t, base, apiKey, run)
+	for ci := range cases.Cases {
+		ensureUserFidelityRunIsNew(t, base, apiKey, fmt.Sprintf("%s-%d", run, ci+1))
+	}
 
 	owned := map[string]struct{}{userFidelityUnknownID: {}}
 	out := fidelityRecorded{}
@@ -705,16 +723,19 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string, memberCap in
 	}
 }
 
-// ensureUserFidelityRunIsNew refuses to record when a user of this run id already exists.
+// ensureUserFidelityRunIsNew refuses to record when a user of this run id already exists. The API
+// matches the username exactly, so this searches every username the run creates.
 func ensureUserFidelityRunIsNew(t *testing.T, base, apiKey, run string) {
 	t.Helper()
 	vars := userFidelityVars(run)
-	status, body := sendUserFidelityRequest(t, base, apiKey, fidelityStep{Method: http.MethodGet, Path: "?page_size=1&username=" + url.QueryEscape(vars["PARTIAL"])})
-	if status != http.StatusOK {
-		t.Fatalf("preflight search answered %d; refusing to record against this team: %s", status, compact(body))
-	}
-	if users, _ := asObject(body)["users"].([]any); len(users) != 0 {
-		t.Fatal("preflight found users of this run id; refusing to record")
+	for _, name := range []string{vars["USER_A"], vars["USER_B"], vars["USER_A_RENAMED"]} {
+		status, body := sendUserFidelityRequest(t, base, apiKey, fidelityStep{Method: http.MethodGet, Path: "?page_size=1&username=" + url.QueryEscape(name)})
+		if status != http.StatusOK {
+			t.Fatalf("preflight search answered %d; refusing to record against this team: %s", status, compact(body))
+		}
+		if users, _ := asObject(body)["users"].([]any); len(users) != 0 {
+			t.Fatalf("preflight found a user of this run id (%s); refusing to record", name)
+		}
 	}
 }
 
@@ -777,7 +798,8 @@ func userFidelityCapacity(t *testing.T, base, apiKey string, need, memberCap int
 	return nil
 }
 
-// userFidelityTotalCount sends a search and returns only its totalCount. The API leaves a zero count out.
+// userFidelityTotalCount sends a search and returns only its totalCount. The recording shows the
+// facade sends zero values (totalCount 0, empty arrays) rather than leaving them out.
 func userFidelityTotalCount(base, apiKey, path string) (int, error) {
 	status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodGet, path, nil)
 	if err != nil {
@@ -913,44 +935,47 @@ func sendUserFidelityRequestNoTest(base, apiKey, method, path string, body any) 
 	return resp.StatusCode, parsed, nil
 }
 
-// cleanupUserFidelity deactivates every user of this run. The run id is random and part of every
-// username the recorder creates, so a search for it lists only this run's users.
+// cleanupUserFidelity deactivates every user of this run. The API matches the username filter
+// exactly (the recording proved it), so the cleanup searches for each username the run creates
+// by its full name instead of a prefix.
 func cleanupUserFidelity(base, apiKey, run string) error {
-	prefix := userFidelityVars(run)["PARTIAL"]
-	status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodGet, "?page_size=100&username="+url.QueryEscape(prefix), nil)
-	if err != nil {
-		return err
-	}
-	if status != http.StatusOK {
-		return fmt.Errorf("cleanup search answered %d: %s", status, compact(body))
-	}
-	users, _ := asObject(body)["users"].([]any)
-	for _, raw := range users {
-		user := asObject(raw)
-		username, _ := user["username"].(string)
-		id, _ := user["userId"].(string)
-		if id == "" || !strings.HasPrefix(strings.ToLower(username), strings.ToLower(prefix)) {
-			continue
-		}
-		if user["status"] == "USER_STATUS_INACTIVE" {
-			continue
-		}
-		template := map[string]any{
-			"firstName": user["firstName"], "lastName": user["lastName"], "status": "USER_STATUS_INACTIVE",
-		}
-		for _, key := range []string{"allowedLoginMode", "accessType"} {
-			if value, ok := user[key]; ok {
-				template[key] = value
-			}
-		}
-		status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodPut, "", []any{
-			map[string]any{"userId": id, "userTemplate": template},
-		})
+	vars := userFidelityVars(run)
+	for _, username := range []string{vars["USER_A"], vars["USER_B"], vars["USER_A_RENAMED"]} {
+		status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodGet, "?page_size=100&username="+url.QueryEscape(username), nil)
 		if err != nil {
 			return err
 		}
 		if status != http.StatusOK {
-			return fmt.Errorf("cleanup could not deactivate %s: %d %s", username, status, compact(body))
+			return fmt.Errorf("cleanup search answered %d: %s", status, compact(body))
+		}
+		users, _ := asObject(body)["users"].([]any)
+		for _, raw := range users {
+			user := asObject(raw)
+			name, _ := user["username"].(string)
+			id, _ := user["userId"].(string)
+			if id == "" || !strings.EqualFold(name, username) {
+				continue
+			}
+			if user["status"] == "USER_STATUS_INACTIVE" {
+				continue
+			}
+			template := map[string]any{
+				"firstName": user["firstName"], "lastName": user["lastName"], "status": "USER_STATUS_INACTIVE",
+			}
+			for _, key := range []string{"allowedLoginMode", "accessType"} {
+				if value, ok := user[key]; ok {
+					template[key] = value
+				}
+			}
+			status, body, err := sendUserFidelityRequestNoTest(base, apiKey, http.MethodPut, "", []any{
+				map[string]any{"userId": id, "userTemplate": template},
+			})
+			if err != nil {
+				return err
+			}
+			if status != http.StatusOK {
+				return fmt.Errorf("cleanup could not deactivate %s: %d %s", name, status, compact(body))
+			}
 		}
 	}
 	return nil

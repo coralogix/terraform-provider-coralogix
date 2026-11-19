@@ -124,6 +124,10 @@
           {
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
+              "accessType": {
+                "accessType": "permanent",
+                "permanentAccess": {}
+              },
               "allowedLoginMode": [],
               "firstName": "Test",
               "lastName": "User",

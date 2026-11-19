@@ -82,7 +82,7 @@
       ]
     },
     {
-      "name": "search-paging",
+      "name": "search-empty-pages",
       "steps": [
         {
           "method": "POST",
