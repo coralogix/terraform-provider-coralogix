@@ -68,24 +68,26 @@ var sloProductTypeFromAPI = map[slos_service.SloProductType]string{
 
 // sloTimeFrameToAPI maps the Terraform values of the enum to its API values.
 var sloTimeFrameToAPI = map[string]slos_service.SloTimeFrame{
-	"unspecified": slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"),
-	"1_day":       slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"),
-	"7_days":      slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"),
-	"14_days":     slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"),
-	"21_days":     slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"),
-	"28_days":     slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"),
-	"30_days":     slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"),
+	"unspecified":    slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"),
+	"1_day":          slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"),
+	"7_days":         slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"),
+	"14_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"),
+	"21_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"),
+	"28_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"),
+	"30_days":        slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"),
+	"calendar_month": slos_service.SloTimeFrame("SLO_TIME_FRAME_CALENDAR_MONTH"),
 }
 
 // sloTimeFrameFromAPI maps the API values of the enum to its Terraform values.
 var sloTimeFrameFromAPI = map[slos_service.SloTimeFrame]string{
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"): "unspecified",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"):       "1_day",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"):      "7_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"):     "14_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"):     "21_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"):     "28_days",
-	slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"):     "30_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_UNSPECIFIED"):    "unspecified",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_1_DAY"):          "1_day",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_7_DAYS"):         "7_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_14_DAYS"):        "14_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_21_DAYS"):        "21_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_28_DAYS"):        "28_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_30_DAYS"):        "30_days",
+	slos_service.SloTimeFrame("SLO_TIME_FRAME_CALENDAR_MONTH"): "calendar_month",
 }
 
 // comparisonOperatorToAPI maps the Terraform values of the enum to its API values.

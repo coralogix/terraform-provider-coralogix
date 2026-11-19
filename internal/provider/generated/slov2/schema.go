@@ -35,7 +35,8 @@ func Schema() schema.Schema {
 				},
 				Attributes: map[string]schema.Attribute{
 					"apm_sli": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:           true,
+						DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 						Validators: []validator.Object{
 							oneOfArmsValidator{Groups: []oneOfArmGroup{{Arms: []string{"error_config", "latency_config"}, Required: true}}},
 						},
@@ -140,7 +141,8 @@ func Schema() schema.Schema {
 						MarkdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`.",
 					},
 					"request_based_metric_sli": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:           true,
+						DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 						Attributes: map[string]schema.Attribute{
 							"good_events": schema.SingleNestedAttribute{
 								Required: true,
@@ -166,7 +168,8 @@ func Schema() schema.Schema {
 						MarkdownDescription: "SLI based on request metrics.",
 					},
 					"window_based_metric_sli": schema.SingleNestedAttribute{
-						Optional: true,
+						Optional:           true,
+						DeprecationMessage: "The Coralogix API deprecates this attribute. A future version may remove it.",
 						Attributes: map[string]schema.Attribute{
 							"comparison_operator": schema.StringAttribute{
 								Required: true,
@@ -430,12 +433,12 @@ func Schema() schema.Schema {
 					"slo_time_frame": schema.StringAttribute{
 						Required: true,
 						Validators: []validator.String{
-							stringvalidator.OneOf("14_days", "1_day", "21_days", "28_days", "30_days", "7_days", "unspecified"),
+							stringvalidator.OneOf("14_days", "1_day", "21_days", "28_days", "30_days", "7_days", "calendar_month", "unspecified"),
 						},
-						MarkdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.",
+						MarkdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified.",
 					},
 				},
-				MarkdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.",
+				MarkdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified.",
 			},
 			"target_threshold_percentage": schema.Float32Attribute{
 				Required: true,

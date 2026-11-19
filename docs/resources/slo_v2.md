@@ -230,7 +230,7 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 - `name` (String) SLO name.
 - `sli` (Attributes) SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided. (see [below for nested schema](#nestedatt--sli))
 - `target_threshold_percentage` (Number) The target threshold percentage.
-- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
+- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified. (see [below for nested schema](#nestedatt--window))
 
 ### Optional
 
@@ -250,9 +250,9 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 
 Optional:
 
-- `apm_sli` (Attributes) SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = "apm"`. (see [below for nested schema](#nestedatt--sli--apm_sli))
-- `request_based_metric_sli` (Attributes) SLI based on request metrics. (see [below for nested schema](#nestedatt--sli--request_based_metric_sli))
-- `window_based_metric_sli` (Attributes) SLI based on time-window metrics. (see [below for nested schema](#nestedatt--sli--window_based_metric_sli))
+- `apm_sli` (Attributes, Deprecated) SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = "apm"`. (see [below for nested schema](#nestedatt--sli--apm_sli))
+- `request_based_metric_sli` (Attributes, Deprecated) SLI based on request metrics. (see [below for nested schema](#nestedatt--sli--request_based_metric_sli))
+- `window_based_metric_sli` (Attributes, Deprecated) SLI based on time-window metrics. (see [below for nested schema](#nestedatt--sli--window_based_metric_sli))
 
 <a id="nestedatt--sli--apm_sli"></a>
 ### Nested Schema for `sli.apm_sli`
@@ -366,7 +366,7 @@ Required:
 
 Required:
 
-- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.
+- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, calendar_month, unspecified.
 
 
 <a id="nestedatt--ownership_tags"></a>
