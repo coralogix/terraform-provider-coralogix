@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.26.1
+
 #### resource/coralogix_alert
 - BREAKING: `type_definition.analytics_immediate` (preview) is now `type_definition.analytics_result_count`. The alert counts the rows that the DataPrime query returns. Rename the block in your configuration. The field numbers of the API are unchanged: only the name changes.
 - BREAKING: `type_definition.analytics_result_count.use_rows_as_permutations` (preview) is removed. `type_definition.analytics_threshold.use_rows_as_permutations` is unchanged.
