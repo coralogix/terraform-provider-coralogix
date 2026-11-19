@@ -1,5 +1,8 @@
 # Unreleased
 
+#### tools/iac-codegen
+- FEAT: An exclusive numeric bound is read as the inclusive bound that accepts the same values, when the values are the multiples of a step (`multipleOf`, or 1 for an integer). `exclusiveMinimum: 0` with `multipleOf: 0.001` is read as `minimum: 0.001`, and an integer `exclusiveMaximum: 11` as `maximum: 10`. Before, the generator rejected every exclusive bound with `NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED`. A number with no `multipleOf` is still rejected. Generator version `v0.1.0-beta.92`.
+
 # Release 3.26.1
 
 #### resource/coralogix_alert

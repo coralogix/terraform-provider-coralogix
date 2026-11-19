@@ -312,6 +312,11 @@ func filledPolicy(doc *v3.Document, file *overrides.File) (model.Policy, issue.R
 // validateOpenAPIWith is validateOpenAPI for a resource with a behavior-overrides
 // file. file is nil for a new resource.
 func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) (*validatedResource, error) {
+	// An exclusive numeric bound with an exact inclusive form is read as that form (bounds.go).
+	data, err := exclusiveBoundsExact(data)
+	if err != nil {
+		return nil, eligibilityIssue("OPENAPI_INVALID", "openapi", err, "Correct the source OpenAPI document.")
+	}
 	doc, err := model.Load(data)
 	if err != nil {
 		code := "OPENAPI_INVALID"
