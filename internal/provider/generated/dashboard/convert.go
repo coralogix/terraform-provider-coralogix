@@ -9239,6 +9239,10 @@ func flattenObservationFieldAtTableColumnField(ctx context.Context, p path.Path,
 	}
 	out := &ObservationFieldAtTableColumnFieldModel{}
 	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Keypath) == 0 {
+		out.Keypath = types.ListNull(types.StringType)
+	}
 	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
 	return out
 }
@@ -9660,6 +9664,10 @@ func flattenObservationFieldAtRuleScopeField(ctx context.Context, p path.Path, v
 	}
 	out := &ObservationFieldAtRuleScopeFieldModel{}
 	out.Keypath = flattenStringsList(ctx, v.Keypath, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Keypath) == 0 {
+		out.Keypath = types.ListNull(types.StringType)
+	}
 	out.Scope = flattenEnumMapped(p.AtName("scope"), v.Scope, datasetScopeFromAPI, diags)
 	return out
 }
@@ -13974,6 +13982,9 @@ func flattenVariableSourceV2QuerySource(ctx context.Context, p path.Path, v *das
 	}
 	out.SpansQuery = flattenQuerySourceSpansQuery(ctx, p.AtName("spans_query"), v.SpansQuery, diags)
 	out.ValueDisplayOptions = flattenVariableSourceV2ValueDisplayOptions(ctx, p.AtName("value_display_options"), v.ValueDisplayOptions, diags)
+	if out.ValueDisplayOptions != nil && reflect.DeepEqual(*out.ValueDisplayOptions, VariableSourceV2ValueDisplayOptionsModel{}) {
+		out.ValueDisplayOptions = nil
+	}
 	out.ValuesOrderDirection = flattenEnumMapped(p.AtName("values_order_direction"), &v.ValuesOrderDirection, orderDirectionFromAPI, diags)
 	return out
 }
@@ -15159,7 +15170,10 @@ func flattenListValue(ctx context.Context, p path.Path, v *dashboard_service.Lis
 	}
 	out := &ListValueModel{}
 	out.Values = types.ListNull(types.ObjectType{AttrTypes: singleStringValueAttrTypes()})
-	if len(v.Values) != 0 {
+	if v.Values == nil {
+		out.Values = types.ListValueMust(types.ObjectType{AttrTypes: singleStringValueAttrTypes()}, []attr.Value{})
+	}
+	if v.Values != nil {
 		items := make([]SingleStringValueModel, 0, len(v.Values))
 		for i := range v.Values {
 			items = append(items, *flattenSingleStringValue(ctx, p.AtName("values").AtListIndex(i), &v.Values[i], diags))
