@@ -45,6 +45,26 @@ func TestExclusiveBoundsExact(t *testing.T) {
 			want:   map[string]any{"type": "integer", "minimum": 1, "maximum": 9},
 		},
 		{
+			name:   "integer with a fractional step accepts every integer",
+			schema: `{type: integer, multipleOf: 0.5, exclusiveMinimum: 0}`,
+			want:   map[string]any{"type": "integer", "multipleOf": 0.5, "minimum": 1},
+		},
+		{
+			name:   "integer with a fractional step moves by the integers that are multiples of it",
+			schema: `{type: integer, multipleOf: 1.5, exclusiveMinimum: 0}`,
+			want:   map[string]any{"type": "integer", "multipleOf": 1.5, "minimum": 3},
+		},
+		{
+			name:   "integer with a whole step",
+			schema: `{type: integer, multipleOf: 2, exclusiveMaximum: 10}`,
+			want:   map[string]any{"type": "integer", "multipleOf": 2, "maximum": 8},
+		},
+		{
+			name:   "a step finer than float64 at the bound has no safe form",
+			schema: `{type: number, multipleOf: 1e-20, exclusiveMinimum: 1}`,
+			want:   map[string]any{"type": "number", "multipleOf": 1e-20, "exclusiveMinimum": 1},
+		},
+		{
 			name:   "OpenAPI 3.0 form",
 			schema: `{type: integer, minimum: 5, exclusiveMinimum: true, maximum: 8, exclusiveMaximum: true}`,
 			want:   map[string]any{"type": "integer", "minimum": 6, "maximum": 7},

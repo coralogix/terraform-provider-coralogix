@@ -64,19 +64,41 @@ func rewriteExclusiveBounds(m *yaml.Node) bool {
 }
 
 // stepOf is the distance between two values that the schema accepts: its multipleOf, 1 for an
-// integer, and nil when the values are not discrete.
+// integer, and nil when the values are not discrete. An integer with a multipleOf accepts the
+// integers that are multiples of it. Those are the multiples of the numerator of multipleOf in
+// lowest terms: for 0.5 (1/2) every integer, for 1.5 (3/2) the multiples of 3, for 2 the
+// multiples of 2.
 func stepOf(m *yaml.Node, typ string) *big.Rat {
-	if node := mapValue(m, "multipleOf"); node != nil {
-		step, ok := ratOf(node)
-		if !ok || step.Sign() <= 0 {
-			return nil
+	node := mapValue(m, "multipleOf")
+	if node == nil {
+		if typ == "integer" {
+			return big.NewRat(1, 1)
 		}
-		return step
+		return nil
+	}
+	multiple, ok := ratOf(node)
+	if !ok || multiple.Sign() <= 0 {
+		return nil
 	}
 	if typ == "integer" {
-		return big.NewRat(1, 1)
+		return new(big.Rat).SetInt(multiple.Num())
 	}
-	return nil
+	return multiple
+}
+
+// excludesEdge reports whether the bound, read as a float64 as the validators do, is still beyond
+// the exclusive edge. A step finer than float64 precision at the edge rounds the bound back onto
+// the edge, and the inclusive form would then accept the value that the contract excludes.
+func excludesEdge(bound, edge *big.Rat, lower bool) bool {
+	f, _ := bound.Float64()
+	rounded := new(big.Rat).SetFloat64(f)
+	if rounded == nil { // infinite
+		return false
+	}
+	if lower {
+		return rounded.Cmp(edge) > 0
+	}
+	return rounded.Cmp(edge) < 0
 }
 
 // rewriteBound turns the exclusive bound of m into the inclusive bound that holds the same values.
@@ -125,6 +147,9 @@ func replaceBound(m *yaml.Node, exclusiveKey, inclusiveKey string, bound *yaml.N
 		whole.Sub(whole, big.NewInt(1))
 	}
 	result := new(big.Rat).Mul(new(big.Rat).SetInt(whole), step)
+	if !excludesEdge(result, edge, lower) {
+		return false
+	}
 	if existing := mapValue(m, inclusiveKey); keepInclusive && existing != nil && existing != bound {
 		if current, ok := ratOf(existing); ok && (lower && current.Cmp(result) > 0 || !lower && current.Cmp(result) < 0) {
 			result = current
