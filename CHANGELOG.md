@@ -1,5 +1,8 @@
 # Unreleased
 
+#### tools/iac-codegen
+- FEAT: The generated `minimal-lifecycle` acceptance test has a plan-only import step. It fails when an import reads an empty list or object (`[]`, `{}`) where the minimal config has none, which an import with `ImportStateVerify` cannot show. Generator version `v0.1.0-beta.91`.
+
 #### resource/coralogix_dashboard
 - FIX: An imported dashboard plans no change again for an empty `keypath` of a table column or a table rule scope, an empty `value_display_options` of a `variables_v2` query, and an empty `multi_string.list.values`. Since 3.26.0, the read returned `keypath = []`, `value_display_options = {}`, and a null `values`, so a configuration that 3.25.0 imported without a diff planned an update. The read now returns null, null, and `[]`, as 3.25.0 did.
 
