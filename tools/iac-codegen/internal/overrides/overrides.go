@@ -2115,7 +2115,7 @@ func (l Field) empty() bool {
 
 func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && l.DescriptionSuffix == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.hasTypeKey() && !l.DefaultArm && l.Deprecation == "" && !l.Sensitive &&
-		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
+		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition && !l.ReleasedLimits
 }
 
 func (l Field) emptyValue() bool {

@@ -1,0 +1,46 @@
+# Behavior overrides for the user resource (CX-65729 stack 2 candidate).
+# The Users API has no single-resource reads or writes: Create is a batch POST,
+# the read is the Search list, Update is a batch PUT, and the remove is a PATCH
+# that deactivates the users named in the body.
+resource: rbac.v2.User
+mode: existing
+typeName: user
+validators:
+  inferred: false
+api:
+  getFromList: {}
+  idProperty: userId
+  updateIDInBody: true
+  updateIDOutsideWrapper: true
+  operations:
+    create: UsersMgmtService_CreateUsers
+    get: UsersMgmtService_SearchUsers
+    update: UsersMgmtService_UpdateUsers
+    delete: UsersMgmtService_UpdateUsersStatuses
+  delete:
+    ids: userIds
+    values:
+      status: USER_STATUS_INACTIVE
+  batchWrite:
+    createResult:
+      resource: user
+      status: status
+      created:
+        - CREATE_USER_STATUS_CREATED
+        - CREATE_USER_STATUS_INVITED
+      message: message
+  requestWrapper: userTemplate
+  createValues:
+    onboardingMode: ONBOARDING_MODE_NO_INVITE
+types:
+  rbac.v2.User:
+    fields:
+      allowedLoginMode:
+        releasedLimits: true
+      username:
+        required: true
+        releasedLimits: true
+  AccessType:
+    fields:
+      accessType:
+        skip: true
