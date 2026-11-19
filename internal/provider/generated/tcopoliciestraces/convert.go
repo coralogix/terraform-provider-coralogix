@@ -594,7 +594,8 @@ func flattenPolicy(ctx context.Context, p path.Path, v *policies_service.Policy,
 	out.DpxlExpression = types.StringPointerValue(v.SpanRules.DpxlExpression)
 	out.ServiceRule = flattenQuotaV1Rule(ctx, p.AtName("services"), v.SpanRules.ServiceRule, diags)
 	out.TagRules = types.MapNull(types.ObjectType{AttrTypes: tagRuleAttrTypes()})
-	if v.SpanRules.TagRules != nil {
+	// The API returns an empty list for no items; the released resource reads null.
+	if len(v.SpanRules.TagRules) != 0 {
 		items := make(map[string]TagRuleModel, len(v.SpanRules.TagRules))
 		for i := range v.SpanRules.TagRules {
 			k := v.SpanRules.TagRules[i].TagName

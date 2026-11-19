@@ -95,6 +95,8 @@ types:
       tagRules:
         name: tags
         keyedBy: {key: tagName}
+        # The API returns [] for a policy without tags. The released resource read it as null.
+        readEmptyAs: 'null'
         markdownDescription: "The tags to apply the policy on. Applies the policy on all the tags by default."
         validators:
           - keysAre: {pattern: "tags.*", message: "tag names must have a 'tags.' prefix"}
