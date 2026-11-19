@@ -100,40 +100,62 @@ func stepOf(m *yaml.Node, typ string) *big.Rat {
 }
 
 // excludesEdge reports whether the bound, converted to the type that the generated validator
-// takes, is still beyond the exclusive edge. A step finer than the precision of that type at the
-// edge rounds the bound back onto the edge, and the inclusive form would then accept the value that
-// the contract excludes. The validator of format float takes a float32, one of int32 an int32, and
-// the others a float64 (a number) or an int64 that the generator reads from a float64.
+// takes, is still beyond the exclusive edge converted the same way. A client sends the edge as a
+// value of that type too, so both sides must be compared as the validator sees them. A step finer
+// than the precision of that type at the edge rounds the bound back onto the edge, and the inclusive
+// form would then accept the value that the contract excludes. The edge needs the same rounding: the
+// float64 of 0.1 is above the exact 0.1, so a bound of 0.100000000000000001 that rounds to that
+// float64 passes a comparison with the exact edge, and it still admits the edge.
 //
 // An integer bound must also survive the conversion exactly. The generator reads the bound from a
 // float64, so an int64 bound above 2^53 that float64 cannot hold would round to a neighbour: a valid
 // value next to the edge would then be refused. A number bound has no such limit: a decimal like
 // 0.001 is the same float64 as the value that a client sends.
 func excludesEdge(bound, edge *big.Rat, lower bool, num numeric) bool {
-	f, _ := bound.Float64()
+	if num.integer {
+		// The generator reads an integer bound from a float64, so float64 must hold it exactly.
+		f, _ := bound.Float64()
+		if held := new(big.Rat).SetFloat64(f); held == nil || held.Cmp(bound) != 0 {
+			return false
+		}
+	}
+	boundAsValidator, ok := atValidatorPrecision(bound, num)
+	if !ok {
+		return false
+	}
+	edgeAsValidator, ok := atValidatorPrecision(edge, num)
+	if !ok {
+		return false
+	}
+	if lower {
+		return boundAsValidator.Cmp(edgeAsValidator) > 0
+	}
+	return boundAsValidator.Cmp(edgeAsValidator) < 0
+}
+
+// atValidatorPrecision returns x as a client sends it and the validator holds it: a float32 for
+// format float and a float64 for a number, so the value is rounded. A client sends an integer
+// exactly, so an integer edge is not rounded: only its range is checked. It is false for a value
+// outside the range of int32 or int64, or beyond float32 or float64.
+func atValidatorPrecision(x *big.Rat, num numeric) (*big.Rat, bool) {
+	f, _ := x.Float64()
 	switch num.format {
 	case "float":
 		f = float64(float32(f))
 	case "int32":
 		if f < math.MinInt32 || f > math.MaxInt32 {
-			return false
+			return nil, false
 		}
 	case "int64":
 		if f < -(1<<63) || f >= 1<<63 {
-			return false
+			return nil, false
 		}
 	}
+	if num.integer {
+		return x, true
+	}
 	rounded := new(big.Rat).SetFloat64(f)
-	if rounded == nil { // infinite
-		return false
-	}
-	if num.integer && rounded.Cmp(bound) != 0 {
-		return false
-	}
-	if lower {
-		return rounded.Cmp(edge) > 0
-	}
-	return rounded.Cmp(edge) < 0
+	return rounded, rounded != nil // nil for an infinite value
 }
 
 // rewriteBound turns the exclusive bound of m into the inclusive bound that holds the same values.

@@ -95,6 +95,21 @@ func TestExclusiveBoundsExact(t *testing.T) {
 			want:   map[string]any{"type": "integer", "format": "int64", "maximum": 9007199254740992},
 		},
 		{
+			name:   "a step finer than float64 at an edge that float64 cannot hold exactly has no safe form",
+			schema: `{type: number, format: double, multipleOf: 1e-18, exclusiveMinimum: 0.1}`,
+			want:   map[string]any{"type": "number", "format": "double", "multipleOf": 1e-18, "exclusiveMinimum": 0.1},
+		},
+		{
+			name:   "a step finer than float32 at an edge that float32 cannot hold exactly has no safe form",
+			schema: `{type: number, format: float, multipleOf: 1e-9, exclusiveMaximum: 0.1}`,
+			want:   map[string]any{"type": "number", "format": "float", "multipleOf": 1e-9, "exclusiveMaximum": 0.1},
+		},
+		{
+			name:   "an edge that float64 cannot hold exactly is rewritten when the step is coarse enough",
+			schema: `{type: number, format: double, multipleOf: 0.001, exclusiveMinimum: 0.1}`,
+			want:   map[string]any{"type": "number", "format": "double", "multipleOf": 0.001, "minimum": 0.101},
+		},
+		{
 			name:   "OpenAPI 3.0 form",
 			schema: `{type: integer, minimum: 5, exclusiveMinimum: true, maximum: 8, exclusiveMaximum: true}`,
 			want:   map[string]any{"type": "integer", "minimum": 6, "maximum": 7},
