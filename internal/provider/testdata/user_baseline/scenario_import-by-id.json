@@ -14,13 +14,7 @@
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -31,8 +25,7 @@
     },
     "drift": [
       "AttributeName(\"active\")",
-      "AttributeName(\"emails\")",
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
+      "AttributeName(\"allowed_login_mode\")",
       "AttributeName(\"groups\")",
       "AttributeName(\"name\")",
       "AttributeName(\"name\").AttributeName(\"family_name\")",
@@ -51,13 +44,7 @@
     },
     "plan": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -69,13 +56,7 @@
     "noChange": true,
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {

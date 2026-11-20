@@ -10,7 +10,7 @@
     },
     "plan": {
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -39,13 +39,7 @@
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -61,19 +55,13 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
         "status": 200
       }
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -95,14 +83,8 @@
     },
     "plan": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
-      "groups": [],
+      "allowed_login_mode": [],
+      "groups": "(unknown)",
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -118,14 +100,11 @@
           {
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
-              "accessType": {
-                "accessType": "permanent",
-                "permanentAccess": {}
-              },
               "allowedLoginMode": [],
               "firstName": "Renamed",
               "lastName": "Person",
-              "status": "USER_STATUS_ACTIVE"
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
             }
           }
         ],
@@ -134,13 +113,7 @@
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -155,26 +128,30 @@
     "step": "destroy",
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "accessType": {
-                "accessType": "permanent",
-                "permanentAccess": {}
-              },
-              "allowedLoginMode": [],
-              "firstName": "Renamed",
-              "lastName": "Person",
-              "status": "USER_STATUS_INACTIVE"
-            }
-          }
-        ],
-        "status": 200
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/aaa/users/v2:updateStatuses",
+        "body": {
+          "status": "USER_STATUS_INACTIVE",
+          "userIds": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        },
+        "status": 400
       }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: Unable to delete user | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: type mismatch, parameter: user_account_id, error: \\u003cdomain\\u003e: parsing \\\"no-such-route\\\": invalid syntax\"}"
+    ],
+    "state": {
+      "active": true,
+      "allowed_login_mode": [],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "Person",
+        "given_name": "Renamed"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
   }
 ]

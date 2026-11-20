@@ -10,7 +10,7 @@
     },
     "plan": {
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -39,13 +39,7 @@
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -61,22 +55,16 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
         "status": 404
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading User | 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
+      "error: Unable to read user | id 00000000-0000-4000-8000-000000000001: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {

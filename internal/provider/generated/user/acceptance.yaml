@@ -1,0 +1,6 @@
+# The acceptance test of coralogix_user (CX-65729 stack 3). The generated
+# lifecycle test makes up every value: the username is synthetic, the name is
+# synthetic, and active flips on the update. The upgrade test creates the user
+# with the released provider (3.26.0) and plans it with this build.
+resource: rbac.v2.User
+upgradeFrom: "3.26.0"

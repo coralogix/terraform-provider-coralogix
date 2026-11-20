@@ -13,16 +13,13 @@
     ],
     "state": {
       "active": false,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": null,
+      "name": {
+        "family_name": "",
+        "given_name": ""
+      },
       "user_name": "tf-acc-user-1@coralogix.com"
     }
   }

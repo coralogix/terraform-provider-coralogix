@@ -10,7 +10,7 @@
     },
     "plan": {
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -39,13 +39,7 @@
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -61,19 +55,13 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
         "status": 200
       }
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "TF-ACC-USER-1@CORALOGIX.COM"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -83,14 +71,13 @@
       "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
     },
     "drift": [
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"TF-ACC-USER-1@CORALOGIX.COM\">>)",
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>).AttributeName(\"primary\")",
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>).AttributeName(\"type\")",
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>).AttributeName(\"value\")",
       "AttributeName(\"user_name\")"
     ],
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"groups\")",
+      "AttributeName(\"user_name\")"
+    ]
   },
   {
     "step": "apply the config again",
@@ -103,13 +90,40 @@
     },
     "plan": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "TF-ACC-USER-1@CORALOGIX.COM"
-        }
-      ],
+      "allowed_login_mode": [],
+      "groups": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "allowedLoginMode": [],
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "user_name"
+    ],
+    "state": {
+      "active": true,
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -118,23 +132,10 @@
       },
       "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
     },
-    "noChange": true,
-    "state": {
-      "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "TF-ACC-USER-1@CORALOGIX.COM"
-        }
-      ],
-      "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "User",
-        "given_name": "Test"
-      },
-      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
-    }
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"groups\")",
+      "AttributeName(\"user_name\")"
+    ]
   }
 ]

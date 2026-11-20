@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -29,7 +28,6 @@ var createFields = []struct {
 	attr          string
 	serverDefault bool
 }{
-	{attr: "access_type", serverDefault: false},
 	{attr: "allowed_login_mode", serverDefault: false},
 	{attr: "user_name", serverDefault: false},
 }
@@ -83,19 +81,16 @@ func flatten(ctx context.Context, v *users_management_service.RbacV2User) (*Rbac
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
-var oneOfArms = map[string]bool{
-	"access_type.permanent_access": true,
-	"access_type.temporary_access": true,
-}
+var oneOfArms = map[string]bool{}
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"group_ids": true,
-	"id":        true,
-	"active":    true,
-	"groups":    true,
-	"name":      true,
+	"allowed_login_mode": true,
+	"id":                 true,
+	"active":             true,
+	"groups":             true,
+	"name":               true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -247,51 +242,8 @@ func expandRbacV2UserCreate(ctx context.Context, p path.Path, m *RbacV2UserModel
 		return nil
 	}
 	out := &users_management_service.UserTemplate{}
-	out.AccessType = expandAccessType(ctx, p.AtName("access_type"), m.AccessType, diags)
 	out.AllowedLoginMode = expandStrings[users_management_service.AllowedLoginMode](ctx, p.AtName("allowed_login_mode"), m.AllowedLoginMode, diags)
 	out.Username = expandString(m.Username)
-	return out
-}
-
-func expandAccessType(ctx context.Context, p path.Path, m *AccessTypeModel, diags *diag.Diagnostics) *users_management_service.AccessType {
-	if m == nil {
-		return nil
-	}
-	out := &users_management_service.AccessType{}
-	if m.PermanentAccess != nil {
-		out.PermanentAccess = map[string]interface{}{}
-	}
-	out.TemporaryAccess = expandTemporaryAccess(ctx, p.AtName("temporary_access"), m.TemporaryAccess, diags)
-	return out
-}
-
-func flattenAccessType(ctx context.Context, p path.Path, v *users_management_service.AccessType, diags *diag.Diagnostics) *AccessTypeModel {
-	if v == nil {
-		return nil
-	}
-	out := &AccessTypeModel{}
-	if v.PermanentAccess != nil {
-		out.PermanentAccess = &PermanentAccessModel{}
-	}
-	out.TemporaryAccess = flattenTemporaryAccess(ctx, p.AtName("temporary_access"), v.TemporaryAccess, diags)
-	return out
-}
-
-func expandTemporaryAccess(ctx context.Context, p path.Path, m *TemporaryAccessModel, diags *diag.Diagnostics) *users_management_service.TemporaryAccess {
-	if m == nil {
-		return nil
-	}
-	out := &users_management_service.TemporaryAccess{}
-	out.ExpireAt = expandRFC3339(p.AtName("expire_at"), m.ExpireAt, diags)
-	return out
-}
-
-func flattenTemporaryAccess(ctx context.Context, p path.Path, v *users_management_service.TemporaryAccess, diags *diag.Diagnostics) *TemporaryAccessModel {
-	if v == nil {
-		return nil
-	}
-	out := &TemporaryAccessModel{}
-	out.ExpireAt = flattenRFC3339(v.ExpireAt)
 	return out
 }
 
@@ -300,7 +252,6 @@ func expandRbacV2UserUpdate(ctx context.Context, p path.Path, m *RbacV2UserModel
 		return nil
 	}
 	out := &users_management_service.UserTemplate{}
-	out.AccessType = expandAccessType(ctx, p.AtName("access_type"), m.AccessType, diags)
 	out.AllowedLoginMode = expandStrings[users_management_service.AllowedLoginMode](ctx, p.AtName("allowed_login_mode"), m.AllowedLoginMode, diags)
 	out.Username = expandString(m.Username)
 	return out
@@ -311,9 +262,7 @@ func flattenRbacV2User(ctx context.Context, p path.Path, v *users_management_ser
 		return nil
 	}
 	out := &RbacV2UserModel{}
-	out.AccessType = flattenAccessType(ctx, p.AtName("access_type"), v.AccessType, diags)
 	out.AllowedLoginMode = flattenEnumsList(ctx, p.AtName("allowed_login_mode"), v.AllowedLoginMode, "ALLOWED_LOGIN_MODE_UNSPECIFIED", diags)
-	out.GroupIds = flattenScalarsList(ctx, types.Int64Type, v.GroupIds, diags)
 	out.UserId = types.StringPointerValue(&v.UserId)
 	out.Username = types.StringPointerValue(&v.Username)
 	out.Active = types.BoolNull()
@@ -472,26 +421,6 @@ func flattenTime(v *time.Time) types.String {
 	return types.StringValue(v.Format(time.RFC3339Nano))
 }
 
-// expandRFC3339 returns the time of v. The schema has checked its format.
-func expandRFC3339(p path.Path, v timetypes.RFC3339, diags *diag.Diagnostics) *time.Time {
-	if v.IsNull() || v.IsUnknown() {
-		return nil
-	}
-	t, d := v.ValueRFC3339Time()
-	for _, item := range d {
-		diags.Append(diag.WithPath(p, item))
-	}
-	return &t
-}
-
-// flattenRFC3339 writes every digit of the fraction, so a precise time reads back the same.
-func flattenRFC3339(v *time.Time) timetypes.RFC3339 {
-	if v == nil {
-		return timetypes.NewRFC3339Null()
-	}
-	return timetypes.NewRFC3339ValueMust(v.Format(time.RFC3339Nano))
-}
-
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
 		return types.SetNull(types.StringType)
@@ -553,18 +482,4 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
-}
-
-func flattenScalarsList[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.List {
-	if v == nil {
-		return types.ListNull(elem)
-	}
-	return flattenList(ctx, elem, v, diags)
-}
-
-func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.Set {
-	if v == nil {
-		return types.SetNull(elem)
-	}
-	return flattenSet(ctx, elem, v, diags)
 }

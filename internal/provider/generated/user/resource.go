@@ -6,6 +6,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -50,6 +51,21 @@ type Hooks struct {
 	BeforeFlatten func(context.Context, *users_management_service.RbacV2User) diag.Diagnostics
 	// AfterFlatten projects API values into the Terraform model before it enters state.
 	AfterFlatten func(context.Context, *RbacV2UserModel, *users_management_service.RbacV2User) diag.Diagnostics
+	// Get replaces the Execute step of the Get call that Read, the data source, and every read
+	// after a write make (nil: the generated call). It receives a factory of the generated
+	// request, which already holds the context, the id, and the fixed query values of the
+	// contract: every call of the factory returns a fresh request that the hook adds a query
+	// parameter to and executes, as many times as it needs (a retry without the parameter calls
+	// the factory again). It returns what Execute returns: the whole Get response, the HTTP
+	// response, and the error. The generated code classifies the error as it does for its own
+	// call (a 404 of the resource is a resource that is gone, a 404 of a route that does not
+	// exist is an error), and takes the resource out of the response.
+	Get func(context.Context, func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest) (*users_management_service.SearchUsersResponse, *http.Response, error)
+	// AfterGet receives the whole Get response, with the values next to the resource that the
+	// generated code drops, and the state that was just written from it. It runs after
+	// the state was written and before AfterRead, only for a state that a Get call produced
+	// (the response of a write is no Get response), and not when flatten failed.
+	AfterGet func(context.Context, *tfsdk.State, *users_management_service.SearchUsersResponse) diag.Diagnostics
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -112,6 +128,7 @@ func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequ
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx, _ = withGetResult(ctx)
 	resp.Diagnostics.Append(validateCreate(ctx, req.Config, req.Plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -146,6 +163,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 
 // Read removes the resource from the state when the API does not find it.
 func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx, _ = withGetResult(ctx)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -174,6 +192,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 // Update field changed, it sends no request and reads the resource instead
 // (D14).
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx, _ = withGetResult(ctx)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -264,13 +283,41 @@ func (r *Resource) create(ctx context.Context, body *users_management_service.Cr
 	return result.User, nil
 }
 
+// getResultKey is the key of the getResult that a CRUD method puts in its context.
+type getResultKey struct{}
+
+// getResult holds the whole response of the last Get call of one CRUD method, for the AfterGet
+// hook. setState takes it once.
+type getResult struct {
+	response *users_management_service.SearchUsersResponse
+}
+
+// withGetResult returns a context that carries a getResult.
+func withGetResult(ctx context.Context) (context.Context, *getResult) {
+	got := &getResult{}
+	return context.WithValue(ctx, getResultKey{}, got), got
+}
+
 func (r *Resource) get(ctx context.Context, id string) (*users_management_service.RbacV2User, error) {
-	out, httpResp, err := r.client.UsersMgmtServiceSearchUsers(ctx).Execute()
+	request := func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest {
+		return r.client.UsersMgmtServiceSearchUsers(ctx)
+	}
+	var out *users_management_service.SearchUsersResponse
+	var httpResp *http.Response
+	var err error
+	if r.hooks.Get != nil {
+		out, httpResp, err = r.hooks.Get(ctx, request)
+	} else {
+		out, httpResp, err = request().Execute()
+	}
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
 	if out == nil {
 		return nil, nil
+	}
+	if got, ok := ctx.Value(getResultKey{}).(*getResult); ok {
+		got.response = out
 	}
 	// The Get is the List of the collection (api.getFromList). It selects the item whose id is
 	// the id of the resource, and follows the next page token until the item is found or the
@@ -280,15 +327,29 @@ func (r *Resource) get(ctx context.Context, id string) (*users_management_servic
 			return &out.Users[i], nil
 		}
 	}
+	pageRequest := func(token int64) func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest {
+		return func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest {
+			return request().PageToken(token)
+		}
+	}
+	pageExecute := func(token *int64) (*users_management_service.SearchUsersResponse, *http.Response, error) {
+		if r.hooks.Get != nil {
+			return r.hooks.Get(ctx, pageRequest(*token))
+		}
+		return pageRequest(*token)().Execute()
+	}
 	pageToken := out.NextPageToken
 	for page := 1; pageToken != nil && *pageToken != 0 && page < 100; page++ {
-		out, httpResp, err = r.client.UsersMgmtServiceSearchUsers(ctx).PageToken(*pageToken).Execute()
+		out, httpResp, err = pageExecute(pageToken)
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
 		if out == nil {
 			pageToken = nil
 			break
+		}
+		if got, ok := ctx.Value(getResultKey{}).(*getResult); ok {
+			got.response = out
 		}
 		for i := range out.Users {
 			if got, ok := apiID(&out.Users[i]); ok && got == id {
@@ -384,6 +445,14 @@ func (r *Resource) setState(ctx context.Context, v *users_management_service.Rba
 	}
 	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	}
+	// The response of the last Get call, if v came from one, is used once.
+	if got, ok := ctx.Value(getResultKey{}).(*getResult); ok && got.response != nil {
+		response := got.response
+		got.response = nil
+		if r.hooks.AfterGet != nil && !diags.HasError() {
+			diags.Append(r.hooks.AfterGet(ctx, state, response)...)
+		}
 	}
 	if r.hooks.AfterRead != nil && !diags.HasError() {
 		diags.Append(r.hooks.AfterRead(ctx, state, prior)...)

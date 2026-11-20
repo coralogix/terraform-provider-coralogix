@@ -26,12 +26,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 )
 
 const (
 	userTypeName  = "coralogix_user"
-	userGoldenDir = "/tmp/user-golden-actual"
+	userGoldenDir = "testdata/user_baseline"
 	userBasePath  = "/aaa/users/v2"
 )
 
@@ -51,7 +52,7 @@ func newUserHarness(t *testing.T) *grHarness {
 
 func TestUserBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
-	aaa.NewUserResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
+	user.NewResource(aaa.UserHooks()).Schema(context.Background(), resource.SchemaRequest{}, &current)
 	checkGoldenAt(t, userGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
 }
 

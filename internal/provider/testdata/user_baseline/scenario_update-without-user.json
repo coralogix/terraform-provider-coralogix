@@ -10,7 +10,7 @@
     },
     "plan": {
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -39,13 +39,7 @@
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -67,14 +61,8 @@
     },
     "plan": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
-      "groups": [],
+      "allowed_login_mode": [],
+      "groups": "(unknown)",
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -90,14 +78,11 @@
           {
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
-              "accessType": {
-                "accessType": "permanent",
-                "permanentAccess": {}
-              },
               "allowedLoginMode": [],
               "firstName": "Renamed",
               "lastName": "Person",
-              "status": "USER_STATUS_ACTIVE"
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
             }
           }
         ],
@@ -105,17 +90,11 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating User | update of user \"00000000-0000-4000-8000-000000000001\" returned no user"
+      "error: Missing resource | The API response has no RbacV2User."
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -130,19 +109,13 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
         "status": 200
       }
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -168,13 +141,7 @@
     },
     "plan": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -186,13 +153,7 @@
     "noChange": true,
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {

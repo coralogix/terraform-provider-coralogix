@@ -1,15 +1,18 @@
 (data source schema)
     description: Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
 active  tftypes.Bool computed
-emails  nested SET computed
-emails.primary  tftypes.Bool computed
-emails.type  tftypes.String computed
-emails.value  tftypes.String computed
+    description: Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
+allowed_login_mode  tftypes.List[tftypes.String] computed
+    description: List of allowed login modes. Can include SSO, local authentication, or both.
 groups  tftypes.Set[tftypes.String] computed
-id  tftypes.String optional,computed
-    description: User ID. Exactly one of `id` or `user_name` must be set.
+    description: The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
+id  tftypes.String required
+    description: User ID.
 name  nested SINGLE computed
+    description: The name of the user.
 name.family_name  tftypes.String computed
+    description: The family (last) name of the user.
 name.given_name  tftypes.String computed
-user_name  tftypes.String optional,computed
-    description: User name (email). Exactly one of `id` or `user_name` must be set. The lookup is case-insensitive, since SSO login can normalize letter case in the backend.
+    description: The given (first) name of the user.
+user_name  tftypes.String computed
+    description: Unique username

@@ -10,7 +10,7 @@
     },
     "plan": {
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -37,43 +37,12 @@
         "status": 200
       }
     ],
-    "state": {
-      "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
-      "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "User",
-        "given_name": "Test"
-      },
-      "user_name": "TF-ACC-USER-1@Coralogix.com"
-    },
-    "replanEmpty": true
-  },
-  {
-    "step": "refresh writes the case of the backend, and the replan stays empty",
-    "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40Coralogix.com",
-        "status": 200
-      }
+    "inconsistentResult": [
+      "user_name"
     ],
     "state": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -82,10 +51,37 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "drift": [
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"groups\")",
       "AttributeName(\"user_name\")"
+    ]
+  },
+  {
+    "step": "refresh writes the case of the backend, and the replan stays empty",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "status": 200
+      }
     ],
-    "replanEmpty": true
+    "state": {
+      "active": true,
+      "allowed_login_mode": [],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"groups\")",
+      "AttributeName(\"user_name\")"
+    ]
   },
   {
     "step": "apply the config again",
@@ -98,13 +94,40 @@
     },
     "plan": {
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
+      "groups": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "TF-ACC-USER-1@Coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "allowedLoginMode": [],
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "TF-ACC-USER-1@Coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "user_name"
+    ],
+    "state": {
+      "active": true,
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -113,23 +136,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "noChange": true,
-    "state": {
-      "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
-      "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "User",
-        "given_name": "Test"
-      },
-      "user_name": "tf-acc-user-1@coralogix.com"
-    }
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"groups\")",
+      "AttributeName(\"user_name\")"
+    ]
   }
 ]

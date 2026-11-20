@@ -8,6 +8,7 @@ typeName: user
 validators:
   inferred: false
 afterFlatten: true
+getHooks: true
 api:
   getFromList: {}
   idProperty: userId
@@ -34,7 +35,7 @@ api:
   createValues:
     onboardingMode: ONBOARDING_MODE_NO_INVITE
 dataSource:
-  description: Reads a user. It looks the user up by its id.
+  description: Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
 types:
   rbac.v2.User:
     fields:
@@ -44,6 +45,8 @@ types:
         markdownDescription: "User ID."
       allowedLoginMode:
         releasedLimits: true
+        computed: true
+        useStateForUnknown: true
       username:
         name: user_name
         required: true
@@ -56,12 +59,17 @@ types:
         skip: true
       userAccountId:
         skip: true
+      accessType:
+        skip: true
+      groupIds:
+        skip: true
     extraAttributes:
       name:
         type: object
         optional: true
         computed: true
         useStateForUnknown: true
+        inUpdate: true
         markdownDescription: "The name of the user."
         attributes:
           given_name:
@@ -75,6 +83,7 @@ types:
         optional: true
         computed: true
         default: true
+        inUpdate: true
         markdownDescription: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`."
       groups:
         type: set

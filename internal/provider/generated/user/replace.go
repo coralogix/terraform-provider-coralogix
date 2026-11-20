@@ -25,9 +25,10 @@ var updateFields = []struct {
 	attr          string
 	serverDefault bool
 }{
-	{attr: "access_type", serverDefault: false},
 	{attr: "allowed_login_mode", serverDefault: false},
 	{attr: "user_name", serverDefault: false},
+	{attr: "active", serverDefault: false},
+	{attr: "name", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

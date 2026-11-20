@@ -16,6 +16,7 @@ package aaa
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
@@ -40,8 +41,18 @@ import (
 func UserHooks() user.Hooks {
 	return user.Hooks{
 		BeforeWrite:  userBeforeWrite,
+		Get:          userGet,
 		AfterFlatten: userAfterFlatten,
 	}
+}
+
+// userGet pages the Search at the released page size: the released read sent
+// page_size=100 on every page. The username hint of the released read (it
+// narrowed the search to the user it read) is a generator gap (V6): the hook
+// cannot see the resource it reads, so the generated read pages unfiltered and
+// matches the id itself.
+func userGet(_ context.Context, request func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest) (*users_management_service.SearchUsersResponse, *http.Response, error) {
+	return request().PageSize(100).Execute()
 }
 
 // userName is the object of the name extra attribute.

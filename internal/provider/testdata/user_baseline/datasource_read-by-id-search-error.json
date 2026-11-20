@@ -12,11 +12,11 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading User | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
+      "error: Unable to read coralogix_user | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "active": null,
-      "emails": null,
+      "allowed_login_mode": null,
       "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": null,
