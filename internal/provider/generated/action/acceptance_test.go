@@ -264,7 +264,7 @@ func TestAccCoralogixResourceActionGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -417,3 +417,20 @@ const variant1Config = `resource "coralogix_action" "test" {
     },
   ]
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "applications.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_hidden", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_private", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "source_type", "Log"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystems.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "url", "http://a"),
+		resource.TestCheckResourceAttr(resourceAddress, "url_fields.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "url_fields.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "url_fields.0.required", "true"),
+	)
+}

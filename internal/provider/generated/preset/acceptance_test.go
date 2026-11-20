@@ -347,7 +347,7 @@ func TestAccCoralogixResourcePresetGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -534,3 +534,27 @@ resource "coralogix_preset" "test_2" {
   name = "@{run}-name-2"
   parent_id = "preset_system_generic_https_alerts_empty"
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "attachment_config", "ENABLED"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", "logsImmediateResolved"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "connector_type", "generic_https"),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "entity_type", "alerts"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "parent_id", "preset_system_generic_https_alerts_empty"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "attachment_config", "DISABLED"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "config_overrides.0.condition_type.match_entity_type_and_sub_type.entity_sub_type", "logsImmediateResolved"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "connector_type", "generic_https"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "entity_type", "alerts"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "name", render(run, "@{run}-name-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "parent_id", "preset_system_generic_https_alerts_empty"),
+	)
+}

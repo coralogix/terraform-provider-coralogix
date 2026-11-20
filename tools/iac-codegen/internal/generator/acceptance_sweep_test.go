@@ -478,7 +478,7 @@ func TestGeneratedSweepSplitsStepsWithStepCopies(t *testing.T) {
 		t.Fatalf("without stepCopies, one subtest holds all steps:\n%s", whole)
 	}
 	split := generate("resource: Thing\nstepCopies: 1\n")
-	for _, want := range []string{`t.Run("values-and-choices-1",`, `t.Run("values-and-choices-2",`, "{Config: config(run, fullConfig), Check: fullChecks(run)},\n\t\t\t\t{Config: config(run, variant1Config)},"} {
+	for _, want := range []string{`t.Run("values-and-choices-1",`, `t.Run("values-and-choices-2",`, "{Config: config(run, fullConfig), Check: fullChecks(run)},\n\t\t\t\t{Config: config(run, variant1Config)"} {
 		if !strings.Contains(split, want) {
 			t.Errorf("with stepCopies, the test lacks %s:\n%s", want, split)
 		}
@@ -516,5 +516,85 @@ func TestSweepFailsWhenAValueOfATypedArmStaysOut(t *testing.T) {
 	err := s.leftOut(attrs)
 	if err == nil || !strings.Contains(err.Error(), `"blue"`) {
 		t.Fatalf("got %v, want an error that names the value blue", err)
+	}
+}
+
+// twoPathResource holds one component, Chart, at two paths. The API can accept other values at one
+// path, and the arm at one path is another attribute, so a new resource sets every arm at every path.
+func twoPathResource() *tfResource {
+	chart := func() []*tfAttr {
+		const group = "line,pie"
+		return []*tfAttr{
+			{Name: "line", Kind: "SingleNested", Optional: true, OneOfGroup: group, Component: "Chart", Property: "line", Attributes: []*tfAttr{{Name: "max", Kind: "Int64", Optional: true}}},
+			{Name: "pie", Kind: "SingleNested", Optional: true, OneOfGroup: group, Component: "Chart", Property: "pie", Attributes: []*tfAttr{{Name: "hole", Kind: "Int64", Optional: true}}},
+		}
+	}
+	return &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "primary", Kind: "SingleNested", Optional: true, Attributes: chart()},
+		{Name: "secondary", Kind: "SingleNested", Optional: true, Attributes: chart()},
+	}}
+}
+
+func sweepTwoPaths(t *testing.T, perPath bool) *accSynth {
+	t.Helper()
+	s := testSynth(t, "")
+	s.perPath, s.perPathArms = perPath, perPath
+	s.setPaths, s.excused = map[string]bool{}, map[string]bool{}
+	res := twoPathResource()
+	s.cov = map[string]bool{}
+	if _, _, err := s.attrs(res.Attributes, "", "", accFull, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.sweepSteps(res); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// A new resource sets each arm at each path. One key for each component would set the arm only at the
+// path that the sweep reaches first.
+func TestSweepSetsEveryArmAtEveryPath(t *testing.T) {
+	s := sweepTwoPaths(t, true)
+	for _, path := range []string{"primary.line", "primary.pie", "secondary.line", "secondary.pie", "primary.pie.hole", "secondary.line.max"} {
+		if !s.setPaths[path] {
+			t.Errorf("no config sets %s", path)
+		}
+	}
+	if err := s.checkAllSet(&tfResource{CRUD: &crudData{}}); err != nil {
+		t.Errorf("checkAllSet: %v", err)
+	}
+}
+
+// A new resource fails when an attribute that a user can set is in no config. A released resource
+// only warns, because its tests were validated against a tenant.
+func TestCheckAllSetFailsForANewResource(t *testing.T) {
+	s := testSynth(t, "")
+	s.setPaths, s.excused = map[string]bool{"set": true}, map[string]bool{"made": true}
+	s.settable = map[string]bool{"set": true, "made": true, "ghost": true, "server": false}
+	err := s.checkAllSet(&tfResource{CRUD: &crudData{}})
+	if err == nil || !strings.Contains(err.Error(), "ghost") || strings.Contains(err.Error(), "made") || strings.Contains(err.Error(), "server") {
+		t.Fatalf("err = %v, want one that names only ghost", err)
+	}
+	if err := s.checkAllSet(&tfResource{CRUD: &crudData{Existing: true}}); err != nil {
+		t.Fatalf("a released resource only warns: %v", err)
+	}
+}
+
+// A values line that starts with "**." serves every path that ends with the rest of the line, and an
+// exact line wins over it.
+func TestValuesLineWithWildcardServesEveryPathThatEndsWithIt(t *testing.T) {
+	s := testSynth(t, "values:\n  '**.window.duration': '\"seconds:60\"'\n  a.window.duration: '\"seconds:5\"'\n")
+	for key, want := range map[string]string{
+		"a.window.duration":        `"seconds:5"`,
+		"b[].c.window.duration":    `"seconds:60"`,
+		"window.duration":          `"seconds:60"`,
+		"b.mywindow.duration":      "",
+		"a.window.duration.length": "",
+	} {
+		got, _, ok := s.fileValue(key)
+		if got != want || ok != (want != "") {
+			t.Errorf("fileValue(%q) = %q, %v; want %q", key, got, ok, want)
+		}
 	}
 }

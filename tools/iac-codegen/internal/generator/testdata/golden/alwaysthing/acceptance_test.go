@@ -225,7 +225,7 @@ func TestAccCoralogixResourceAlwaysThingGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -287,3 +287,15 @@ const variant1Config = `resource "coralogix_always_thing" "test" {
   }
   source_url = "@{run}-source_url"
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "note", render(run, "@{run}-note")),
+		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "limits.min", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config.queue.topic", render(run, "@{run}-topic")),
+		resource.TestCheckResourceAttr(resourceAddress, "source_url", render(run, "@{run}-source_url")),
+	)
+}

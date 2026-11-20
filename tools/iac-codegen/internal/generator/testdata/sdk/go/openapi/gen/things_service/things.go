@@ -99,7 +99,10 @@ type ThingSource struct {
 }
 
 type ThingDetail struct {
-	Name string
+	Name    string
+	Options []string
+	Scores  []int32
+	Starts  []time.Time
 }
 
 type Thing struct {

@@ -186,7 +186,7 @@ func TestAccCoralogixResourceAiCustomEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -241,3 +241,14 @@ const variant1Config = `resource "coralogix_ai_custom_evaluation" "test" {
   name = "@{run}-name"
   criteria = { acceptable = { flags = "Does not mention competitor products.", examples = ["User: which tool should I use?\nAssistant: Our product is a strong fit."] }, prohibited = { flags = "Mentions a competitor product.", examples = ["User: which tool should I use?\nAssistant: CompetitorX is a strong fit."] } }
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "instructions", "{prompt}"),
+		resource.TestCheckResourceAttr(resourceAddress, "policy_type", "security"),
+		resource.TestCheckResourceAttr(resourceAddress, "should_include_system_prompt", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+	)
+}

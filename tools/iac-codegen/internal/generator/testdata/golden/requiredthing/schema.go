@@ -230,6 +230,21 @@ func Schema() schema.Schema {
 							Required:            true,
 							MarkdownDescription: "The detail name.",
 						},
+						"options": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "Options of the detail. The API returns an empty list when none is set.",
+						},
+						"scores": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         types.Int32Type,
+							MarkdownDescription: "Scores of the detail.",
+						},
+						"starts": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         timetypes.RFC3339Type{},
+							MarkdownDescription: "Start times of the detail, in UTC.",
+						},
 					},
 				},
 				MarkdownDescription: "Unordered unique details.",

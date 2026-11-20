@@ -37,7 +37,10 @@ resource "coralogix_thing" "example" {
   tags         = ["example-tags"]
   details = [
     {
-      name = "example-name"
+      name    = "example-name"
+      options = ["example-options"]
+      scores  = [1]
+      starts  = ["2030-01-01T00:00:00Z"]
     },
   ]
   labels      = { key = "example-labels" }

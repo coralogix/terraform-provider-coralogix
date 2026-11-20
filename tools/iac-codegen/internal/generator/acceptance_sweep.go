@@ -59,6 +59,28 @@ func enumCoverKey(id, tf string) string { return "enum\x00" + id + "\x00" + tf }
 
 func armCoverKey(a *tfAttr) string { return "arm\x00" + a.Component + "\x00" + a.Property }
 
+// armKey is the key under which the sweep records that a config set the arm. Every resource covers
+// each arm at each path of the schema, because one component can sit at several paths and the arm
+// at one of them is a different attribute (the end time of a time frame in a one-time and in a
+// recurring schedule).
+func (s *accSynth) armKey(a *tfAttr, key string) string {
+	if s.perPathArms {
+		return "arm\x00" + key
+	}
+	return armCoverKey(a)
+}
+
+// enumKey is the key under which the sweep records that a config set the value of an enum
+// attribute. A new resource covers each value at each path, because the API can accept other values
+// at one of them (the fields of a funnel breakdown and of a funnel filter). An existing resource
+// keeps one key per enum, as its committed tests do.
+func (s *accSynth) enumKey(a *tfAttr, key, tf string) string {
+	if s.perPath {
+		return enumCoverKey(key, tf)
+	}
+	return enumCoverKey(enumID(a, key), tf)
+}
+
 func (s *accSynth) skippedValue(a *tfAttr, o enumOption) bool {
 	return a.EnumSchema != "" && slices.Contains(s.file.SkipValues[a.EnumSchema].Values, o.API)
 }
@@ -72,13 +94,12 @@ func (s *accSynth) skippedArm(a *tfAttr) bool {
 // has an enum value that no config sets. The type then names that arm again, so that its fields can
 // take their next value. A value that is not set yet goes first, so that this never starves an arm.
 func (s *accSynth) uncovered(a *tfAttr, key string) (enumOption, bool) {
-	id := enumID(a, key)
 	var again *enumOption
 	for _, o := range choices(a) {
 		if s.skippedValue(a, o) {
 			continue
 		}
-		if !s.cov[enumCoverKey(id, o.TF)] {
+		if !s.cov[s.enumKey(a, key, o.TF)] {
 			return o, true
 		}
 		if again == nil && s.armLeft(a, key, o.TF) {
@@ -136,21 +157,21 @@ func (s *accSynth) sweepValue(a *tfAttr, key string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	s.cov[enumCoverKey(enumID(a, key), o.TF)] = true
+	s.cov[s.enumKey(a, key, o.TF)] = true
 	return o.TF, true
 }
 
 // noteValue records the value that a config set in an enum attribute.
 func (s *accSynth) noteValue(a *tfAttr, key, tf string) {
 	if s.cov != nil && len(choices(a)) != 0 {
-		s.cov[enumCoverKey(enumID(a, key), tf)] = true
+		s.cov[s.enumKey(a, key, tf)] = true
 	}
 }
 
 // noteArm records the arm that a config set.
-func (s *accSynth) noteArm(a *tfAttr) {
+func (s *accSynth) noteArm(a *tfAttr, key string) {
 	if s.cov != nil {
-		s.cov[armCoverKey(a)] = true
+		s.cov[s.armKey(a, key)] = true
 	}
 }
 
@@ -161,7 +182,7 @@ func (s *accSynth) gain(a *tfAttr, key string) int {
 	if !s.include(a, key, accFull, false) {
 		return 0
 	}
-	if _, fixed := s.file.Values[key]; fixed {
+	if _, _, fixed := s.fileValue(key); fixed {
 		return 0
 	}
 	g := 0
@@ -178,7 +199,7 @@ func (s *accSynth) gain(a *tfAttr, key string) int {
 	for _, c := range a.Attributes {
 		childKey := joinPath(below, c.Name)
 		g += s.gain(c, childKey)
-		if !taken[c.OneOfGroup] && s.armToSweep(c, childKey) && !s.cov[armCoverKey(c)] {
+		if !taken[c.OneOfGroup] && s.armToSweep(c, childKey) && !s.cov[s.armKey(c, childKey)] {
 			g += sweepArmWeight // an arm below that no config has set outweighs the enum values
 		}
 	}
@@ -207,7 +228,7 @@ func (s *accSynth) armPicks(attrs []*tfAttr, key string, mode accMode, top bool)
 			continue
 		}
 		g := s.gain(a, attrKey)
-		if !s.cov[armCoverKey(a)] {
+		if !s.cov[s.armKey(a, attrKey)] {
 			g += sweepArmWeight
 		}
 		if g > best[a.OneOfGroup] {
@@ -227,7 +248,9 @@ func (s *accSynth) canMake(a *tfAttr, key string, mode accMode) bool {
 	}
 	cov, extra := s.cov, s.extra
 	s.cov = maps.Clone(cov) // the trial sets nothing
+	s.trial++
 	_, _, err := s.makeValue(a, "trial", key, mode)
+	s.trial--
 	s.cov, s.extra = cov, extra
 	if s.armBuilds == nil {
 		s.armBuilds = map[string]error{}
@@ -245,7 +268,7 @@ const maxStepCopies = 10
 // sets a value or an arm that no config has set. A singleton has one copy, because the API holds
 // one resource of it. The copies differ in their top-level strings: the name ends with the number
 // of the copy.
-func (s *accSynth) sweepCopies(res *tfResource) (string, error) {
+func (s *accSynth) sweepCopies(res *tfResource) (string, []accCheck, error) {
 	limit := maxStepCopies
 	if s.file.StepCopies > 0 {
 		limit = min(limit, s.file.StepCopies)
@@ -254,13 +277,14 @@ func (s *accSynth) sweepCopies(res *tfResource) (string, error) {
 		limit = 1
 	}
 	var blocks []string
+	var checks []accCheck
 	for n := 0; n < limit; n++ {
 		before := len(s.cov)
 		s.extra, s.element = 0, n
-		body, _, err := s.attrs(res.Attributes, "", "", accFull, true)
+		body, copyChecks, err := s.attrs(res.Attributes, "", "", accFull, true)
 		s.element = 0
 		if err != nil {
-			return "", fmt.Errorf("acceptance test: %w", err)
+			return "", nil, fmt.Errorf("acceptance test: %w", err)
 		}
 		if len(s.cov) == before {
 			break // this copy sets nothing new
@@ -270,8 +294,12 @@ func (s *accSynth) sweepCopies(res *tfResource) (string, error) {
 			name = "test_" + strconv.Itoa(n+1)
 		}
 		blocks = append(blocks, namedResourceBlock("coralogix_"+res.CRUD.TypeName, name, body))
+		for _, c := range copyChecks {
+			c.Copy = n + 1
+			checks = append(checks, c)
+		}
 	}
-	return strings.Join(blocks, "\n\n"), nil
+	return strings.Join(blocks, "\n\n"), checks, nil
 }
 
 // sweepSteps makes the configs that follow the full config in the values-and-choices subtest. The
@@ -285,7 +313,7 @@ func (s *accSynth) sweepSteps(res *tfResource) ([]*accStep, error) {
 	var steps []*accStep
 	for len(steps) < maxSweepSteps {
 		before := len(s.cov)
-		config, err := s.sweepCopies(res)
+		config, checks, err := s.sweepCopies(res)
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +323,7 @@ func (s *accSynth) sweepSteps(res *tfResource) ([]*accStep, error) {
 			}
 			return steps, s.leftOut(res.Attributes)
 		}
-		steps = append(steps, &accStep{N: len(steps) + 1, Config: config})
+		steps = append(steps, &accStep{N: len(steps) + 1, Config: config, Checks: checks})
 	}
 	return nil, fmt.Errorf("acceptance test: the values-and-choices sweep did not end after %d steps", maxSweepSteps)
 }
@@ -401,7 +429,7 @@ func (s *accSynth) leftOutBelow(attrs []*tfAttr, key string) []string {
 	taken := s.requiredArms(attrs, key, accFull, false)
 	for _, a := range attrs {
 		attrKey := joinPath(key, a.Name)
-		if _, fixed := s.file.Values[attrKey]; fixed || !s.include(a, attrKey, accFull, false) {
+		if _, _, fixed := s.fileValue(attrKey); fixed || !s.include(a, attrKey, accFull, false) {
 			continue // the file writes the value and what is below it, or the config leaves it out
 		}
 		if s.outOfSweep(a, attrKey, taken) {
@@ -446,13 +474,12 @@ func (s *accSynth) outOfSweep(a *tfAttr, attrKey string, taken map[string]bool) 
 // leftOutHere describes the arm and the enum values of one attribute that the sweep did not set.
 func (s *accSynth) leftOutHere(a *tfAttr, attrKey string) []string {
 	var lines []string
-	if a.OneOfGroup != "" && !a.Required && !s.cov[armCoverKey(a)] {
+	if a.OneOfGroup != "" && !a.Required && !s.cov[s.armKey(a, attrKey)] {
 		lines = append(lines, fmt.Sprintf("  the oneOf arm %s (component %s, arm %s)", attrKey, a.Component, a.Property))
 	}
 	if len(choices(a)) != 0 && slices.Contains([]string{"String", "List", "Set"}, a.Kind) {
-		id := enumID(a, attrKey)
 		for _, o := range choices(a) {
-			if !s.cov[enumCoverKey(id, o.TF)] && !s.skippedValue(a, o) {
+			if !s.cov[s.enumKey(a, attrKey, o.TF)] && !s.skippedValue(a, o) {
 				lines = append(lines, fmt.Sprintf("  the value %q of %s", o.TF, attrKey))
 			}
 		}

@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -1061,6 +1062,10 @@ func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Dia
 		if prior, ok := p.(types.Map); ok {
 			return priorEmptyMap(ctx, at, v, prior, diags)
 		}
+	case types.Set:
+		if prior, ok := p.(types.Set); ok {
+			return priorEmptySet(ctx, at, v, prior, diags)
+		}
 	}
 	return v
 }
@@ -1115,6 +1120,91 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 	value, d := types.MapValue(v.ElementType(ctx), out)
 	diags.Append(d...)
 	return value
+}
+
+// priorEmptySet pairs each element of the API with the prior element that it equals once every
+// empty value is null. The element then takes the form of the prior one. A set has no index, so the
+// pairing is by value, and a prior element serves one element. An element without a twin stays as
+// the API has it.
+func priorEmptySet(ctx context.Context, at string, v, prior types.Set, diags *diag.Diagnostics) attr.Value {
+	elems := v.Elements()
+	priorElems := slices.Clone(prior.Elements())
+	out := make([]attr.Value, len(elems))
+	for i, child := range elems {
+		out[i] = child
+		for j, twin := range priorElems {
+			if twin != nil && emptyNormal(at, child).Equal(emptyNormal(at, twin)) {
+				out[i] = priorEmpty(ctx, at, child, twin, diags)
+				priorElems[j] = nil
+				break
+			}
+		}
+	}
+	value, d := types.SetValue(v.ElementType(ctx), out)
+	if d.HasError() {
+		return v
+	}
+	return value
+}
+
+// emptyNormal returns v with every empty value as null, at any depth, so that two values that differ
+// only in the form of an empty value are equal.
+func emptyNormal(at string, v attr.Value) attr.Value {
+	if v == nil || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	ctx := context.Background()
+	switch v := v.(type) {
+	case types.Object:
+		if emptyValue(at, v) {
+			return types.ObjectNull(v.AttributeTypes(ctx))
+		}
+		if oneOfArms[at] {
+			return v
+		}
+		attrs := v.Attributes()
+		out := make(map[string]attr.Value, len(attrs))
+		for name, child := range attrs {
+			out[name] = emptyNormal(at+"."+name, child)
+		}
+		if value, d := types.ObjectValue(v.AttributeTypes(ctx), out); !d.HasError() {
+			return value
+		}
+	case types.List:
+		if len(v.Elements()) == 0 {
+			return types.ListNull(v.ElementType(ctx))
+		}
+		out := make([]attr.Value, 0, len(v.Elements()))
+		for _, child := range v.Elements() {
+			out = append(out, emptyNormal(at, child))
+		}
+		if value, d := types.ListValue(v.ElementType(ctx), out); !d.HasError() {
+			return value
+		}
+	case types.Set:
+		if len(v.Elements()) == 0 {
+			return types.SetNull(v.ElementType(ctx))
+		}
+		out := make([]attr.Value, 0, len(v.Elements()))
+		for _, child := range v.Elements() {
+			out = append(out, emptyNormal(at, child))
+		}
+		if value, d := types.SetValue(v.ElementType(ctx), out); !d.HasError() {
+			return value
+		}
+	case types.Map:
+		if len(v.Elements()) == 0 {
+			return types.MapNull(v.ElementType(ctx))
+		}
+		out := make(map[string]attr.Value, len(v.Elements()))
+		for key, child := range v.Elements() {
+			out[key] = emptyNormal(at, child)
+		}
+		if value, d := types.MapValue(v.ElementType(ctx), out); !d.HasError() {
+			return value
+		}
+	}
+	return v
 }
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
@@ -1372,7 +1462,7 @@ func flattenAnalyticsThresholdType(ctx context.Context, p path.Path, v *alert_de
 	}
 	out.Operator = flattenEnumMapped(p.AtName("operator"), v.Operator, analyticsThresholdOperatorFromAPI, diags)
 	out.Rules = types.ListNull(types.ObjectType{AttrTypes: analyticsThresholdRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]AnalyticsThresholdRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenAnalyticsThresholdRule(ctx, p.AtName("rules").AtListIndex(i), &v.Rules[i], diags))
@@ -1488,7 +1578,7 @@ func flattenAlertDefCaseSettings(ctx context.Context, p path.Path, v *alert_defi
 	out := &AlertDefCaseSettingsModel{}
 	out.AutoResolveMode = flattenEnumMapped(p.AtName("auto_resolve_mode"), v.AutoResolveMode, alertDefCaseAutoResolveModeFromAPI, diags)
 	out.Destinations = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()})
-	if v.Destinations != nil {
+	if len(v.Destinations) != 0 {
 		items := make([]AlertDefCaseDestinationModel, 0, len(v.Destinations))
 		for i := range v.Destinations {
 			items = append(items, *flattenAlertDefCaseDestination(ctx, p.AtName("destinations").AtListIndex(i), &v.Destinations[i], diags))
@@ -1496,7 +1586,7 @@ func flattenAlertDefCaseSettings(ctx context.Context, p path.Path, v *alert_defi
 		out.Destinations = flattenList(ctx, types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()}, items, diags)
 	}
 	out.EnrichmentQueries = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseEnrichmentQueryAttrTypes()})
-	if v.EnrichmentQueries != nil {
+	if len(v.EnrichmentQueries) != 0 {
 		items := make([]AlertDefCaseEnrichmentQueryModel, 0, len(v.EnrichmentQueries))
 		for i := range v.EnrichmentQueries {
 			items = append(items, *flattenAlertDefCaseEnrichmentQuery(ctx, p.AtName("enrichment_queries").AtListIndex(i), &v.EnrichmentQueries[i], diags))
@@ -1530,7 +1620,7 @@ func flattenAlertDefCaseDestination(ctx context.Context, p path.Path, v *alert_d
 	out := &AlertDefCaseDestinationModel{}
 	out.Condition = types.StringPointerValue(&v.Condition)
 	out.ConnectorConfigOverrides = types.ListNull(types.ObjectType{AttrTypes: v3ConnectorConfigFieldAttrTypes()})
-	if v.ConnectorConfigOverrides != nil {
+	if len(v.ConnectorConfigOverrides) != 0 {
 		items := make([]V3ConnectorConfigFieldModel, 0, len(v.ConnectorConfigOverrides))
 		for i := range v.ConnectorConfigOverrides {
 			items = append(items, *flattenV3ConnectorConfigField(ctx, p.AtName("connector_config_overrides").AtListIndex(i), &v.ConnectorConfigOverrides[i], diags))
@@ -1654,7 +1744,7 @@ func flattenFlowType(ctx context.Context, p path.Path, v *alert_definitions_serv
 	out := &FlowTypeModel{}
 	out.EnforceSuppression = types.BoolPointerValue(v.EnforceSuppression)
 	out.Stages = types.ListNull(types.ObjectType{AttrTypes: flowStagesAttrTypes()})
-	if v.Stages != nil {
+	if len(v.Stages) != 0 {
 		items := make([]FlowStagesModel, 0, len(v.Stages))
 		for i := range v.Stages {
 			items = append(items, *flattenFlowStages(ctx, p.AtName("stages").AtListIndex(i), &v.Stages[i], diags))
@@ -1692,7 +1782,7 @@ func flattenFlowStages(ctx context.Context, p path.Path, v *alert_definitions_se
 	{
 		inner := unwrapFlowStagesGroups(v.FlowStagesGroups)
 		out.FlowStagesGroups = types.ListNull(types.ObjectType{AttrTypes: flowStagesGroupAttrTypes()})
-		if inner != nil {
+		if len(inner) != 0 {
 			items := make([]FlowStagesGroupModel, 0, len(inner))
 			for i := range inner {
 				items = append(items, *flattenFlowStagesGroup(ctx, p.AtName("flow_stages_groups").AtListIndex(i), &inner[i], diags))
@@ -1735,7 +1825,7 @@ func flattenFlowStagesGroup(ctx context.Context, p path.Path, v *alert_definitio
 	}
 	out := &FlowStagesGroupModel{}
 	out.AlertDefs = types.SetNull(types.ObjectType{AttrTypes: flowStagesGroupsAlertDefsAttrTypes()})
-	if v.AlertDefs != nil {
+	if len(v.AlertDefs) != 0 {
 		items := make([]FlowStagesGroupsAlertDefsModel, 0, len(v.AlertDefs))
 		for i := range v.AlertDefs {
 			items = append(items, *flattenFlowStagesGroupsAlertDefs(ctx, p.AtName("alert_defs"), &v.AlertDefs[i], diags))
@@ -1880,7 +1970,7 @@ func flattenLogsAnomalyType(ctx context.Context, p path.Path, v *alert_definitio
 		out.NotificationPayloadFilter = types.SetNull(types.StringType)
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsAnomalyRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]LogsAnomalyRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenLogsAnomalyRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2174,7 +2264,7 @@ func flattenLogsNewValueType(ctx context.Context, p path.Path, v *alert_definiti
 		out.NotificationPayloadFilter = types.SetNull(types.StringType)
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsNewValueRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]LogsNewValueRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenLogsNewValueRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2305,7 +2395,7 @@ func flattenLogsRatioThresholdType(ctx context.Context, p path.Path, v *alert_de
 	}
 	out.NumeratorAlias = types.StringPointerValue(v.NumeratorAlias)
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsRatioRulesAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]LogsRatioRulesModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenLogsRatioRules(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2467,7 +2557,7 @@ func flattenLogsThresholdType(ctx context.Context, p path.Path, v *alert_definit
 		out.NotificationPayloadFilter = types.SetNull(types.StringType)
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsThresholdRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]LogsThresholdRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenLogsThresholdRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2593,7 +2683,7 @@ func flattenLogsTimeRelativeThresholdType(ctx context.Context, p path.Path, v *a
 		out.NotificationPayloadFilter = types.SetNull(types.StringType)
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsTimeRelativeRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]LogsTimeRelativeRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenLogsTimeRelativeRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2706,7 +2796,7 @@ func flattenLogsUniqueCountType(ctx context.Context, p path.Path, v *alert_defin
 		out.NotificationPayloadFilter = types.SetNull(types.StringType)
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsUniqueCountRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]LogsUniqueCountRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenLogsUniqueCountRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2808,7 +2898,7 @@ func flattenMetricAnomalyType(ctx context.Context, p path.Path, v *alert_definit
 	out.EvaluationDelayMs = types.Int32PointerValue(v.EvaluationDelayMs)
 	out.MetricFilter = flattenMetricFilter(ctx, p.AtName("metric_filter"), v.MetricFilter, diags)
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: metricAnomalyRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]MetricAnomalyRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenMetricAnomalyRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -2958,7 +3048,7 @@ func flattenMetricThresholdType(ctx context.Context, p path.Path, v *alert_defin
 		out.NoDataPolicy = value
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: metricThresholdRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]MetricThresholdRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenMetricThresholdRule(ctx, p.AtName("rules"), &v.Rules[i], diags))
@@ -3335,6 +3425,10 @@ func flattenAlertDefWebhooksSettings(ctx context.Context, p path.Path, v *alert_
 	{
 		inner := unwrapRecipients(v.Integration.Recipients)
 		out.Recipients = flattenStringsSet(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.Recipients = types.SetNull(types.StringType)
+		}
 	}
 	out.RetriggeringPeriod = types.ObjectNull(alertDefWebhooksSettingsRetriggeringPeriodAttrTypes())
 	if nested := flattenAlertDefWebhooksSettingsRetriggeringPeriod(ctx, p.AtName("retriggering_period"), v, diags); nested != nil {
@@ -3426,7 +3520,7 @@ func flattenBurnRateThreshold(ctx context.Context, p path.Path, v *alert_definit
 	out := &BurnRateThresholdModel{}
 	out.Dual = flattenBurnRateTypeDual(ctx, p.AtName("dual"), v.Dual, diags)
 	out.Rules = types.ListNull(types.ObjectType{AttrTypes: sloThresholdRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]SloThresholdRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenSloThresholdRule(ctx, p.AtName("rules").AtListIndex(i), &v.Rules[i], diags))
@@ -3564,7 +3658,7 @@ func flattenErrorBudgetThreshold(ctx context.Context, p path.Path, v *alert_defi
 	}
 	out := &ErrorBudgetThresholdModel{}
 	out.Rules = types.ListNull(types.ObjectType{AttrTypes: sloThresholdRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]SloThresholdRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenSloThresholdRule(ctx, p.AtName("rules").AtListIndex(i), &v.Rules[i], diags))
@@ -3746,6 +3840,10 @@ func flattenTracingFilterType(ctx context.Context, p path.Path, v *alert_definit
 	out := &TracingFilterTypeModel{}
 	out.Operation = flattenEnumMapped(p.AtName("operation"), v.Operation, tracingFilterOperationTypeFromAPI, diags)
 	out.Values = flattenStringsSet(ctx, v.Values, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Values) == 0 {
+		out.Values = types.SetNull(types.StringType)
+	}
 	return out
 }
 
@@ -3814,7 +3912,7 @@ func flattenTracingThresholdType(ctx context.Context, p path.Path, v *alert_defi
 		out.NotificationPayloadFilter = types.SetNull(types.StringType)
 	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: tracingThresholdRuleAttrTypes()})
-	if v.Rules != nil {
+	if len(v.Rules) != 0 {
 		items := make([]TracingThresholdRuleModel, 0, len(v.Rules))
 		for i := range v.Rules {
 			items = append(items, *flattenTracingThresholdRule(ctx, p.AtName("rules"), &v.Rules[i], diags))

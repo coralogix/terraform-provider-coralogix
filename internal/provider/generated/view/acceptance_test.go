@@ -224,7 +224,7 @@ func TestAccCoralogixResourceViewGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -341,3 +341,30 @@ resource "coralogix_view" "test_3" {
   }
   view_type = "VIEW_TYPE_ARCHIVE_TEMPLATES"
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "filters.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "filters.filters.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_compact_mode", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "search_query.query", render(run, "@{run}-query")),
+		resource.TestCheckResourceAttr(resourceAddress, "search_query.syntax_type", "SYNTAX_TYPE_DATAPRIME"),
+		resource.TestCheckResourceAttr(resourceAddress, "view_type", "VIEW_TYPE_TEMPLATES"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "filters.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "filters.filters.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "is_compact_mode", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "name", render(run, "@{run}-name-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "search_query.query", render(run, "@{run}-query-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "search_query.syntax_type", "SYNTAX_TYPE_LUCENE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "view_type", "VIEW_TYPE_ARCHIVE_LOGS"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "filters.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "filters.filters.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "is_compact_mode", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "name", render(run, "@{run}-name-3")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "search_query.query", render(run, "@{run}-query-3")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "search_query.syntax_type", "SYNTAX_TYPE_LUCENE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "view_type", "VIEW_TYPE_ARCHIVE_TEMPLATES"),
+	)
+}
