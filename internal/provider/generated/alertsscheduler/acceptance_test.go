@@ -344,8 +344,8 @@ func TestAccCoralogixResourceAlertsSchedulerGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
-				{Config: config(run, variant2Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
+				{Config: config(run, variant2Config), Check: variant2Checks(run)},
 			},
 		})
 	})
@@ -512,7 +512,10 @@ const variant1Config = `resource "coralogix_alerts_scheduler" "test" {
         repeat_every = 1
         termination_date = "2031-01-01T00:00:00.000"
         time_frame = {
-          end_time = "2030-01-02T00:00:00.000"
+          duration = {
+            for_over = 1
+            frequency = "hours"
+          }
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"
         }
@@ -550,10 +553,7 @@ resource "coralogix_alerts_scheduler" "test_2" {
         repeat_every = 1
         termination_date = "2031-01-01T00:00:00.000"
         time_frame = {
-          duration = {
-            for_over = 1
-            frequency = "hours"
-          }
+          end_time = "2030-01-02T00:00:00.000"
           start_time = "2030-01-01T00:00:00.000"
           time_zone = "UTC"
         }
@@ -626,8 +626,12 @@ resource "coralogix_alerts_scheduler" "test_4" {
   ]
   name = "@{run}-scheduler"
   schedule = {
-    recurring = {
-      always_active = true
+    one_time = {
+      time_frame = {
+        end_time = "2030-01-02T00:00:00.000"
+        start_time = "2030-01-01T00:00:00.000"
+        time_zone = "UTC+0"
+      }
     }
     operation = "mute"
   }
@@ -635,6 +639,33 @@ resource "coralogix_alerts_scheduler" "test_4" {
 
 resource "coralogix_alerts_scheduler" "test_5" {
   description = "@{run}-description-5"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      always_active = true
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_6" {
+  description = "@{run}-description-6"
   enabled = true
   filter = {
     meta_labels = [
@@ -667,8 +698,8 @@ resource "coralogix_alerts_scheduler" "test_5" {
   }
 }
 
-resource "coralogix_alerts_scheduler" "test_6" {
-  description = "@{run}-description-6"
+resource "coralogix_alerts_scheduler" "test_7" {
+  description = "@{run}-description-7"
   enabled = true
   filter = {
     meta_labels = [
@@ -701,49 +732,6 @@ resource "coralogix_alerts_scheduler" "test_6" {
   }
 }
 
-resource "coralogix_alerts_scheduler" "test_7" {
-  description = "@{run}-description-7"
-  enabled = true
-  filter = {
-    meta_labels = [
-      {
-        key = "key"
-        value = "value"
-      },
-    ]
-    what_expression = "source logs | filter true"
-  }
-  meta_labels = [
-    {
-      key = "key"
-      value = "value"
-    },
-  ]
-  name = "@{run}-scheduler"
-  schedule = {
-    recurring = {
-      dynamic = {
-        frequency = {
-          weekly = {
-            days = ["Monday"]
-          }
-        }
-        repeat_every = 1
-        termination_date = "2031-01-01T00:00:00.000"
-        time_frame = {
-          duration = {
-            for_over = 1
-            frequency = "hours"
-          }
-          start_time = "2030-01-01T00:00:00.000"
-          time_zone = "UTC"
-        }
-      }
-    }
-    operation = "mute"
-  }
-}
-
 resource "coralogix_alerts_scheduler" "test_8" {
   description = "@{run}-description-8"
   enabled = true
@@ -768,7 +756,7 @@ resource "coralogix_alerts_scheduler" "test_8" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Saturday"]
+            days = ["Monday"]
           }
         }
         repeat_every = 1
@@ -811,7 +799,7 @@ resource "coralogix_alerts_scheduler" "test_9" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Sunday"]
+            days = ["Saturday"]
           }
         }
         repeat_every = 1
@@ -854,7 +842,7 @@ resource "coralogix_alerts_scheduler" "test_10" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Thursday"]
+            days = ["Sunday"]
           }
         }
         repeat_every = 1
@@ -872,6 +860,134 @@ resource "coralogix_alerts_scheduler" "test_10" {
     operation = "mute"
   }
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress, "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.end_time", "2030-01-02T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.frequency.monthly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "schedule.one_time.time_frame.end_time", "2030-01-02T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "schedule.recurring.always_active", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "schedule.one_time.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "schedule.one_time.time_frame.duration.frequency", "minutes"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "schedule.one_time.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "schedule.one_time.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "schedule.one_time.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "schedule.one_time.time_frame.time_zone", "UTC+0"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "schedule.operation", "mute"),
+	)
+}
 
 const variant2Config = `resource "coralogix_alerts_scheduler" "test" {
   description = "@{run}-description"
@@ -897,7 +1013,7 @@ const variant2Config = `resource "coralogix_alerts_scheduler" "test" {
       dynamic = {
         frequency = {
           weekly = {
-            days = ["Tuesday"]
+            days = ["Thursday"]
           }
         }
         repeat_every = 1
@@ -940,6 +1056,49 @@ resource "coralogix_alerts_scheduler" "test_2" {
       dynamic = {
         frequency = {
           weekly = {
+            days = ["Tuesday"]
+          }
+        }
+        repeat_every = 1
+        termination_date = "2031-01-01T00:00:00.000"
+        time_frame = {
+          duration = {
+            for_over = 1
+            frequency = "hours"
+          }
+          start_time = "2030-01-01T00:00:00.000"
+          time_zone = "UTC"
+        }
+      }
+    }
+    operation = "mute"
+  }
+}
+
+resource "coralogix_alerts_scheduler" "test_3" {
+  description = "@{run}-description-3"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "key"
+        value = "value"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "key"
+      value = "value"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    recurring = {
+      dynamic = {
+        frequency = {
+          weekly = {
             days = ["Wednesday"]
           }
         }
@@ -958,3 +1117,51 @@ resource "coralogix_alerts_scheduler" "test_2" {
     operation = "mute"
   }
 }`
+
+// variant2Checks assert what the step sets: each attribute that the config states has its value.
+func variant2Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress, "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "schedule.operation", "mute"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "filter.what_expression", "source logs | filter true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "name", render(run, "@{run}-scheduler")),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.frequency.weekly.days.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.repeat_every", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.termination_date", "2031-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.start_time", "2030-01-01T00:00:00.000"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.recurring.dynamic.time_frame.time_zone", "UTC"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "schedule.operation", "mute"),
+	)
+}

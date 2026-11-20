@@ -92,6 +92,9 @@ const fullConfig = `resource "coralogix_thing" "test" {
   details = [
     {
       name = "@{run}-name"
+      options = ["@{run}-options"]
+      scores = [1]
+      starts = ["2030-01-01T00:00:00Z"]
     },
   ]
   labels = { key = "@{run}-labels" }
@@ -136,6 +139,9 @@ const updatedConfig = `resource "coralogix_thing" "test" {
   details = [
     {
       name = "@{run}-name-updated"
+      options = ["@{run}-options-updated"]
+      scores = [2]
+      starts = ["2030-01-02T00:00:00Z"]
     },
   ]
   labels = { key = "@{run}-labels-updated" }
@@ -258,7 +264,13 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "details.#", "1"),
 		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "details.*", map[string]string{
-			"name": render(run, "@{run}-name"),
+			"name":      render(run, "@{run}-name"),
+			"options.#": "1",
+			"options.0": render(run, "@{run}-options"),
+			"scores.#":  "1",
+			"scores.0":  "1",
+			"starts.#":  "1",
+			"starts.0":  "2030-01-01T00:00:00Z",
 		}),
 		resource.TestCheckResourceAttr(resourceAddress, "labels.key", render(run, "@{run}-labels")),
 		resource.TestCheckResourceAttr(resourceAddress, "expire_time", "2030-01-01T00:00:00Z"),
@@ -293,7 +305,13 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "details.#", "1"),
 		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "details.*", map[string]string{
-			"name": render(run, "@{run}-name-updated"),
+			"name":      render(run, "@{run}-name-updated"),
+			"options.#": "1",
+			"options.0": render(run, "@{run}-options-updated"),
+			"scores.#":  "1",
+			"scores.0":  "2",
+			"starts.#":  "1",
+			"starts.0":  "2030-01-02T00:00:00Z",
 		}),
 		resource.TestCheckResourceAttr(resourceAddress, "labels.key", render(run, "@{run}-labels-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "expire_time", "2030-01-02T00:00:00Z"),
@@ -392,7 +410,7 @@ func TestAccCoralogixResourceThingGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -470,6 +488,9 @@ const variant1Config = `resource "coralogix_thing" "test" {
   details = [
     {
       name = "@{run}-name"
+      options = ["@{run}-options"]
+      scores = [1]
+      starts = ["2030-01-01T00:00:00Z"]
     },
   ]
   labels = { key = "@{run}-labels" }
@@ -514,6 +535,9 @@ resource "coralogix_thing" "test_2" {
   details = [
     {
       name = "@{run}-name"
+      options = ["@{run}-options"]
+      scores = [1]
+      starts = ["2030-01-01T00:00:00Z"]
     },
   ]
   labels = { key = "@{run}-labels" }
@@ -525,3 +549,63 @@ resource "coralogix_thing" "test_2" {
   limit = 1
   label = "@{run}-label-2"
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "kind", "THING_KIND_ADVANCED"),
+		resource.TestCheckResourceAttr(resourceAddress, "config.queue.topic", render(run, "@{run}-topic")),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.mode", render(run, "@{run}-mode")),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.region", render(run, "@{run}-region")),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.weight", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.items.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.items.0.key", render(run, "@{run}-key")),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.items.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.items.0.start_time", "2030-01-01T00:00:00Z"),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.targets.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "spec.targets.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "destinations.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "destinations.0", "https://a"),
+		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "details.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "labels.key", render(run, "@{run}-labels")),
+		resource.TestCheckResourceAttr(resourceAddress, "expire_time", "2030-01-01T00:00:00Z"),
+		resource.TestCheckResourceAttr(resourceAddress, "windows.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "windows.0", "2030-01-01T00:00:00Z"),
+		resource.TestCheckResourceAttr(resourceAddress, "paused", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "retries", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "priority", "THING_PRIORITY_HIGH"),
+		resource.TestCheckResourceAttr(resourceAddress, "limit", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "label", render(run, "@{run}-label")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "name", render(run, "@{run}-name-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "kind", "THING_KIND_P5_OR_UNSPECIFIED"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "config.http.endpoint", render(run, "@{run}-endpoint-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.mode", render(run, "@{run}-mode-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.region", render(run, "@{run}-region-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.weight", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.items.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.items.0.key", render(run, "@{run}-key")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.items.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.items.0.start_time", "2030-01-01T00:00:00Z"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.targets.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "spec.targets.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "destinations.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "destinations.0", "https://a"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "tags.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "details.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "labels.key", render(run, "@{run}-labels")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "expire_time", "2030-01-01T00:00:00Z"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "windows.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "windows.0", "2030-01-01T00:00:00Z"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "paused", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "retries", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "priority", "THING_PRIORITY_LOW"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "limit", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "label", render(run, "@{run}-label-2")),
+	)
+}

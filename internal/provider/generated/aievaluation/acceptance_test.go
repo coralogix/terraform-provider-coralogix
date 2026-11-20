@@ -213,7 +213,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -224,7 +224,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant2Config)},
+				{Config: config(run, variant2Config), Check: variant2Checks(run)},
 			},
 		})
 	})
@@ -235,7 +235,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant3Config)},
+				{Config: config(run, variant3Config), Check: variant3Checks(run)},
 			},
 		})
 	})
@@ -246,7 +246,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant4Config)},
+				{Config: config(run, variant4Config), Check: variant4Checks(run)},
 			},
 		})
 	})
@@ -257,7 +257,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant5Config)},
+				{Config: config(run, variant5Config), Check: variant5Checks(run)},
 			},
 		})
 	})
@@ -268,7 +268,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant6Config)},
+				{Config: config(run, variant6Config), Check: variant6Checks(run)},
 			},
 		})
 	})
@@ -279,7 +279,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant7Config)},
+				{Config: config(run, variant7Config), Check: variant7Checks(run)},
 			},
 		})
 	})
@@ -290,7 +290,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant8Config)},
+				{Config: config(run, variant8Config), Check: variant8Checks(run)},
 			},
 		})
 	})
@@ -301,7 +301,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant9Config)},
+				{Config: config(run, variant9Config), Check: variant9Checks(run)},
 			},
 		})
 	})
@@ -312,7 +312,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant10Config)},
+				{Config: config(run, variant10Config), Check: variant10Checks(run)},
 			},
 		})
 	})
@@ -323,7 +323,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant11Config)},
+				{Config: config(run, variant11Config), Check: variant11Checks(run)},
 			},
 		})
 	})
@@ -334,7 +334,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant12Config)},
+				{Config: config(run, variant12Config), Check: variant12Checks(run)},
 			},
 		})
 	})
@@ -345,7 +345,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant13Config)},
+				{Config: config(run, variant13Config), Check: variant13Checks(run)},
 			},
 		})
 	})
@@ -356,7 +356,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant14Config)},
+				{Config: config(run, variant14Config), Check: variant14Checks(run)},
 			},
 		})
 	})
@@ -367,7 +367,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant15Config)},
+				{Config: config(run, variant15Config), Check: variant15Checks(run)},
 			},
 		})
 	})
@@ -378,7 +378,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant16Config)},
+				{Config: config(run, variant16Config), Check: variant16Checks(run)},
 			},
 		})
 	})
@@ -389,7 +389,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant17Config)},
+				{Config: config(run, variant17Config), Check: variant17Checks(run)},
 			},
 		})
 	})
@@ -400,7 +400,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant18Config)},
+				{Config: config(run, variant18Config), Check: variant18Checks(run)},
 			},
 		})
 	})
@@ -411,7 +411,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant19Config)},
+				{Config: config(run, variant19Config), Check: variant19Checks(run)},
 			},
 		})
 	})
@@ -422,7 +422,7 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant20Config)},
+				{Config: config(run, variant20Config), Check: variant20Checks(run)},
 			},
 		})
 	})
@@ -500,6 +500,18 @@ const variant1Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.pii.categories.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant2Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -513,6 +525,18 @@ const variant2Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant2Checks assert what the step sets: each attribute that the config states has its value.
+func variant2Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.competition.competitors.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant3Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -523,6 +547,17 @@ const variant3Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant3Checks assert what the step sets: each attribute that the config states has its value.
+func variant3Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant4Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -535,6 +570,17 @@ const variant4Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant4Checks assert what the step sets: each attribute that the config states has its value.
+func variant4Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant5Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -545,6 +591,17 @@ const variant5Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant5Checks assert what the step sets: each attribute that the config states has its value.
+func variant5Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant6Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -557,6 +614,17 @@ const variant6Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant6Checks assert what the step sets: each attribute that the config states has its value.
+func variant6Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant7Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -568,6 +636,17 @@ const variant7Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant7Checks assert what the step sets: each attribute that the config states has its value.
+func variant7Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant8Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -578,6 +657,17 @@ const variant8Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant8Checks assert what the step sets: each attribute that the config states has its value.
+func variant8Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant9Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -592,6 +682,18 @@ const variant9Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant9Checks assert what the step sets: each attribute that the config states has its value.
+func variant9Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.prompt_injection.additional_context", render(run, "@{run}-additional_context")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant10Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -605,6 +707,18 @@ const variant10Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant10Checks assert what the step sets: each attribute that the config states has its value.
+func variant10Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.restricted_topics.topics.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant11Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -615,6 +729,17 @@ const variant11Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant11Checks assert what the step sets: each attribute that the config states has its value.
+func variant11Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant12Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -629,6 +754,18 @@ const variant12Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant12Checks assert what the step sets: each attribute that the config states has its value.
+func variant12Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.sql_allowed_tables.tables.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant13Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -640,6 +777,17 @@ const variant13Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant13Checks assert what the step sets: each attribute that the config states has its value.
+func variant13Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant14Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -650,6 +798,17 @@ const variant14Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant14Checks assert what the step sets: each attribute that the config states has its value.
+func variant14Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant15Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -664,6 +823,18 @@ const variant15Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant15Checks assert what the step sets: each attribute that the config states has its value.
+func variant15Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.sql_restricted_tables.tables.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant16Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -674,6 +845,17 @@ const variant16Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant16Checks assert what the step sets: each attribute that the config states has its value.
+func variant16Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant17Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -688,6 +870,18 @@ const variant17Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant17Checks assert what the step sets: each attribute that the config states has its value.
+func variant17Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.pii.categories.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant18Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -700,6 +894,18 @@ const variant18Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant18Checks assert what the step sets: each attribute that the config states has its value.
+func variant18Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.pii.categories.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
 
 const variant19Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
@@ -714,6 +920,18 @@ const variant19Config = `resource "coralogix_ai_evaluation" "test" {
   threshold = 0
 }`
 
+// variant19Checks assert what the step sets: each attribute that the config states has its value.
+func variant19Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.pii.categories.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}
+
 const variant20Config = `resource "coralogix_ai_evaluation" "test" {
   application = "@{env.AI_EVALUATION_APPLICATION}"
   config = {
@@ -726,3 +944,15 @@ const variant20Config = `resource "coralogix_ai_evaluation" "test" {
   target = "prompt"
   threshold = 0
 }`
+
+// variant20Checks assert what the step sets: each attribute that the config states has its value.
+func variant20Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "application", render(run, "@{env.AI_EVALUATION_APPLICATION}")),
+		resource.TestCheckResourceAttr(resourceAddress, "config.pii.categories.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "is_enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "subsystem", render(run, "@{env.AI_EVALUATION_SUBSYSTEM}")),
+		resource.TestCheckResourceAttr(resourceAddress, "target", "prompt"),
+		resource.TestCheckResourceAttr(resourceAddress, "threshold", "0"),
+	)
+}

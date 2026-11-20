@@ -271,15 +271,17 @@ func testSetStability(t *testing.T) {
 func testSetOfObjects(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics
-	elem := types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}
-	first := types.SetValueMust(elem, []attr.Value{
-		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("a")}),
-		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("b")}),
-	})
-	second := types.SetValueMust(elem, []attr.Value{
-		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("b")}),
-		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("a")}),
-	})
+	elem := types.ObjectType{AttrTypes: thingDetailAttrTypes()}
+	detail := func(name string) attr.Value {
+		return types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{
+			"name":    types.StringValue(name),
+			"options": types.ListNull(types.StringType),
+			"scores":  types.ListNull(types.Int32Type),
+			"starts":  types.ListNull(timetypes.RFC3339Type{}),
+		})
+	}
+	first := types.SetValueMust(elem, []attr.Value{detail("a"), detail("b")})
+	second := types.SetValueMust(elem, []attr.Value{detail("b"), detail("a")})
 	if !first.Equal(second) {
 		t.Fatal("set of objects order changed equality")
 	}
@@ -902,5 +904,58 @@ func TestDataSourceReadsByName(t *testing.T) {
 	if len(got) != 0 || !diags.HasError() || diags[0].Summary() != `coralogix_thing with name "wanted" is not unique` ||
 		diags[0].Detail() != `2 coralogix_thing resources have the name "wanted". Set the id instead of the name.` {
 		t.Fatalf("duplicate name: Get ids = %v, diagnostics = %v", got, diags)
+	}
+}
+
+// An empty list from the API, which cannot be told from a missing one, reads as null, so a plan that
+// leaves the list out matches. A list that the configuration sets to [] keeps its form, also inside a
+// set element: the element of the API takes the form of the prior element that it equals.
+func TestEmptyListsInSetItemReadNullAndKeepTheConfiguredForm(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	empty := flattenThingDetail(ctx, path.Root("details"), &things_service.ThingDetail{
+		Name: "a", Options: []string{}, Scores: []int32{}, Starts: []time.Time{},
+	}, &diags)
+	if !empty.Options.IsNull() || !empty.Scores.IsNull() || !empty.Starts.IsNull() {
+		t.Fatalf("empty lists read as %#v, want null", empty)
+	}
+	set := flattenThingDetail(ctx, path.Root("details"), &things_service.ThingDetail{
+		Name: "a", Options: []string{"x"}, Scores: []int32{1}, Starts: []time.Time{time.Unix(0, 0).UTC()},
+	}, &diags)
+	if len(set.Options.Elements()) != 1 || len(set.Scores.Elements()) != 1 || len(set.Starts.Elements()) != 1 {
+		t.Fatalf("lists with values read as %#v", set)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+
+	elem := types.ObjectType{AttrTypes: thingDetailAttrTypes()}
+	detail := func(name string, options attr.Value) attr.Value {
+		return types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{
+			"name":    types.StringValue(name),
+			"options": options,
+			"scores":  types.ListNull(types.Int32Type),
+			"starts":  types.ListNull(timetypes.RFC3339Type{}),
+		})
+	}
+	null := types.ListNull(types.StringType)
+	configured := types.ListValueMust(types.StringType, []attr.Value{})
+	// The API returns both elements with no options. The configuration had [] for a and none for b.
+	got := priorEmpty(ctx, "details",
+		types.SetValueMust(elem, []attr.Value{detail("a", null), detail("b", null)}),
+		types.SetValueMust(elem, []attr.Value{detail("b", null), detail("a", configured)}), &diags)
+	want := types.SetValueMust(elem, []attr.Value{detail("a", configured), detail("b", null)})
+	if !got.Equal(want) {
+		t.Fatalf("priorEmpty = %v, want %v", got, want)
+	}
+	// An element without a twin in the prior set stays as the API has it.
+	got = priorEmpty(ctx, "details",
+		types.SetValueMust(elem, []attr.Value{detail("c", null)}),
+		types.SetValueMust(elem, []attr.Value{detail("a", configured)}), &diags)
+	if !got.Equal(types.SetValueMust(elem, []attr.Value{detail("c", null)})) {
+		t.Fatalf("an element without a twin changed: %v", got)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
 	}
 }

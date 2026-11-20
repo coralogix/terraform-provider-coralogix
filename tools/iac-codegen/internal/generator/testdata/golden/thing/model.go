@@ -78,5 +78,8 @@ type ThingSpecModel struct {
 }
 
 type ThingDetailModel struct {
-	Name types.String `tfsdk:"name"`
+	Name    types.String `tfsdk:"name"`
+	Options types.List   `tfsdk:"options"`
+	Scores  types.List   `tfsdk:"scores"`
+	Starts  types.List   `tfsdk:"starts"`
 }

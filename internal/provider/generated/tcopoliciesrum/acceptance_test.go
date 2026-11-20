@@ -279,7 +279,7 @@ func TestAccCoralogixResourceTcoPoliciesRumGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -466,3 +466,26 @@ const variant1Config = `resource "coralogix_tco_policies_rum" "test" {
     },
   ]
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "policies.#", "2"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.applications.rule_type", "is"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.priority", "low"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "medium"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.0.subsystems.rule_type", "is_not"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.applications.rule_type", "starts_with"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.description", render(run, "@{run}-description-2")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.name", render(run, "@{run}-name-2")),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.priority", "low"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.quota_based_priority_override.usage_tiers.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.quota_based_priority_override.usage_tiers.0.priority", "medium"),
+		resource.TestCheckResourceAttr(resourceAddress, "policies.1.subsystems.rule_type", "includes"),
+	)
+}

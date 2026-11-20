@@ -25,16 +25,27 @@ type accCheck struct {
 	// attribute of Elem with its value. The position of a set element is not known, so the check
 	// finds the element by its values.
 	Elem map[string]string
+	// Copy is the number of the copy of the resource that holds the attribute, from 2: a step of the
+	// sweep can hold copies, named test_2, test_3. 0 and 1 are the resource itself.
+	Copy int
+}
+
+// address is the Go expression of the address of the resource that the check reads.
+func (c accCheck) address() string {
+	if c.Copy < 2 {
+		return "resourceAddress"
+	}
+	return "resourceAddress + " + strconv.Quote("_"+strconv.Itoa(c.Copy))
 }
 
 // Call is the Go call of the check.
 func (c accCheck) Call() string {
 	if c.Elem == nil {
-		return "resource.TestCheckResourceAttr(resourceAddress, " + strconv.Quote(c.Path) + ", " + c.Expr() + ")"
+		return "resource.TestCheckResourceAttr(" + c.address() + ", " + strconv.Quote(c.Path) + ", " + c.Expr() + ")"
 	}
 	keys := slices.Sorted(maps.Keys(c.Elem))
 	var b strings.Builder
-	b.WriteString("resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, " + strconv.Quote(c.Path) + ", map[string]string{")
+	b.WriteString("resource.TestCheckTypeSetElemNestedAttrs(" + c.address() + ", " + strconv.Quote(c.Path) + ", map[string]string{")
 	for _, k := range keys {
 		b.WriteString("\n\t\t\t" + strconv.Quote(k) + ": " + accCheck{Value: c.Elem[k]}.Expr() + ",")
 	}
@@ -207,6 +218,15 @@ type accSynth struct {
 	cov map[string]bool
 	// sweeping: the walk sets what cov does not have yet (acceptance_sweep.go).
 	sweeping bool
+	// perPath: cov records each enum value at each path of the schema, not once per enum. A new
+	// resource sets it. An existing resource keeps the enum coverage of its committed tests.
+	perPath bool
+	// perPathArms: cov records each oneOf arm at each path. Every resource sets it.
+	perPathArms bool
+	// setPaths are the attribute paths that some config sets, and excused the paths that no config
+	// has to set. They back checkAllSet. trial counts the open trial builds, which set nothing.
+	setPaths, excused map[string]bool
+	trial             int
 	// element is the number of the element of a list or set that a sweep step makes, from 0. A
 	// made-up string of an element after the first has the number at its end, so that the elements
 	// differ where the API wants them to.
@@ -224,7 +244,7 @@ var quoted = regexp.MustCompile(`"([^"]*)"`)
 // prior is the upgrade attributes file of the last run, or nil.
 func buildAcceptance(res *tfResource, providerModule string, file *acceptance.File, prior *acceptance.UpgradeAttributes) (*acceptanceData, error) {
 	typeName := res.CRUD.TypeName
-	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}, updated: map[string]bool{}}
+	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}, updated: map[string]bool{}, perPath: !res.CRUD.Existing, perPathArms: true, setPaths: map[string]bool{}, excused: map[string]bool{}}
 	out := &acceptanceData{
 		Package:          res.Package,
 		VersionHeader:    version.Header,
@@ -284,6 +304,9 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		}
 	}
 	if err := s.checkFile(); err != nil {
+		return nil, err
+	}
+	if err := s.checkAllSet(res); err != nil {
 		return nil, err
 	}
 	for _, path := range file.DataSourceSkip {
@@ -759,7 +782,7 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	if a.Extra {
 		// extraAttributes are not API fields; a made-up map key is not valid. An optional one is in
 		// the minimal config only when `minimal` lists it, like any optional attribute.
-		_, ok := s.file.Values[key]
+		_, _, ok := s.fileValue(key)
 		return ok && (a.Required || mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key))
 	}
 	switch {
@@ -801,11 +824,14 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		s.known[attrKey] = true
 		s.settable[attrKey] = a.Required || a.Optional
 		s.required[attrKey] = a.Required
+		if s.excused != nil && (refused(a) || a.Extra || (top && a.Name == s.idAttr) || (a.OneOfGroup != "" && s.skippedArm(a))) {
+			s.excused[attrKey] = true // no config can set it, or the server makes it
+		}
 		a, ok := s.included(a, attrKey, arm, mode, top)
 		if !ok {
 			continue
 		}
-		if a.OneOfGroup != "" && !a.Required && !s.takeArm(a, armTaken, picks) {
+		if a.OneOfGroup != "" && !a.Required && !s.takeArm(a, attrKey, armTaken, picks) {
 			continue
 		}
 		value, c, err := s.value(a, joinPath(tfPath, a.Name), attrKey, mode)
@@ -814,6 +840,9 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		}
 		lines = append(lines, a.Name+" = "+value)
 		checks = append(checks, c...)
+		if s.trial == 0 && s.setPaths != nil {
+			s.setPaths[attrKey] = true
+		}
 		if a.Typed != nil {
 			arm = newTypedArmSet(a.Typed, value)
 		}
@@ -851,7 +880,7 @@ func (s *accSynth) included(a *tfAttr, attrKey string, arm *typedArmSet, mode ac
 // takeArm says whether the arm of a oneOf group is the one that the config sets. A group takes one
 // arm: the first, or the one that a step of the sweep picks. An arm that the resource refuses is
 // never taken.
-func (s *accSynth) takeArm(a *tfAttr, armTaken map[string]bool, picks map[string]*tfAttr) bool {
+func (s *accSynth) takeArm(a *tfAttr, key string, armTaken map[string]bool, picks map[string]*tfAttr) bool {
 	if refused(a) || armTaken[a.OneOfGroup] {
 		return false
 	}
@@ -859,7 +888,7 @@ func (s *accSynth) takeArm(a *tfAttr, armTaken map[string]bool, picks map[string
 		return false
 	}
 	armTaken[a.OneOfGroup] = true
-	s.noteArm(a)
+	s.noteArm(a, key)
 	return true
 }
 
@@ -1050,8 +1079,8 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 	if immutable(a) && mode == accUpdated {
 		mode = accFull // a changed immutable attribute replaces the resource
 	}
-	if v, ok := s.file.Values[key]; ok {
-		s.used[key] = true
+	if v, line, ok := s.fileValue(key); ok {
+		s.used[line] = true
 		if u, ok := s.file.UpdatedValues[key]; ok && mode == accUpdated {
 			if s.updated == nil {
 				s.updated = map[string]bool{}
@@ -1520,4 +1549,49 @@ func keepAcceptance(options Options, files map[string][]byte) error {
 	}
 	files[acceptance.FileName] = data
 	return nil
+}
+
+// checkAllSet fails when a new resource has an attribute that the user can set and that no generated
+// config sets. The full config sets every attribute that it includes, and the sweep sets every arm
+// of a oneOf and every enum value at its path, so a miss means that the file or the schema keeps the
+// attribute out of every config. Without the check, the attribute would ship untested. An existing
+// resource keeps the coverage of its committed tests, and is not checked.
+func (s *accSynth) checkAllSet(res *tfResource) error {
+	if s.released != nil {
+		return nil
+	}
+	var missing []string
+	for key, settable := range s.settable {
+		if settable && !s.setPaths[key] && !s.excused[key] && !slices.Contains(s.file.Skip, key) {
+			missing = append(missing, key)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	slices.Sort(missing)
+	message := fmt.Sprintf("acceptance test: no config sets %d attributes that a user can set, so they would ship untested:\n  %s", len(missing), strings.Join(missing, "\n  "))
+	if res.CRUD.Existing {
+		// A released resource has tests that a tenant validated. A change of the sweep can break them,
+		// so the generator names the gap and leaves the test as it is. A person lists a value in the
+		// acceptance file (values) for each attribute, and checks it against a tenant.
+		fmt.Fprintf(os.Stderr, "tfgen: warning: %s: %s\n", res.CRUD.TypeName, message)
+		return nil
+	}
+	return errors.New(message)
+}
+
+// fileValue returns the HCL of the values line for the path, and the line that gave it. A line of the
+// exact path wins. Else a line that starts with "**." serves every path that ends with the rest of the
+// line, so a component that sits at many paths needs one line (**.time_frame.relative.duration).
+func (s *accSynth) fileValue(key string) (value, line string, ok bool) {
+	if v, found := s.file.Values[key]; found {
+		return v, key, true
+	}
+	for _, l := range s.file.ValuePaths() {
+		if rest, wild := strings.CutPrefix(l, "**."); wild && (key == rest || strings.HasSuffix(key, "."+rest)) {
+			return s.file.Values[l], l, true
+		}
+	}
+	return "", "", false
 }

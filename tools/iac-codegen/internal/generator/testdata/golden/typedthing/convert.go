@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -221,6 +222,10 @@ func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Dia
 		if prior, ok := p.(types.Map); ok {
 			return priorEmptyMap(ctx, at, v, prior, diags)
 		}
+	case types.Set:
+		if prior, ok := p.(types.Set); ok {
+			return priorEmptySet(ctx, at, v, prior, diags)
+		}
 	}
 	return v
 }
@@ -275,6 +280,91 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 	value, d := types.MapValue(v.ElementType(ctx), out)
 	diags.Append(d...)
 	return value
+}
+
+// priorEmptySet pairs each element of the API with the prior element that it equals once every
+// empty value is null. The element then takes the form of the prior one. A set has no index, so the
+// pairing is by value, and a prior element serves one element. An element without a twin stays as
+// the API has it.
+func priorEmptySet(ctx context.Context, at string, v, prior types.Set, diags *diag.Diagnostics) attr.Value {
+	elems := v.Elements()
+	priorElems := slices.Clone(prior.Elements())
+	out := make([]attr.Value, len(elems))
+	for i, child := range elems {
+		out[i] = child
+		for j, twin := range priorElems {
+			if twin != nil && emptyNormal(at, child).Equal(emptyNormal(at, twin)) {
+				out[i] = priorEmpty(ctx, at, child, twin, diags)
+				priorElems[j] = nil
+				break
+			}
+		}
+	}
+	value, d := types.SetValue(v.ElementType(ctx), out)
+	if d.HasError() {
+		return v
+	}
+	return value
+}
+
+// emptyNormal returns v with every empty value as null, at any depth, so that two values that differ
+// only in the form of an empty value are equal.
+func emptyNormal(at string, v attr.Value) attr.Value {
+	if v == nil || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	ctx := context.Background()
+	switch v := v.(type) {
+	case types.Object:
+		if emptyValue(at, v) {
+			return types.ObjectNull(v.AttributeTypes(ctx))
+		}
+		if oneOfArms[at] {
+			return v
+		}
+		attrs := v.Attributes()
+		out := make(map[string]attr.Value, len(attrs))
+		for name, child := range attrs {
+			out[name] = emptyNormal(at+"."+name, child)
+		}
+		if value, d := types.ObjectValue(v.AttributeTypes(ctx), out); !d.HasError() {
+			return value
+		}
+	case types.List:
+		if len(v.Elements()) == 0 {
+			return types.ListNull(v.ElementType(ctx))
+		}
+		out := make([]attr.Value, 0, len(v.Elements()))
+		for _, child := range v.Elements() {
+			out = append(out, emptyNormal(at, child))
+		}
+		if value, d := types.ListValue(v.ElementType(ctx), out); !d.HasError() {
+			return value
+		}
+	case types.Set:
+		if len(v.Elements()) == 0 {
+			return types.SetNull(v.ElementType(ctx))
+		}
+		out := make([]attr.Value, 0, len(v.Elements()))
+		for _, child := range v.Elements() {
+			out = append(out, emptyNormal(at, child))
+		}
+		if value, d := types.SetValue(v.ElementType(ctx), out); !d.HasError() {
+			return value
+		}
+	case types.Map:
+		if len(v.Elements()) == 0 {
+			return types.MapNull(v.ElementType(ctx))
+		}
+		out := make(map[string]attr.Value, len(v.Elements()))
+		for key, child := range v.Elements() {
+			out[key] = emptyNormal(at, child)
+		}
+		if value, d := types.MapValue(v.ElementType(ctx), out); !d.HasError() {
+			return value
+		}
+	}
+	return v
 }
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
@@ -603,6 +693,10 @@ func flattenTypedList(ctx context.Context, p path.Path, v *typed_things_service.
 	}
 	out := &TypedListModel{}
 	out.Values = flattenStringsList(ctx, v.Values, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Values) == 0 {
+		out.Values = types.ListNull(types.StringType)
+	}
 	out.Note = types.StringPointerValue(v.Note)
 	if out.Note.ValueString() == "" {
 		out.Note = types.StringNull()
@@ -804,6 +898,10 @@ func flattenTypedNotList(ctx context.Context, p path.Path, v *typed_things_servi
 	}
 	out := &TypedNotListModel{}
 	out.Values = flattenStringsList(ctx, v.Values, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Values) == 0 {
+		out.Values = types.ListNull(types.StringType)
+	}
 	return out
 }
 

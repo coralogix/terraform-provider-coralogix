@@ -379,7 +379,7 @@ func TestAccCoralogixResourceSloV2Generated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -606,3 +606,39 @@ resource "coralogix_slo_v2" "test_2" {
   }
   target_threshold_percentage = 99.5
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "3"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.key", "http.status_code"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "is"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.1.key", "http.status_code"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.1.match_operator", "starts_with"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.1.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.1.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.2.key", "http.status_code"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.2.match_operator", "includes"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.2.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.2.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.latency_config.threshold", "1.5"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.latency_config.time_window", "1_minute"),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress, "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress, "window.slo_time_frame", "7_days"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.filters.0.key", "http.status_code"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.filters.0.match_operator", "ends_with"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.latency_config.threshold", "1.5"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "sli.apm_sli.latency_config.time_window", "5_minutes"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "name", render(run, "@{run}-slo")),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "product_type", "apm"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "window.slo_time_frame", "7_days"),
+	)
+}

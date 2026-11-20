@@ -46,6 +46,9 @@ type File struct {
 	Prerequisites string `yaml:"prerequisites"`
 	// Values maps the path of a field to an HCL expression. A path names the attributes from the
 	// resource down, and [] marks a list or set element: rules[].targets[].connector_id.
+	// A path that starts with "**." names the end of a path: it serves every attribute whose path ends
+	// with the rest, for a component that sits at many paths (**.time_frame.relative.duration). A line
+	// of the exact path wins.
 	Values map[string]string `yaml:"values"`
 	// UpdatedValues maps the path of a field that values sets to the HCL expression of the updated
 	// config, for a value that the generator cannot change on its own, such as the object of a
@@ -199,8 +202,8 @@ func (f *File) checkEnv() error {
 
 func (f *File) checkValues() error {
 	for _, path := range f.valuePaths() {
-		if !fieldPath.MatchString(path) {
-			return fmt.Errorf("values: %q is not a field path such as rules[].targets[].connector_id", path)
+		if !fieldPath.MatchString(strings.TrimPrefix(path, "**.")) {
+			return fmt.Errorf("values: %q is not a field path such as rules[].targets[].connector_id, or **. and the end of one", path)
 		}
 		if strings.TrimSpace(f.Values[path]) == "" {
 			return fmt.Errorf("values.%s is empty", path)

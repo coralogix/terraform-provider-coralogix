@@ -312,7 +312,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant{{$v.N}}Config)},
+				{Config: config(run, variant{{$v.N}}Config){{if $v.Checks}}, Check: variant{{$v.N}}Checks(run){{end}}},
 			},
 		})
 	})
@@ -329,7 +329,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- range $v := .Variants}}
-				{Config: config(run, variant{{$v.N}}Config)},
+				{Config: config(run, variant{{$v.N}}Config){{if $v.Checks}}, Check: variant{{$v.N}}Checks(run){{end}}},
 {{- end}}
 			},
 		})
@@ -533,5 +533,16 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 {{- range $v := .Variants}}
 
 const variant{{$v.N}}Config = `{{$v.Config}}`
+{{- if $v.Checks}}
+
+// variant{{$v.N}}Checks assert what the step sets: each attribute that the config states has its value.
+func variant{{$v.N}}Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range $v.Checks}}
+		{{.Call}},
+{{- end}}
+	)
+}
+{{- end}}
 {{- end}}
 {{- end}}

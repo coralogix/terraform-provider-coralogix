@@ -286,6 +286,18 @@ components:
           type: string
           minLength: 1
           description: The detail name.
+        options:
+          type: array
+          items: {type: string}
+          description: Options of the detail. The API returns an empty list when none is set.
+        scores:
+          type: array
+          items: {type: integer, format: int32}
+          description: Scores of the detail.
+        starts:
+          type: array
+          items: {type: string, format: date-time}
+          description: Start times of the detail, in UTC.
     ThingKind:
       type: string
       enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]

@@ -1327,6 +1327,23 @@ func checkEmptyError(cf *convField) error {
 	return nil
 }
 
+// nestedEmptyReadsNull reports whether a list or set below the root reads an empty response as null.
+// The API does not tell an empty list from a missing one (proto3), and a value that is null in the
+// plan must read back as null, or apply fails with "Provider produced inconsistent result". A list
+// that the configuration sets to [] keeps its form: keepPriorEmpty copies the empty form of the prior
+// value, also inside the elements of a set (priorEmptySet). The rule holds for every resource and every
+// field, so a field that a later API version adds needs no key.
+func (b *convBuilder) nestedEmptyReadsNull(cf *convField, component string) bool {
+	if component == b.resource.Name {
+		return false
+	}
+	switch cf.Conv {
+	case convObjects, convStrings, convScalars, convTimes:
+		return !cf.ReadEmptyAsNull && !cf.ReadNullAsEmpty && !cf.SendEmpty
+	}
+	return false
+}
+
 // checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
 // works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
 // do nothing, and the released normalization that the line states would be missing.
@@ -1341,10 +1358,10 @@ func checkReadEmptyAs(cf *convField) error {
 		return nil
 	}
 	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || cf.Conv == convStrings ||
-		cf.Conv == convKeyedObjects || cf.Conv == convKeyedValues {
+		cf.Conv == convScalars || cf.Conv == convTimes || cf.Conv == convKeyedObjects || cf.Conv == convKeyedValues {
 		return nil
 	}
-	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, a list or set of strings or objects, and a keyedBy map, not for the %s field %s", cf.Conv, cf.TFName)
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, a list or set of strings, numbers, bools, times or objects, and a keyedBy map, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
 // ValueKind is the Terraform value kind of a string or number field, for example "Int32".
@@ -1987,6 +2004,10 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 			return nil, fmt.Errorf("%s: asBool needs an object without fields", cf.TFName)
 		}
 		cf.Conv, cf.Object = convEmptyBool, nil
+	}
+	// After the conversion is final: a value names line turns a list of numbers into another kind.
+	if b.nestedEmptyReadsNull(cf, component) {
+		cf.ReadEmptyAsNull = true
 	}
 	if err := b.applyReleasedKeys(cf); err != nil {
 		return nil, err

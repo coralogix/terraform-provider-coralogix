@@ -298,7 +298,7 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, variant1Config)},
+				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 			},
 		})
 	})
@@ -456,3 +456,14 @@ const variant1Config = `resource "coralogix_legacy_thing" "test" {
     },
   ]
 }`
+
+// variant1Checks assert what the step sets: each attribute that the config states has its value.
+func variant1Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.kind", "beta"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.#", "1"),
+	)
+}

@@ -1106,7 +1106,6 @@ func TestDefaultArmErrors(t *testing.T) {
 		"no arm":                {"timezone: {name: time_zone}", "timezone: {name: time_zone, defaultArm: true}", "timezone is no oneOf arm"},
 		"top level":             {"window: {name: time_frame}", "window: {name: time_frame, defaultArm: true}", "nested object only"},
 		"object arm":            {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {readEmptyAs: \"null\"}\n      labels: {defaultArm: true}", "defaultArm needs a list of strings in wrapper objects"},
-		"empty list not null":   {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {defaultArm: true}", "defaultArm needs a list of strings in wrapper objects"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

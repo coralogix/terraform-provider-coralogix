@@ -28,6 +28,7 @@ values:
   layout.sections[].rows[].widgets[].definition.pie_chart.unit: '"bytes"'
   layout.sections[].rows[].widgets[].definition.horizontal_bar_chart.scale_type: '"linear"'
   time_frame.relative.duration: '"seconds:3600"'
+  '**.time_frame.relative.duration': '"seconds:3600"' # every widget query has a time frame
   layout.sections[].rows[].widgets[].definition.dynamic.time_frame.relative.duration: '"seconds:3600"'
   annotations[].source.event_recurrence.strategy.duration.duration: '"60s"'
   layout.sections[].rows[].widgets[].definition.line_chart.query_definitions[].resolution.interval: '"seconds:60"'

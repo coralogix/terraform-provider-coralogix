@@ -261,6 +261,24 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "The detail name.",
 						},
+						"options": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "Options of the detail. The API returns an empty list when none is set.",
+						},
+						"scores": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         types.Int32Type,
+							MarkdownDescription: "Scores of the detail.",
+						},
+						"starts": schema.ListAttribute{
+							Optional:    true,
+							ElementType: timetypes.RFC3339Type{},
+							Validators: []validator.List{
+								listvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`(?i)z$`), "must be a UTC time that ends in Z, for example 2030-01-01T00:00:00Z")),
+							},
+							MarkdownDescription: "Start times of the detail, in UTC.",
+						},
 					},
 				},
 				MarkdownDescription: "Unordered unique details.",
