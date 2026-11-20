@@ -55,6 +55,9 @@ type validatedResource struct {
 	overrides *overrides.File // nil for a new resource
 	// deprecated are the API fields that the contract marks deprecated (contractDeprecations).
 	deprecated map[string]bool
+	// examples are the examples that the contract states for the fields of a new resource, keyed by
+	// the field of the resource response (readExamples). nil for an existing resource.
+	examples map[string]*contractExample
 	// withoutDelete is the resource validated without the Delete override of the overrides, when
 	// that also passes every OpenAPI and renderer check. The override is then stale unless the SDK
 	// symbol checks of generate reject it. It is nil otherwise.
@@ -179,7 +182,7 @@ func Check(options CheckOptions) error {
 			return err
 		}
 	}
-	if _, err := renderAll(validated.resource, validated.refs, "generated", validated.overrides, acc, prior, providerModulePath, validated.deprecated); err != nil {
+	if _, err := renderAll(validated.resource, validated.refs, "generated", validated.overrides, acc, prior, providerModulePath, validated.deprecated, validated.examples); err != nil {
 		return eligibilityIssue("ACCEPTANCE_INVALID", "renderer.acceptance", err,
 			"Fix the acceptance file, or set the value that the test cannot make up.")
 	}
@@ -216,7 +219,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
-	files, err := renderAll(validated.resource, validated.refs, pkg, validated.overrides, accFile, prior, input.Module, validated.deprecated)
+	files, err := renderAll(validated.resource, validated.refs, pkg, validated.overrides, accFile, prior, input.Module, validated.deprecated, validated.examples)
 	if err != nil {
 		return fmt.Errorf("render resource: %w", err)
 	}
@@ -372,6 +375,15 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if report := readBackIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
+	var examples map[string]*contractExample
+	if file == nil {
+		// Only a new resource uses the examples of the contract: a released resource keeps its tests.
+		hits := findExamples(resource, readExamples(spec))
+		if report := exampleIssues(hits); len(report) != 0 {
+			return nil, &EligibilityError{Report: report}
+		}
+		examples = exampleMap(hits)
+	}
 	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
@@ -420,7 +432,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
-	return &validatedResource{resource: resource, refs: refs, overrides: file, deprecated: contractDeprecations(spec),
+	return &validatedResource{resource: resource, refs: refs, overrides: file, deprecated: contractDeprecations(spec), examples: examples,
 		withoutDelete: validateWithoutDelete(data, resourceName, operationIDs, sdkModule, providerModule, source)}, nil
 }
 

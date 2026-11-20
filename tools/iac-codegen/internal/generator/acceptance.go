@@ -243,6 +243,9 @@ type accSynth struct {
 	element int
 	// extra is the number of elements after the first that the step has added to its lists.
 	extra int
+	// noExamples: the updated config makes up its values, and uses no example. It is set when the
+	// updated config with the examples would equal the full config.
+	noExamples bool
 	// armBuilds records, for each oneOf arm that the sweep considered, the error of the trial that
 	// made a value for it, or nil.
 	armBuilds map[string]error
@@ -290,7 +293,17 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		if err != nil {
 			return nil, fmt.Errorf("acceptance test: %w", err)
 		}
-		*step.into = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
+		config := resourceBlock("coralogix_"+typeName, body)
+		if step.mode == accUpdated && config == out.Full.Config && hasExample(res.Attributes) {
+			// Every value that the updated config would change has an example, so the update would
+			// change nothing. The updated config makes up its values, as it does without examples.
+			s.noExamples = true
+			if body, checks, err = s.attrs(res.Attributes, "", "", step.mode, true); err != nil {
+				return nil, fmt.Errorf("acceptance test: %w", err)
+			}
+			config = resourceBlock("coralogix_"+typeName, body)
+		}
+		*step.into = &accStep{Config: config, Checks: checks}
 		if step.mode == accFull {
 			full = s.cov
 			s.cov = nil // the other configs record nothing
@@ -1152,6 +1165,9 @@ func (s *accSynth) scalarAttr(a *tfAttr, tfPath, key string, mode accMode) (stri
 	if tf, ok := s.sweepValue(a, key); ok && a.Kind == "String" {
 		return strconv.Quote(tf), []accCheck{{Path: tfPath, Value: tf}}, nil
 	}
+	if v, state, ok := s.exampleScalar(a, mode); ok {
+		return v, []accCheck{{Path: tfPath, Value: state}}, nil // an example is never numbered or changed
+	}
 	v, check, err := scalarValue(a, mode)
 	if err != nil {
 		return "", nil, err
@@ -1459,6 +1475,11 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath, key string, mode accMode) 
 	if !ok {
 		return "", nil, fmt.Errorf("elements of type %s are not supported: set the value in %s", a.ElementType, acceptance.FileName)
 	}
+	if a.Kind != "Map" {
+		if hcl, states, ok := s.exampleElements(a, elem, mode); ok {
+			return exampleCollection(a, tfPath, hcl, states)
+		}
+	}
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
 	}
@@ -1480,6 +1501,17 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath, key string, mode accMode) 
 		return "[" + item + "]", []accCheck{{Path: tfPath + ".#", Value: "1"}, {Path: tfPath + ".0", Value: state}}, nil
 	}
 	return "[" + item + "]", []accCheck{{Path: tfPath + ".#", Value: "1"}}, nil
+}
+
+// exampleCollection makes the list or set of the elements of an example, and its checks.
+func exampleCollection(a *tfAttr, tfPath string, hcl, states []string) (string, []accCheck, error) {
+	checks := []accCheck{{Path: tfPath + ".#", Value: strconv.Itoa(len(hcl))}}
+	if a.Kind == "List" {
+		for i, state := range states {
+			checks = append(checks, accCheck{Path: tfPath + "." + strconv.Itoa(i), Value: state})
+		}
+	}
+	return "[" + strings.Join(hcl, ", ") + "]", checks, nil
 }
 
 // UsesNoReplace reports whether a step after an upgrade checks only that the plan does not replace.
