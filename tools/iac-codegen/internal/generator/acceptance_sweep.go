@@ -526,7 +526,7 @@ func (s *accSynth) sweepElements(a *tfAttr, tfPath, key string, mode accMode) (s
 		snapshot, extra := maps.Clone(s.cov), s.extra
 		path := tfPath + "." + strconv.Itoa(n)
 		if a.Kind == "SetNested" {
-			path = tfPath + ".*" // the position of a set element is not known: no element checks
+			path = tfPath + ".*" // the position of a set element is not known: the check finds it by its values
 		}
 		body, c, err := s.attrs(a.Attributes, path, key+"[]", mode, false)
 		if err != nil {
@@ -543,8 +543,12 @@ func (s *accSynth) sweepElements(a *tfAttr, tfPath, key string, mode accMode) (s
 			s.extra++
 		}
 		elements = append(elements, indentLines(objectHCL(body)+","))
-		if a.Kind != "SetNested" {
+		switch {
+		case a.Kind != "SetNested":
 			checks = append(checks, c...)
+		case s.perPath:
+			// A released resource keeps the checks of its committed tests.
+			checks = append(checks, setElementCheck(path, c)...)
 		}
 	}
 	checks = append([]accCheck{{Path: tfPath + ".#", Value: strconv.Itoa(len(elements))}}, checks...)

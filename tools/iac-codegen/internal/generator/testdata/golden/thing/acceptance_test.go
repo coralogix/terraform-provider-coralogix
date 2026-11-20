@@ -212,6 +212,8 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "priority", resourceAddress, "priority"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "limit", resourceAddress, "limit"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "label", resourceAddress, "label"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "create_time", resourceAddress, "create_time"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "update_time", resourceAddress, "update_time"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "description", resourceAddress, "description"),
@@ -240,6 +242,8 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "priority", resourceAddress, "priority"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "limit", resourceAddress, "limit"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "label", resourceAddress, "label"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "create_time", resourceAddress, "create_time"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "update_time", resourceAddress, "update_time"),
 	)
 }
 
@@ -281,6 +285,8 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "priority", "THING_PRIORITY_LOW"),
 		resource.TestCheckResourceAttr(resourceAddress, "limit", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "label", render(run, "@{run}-label")),
+		resource.TestCheckResourceAttrSet(resourceAddress, "create_time"),
+		resource.TestCheckResourceAttrSet(resourceAddress, "update_time"),
 	)
 }
 
@@ -322,6 +328,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "priority", "THING_PRIORITY_LOW"),
 		resource.TestCheckResourceAttr(resourceAddress, "limit", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "label", render(run, "@{run}-label-updated")),
+		resource.TestCheckResourceAttrSet(resourceAddress, "create_time"),
+		resource.TestCheckResourceAttrSet(resourceAddress, "update_time"),
 	)
 }
 
@@ -571,6 +579,15 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "destinations.0", "https://a"),
 		resource.TestCheckResourceAttr(resourceAddress, "tags.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "details.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "details.*", map[string]string{
+			"name":      render(run, "@{run}-name"),
+			"options.#": "1",
+			"options.0": render(run, "@{run}-options"),
+			"scores.#":  "1",
+			"scores.0":  "1",
+			"starts.#":  "1",
+			"starts.0":  "2030-01-01T00:00:00Z",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "labels.key", render(run, "@{run}-labels")),
 		resource.TestCheckResourceAttr(resourceAddress, "expire_time", "2030-01-01T00:00:00Z"),
 		resource.TestCheckResourceAttr(resourceAddress, "windows.#", "1"),
@@ -598,6 +615,15 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "destinations.0", "https://a"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "tags.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "details.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress+"_2", "details.*", map[string]string{
+			"name":      render(run, "@{run}-name"),
+			"options.#": "1",
+			"options.0": render(run, "@{run}-options"),
+			"scores.#":  "1",
+			"scores.0":  "1",
+			"starts.#":  "1",
+			"starts.0":  "2030-01-01T00:00:00Z",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "labels.key", render(run, "@{run}-labels")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "expire_time", "2030-01-01T00:00:00Z"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "windows.#", "1"),

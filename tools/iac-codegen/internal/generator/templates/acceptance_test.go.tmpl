@@ -287,6 +287,10 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: {{if .Minimal.Kept}}removedChecks(run){{else}}minimalChecks(run){{end}}},
 				importStep,
+{{- if and .EndWithFull (not .Variants)}}
+				// The resource always exists, so the API keeps the last state after the test: end in the full config.
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+{{- end}}
 			},
 		})
 	})
@@ -313,6 +317,10 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant{{$v.N}}Config){{if $v.Checks}}, Check: variant{{$v.N}}Checks(run){{end}}},
+{{- if $.EndWithFull}}
+				// The resource always exists, so the API keeps the last state after the test: end in the full config.
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+{{- end}}
 			},
 		})
 	})
@@ -330,6 +338,10 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- range $v := .Variants}}
 				{Config: config(run, variant{{$v.N}}Config){{if $v.Checks}}, Check: variant{{$v.N}}Checks(run){{end}}},
+{{- end}}
+{{- if .EndWithFull}}
+				// The resource always exists, so the API keeps the last state after the test: end in the full config.
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- end}}
 			},
 		})

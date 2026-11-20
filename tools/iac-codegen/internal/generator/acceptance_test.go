@@ -873,10 +873,10 @@ func TestAcceptanceChecksRemovedComputedAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defaults, kept := s.removed(attrs, full)
-	if got := fmt.Sprint(defaults); got != "[{disabled false false map[] 0} {tier basic false map[] 0}]" {
+	if got := fmt.Sprint(defaults); got != "[{disabled false false map[] false 0} {tier basic false map[] false 0}]" {
 		t.Errorf("defaults = %s, want disabled and tier", got)
 	}
-	if got := fmt.Sprint(kept); got != "[{limit 1 false map[] 0}]" {
+	if got := fmt.Sprint(kept); got != "[{limit 1 false map[] false 0}]" {
 		t.Errorf("kept = %s, want limit with its full value", got)
 	}
 }
