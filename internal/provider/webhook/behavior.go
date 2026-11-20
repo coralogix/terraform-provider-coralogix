@@ -315,9 +315,9 @@ func webhookCredentialWarnings(config *generatedwebhook.OutgoingWebhookModel) di
 	return diags
 }
 
-func webhookBeforeWrite(ctx context.Context, config tfsdk.Config, request any) diag.Diagnostics {
+func webhookBeforeWrite(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, request any) diag.Diagnostics {
 	var model generatedwebhook.OutgoingWebhookModel
-	diags := config.Get(ctx, &model)
+	diags := plan.Get(ctx, &model)
 	if diags.HasError() {
 		return diags
 	}

@@ -69,7 +69,7 @@ var userNameAttrTypes = map[string]attr.Type{
 // userBeforeWrite folds the released Terraform shape into the request body. The body is the
 // Create item (*CreateUserRequest, with the template and the fixed onboarding mode beside it)
 // or the Update item (*UpdateUserRequest); the template in it carries the resource fields.
-func userBeforeWrite(ctx context.Context, plan tfstack.Plan, body any) diag.Diagnostics {
+func userBeforeWrite(ctx context.Context, plan tfstack.Plan, state *tfstack.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var template *users_management_service.UserTemplate
 	switch request := body.(type) {
@@ -99,15 +99,30 @@ func userBeforeWrite(ctx context.Context, plan tfstack.Plan, body any) diag.Diag
 		return diags
 	}
 	// The name object folds into the flat fields. A null object sends neither, as the
-	// released resource did for a user without a name.
+	// released resource did for a user without a name. A component the configuration
+	// omits keeps the prior value: the API stores a name only as a whole, so an empty
+	// component would erase the stored one, as the released preserveUserName avoided.
 	if !model.Name.IsNull() && !model.Name.IsUnknown() {
 		var name userName
 		if d := model.Name.As(ctx, &name, basetypes.ObjectAsOptions{}); d.HasError() {
 			diags.Append(d...)
 			return diags
 		}
-		given := name.GivenName.ValueString()
-		family := name.FamilyName.ValueString()
+		var prior userName
+		if state != nil {
+			var priorModel user.RbacV2UserModel
+			if d := state.Get(ctx, &priorModel); d.HasError() {
+				diags.Append(d...)
+				return diags
+			}
+			if !priorModel.Name.IsNull() && !priorModel.Name.IsUnknown() {
+				if d := priorModel.Name.As(ctx, &prior, basetypes.ObjectAsOptions{}); d.HasError() {
+					diags.Append(d...)
+					return diags
+				}
+			}
+		}
+		given, family := planNameComponent(name.GivenName, prior.GivenName), planNameComponent(name.FamilyName, prior.FamilyName)
 		template.FirstName = &given
 		template.LastName = &family
 	}
@@ -119,6 +134,15 @@ func userBeforeWrite(ctx context.Context, plan tfstack.Plan, body any) diag.Diag
 	}
 	template.Status = &status
 	return diags
+}
+
+// planNameValue returns the value a write sends for one name component: the planned value,
+// or the prior one when the configuration omits it.
+func planNameComponent(planned, prior basetypes.StringValue) string {
+	if !planned.IsNull() {
+		return planned.ValueString()
+	}
+	return prior.ValueString()
 }
 
 // emptyAsNull reads an API name as null when it is absent or empty: the API

@@ -133,7 +133,7 @@ func TestSendUTCAsUTCPlus0(t *testing.T) {
 	create := &alertscheduler.CreateAlertSchedulerRuleRequestDataStructure{AlertSchedulerRule: rule()}
 	update := &alertscheduler.UpdateAlertSchedulerRuleRequestDataStructure{AlertSchedulerRule: rule()}
 	for _, body := range []any{create, update} {
-		if diags := sendUTCAsUTCPlus0(context.Background(), tfsdk.Config{}, body); diags.HasError() {
+		if diags := sendUTCAsUTCPlus0(context.Background(), tfsdk.Plan{}, nil, body); diags.HasError() {
 			t.Fatal(diags)
 		}
 	}
@@ -143,7 +143,7 @@ func TestSendUTCAsUTCPlus0(t *testing.T) {
 	if got := update.AlertSchedulerRule.Schedule.OneTime.Timeframe.Timezone; got != "UTC+0" {
 		t.Fatalf("update sent %q, want UTC+0", got)
 	}
-	if diags := sendUTCAsUTCPlus0(context.Background(), tfsdk.Config{}, &struct{}{}); !diags.HasError() {
+	if diags := sendUTCAsUTCPlus0(context.Background(), tfsdk.Plan{}, nil, &struct{}{}); !diags.HasError() {
 		t.Fatal("another body type must be an error")
 	}
 }

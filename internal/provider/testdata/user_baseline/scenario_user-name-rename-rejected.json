@@ -9,6 +9,7 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
       "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
@@ -38,6 +39,10 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],
@@ -60,6 +65,10 @@
       "user_name": "tf-acc-user-2@coralogix.com"
     },
     "plan": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],
@@ -78,6 +87,10 @@
           {
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
+              "accessType": {
+                "accessType": "",
+                "permanentAccess": {}
+              },
               "allowedLoginMode": [],
               "firstName": "Test",
               "lastName": "User",
@@ -93,6 +106,10 @@
       "user_name"
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],
@@ -118,6 +135,10 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],

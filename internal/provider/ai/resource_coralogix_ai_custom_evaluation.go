@@ -147,10 +147,10 @@ func (r *aiCustomEvaluationResource) Update(ctx context.Context, req resource.Up
 
 // beforeWrite sends criteria through the fields safe, violates, and examples, and the applications
 // of a Create as ids.
-func (r *aiCustomEvaluationResource) beforeWrite(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+func (r *aiCustomEvaluationResource) beforeWrite(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var criteria types.Object
-	diags.Append(config.GetAttribute(ctx, path.Root("criteria"), &criteria)...)
+	diags.Append(plan.GetAttribute(ctx, path.Root("criteria"), &criteria)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -164,7 +164,7 @@ func (r *aiCustomEvaluationResource) beforeWrite(ctx context.Context, config tfs
 	case *aievaluations.AiEvaluationsServiceCreateCustomEvaluationRequest:
 		b.Safe, b.Violates, b.Examples = aievaluations.PtrString(safe), aievaluations.PtrString(violates), examples
 		var selectors types.Set
-		diags.Append(config.GetAttribute(ctx, path.Root("applications"), &selectors)...)
+		diags.Append(plan.GetAttribute(ctx, path.Root("applications"), &selectors)...)
 		if diags.HasError() {
 			return diags
 		}

@@ -4,14 +4,28 @@
 package user
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type RbacV2UserModel struct {
+	AccessType       types.Object `tfsdk:"access_type"`
 	AllowedLoginMode types.List   `tfsdk:"allowed_login_mode"`
 	UserId           types.String `tfsdk:"id"`
 	Username         types.String `tfsdk:"user_name"`
 	Active           types.Bool   `tfsdk:"active"`
 	Groups           types.Set    `tfsdk:"groups"`
 	Name             types.Object `tfsdk:"name"`
+}
+
+type PermanentAccessModel struct {
+}
+
+type TemporaryAccessModel struct {
+	ExpireAt timetypes.RFC3339 `tfsdk:"expire_at"`
+}
+
+type AccessTypeModel struct {
+	PermanentAccess *PermanentAccessModel `tfsdk:"permanent_access"`
+	TemporaryAccess *TemporaryAccessModel `tfsdk:"temporary_access"`
 }

@@ -63,11 +63,17 @@ func render(run, text string) string {
 const prerequisites = ``
 
 const fullConfig = `resource "coralogix_user" "test" {
+  access_type = {
+    permanent_access = {}
+  }
   allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO"]
   user_name = "@{run}-user_name"
 }`
 
 const updatedConfig = `resource "coralogix_user" "test" {
+  access_type = {
+    permanent_access = {}
+  }
   allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO"]
   user_name = "@{run}-user_name-updated"
 }`
@@ -349,6 +355,11 @@ func TestAccCoralogixResourceUserGeneratedUpgrade(t *testing.T) {
 // that no config before it sets.
 
 const variant1Config = `resource "coralogix_user" "test" {
+  access_type = {
+    temporary_access = {
+      expire_at = "2030-01-01T00:00:00Z"
+    }
+  }
   allowed_login_mode = ["ALLOWED_LOGIN_MODE_LOCAL"]
   user_name = "@{run}-user_name"
 }`

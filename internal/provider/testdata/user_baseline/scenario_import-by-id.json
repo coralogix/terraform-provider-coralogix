@@ -13,6 +13,10 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],
@@ -24,6 +28,9 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "drift": [
+      "AttributeName(\"access_type\")",
+      "AttributeName(\"access_type\").AttributeName(\"permanent_access\")",
+      "AttributeName(\"access_type\").AttributeName(\"temporary_access\")",
       "AttributeName(\"active\")",
       "AttributeName(\"allowed_login_mode\")",
       "AttributeName(\"groups\")",
@@ -43,6 +50,10 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],
@@ -55,6 +66,10 @@
     },
     "noChange": true,
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [],

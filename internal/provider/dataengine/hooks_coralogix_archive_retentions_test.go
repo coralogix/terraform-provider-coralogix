@@ -30,6 +30,8 @@ import (
 
 func tfsdkConfig() tfsdk.Config { return tfsdk.Config{} }
 
+func tfsdkPlan() tfsdk.Plan { return tfsdk.Plan{} }
+
 type failingTransport struct{}
 
 func (failingTransport) RoundTrip(*http.Request) (*http.Response, error) {
@@ -73,7 +75,7 @@ func renameRequest(names ...string) *retss.UpdateRetentionsRequest {
 // Create reads the tags and sends their ids by position, and the first name is always Default.
 func TestBeforeWriteFillsTheIDsOfCreate(t *testing.T) {
 	req := renameRequest("", "warm", "cold", "frozen")
-	diags := retentionsHooks(t, serveTags("a", "b", "c", "d")).beforeWrite(context.Background(), tfsdkConfig(), req)
+	diags := retentionsHooks(t, serveTags("a", "b", "c", "d")).beforeWrite(context.Background(), tfsdkPlan(), nil, req)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
@@ -91,7 +93,7 @@ func TestBeforeWriteFillsTheIDsOfCreate(t *testing.T) {
 func TestBeforeWriteKeepsTheIDsOfUpdate(t *testing.T) {
 	req := renameRequest("", "warm")
 	req.RetentionUpdateElements[0].Id, req.RetentionUpdateElements[1].Id = "a", "b"
-	diags := retentionsHooks(t, nil).beforeWrite(context.Background(), tfsdkConfig(), req)
+	diags := retentionsHooks(t, nil).beforeWrite(context.Background(), tfsdkPlan(), nil, req)
 	if diags.HasError() {
 		t.Fatalf("Update read the tags: %v", diags)
 	}
@@ -112,7 +114,7 @@ func TestBeforeWriteStopsCreate(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			req := renameRequest("", "warm", "cold", "frozen")
-			diags := retentionsHooks(t, test.serve).beforeWrite(context.Background(), tfsdkConfig(), req)
+			diags := retentionsHooks(t, test.serve).beforeWrite(context.Background(), tfsdkPlan(), nil, req)
 			if !diags.HasError() {
 				t.Fatal("beforeWrite succeeded, want an error")
 			}
@@ -134,7 +136,7 @@ func TestBeforeWriteKeepsALeftOutName(t *testing.T) {
 	for i, id := range []string{"a", "b", "c", "d"} {
 		req.RetentionUpdateElements[i].Id = id
 	}
-	diags := retentionsHooks(t, serveTags("a", "b", "c", "d")).beforeWrite(context.Background(), tfsdkConfig(), req)
+	diags := retentionsHooks(t, serveTags("a", "b", "c", "d")).beforeWrite(context.Background(), tfsdkPlan(), nil, req)
 	if diags.HasError() {
 		t.Fatal(diags)
 	}

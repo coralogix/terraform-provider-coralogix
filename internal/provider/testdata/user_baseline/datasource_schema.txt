@@ -1,5 +1,13 @@
 (data source schema)
     description: Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
+access_type  nested SINGLE computed
+    description: Access type configuration - defines whether user access is permanent or temporary with expiration
+access_type.permanent_access  nested SINGLE computed
+    description: Permanent access configuration - user has indefinite access
+access_type.temporary_access  nested SINGLE computed
+    description: Temporary access configuration - user access expires at a specified time
+access_type.temporary_access.expire_at  tftypes.String computed
+    description: Timestamp when the user's temporary access will expire. After this time, the user will no longer be able to access the system.
 active  tftypes.Bool computed
     description: Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
 allowed_login_mode  tftypes.List[tftypes.String] computed

@@ -8,6 +8,7 @@
       "error: Unable to read coralogix_user | id must be set to a non-empty user id."
     ],
     "state": {
+      "access_type": null,
       "active": null,
       "allowed_login_mode": null,
       "groups": null,

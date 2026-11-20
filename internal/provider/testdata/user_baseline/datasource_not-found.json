@@ -15,6 +15,7 @@
       "error: coralogix_user not found | The API did not find coralogix_user with id 00000000-0000-4000-8000-999999999999 in its List"
     ],
     "state": {
+      "access_type": null,
       "active": null,
       "allowed_login_mode": null,
       "groups": null,

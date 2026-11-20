@@ -40,37 +40,37 @@ const (
 
 // beforeWriteAlert adds what the generated request does not hold: the schedule, which the API
 // stores in UTC, and the access policy.
-func beforeWriteAlert(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+func beforeWriteAlert(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	switch b := body.(type) {
 	case *alertapi.CreateAlertDefinitionRequest:
-		return beforeCreateAlert(ctx, config, b)
+		return beforeCreateAlert(ctx, plan, nil, b)
 	case *alertapi.ReplaceAlertDefinitionRequest:
-		return beforeUpdateAlert(ctx, config, b)
+		return beforeUpdateAlert(ctx, plan, nil, b)
 	default:
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Unexpected request body", fmt.Sprintf("The alert request body is %T.", body))}
 	}
 }
 
-func beforeCreateAlert(ctx context.Context, config tfsdk.Config, body *alertapi.CreateAlertDefinitionRequest) diag.Diagnostics {
-	diags := setActiveOn(ctx, config, body.AlertDefProperties)
+func beforeCreateAlert(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body *alertapi.CreateAlertDefinitionRequest) diag.Diagnostics {
+	diags := setActiveOn(ctx, plan, body.AlertDefProperties)
 	if diags.HasError() {
 		return diags
 	}
-	policy, policyDiags := configuredAccessPolicy(ctx, config)
+	policy, policyDiags := configuredAccessPolicy(ctx, plan)
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyForCreate(policy)
 	return diags
 }
 
-func beforeUpdateAlert(ctx context.Context, config tfsdk.Config, body *alertapi.ReplaceAlertDefinitionRequest) diag.Diagnostics {
-	diags := setActiveOn(ctx, config, body.AlertDefProperties)
+func beforeUpdateAlert(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body *alertapi.ReplaceAlertDefinitionRequest) diag.Diagnostics {
+	diags := setActiveOn(ctx, plan, body.AlertDefProperties)
 	if diags.HasError() {
 		return diags
 	}
-	policy, policyDiags := configuredAccessPolicy(ctx, config)
+	policy, policyDiags := configuredAccessPolicy(ctx, plan)
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyActionForUpdate(policy)
-	diags.Append(clearOmittedDescription(ctx, config, body.AlertDefProperties)...)
+	diags.Append(clearOmittedDescription(ctx, plan, body.AlertDefProperties)...)
 	return diags
 }
 
@@ -80,12 +80,12 @@ var descriptionPath = path.Root("description")
 // API keeps a stored description that a Replace omits and clears it only for an explicit "", so
 // without this a removed description would stay on the alert. Create omits it, because a new alert has
 // none to clear; a configured value, "" too, is already in the request.
-func clearOmittedDescription(ctx context.Context, config tfsdk.Config, properties *alertapi.AlertDefProperties) diag.Diagnostics {
+func clearOmittedDescription(ctx context.Context, plan tfsdk.Plan, properties *alertapi.AlertDefProperties) diag.Diagnostics {
 	if properties == nil {
 		return nil
 	}
 	var description types.String
-	diags := config.GetAttribute(ctx, descriptionPath, &description)
+	diags := plan.GetAttribute(ctx, descriptionPath, &description)
 	if diags.HasError() || !description.IsNull() {
 		return diags
 	}
@@ -96,12 +96,12 @@ func clearOmittedDescription(ctx context.Context, config tfsdk.Config, propertie
 
 // setActiveOn sends the configured schedule, and drops what the released request did not hold. A configuration
 // without a schedule sends none.
-func setActiveOn(ctx context.Context, config tfsdk.Config, properties *alertapi.AlertDefProperties) diag.Diagnostics {
+func setActiveOn(ctx context.Context, plan tfsdk.Plan, properties *alertapi.AlertDefProperties) diag.Diagnostics {
 	if properties == nil {
 		return nil
 	}
 	var schedule types.Object
-	diags := config.GetAttribute(ctx, path.Root("schedule"), &schedule)
+	diags := plan.GetAttribute(ctx, path.Root("schedule"), &schedule)
 	if diags.HasError() {
 		return diags
 	}
@@ -116,9 +116,9 @@ func setActiveOn(ctx context.Context, config tfsdk.Config, properties *alertapi.
 }
 
 // configuredAccessPolicy returns the access_policy of the configuration.
-func configuredAccessPolicy(ctx context.Context, config tfsdk.Config) (types.String, diag.Diagnostics) {
+func configuredAccessPolicy(ctx context.Context, plan tfsdk.Plan) (types.String, diag.Diagnostics) {
 	var policy types.String
-	diags := config.GetAttribute(ctx, path.Root("access_policy"), &policy)
+	diags := plan.GetAttribute(ctx, path.Root("access_policy"), &policy)
 	return policy, diags
 }
 

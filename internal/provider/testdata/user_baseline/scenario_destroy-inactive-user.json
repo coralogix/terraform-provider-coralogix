@@ -10,6 +10,7 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": false,
       "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
@@ -39,6 +40,10 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": false,
       "allowed_login_mode": [],
       "groups": [],
@@ -70,6 +75,10 @@
       "error: Unable to delete user | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: type mismatch, parameter: user_account_id, error: \\u003cdomain\\u003e: parsing \\\"no-such-route\\\": invalid syntax\"}"
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": false,
       "allowed_login_mode": [],
       "groups": [],

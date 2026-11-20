@@ -12,6 +12,10 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
       "allowed_login_mode": [],
       "groups": [

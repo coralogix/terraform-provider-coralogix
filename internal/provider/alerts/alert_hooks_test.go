@@ -68,9 +68,9 @@ func TestScheduleConversion(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := alertConfig(ctx, map[string]tftypes.Value{"schedule": scheduleConfigValue(ctx, tc.days, tc.start, tc.end, tc.offset)})
+			plan := alertPlan(ctx, map[string]tftypes.Value{"schedule": scheduleConfigValue(ctx, tc.days, tc.start, tc.end, tc.offset)})
 			body := &alertapi.CreateAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{}}
-			if diags := beforeWriteAlert(ctx, config, body); diags.HasError() {
+			if diags := beforeWriteAlert(ctx, plan, nil, body); diags.HasError() {
 				t.Fatalf("beforeWriteAlert: %v", diags)
 			}
 			window := body.AlertDefProperties.ActiveOn
@@ -107,7 +107,7 @@ func TestScheduleConversion(t *testing.T) {
 func TestBeforeWriteWithoutScheduleSendsNone(t *testing.T) {
 	ctx := context.Background()
 	body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{ActiveOn: &alertapi.ActivitySchedule{}}}
-	if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), body); diags.HasError() {
+	if diags := beforeWriteAlert(ctx, alertPlan(ctx, nil), nil, body); diags.HasError() {
 		t.Fatalf("beforeWriteAlert: %v", diags)
 	}
 	if body.AlertDefProperties.ActiveOn != nil {
@@ -120,26 +120,26 @@ func TestBeforeWriteWithoutScheduleSendsNone(t *testing.T) {
 
 func TestBeforeWriteAccessPolicy(t *testing.T) {
 	ctx := context.Background()
-	config := func(policy string) tfsdk.Config {
-		return alertConfig(ctx, map[string]tftypes.Value{"access_policy": stringValue(policy)})
+	config := func(policy string) tfsdk.Plan {
+		return alertPlan(ctx, map[string]tftypes.Value{"access_policy": stringValue(policy)})
 	}
 	create := &alertapi.CreateAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{}}
-	if diags := beforeWriteAlert(ctx, config(`{"a":1}`), create); diags.HasError() || create.AccessPolicy == nil || *create.AccessPolicy != `{"a":1}` {
+	if diags := beforeWriteAlert(ctx, config(`{"a":1}`), nil, create); diags.HasError() || create.AccessPolicy == nil || *create.AccessPolicy != `{"a":1}` {
 		t.Errorf("create policy = %v, %v", create.AccessPolicy, diags)
 	}
 	emptyCreate := &alertapi.CreateAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{}}
-	if diags := beforeWriteAlert(ctx, config(""), emptyCreate); diags.HasError() || emptyCreate.AccessPolicy != nil {
+	if diags := beforeWriteAlert(ctx, config(""), nil, emptyCreate); diags.HasError() || emptyCreate.AccessPolicy != nil {
 		t.Errorf("create with an empty policy sends %v, %v, want none", emptyCreate.AccessPolicy, diags)
 	}
 	update := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{}}
-	if diags := beforeWriteAlert(ctx, config(`{"a":1}`), update); diags.HasError() || update.AccessPolicy == nil || update.AccessPolicy.Upsert == nil {
+	if diags := beforeWriteAlert(ctx, config(`{"a":1}`), nil, update); diags.HasError() || update.AccessPolicy == nil || update.AccessPolicy.Upsert == nil {
 		t.Errorf("update action = %v, %v, want an upsert", update.AccessPolicy, diags)
 	}
 	deleted := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{}}
-	if diags := beforeWriteAlert(ctx, config(""), deleted); diags.HasError() || deleted.AccessPolicy == nil || deleted.AccessPolicy.Delete == nil {
+	if diags := beforeWriteAlert(ctx, config(""), nil, deleted); diags.HasError() || deleted.AccessPolicy == nil || deleted.AccessPolicy.Delete == nil {
 		t.Errorf("update action = %v, %v, want a delete", deleted.AccessPolicy, diags)
 	}
-	if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), struct{}{}); !diags.HasError() {
+	if diags := beforeWriteAlert(ctx, alertPlan(ctx, nil), nil, struct{}{}); !diags.HasError() {
 		t.Error("an unexpected request body is no error")
 	}
 }
@@ -448,28 +448,28 @@ func TestBeforeWriteClearsAnOmittedDescriptionOnReplace(t *testing.T) {
 
 	t.Run("create omits it", func(t *testing.T) {
 		body := &alertapi.CreateAlertDefinitionRequest{AlertDefProperties: properties()}
-		if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), body); diags.HasError() || body.AlertDefProperties.Description != nil {
+		if diags := beforeWriteAlert(ctx, alertPlan(ctx, nil), nil, body); diags.HasError() || body.AlertDefProperties.Description != nil {
 			t.Errorf("description = %v, %v, want none", body.AlertDefProperties.Description, diags)
 		}
 	})
 	t.Run("replace without a configured description sends an empty one", func(t *testing.T) {
 		body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: properties()}
-		if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), body); diags.HasError() || body.AlertDefProperties.Description == nil || *body.AlertDefProperties.Description != "" {
+		if diags := beforeWriteAlert(ctx, alertPlan(ctx, nil), nil, body); diags.HasError() || body.AlertDefProperties.Description == nil || *body.AlertDefProperties.Description != "" {
 			t.Errorf("description = %v, %v, want an empty string", body.AlertDefProperties.Description, diags)
 		}
 	})
 	t.Run("replace keeps a configured empty description", func(t *testing.T) {
 		empty := ""
 		body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{Description: &empty}}
-		config := alertConfig(ctx, map[string]tftypes.Value{"description": stringValue("")})
-		if diags := beforeWriteAlert(ctx, config, body); diags.HasError() || body.AlertDefProperties.Description == nil || *body.AlertDefProperties.Description != "" {
+		plan := alertPlan(ctx, map[string]tftypes.Value{"description": stringValue("")})
+		if diags := beforeWriteAlert(ctx, plan, nil, body); diags.HasError() || body.AlertDefProperties.Description == nil || *body.AlertDefProperties.Description != "" {
 			t.Errorf("description = %v, %v, want an empty string", body.AlertDefProperties.Description, diags)
 		}
 	})
 	t.Run("replace keeps a configured description", func(t *testing.T) {
 		body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: withText()}
-		config := alertConfig(ctx, map[string]tftypes.Value{"description": stringValue("kept")})
-		if diags := beforeWriteAlert(ctx, config, body); diags.HasError() || *body.AlertDefProperties.Description != "kept" {
+		plan := alertPlan(ctx, map[string]tftypes.Value{"description": stringValue("kept")})
+		if diags := beforeWriteAlert(ctx, plan, nil, body); diags.HasError() || *body.AlertDefProperties.Description != "kept" {
 			t.Errorf("description = %v, %v, want kept", body.AlertDefProperties.Description, diags)
 		}
 	})

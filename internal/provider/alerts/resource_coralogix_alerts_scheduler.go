@@ -61,7 +61,7 @@ func ruleTimeframes(rule *alertscheduler.AlertSchedulerRule) []*alertscheduler.T
 }
 
 // sendUTCAsUTCPlus0 sends time_zone UTC as UTC+0, the spelling that the API stores.
-func sendUTCAsUTCPlus0(_ context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+func sendUTCAsUTCPlus0(_ context.Context, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var rule *alertscheduler.AlertSchedulerRule
 	switch b := body.(type) {
 	case *alertscheduler.CreateAlertSchedulerRuleRequestDataStructure:

@@ -42,7 +42,7 @@ type Resource struct {
 // so a resource that is used without the overlay package does not silently skip them.
 type Hooks struct {
 	// BeforeWrite mutates the expanded request body before the API call.
-	BeforeWrite func(context.Context, tfsdk.Plan, any) diag.Diagnostics
+	BeforeWrite func(context.Context, tfsdk.Plan, *tfsdk.State, any) diag.Diagnostics
 	// AfterRead mutates state after flatten. prior is the plan after Create or
 	// Update, or the state before Read.
 	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
@@ -103,10 +103,10 @@ func (r *Resource) ValidateConfig(ctx context.Context, req resource.ValidateConf
 // resource is unknown while Terraform validates the configuration, and then runs the BeforeWrite hook
 // with the plan: the plan holds the resolved values, including the ones that the configuration omits
 // and the state carries (an Optional and Computed attribute keeps its state value in the plan).
-func (r *Resource) beforeWrite(ctx context.Context, plan tfsdk.Plan, body any) diag.Diagnostics {
+func (r *Resource) beforeWrite(ctx context.Context, plan tfsdk.Plan, state *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeWrite != nil {
-		diags.Append(r.hooks.BeforeWrite(ctx, plan, body)...)
+		diags.Append(r.hooks.BeforeWrite(ctx, plan, state, body)...)
 	}
 	return diags
 }
@@ -145,7 +145,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Plan, body)...)
+	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Plan, nil, body)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -195,6 +195,9 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 // (D14).
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	ctx, _ = withGetResult(ctx)
+	// The hook of a skipped field reads the prior value here: the plan holds only
+	// what the schema carries.
+	ctx = context.WithValue(ctx, writeStateKey{}, &req.State)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -206,7 +209,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 	if body != nil {
-		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Plan, body)...)
+		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Plan, &req.State, body)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -283,6 +286,16 @@ func (r *Resource) create(ctx context.Context, body *users_management_service.Cr
 	}
 	// The result holds the resource that the API created, with the id that the API gave it.
 	return result.User, nil
+}
+
+// writeStateKey is the context key of the prior state of an Update: a hook reads the value of
+// a field that the schema skips from it.
+type writeStateKey struct{}
+
+// writeState returns the prior state of the running Update, or nil.
+func writeState(ctx context.Context) *tfsdk.State {
+	state, _ := ctx.Value(writeStateKey{}).(*tfsdk.State)
+	return state
 }
 
 // getResultKey is the key of the getResult that a CRUD method puts in its context.

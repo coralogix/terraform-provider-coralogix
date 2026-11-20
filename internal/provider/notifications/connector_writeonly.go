@@ -29,9 +29,9 @@ type priorAttributes interface {
 	GetAttribute(context.Context, path.Path, any) diag.Diagnostics
 }
 
-func mergeWriteOnlyIntoRequest(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+func mergeWriteOnlyIntoRequest(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var secrets types.Map
-	diags := config.GetAttribute(ctx, path.Root("connector_config").AtName("field_values_wo"), &secrets)
+	diags := plan.GetAttribute(ctx, path.Root("connector_config").AtName("field_values_wo"), &secrets)
 	if diags.HasError() {
 		return diags
 	}

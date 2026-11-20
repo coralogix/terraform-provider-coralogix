@@ -65,7 +65,8 @@ types:
       userAccountId:
         skip: true
       accessType:
-        skip: true
+        computed: true
+        useStateForUnknown: true
       groupIds:
         skip: true
     extraAttributes:
