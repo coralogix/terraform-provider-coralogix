@@ -226,6 +226,8 @@ func TestAccCoralogixResourceAlwaysThingGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
+				// The resource always exists, so the API keeps the last state after the test: end in the full config.
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
 			},
 		})
 	})

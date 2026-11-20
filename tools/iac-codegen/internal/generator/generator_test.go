@@ -717,12 +717,6 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 			spec: strings.Replace(base, "THING_KIND_UNSPECIFIED", "THING_KIND_NOT_SET", 1),
 			code: "ENUM_ZERO_INVALID",
 		},
-		"top-level mask for nested oneOf": {
-			spec: strings.Replace(base,
-				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
-				"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1),
-			code: "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
-		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

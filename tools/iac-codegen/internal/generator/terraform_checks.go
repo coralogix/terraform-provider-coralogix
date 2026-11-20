@@ -24,7 +24,7 @@ const terraformInt64SafeDecimalDigits int64 = 18
 // Terraform needs, and returns one sorted report. The Terraform checks read the type that the
 // contract checks survey, so both see the same resource.
 func terraformContractIssues(doc *v3.Document, component string, ids model.OperationIDs, p model.Policy, file *overrides.File) issue.Report {
-	report := omittedMaskIssues(model.ValidateWithPolicy(doc, component, ids, p), file)
+	report := wholeFieldMaskIssues(omittedMaskIssues(model.ValidateWithPolicy(doc, component, ids, p), file), file)
 	if t, _ := model.SurveyWithPolicy(doc, component, p); t != nil {
 		report = append(report, terraformNameCollisions(p, "components.schemas."+component, t, file)...)
 		report = append(report, uint64RangeIssues(p, component, t)...)
@@ -178,6 +178,26 @@ func terraformNameRune(r rune) rune {
 		return r
 	}
 	return '_'
+}
+
+// wholeFieldMaskIssues drops UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED for a new resource (file is nil).
+// A mask pattern that rejects dotted paths states that the API takes only top-level names and
+// replaces the whole value of each listed field, the arms of a oneOf included. Update then names
+// the top-level field, and the old arm leaves with the old value. A server that merges the new
+// value into the old one breaks this rule: the acceptance sweep, which switches arms between
+// steps, finds that server. Existing-resource mode keeps the issue: its released behavior is
+// stated in the behavior-overrides file (updateMask: omit), not by the pattern.
+func wholeFieldMaskIssues(report issue.Report, file *overrides.File) issue.Report {
+	if file != nil {
+		return report
+	}
+	var out issue.Report
+	for _, i := range report {
+		if i.Code != "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED" {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 // omittedMaskIssues drops the contract issues about the update mask paths when the resource sends

@@ -198,6 +198,9 @@ type tfAttr struct {
 	// ServerSetInRequest: the request requires the field, and Get requires it and marks it
 	// read-only, as an id that a write sends back to name an item of an overwrite resource.
 	ServerSetInRequest bool
+	// AlwaysReturned: a top-level attribute that only the server sets, and that the resource response
+	// lists as required. The acceptance test of a new resource checks that it has a value.
+	AlwaysReturned bool
 }
 
 // enumOption is one accepted value of an enum: the API value and the Terraform value.
@@ -506,6 +509,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		// The path holds the group, as the server paths of the request do.
 		b.requiresReplace(a, rootPath(groups, a.Name).dotted())
 	}
+	a.AlwaysReturned = computedOnly(a) && f.Get.Required
 	return a, nil
 }
 

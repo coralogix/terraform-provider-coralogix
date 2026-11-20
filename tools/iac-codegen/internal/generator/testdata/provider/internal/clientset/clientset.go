@@ -16,6 +16,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/key_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/mask_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/member_hook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/member_service"
 	"example.com/iac-test-sdk/go/openapi/gen/method_things_service"
@@ -70,6 +71,7 @@ type ClientSet struct {
 	Key              *key_things_service.KeyThingsServiceAPIService
 	Always           *always_things_service.AlwaysThingsServiceAPIService
 	Method           *method_things_service.MethodThingsServiceAPIService
+	Mask             *mask_things_service.MaskThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -77,6 +79,8 @@ func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.
 func (c *ClientSet) AlwaysThings() *always_things_service.AlwaysThingsServiceAPIService {
 	return c.Always
 }
+
+func (c *ClientSet) MaskThings() *mask_things_service.MaskThingsServiceAPIService { return c.Mask }
 
 func (c *ClientSet) Rulebook() *rulebook_service.RulebookServiceAPIService { return c.RulebookClient }
 

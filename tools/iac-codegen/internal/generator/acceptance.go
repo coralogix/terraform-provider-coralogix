@@ -25,6 +25,9 @@ type accCheck struct {
 	// attribute of Elem with its value. The position of a set element is not known, so the check
 	// finds the element by its values.
 	Elem map[string]string
+	// Set makes the check one that the attribute has a value, which the test does not know: a value
+	// that only the server sets.
+	Set bool
 	// Copy is the number of the copy of the resource that holds the attribute, from 2: a step of the
 	// sweep can hold copies, named test_2, test_3. 0 and 1 are the resource itself.
 	Copy int
@@ -40,6 +43,9 @@ func (c accCheck) address() string {
 
 // Call is the Go call of the check.
 func (c accCheck) Call() string {
+	if c.Set {
+		return "resource.TestCheckResourceAttrSet(" + c.address() + ", " + strconv.Quote(c.Path) + ")"
+	}
 	if c.Elem == nil {
 		return "resource.TestCheckResourceAttr(" + c.address() + ", " + strconv.Quote(c.Path) + ", " + c.Expr() + ")"
 	}
@@ -115,6 +121,10 @@ type acceptanceData struct {
 	Variants []*accStep
 	// SplitSteps: each variant is a subtest of its own, values-and-choices-N.
 	SplitSteps bool
+	// EndWithFull: the last subtest applies the full config once more at its end: values-and-choices,
+	// or minimal-lifecycle when there are no variants. The resource always exists, so it keeps the
+	// last applied state after the test.
+	EndWithFull bool
 	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
 	UpgradeMinimal *accStep
 	// UpgradeFull is the full config without the attributes that the released provider does not
@@ -286,6 +296,11 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 			s.cov = nil // the other configs record nothing
 		}
 	}
+	if !res.CRUD.Existing {
+		returned := returnedChecks(res.Attributes, res.CRUD.IDAttr)
+		out.Full.Checks = append(out.Full.Checks, returned...)
+		out.Updated.Checks = append(out.Updated.Checks, returned...)
+	}
 	s.cov = full
 	variants, err := s.sweepSteps(res)
 	s.cov = nil
@@ -294,6 +309,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	}
 	out.Variants = variants
 	out.SplitSteps = file.StepCopies > 0
+	out.EndWithFull = res.CRUD.AlwaysExists
 	out.Minimal.Absent = s.absent(res.Attributes)
 	defaults, kept := s.removed(res.Attributes, out.Full.Checks)
 	out.Minimal.Checks = append(out.Minimal.Checks, defaults...)
@@ -321,6 +337,19 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		return nil, err
 	}
 	return out, nil
+}
+
+// returnedChecks checks that each top-level scalar that only the server sets, and that the resource
+// response always returns, has a value. The contract states "always" with the required list of the
+// response, so an attribute that the list leaves out stays unchecked. The id is checked by the import.
+func returnedChecks(attrs []*tfAttr, idAttr string) []accCheck {
+	var out []accCheck
+	for _, a := range attrs {
+		if a.AlwaysReturned && a.Name != idAttr && slices.Contains([]string{"String", "Bool", "Int64", "Int32", "Float64", "Float32", "Number"}, a.Kind) {
+			out = append(out, accCheck{Path: a.Name, Set: true})
+		}
+	}
+	return out
 }
 
 // checkSkipTests rejects stale or mistyped names, including tests that this resource does not emit.

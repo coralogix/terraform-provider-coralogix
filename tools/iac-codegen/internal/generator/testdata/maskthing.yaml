@@ -1,0 +1,156 @@
+# A new resource whose API takes only top-level update-mask names. The mask pattern rejects dotted
+# paths, so Update names a whole field and the server replaces its value. The range is a oneOf with
+# object arms, and the limits are an optional object with a value that only the server sets.
+openapi: 3.1.0
+info: {title: mask things, version: 1.0.0}
+paths:
+  /mask-things/v1:
+    post:
+      tags: [Mask Things Service]
+      operationId: MaskThingsService_CreateMaskThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Mask Thing Request
+              type: object
+              required: [name, range]
+              properties:
+                name: {type: string, minLength: 1, description: The name of the thing.}
+                description: {type: string, description: A note that can be cleared., x-coralogix-presence: true}
+                range: {$ref: '#/components/schemas/MaskThingRange'}
+                limits: {$ref: '#/components/schemas/MaskThingLimitsInput'}
+                filters: {type: array, uniqueItems: true, x-coralogix-collection: set, items: {$ref: '#/components/schemas/MaskThingFilter'}, description: The filters of the thing. Each is one kind.}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MaskThing'}
+  /mask-things/v1/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Mask Things Service]
+      operationId: MaskThingsService_GetMaskThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MaskThing'}
+    patch:
+      tags: [Mask Things Service]
+      operationId: MaskThingsService_UpdateMaskThing
+      parameters:
+        - name: updateMask
+          in: query
+          required: true
+          schema: {type: string, minLength: 1, pattern: '^[A-Za-z_][A-Za-z0-9_]*(,[A-Za-z_][A-Za-z0-9_]*)*$'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Update Mask Thing Request
+              type: object
+              required: []
+              properties:
+                name: {type: string, minLength: 1, description: The name of the thing., x-coralogix-presence: true}
+                description: {type: string, description: A note that can be cleared., x-coralogix-presence: true}
+                range: {$ref: '#/components/schemas/MaskThingRange'}
+                limits: {$ref: '#/components/schemas/MaskThingLimitsInput'}
+                filters: {type: array, uniqueItems: true, x-coralogix-collection: set, items: {$ref: '#/components/schemas/MaskThingFilter'}, description: The filters of the thing. Each is one kind.}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MaskThing'}
+    delete:
+      tags: [Mask Things Service]
+      operationId: MaskThingsService_DeleteMaskThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteMaskThingResponse'}
+components:
+  schemas:
+    DeleteMaskThingResponse:
+      type: object
+      required: []
+    MaskThing:
+      type: object
+      required: [id, name, range, createTime]
+      properties:
+        id: {type: string, description: The server-assigned identifier.}
+        createTime: {type: string, format: date-time, description: When the server made the thing, in UTC.}
+        owner: {type: string, description: Who owns the thing. The server may leave it out.}
+        name: {type: string, minLength: 1, description: The name of the thing.}
+        description: {type: string, description: A note that can be cleared.}
+        range: {$ref: '#/components/schemas/MaskThingRange'}
+        limits: {$ref: '#/components/schemas/MaskThingLimits'}
+        filters: {type: array, uniqueItems: true, x-coralogix-collection: set, items: {$ref: '#/components/schemas/MaskThingFilter'}, description: The filters of the thing. Each is one kind.}
+    MaskThingFilter:
+      type: object
+      required: []
+      description: A filter. One arm is set.
+      properties:
+        stringFilter: {$ref: '#/components/schemas/MaskThingStringFilter'}
+        boolFilter: {$ref: '#/components/schemas/MaskThingBoolFilter'}
+      oneOf:
+        - required: [stringFilter]
+        - required: [boolFilter]
+    MaskThingStringFilter:
+      type: object
+      required: [field, value]
+      properties:
+        field: {$ref: '#/components/schemas/MaskThingStringField'}
+        value: {type: string, minLength: 1, description: The text to match.}
+    MaskThingBoolFilter:
+      type: object
+      required: [value]
+      properties:
+        value: {type: boolean, x-coralogix-presence: true, description: The value to match.}
+    MaskThingStringField:
+      type: string
+      enum: [MASK_THING_STRING_FIELD_UNSPECIFIED, MASK_THING_STRING_FIELD_PLATFORM, MASK_THING_STRING_FIELD_COUNTRY]
+    MaskThingRange:
+      type: object
+      required: []
+      description: The range of the thing. One arm is set.
+      properties:
+        fixed: {$ref: '#/components/schemas/MaskThingFixed'}
+        relative: {$ref: '#/components/schemas/MaskThingRelative'}
+      oneOf:
+        - required: [fixed]
+        - required: [relative]
+    MaskThingFixed:
+      type: object
+      required: [start, end]
+      properties:
+        start: {type: string, minLength: 1, description: The first time of the range.}
+        end: {type: string, minLength: 1, description: The last time of the range.}
+    MaskThingRelative:
+      type: object
+      required: [minutes]
+      properties:
+        minutes: {type: integer, format: int32, minimum: 1, description: How many minutes back the range goes.}
+    MaskThingLimits:
+      type: object
+      required: []
+      description: The limits of the thing.
+      properties:
+        max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+        min: {type: integer, format: int32, description: The fewest items., x-coralogix-presence: true}
+        applied: {type: integer, format: int32, description: The limit that the server applies. Only the server sets it.}
+    MaskThingLimitsInput:
+      type: object
+      required: []
+      description: The limits of the thing.
+      properties:
+        max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+        min: {type: integer, format: int32, description: The fewest items., x-coralogix-presence: true}
