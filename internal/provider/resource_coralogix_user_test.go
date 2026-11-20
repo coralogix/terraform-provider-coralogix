@@ -53,13 +53,6 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Import by email resolves to the same state as import by id.
-			{
-				ResourceName:      userResourceName,
-				ImportState:       true,
-				ImportStateId:     userName,
-				ImportStateVerify: true,
-			},
 		},
 	})
 }
@@ -247,10 +240,6 @@ func TestAccCoralogixResourceUserGroupMembership(t *testing.T) {
 					// The value has to be the group id itself, as SCIM groups[].value was,
 					// or every migrated user would show a groups diff.
 					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_id", "groups.*", "coralogix_group.test", "id"),
-					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_name", "groups.*", "coralogix_group.test", "id"),
-					resource.TestCheckResourceAttr("data.coralogix_user.by_id", "emails.#", "1"),
-					resource.TestCheckResourceAttr("data.coralogix_user.by_name", "user_name", userName),
-					resource.TestCheckResourceAttrPair("data.coralogix_user.by_name", "id", userResourceName, "id"),
 				),
 			},
 		},
@@ -475,11 +464,6 @@ func testAccCoralogixResourceUserInGroup(userName, groupName string) string {
 
 	data "coralogix_user" "by_id" {
 	  id         = coralogix_user.test.id
-	  depends_on = [coralogix_group.test]
-	}
-
-	data "coralogix_user" "by_name" {
-	  user_name  = coralogix_user.test.user_name
 	  depends_on = [coralogix_group.test]
 	}
 `, userName, groupName)

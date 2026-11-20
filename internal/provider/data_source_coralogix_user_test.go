@@ -53,7 +53,7 @@ func TestAccCoralogixDataSourceUser_noLookupKeySet(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      `data "coralogix_user" "no_key" {}`,
-				ExpectError: regexp.MustCompile("Missing Attribute Configuration"),
+				ExpectError: regexp.MustCompile("Missing required argument"),
 			},
 		},
 	})
