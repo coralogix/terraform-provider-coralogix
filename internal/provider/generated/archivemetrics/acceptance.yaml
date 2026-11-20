@@ -13,3 +13,4 @@ upgradeFrom: "3.23.0"
 
 skip:
   - ibm   # needs a real IBM bucket; the test sets the S3 arm
+  - gcs   # needs a real GCS bucket that allows Coralogix; the test sets the S3 arm

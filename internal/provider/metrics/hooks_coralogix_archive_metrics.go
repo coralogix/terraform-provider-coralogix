@@ -26,7 +26,7 @@ import (
 )
 
 // ArchiveMetricsHooks are the handwritten steps of the generated coralogix_archive_metrics.
-// A response with neither S3 nor IBM storage is an error, as in the released resource: the
+// A response with no S3, IBM or GCS storage is an error, as in the released resource: the
 // generated flatten would read it as an archive without storage.
 func ArchiveMetricsHooks() archivemetrics.Hooks {
 	return archivemetrics.Hooks{BeforeFlatten: requireStorage}
@@ -36,7 +36,7 @@ func requireStorage(_ context.Context, v *ams.TenantConfigV2) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if v.S3 == nil && v.Ibm == nil && v.Gcs == nil {
 		diags.AddError("Error reading coralogix_archive_metrics",
-			"the tenant configuration uses an unsupported storage backend; only IBM and S3 are supported")
+			"the tenant configuration uses an unsupported storage backend; only IBM, S3 and GCS are supported")
 	}
 	return diags
 }
