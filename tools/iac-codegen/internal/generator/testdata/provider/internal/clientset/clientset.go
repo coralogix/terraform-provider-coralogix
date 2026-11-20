@@ -2,6 +2,7 @@ package clientset
 
 import (
 	"example.com/iac-test-sdk/go/openapi/gen/action_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/always_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/box_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
@@ -67,10 +68,15 @@ type ClientSet struct {
 	Retag            *retag_things_service.RetagThingsServiceAPIService
 	Default          *default_things_service.DefaultThingsServiceAPIService
 	Key              *key_things_service.KeyThingsServiceAPIService
+	Always           *always_things_service.AlwaysThingsServiceAPIService
 	Method           *method_things_service.MethodThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
+
+func (c *ClientSet) AlwaysThings() *always_things_service.AlwaysThingsServiceAPIService {
+	return c.Always
+}
 
 func (c *ClientSet) Rulebook() *rulebook_service.RulebookServiceAPIService { return c.RulebookClient }
 

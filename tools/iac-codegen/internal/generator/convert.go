@@ -27,6 +27,9 @@ type convData struct {
 	IDString bool   // a string id must also be non-empty
 	SDKPkg   string // import path of the SDK package
 	SDKName  string // package name
+	// AlwaysExists: the singleton has no Create call, so Create sends the Update call with a mask of
+	// every configured field (createRequest).
+	AlwaysExists bool
 	// The root objects: the Create body and the Update body (expand), and
 	// the resource (flatten).
 	Create, Update, Resource *convObject
@@ -872,7 +875,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file)}
-	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file)}
+	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file), AlwaysExists: r.AlwaysExists}
 	// A batch write sends the body item of one resource inside the array the API takes.
 	out.UpdateSliceBody = r.Update.BodyItems
 	if err := out.setBodyMask(ix, r); err != nil {
@@ -1406,7 +1409,7 @@ func appendCheckField(fields []*maskField, r *model.Resource, f *model.ResourceF
 		}
 		return fields
 	}
-	return append(fields, &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f)})
+	return append(fields, &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f) || keepsAPIValue(r, f)})
 }
 
 // replaceFields sets the Update fields of a full replace. The body has all of
@@ -1476,7 +1479,7 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit b
 		if leaf {
 			mf = maskTree(r.Policy, r.Name, f.Name, f.Type.UpdateType())
 		}
-		mf.ServerDefault = serverDefault(r, f)
+		mf.ServerDefault = serverDefault(r, f) || keepsAPIValue(r, f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
 			return err
 		}
@@ -1572,6 +1575,14 @@ type convBuilder struct {
 	projections  []*itemProjection
 	keyedObjects []*keyedObject
 	dists        map[string]*convDistribution // by the name of the top-level list
+}
+
+// keepsAPIValue reports whether a field of a singleton that always exists is left out of the
+// configuration with the value that the API already holds: the plan keeps that value (an unknown
+// value from the state), and the request does not send the field. A singleton whose Update is a
+// full replace does not keep it: an omitted field resets.
+func keepsAPIValue(r *model.Resource, f *model.ResourceField) bool {
+	return r.OmitKeepsValue() && f.Behavior == model.Normal && !hasServerDefault(f) && (f.Create == nil || !f.Create.Required)
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.

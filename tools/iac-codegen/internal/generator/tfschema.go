@@ -481,6 +481,12 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
+	if keepsAPIValue(r, f) {
+		// The singleton holds a value before Create, and a field that the configuration leaves out
+		// keeps it. The state then holds the value that Get returns, so the plan keeps it too.
+		a.Computed = true
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+	}
 	clientSetID := r.Policy.ClientSetID && f.Name == r.ID()
 	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.

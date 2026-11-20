@@ -265,6 +265,49 @@ func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName
 	}
 	return body, strings.Join(mask, ","), diags
 }
+{{- if .AlwaysExists}}
+
+// createRequest returns the Update body and updateMask for Create. The API has no Create call: the
+// singleton exists. The mask names every top-level field that the configuration sets, so a field
+// that it leaves out keeps the value of the API. It returns nil when the configuration sets no
+// field. Then the caller sends no request and reads the singleton.
+func createRequest(ctx context.Context, config, plan tfData) (*{{.SDKName}}.{{.Update.SDK}}, string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var mask []string
+	for _, f := range maskFields {
+		var c, p attr.Value
+		var fieldDiags diag.Diagnostics
+		fieldDiags.Append(config.GetAttribute(ctx, path.Root(f.attr), &c)...)
+		fieldDiags.Append(plan.GetAttribute(ctx, path.Root(f.attr), &p)...)
+		diags.Append(fieldDiags...)
+		if fieldDiags.HasError() {
+			continue
+		}
+		if c.IsNull() {
+			continue // the plan holds the value of the API for a field that the configuration leaves out
+		}
+{{- if $.RequestFilter}}
+		p = requestValue(ctx, f.attr, p, &diags)
+{{- end}}
+		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
+		mask = append(mask, f.api)
+	}
+	if diags.HasError() || len(mask) == 0 {
+		return nil, "", diags
+	}
+	var m {{.Update.Model}}
+	diags.Append(plan.Get(ctx, &m)...)
+	if diags.HasError() {
+		return nil, "", diags
+	}
+	body, d := expandUpdate(ctx, &m)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil, "", diags
+	}
+	return body, strings.Join(mask, ","), diags
+}
+{{- end}}
 {{- end}}
 
 {{- define "maskNode" -}}

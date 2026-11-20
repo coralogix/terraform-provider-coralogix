@@ -53,6 +53,13 @@ type crudData struct {
 	// Upsert: Create and Update are one Set call, and Delete makes no call. The API cannot remove
 	// the resource.
 	Upsert bool
+	// AlwaysExists: the API has no Create and no Delete call for the singleton (the model implies
+	// them). Create sends the Update call as if every configured field changed from an empty state,
+	// and Delete makes no call.
+	AlwaysExists bool
+	// NoDelete: Delete makes no call and only removes the resource from the state (Upsert or
+	// AlwaysExists).
+	NoDelete bool
 	// Overwrite: the resource is the list that one write replaces (api.overwrite). Create and
 	// Update send the write and read the resource with Get. Delete sends the write with every
 	// list empty.
@@ -237,18 +244,20 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	out := &crudData{
-		TypeName:    tfName(r.Name),
-		Model:       modelTypeName(r.Name),
-		IDAttr:      "id",
-		IDGoType:    "string",
-		IDTFType:    "String",
-		Singleton:   r.Singleton,
-		Upsert:      file.Upserts(),
-		Overwrite:   r.Overwrite,
-		SingletonID: file.IDFromAPI(),
-		Replace:     r.Replace,
-		MaskInBody:  r.MaskInBody,
-		OmitMask:    file != nil && file.UpdateMask == overrides.UpdateMaskOmit,
+		TypeName:     tfName(r.Name),
+		Model:        modelTypeName(r.Name),
+		IDAttr:       "id",
+		IDGoType:     "string",
+		IDTFType:     "String",
+		Singleton:    r.Singleton,
+		Upsert:       file.Upserts(),
+		AlwaysExists: r.AlwaysExists,
+		NoDelete:     file.Upserts() || r.AlwaysExists,
+		Overwrite:    r.Overwrite,
+		SingletonID:  file.IDFromAPI(),
+		Replace:      r.Replace,
+		MaskInBody:   r.MaskInBody,
+		OmitMask:     file != nil && file.UpdateMask == overrides.UpdateMaskOmit,
 
 		UpdateIDInBody: r.Policy.UpdateIDInBody,
 		Existing:       r.Policy.Existing,
@@ -316,8 +325,8 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		{"delete", r.Delete, &out.Delete, r.Overwrite || r.Policy.DeleteIDs != "", false},
 	}
 	for _, o := range ops {
-		if o.name == "delete" && file.Upserts() {
-			continue // the API cannot remove an upsert, so Delete makes no call
+		if o.name == "delete" && out.NoDelete {
+			continue // the API cannot remove an upsert or an always-existing singleton, so Delete makes no call
 		}
 		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r, r.IDType != nil && len(r.IDType.Wrappers) == 1); err != nil {
 			return nil, err
