@@ -17,6 +17,7 @@ type AlwaysThingModel struct {
 
 type AlwaysThingLimitsModel struct {
 	Max types.Int32 `tfsdk:"max"`
+	Min types.Int32 `tfsdk:"min"`
 }
 
 type AlwaysThingHttpModel struct {

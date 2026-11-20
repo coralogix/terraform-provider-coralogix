@@ -38,6 +38,7 @@ var maskFields = []*maskNode{
 	{attr: "note", api: "note", serverDefault: true},
 	{attr: "limits", api: "limits", serverDefault: true, children: []*maskNode{
 		{attr: "max", api: "max", serverDefault: false},
+		{attr: "min", api: "min", serverDefault: false},
 	}},
 	{attr: "config", api: "config", serverDefault: true, oneOf: true, children: []*maskNode{
 		{attr: "http", api: "http", serverDefault: false, children: []*maskNode{
@@ -189,12 +190,13 @@ func createRequest(ctx context.Context, config, plan tfData) (*always_things_ser
 	return body, strings.Join(mask, ","), diags
 }
 
-// createPaths adds the paths of the values that p sets below n, for Create. The singleton may
-// already hold a value, so a parent path alone can leave an old part of it in place (contract 2.6).
-// A oneOf names the selected arm. An object names the paths of the fields that it sets, or itself
-// when it sets none.
+// createPaths adds the paths of the values below n, for Create. The singleton may already hold a
+// value, so the mask names every value that the plan holds. A oneOf names the selected arm, because a
+// parent path alone can leave another arm in place (contract 2.6). An object names each of its fields.
+// A field that the plan leaves null is named with no value: the server clears it, so the state
+// matches the plan.
 func createPaths(mask []string, prefix string, n *maskNode, p attr.Value) []string {
-	if p.IsNull() || p.IsUnknown() {
+	if p.IsUnknown() {
 		return mask
 	}
 	at := n.api
@@ -202,7 +204,7 @@ func createPaths(mask []string, prefix string, n *maskNode, p attr.Value) []stri
 		at = prefix + "." + n.api
 	}
 	po, ok := p.(types.Object)
-	if n.children == nil || !ok {
+	if p.IsNull() || n.children == nil || !ok {
 		return append(mask, at)
 	}
 	if n.oneOf {
@@ -211,12 +213,8 @@ func createPaths(mask []string, prefix string, n *maskNode, p attr.Value) []stri
 		}
 		return append(mask, at)
 	}
-	before := len(mask)
 	for _, c := range n.children {
 		mask = createPaths(mask, at, c, po.Attributes()[c.attr])
-	}
-	if len(mask) == before {
-		return append(mask, at)
 	}
 	return mask
 }

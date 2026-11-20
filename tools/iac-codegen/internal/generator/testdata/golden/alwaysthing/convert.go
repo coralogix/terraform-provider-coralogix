@@ -326,6 +326,7 @@ func expandAlwaysThingLimitsUpdate(ctx context.Context, p path.Path, m *AlwaysTh
 	}
 	out := &always_things_service.AlwaysThingLimitsUpdate{}
 	out.Max = expandInt32(m.Max)
+	out.Min = expandInt32(m.Min)
 	return out
 }
 
@@ -452,12 +453,14 @@ func flattenAlwaysThingLimits(ctx context.Context, p path.Path, v *always_things
 	}
 	out := &AlwaysThingLimitsModel{}
 	out.Max = types.Int32PointerValue(v.Max)
+	out.Min = types.Int32PointerValue(v.Min)
 	return out
 }
 
 func alwaysThingLimitsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"max": types.Int32Type,
+		"min": types.Int32Type,
 	}
 }
 

@@ -152,8 +152,10 @@ func TestCreateNamesTheSelectedArm(t *testing.T) {
 	}
 }
 
-func TestCreateNamesTheFieldsOfAnObject(t *testing.T) {
-	limits := types.ObjectValueMust(alwaysThingLimitsAttrTypes(), map[string]attr.Value{"max": types.Int32Value(3)})
+// A field that the object leaves out is in the mask with no value, so the server clears it and the
+// state matches the plan, also when the singleton already holds a value there.
+func TestCreateClearsTheFieldsThatAnObjectLeavesOut(t *testing.T) {
+	limits := types.ObjectValueMust(alwaysThingLimitsAttrTypes(), map[string]attr.Value{"max": types.Int32Value(3), "min": types.Int32Null()})
 	config := AlwaysThingModel{
 		Id:      types.StringNull(),
 		Enabled: types.BoolNull(),
@@ -164,8 +166,8 @@ func TestCreateNamesTheFieldsOfAnObject(t *testing.T) {
 	plan := unknownRest()
 	plan.Enabled = types.BoolUnknown()
 	plan.Limits = limits
-	if got := createMask(t, config, plan); got != "limits.max" {
-		t.Errorf("mask = %q, want limits.max", got)
+	if got := createMask(t, config, plan); got != "limits.max,limits.min" {
+		t.Errorf("mask = %q, want limits.max,limits.min", got)
 	}
 }
 `

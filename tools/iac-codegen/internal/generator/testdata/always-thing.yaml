@@ -46,12 +46,14 @@ components:
       description: The limits of the thing.
       properties:
         max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+        min: {type: integer, format: int32, description: The fewest items., x-coralogix-presence: true}
     AlwaysThingLimitsUpdate:
       type: object
       required: []
       description: The limits of the thing.
       properties:
         max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+        min: {type: integer, format: int32, description: The fewest items., x-coralogix-presence: true}
     AlwaysThingConfig:
       type: object
       required: []

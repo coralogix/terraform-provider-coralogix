@@ -57,6 +57,10 @@ func Schema() schema.Schema {
 						Optional:            true,
 						MarkdownDescription: "The most items.",
 					},
+					"min": schema.Int32Attribute{
+						Optional:            true,
+						MarkdownDescription: "The fewest items.",
+					},
 				},
 				MarkdownDescription: "The limits of the thing.",
 			},

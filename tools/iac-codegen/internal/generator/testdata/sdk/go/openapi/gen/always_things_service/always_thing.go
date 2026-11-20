@@ -14,10 +14,12 @@ type AlwaysThing struct {
 
 type AlwaysThingLimits struct {
 	Max *int32
+	Min *int32
 }
 
 type AlwaysThingLimitsUpdate struct {
 	Max *int32
+	Min *int32
 }
 
 type AlwaysThingConfig struct {

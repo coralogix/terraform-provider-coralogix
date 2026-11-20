@@ -65,6 +65,7 @@ const fullConfig = `resource "coralogix_always_thing" "test" {
   note = "@{run}-note"
   limits = {
     max = 1
+    min = 1
   }
   config = {
     http = {
@@ -78,6 +79,7 @@ const updatedConfig = `resource "coralogix_always_thing" "test" {
   note = "@{run}-note-updated"
   limits = {
     max = 2
+    min = 2
   }
   config = {
     http = {
@@ -107,6 +109,7 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "enabled", resourceAddress, "enabled"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "note", resourceAddress, "note"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "limits.max", resourceAddress, "limits.max"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "limits.min", resourceAddress, "limits.min"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "config.http.endpoint", resourceAddress, "config.http.endpoint"),
 	)
 }
@@ -116,6 +119,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "note", render(run, "@{run}-note")),
 		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "limits.min", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "config.http.endpoint", render(run, "@{run}-endpoint")),
 	)
 }
@@ -125,6 +129,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "note", render(run, "@{run}-note-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "2"),
+		resource.TestCheckResourceAttr(resourceAddress, "limits.min", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "config.http.endpoint", render(run, "@{run}-endpoint-updated")),
 	)
 }
@@ -265,6 +270,7 @@ const variant1Config = `resource "coralogix_always_thing" "test" {
   note = "@{run}-note"
   limits = {
     max = 1
+    min = 1
   }
   config = {
     queue = {
