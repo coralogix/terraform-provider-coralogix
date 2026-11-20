@@ -223,9 +223,35 @@ func (f *userFake) handle(method, path string, query url.Values, body any) (int,
 		return f.create(body)
 	case http.MethodPut:
 		return f.update(body)
+	case http.MethodPatch:
+		return f.updateStatuses(body)
 	default:
 		return userFakeError(http.StatusNotFound)
 	}
+}
+
+// updateStatuses answers the remove: the PATCH deactivates the users the body names. The read
+// of a deactivated user returns it with the INACTIVE status, as the API holds deactivated team
+// members until they are removed.
+func (f *userFake) updateStatuses(body any) (int, any) {
+	request, ok := body.(map[string]any)
+	if !ok {
+		return userFakeError(http.StatusBadRequest)
+	}
+	ids, _ := request["userIds"].([]any)
+	status, _ := request["status"].(string)
+	if status != "USER_STATUS_INACTIVE" {
+		return userFakeError(http.StatusBadRequest)
+	}
+	for _, id := range ids {
+		userID, _ := id.(string)
+		for _, user := range f.users {
+			if user["userId"] == userID {
+				user["status"] = "USER_STATUS_INACTIVE"
+			}
+		}
+	}
+	return http.StatusOK, map[string]any{}
 }
 
 // userFakeError answers as the API facade does. A 404 from a route that does not exist has the generic

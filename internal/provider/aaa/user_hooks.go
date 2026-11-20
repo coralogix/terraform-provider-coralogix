@@ -29,7 +29,7 @@ import (
 
 // userHooks returns the handwritten steps around the generated coralogix_user. The resource and
 // the data source share them. They carry the released behaviors that the generator cannot
-// express (CX-65729 stack 3; the fidelity recording pins them in
+// express (the fidelity recording pins them in
 // internal/provider/testdata/user_baseline):
 //
 //   - the name object folds the flat firstName and lastName of the contract into the released
