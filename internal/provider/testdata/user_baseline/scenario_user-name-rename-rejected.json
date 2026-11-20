@@ -79,31 +79,8 @@
       },
       "user_name": "tf-acc-user-2@coralogix.com"
     },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "accessType": {
-                "accessType": "",
-                "permanentAccess": {}
-              },
-              "allowedLoginMode": [],
-              "firstName": "Test",
-              "lastName": "User",
-              "status": "USER_STATUS_ACTIVE",
-              "username": "tf-acc-user-2@coralogix.com"
-            }
-          }
-        ],
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "user_name"
+    "applyDiagnostics": [
+      "error: Unable to update user [AttributeName(\"user_name\")] | User name cannot be updated after the user is created: the API keeps \"tf-acc-user-1@coralogix.com\". Remove the resource and create it again with the new name."
     ],
     "state": {
       "access_type": {
@@ -119,11 +96,7 @@
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+    }
   },
   {
     "step": "refresh keeps the user",

@@ -67,11 +67,11 @@
             "00000000-0000-4000-8000-000000000001"
           ]
         },
-        "status": 400
+        "status": 404
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to delete user | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: type mismatch, parameter: user_account_id, error: \\u003cdomain\\u003e: parsing \\\"no-such-route\\\": invalid syntax\"}"
+      "error: Unable to delete user | id 00000000-0000-4000-8000-000000000001: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
     "state": {
       "access_type": {

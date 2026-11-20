@@ -114,7 +114,7 @@
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
               "accessType": {
-                "accessType": "",
+                "accessType": "permanent",
                 "permanentAccess": {}
               },
               "allowedLoginMode": [],
@@ -205,7 +205,7 @@
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
               "accessType": {
-                "accessType": "",
+                "accessType": "permanent",
                 "permanentAccess": {}
               },
               "allowedLoginMode": [],
@@ -296,7 +296,7 @@
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
               "accessType": {
-                "accessType": "",
+                "accessType": "permanent",
                 "permanentAccess": {}
               },
               "allowedLoginMode": [],
@@ -365,26 +365,9 @@
             "00000000-0000-4000-8000-000000000001"
           ]
         },
-        "status": 400
+        "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Unable to delete user | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: type mismatch, parameter: user_account_id, error: \\u003cdomain\\u003e: parsing \\\"no-such-route\\\": invalid syntax\"}"
-    ],
-    "state": {
-      "access_type": {
-        "permanent_access": {},
-        "temporary_access": null
-      },
-      "active": true,
-      "allowed_login_mode": [],
-      "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "Person",
-        "given_name": "Renamed"
-      },
-      "user_name": "tf-acc-user-1@coralogix.com"
-    }
+    "state": null
   }
 ]

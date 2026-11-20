@@ -87,12 +87,12 @@
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
               "accessType": {
-                "accessType": "",
+                "accessType": "permanent",
                 "permanentAccess": {}
               },
               "allowedLoginMode": [],
               "firstName": "Test",
-              "lastName": "User",
+              "lastName": "",
               "status": "USER_STATUS_ACTIVE",
               "username": "tf-acc-user-1@coralogix.com"
             }
@@ -100,9 +100,6 @@
         ],
         "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "name.family_name"
     ],
     "state": {
       "access_type": {
@@ -114,15 +111,12 @@
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
-        "family_name": "User",
+        "family_name": null,
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"name\").AttributeName(\"family_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -143,14 +137,11 @@
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
-        "family_name": "User",
+        "family_name": null,
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"name\").AttributeName(\"family_name\")"
-    ]
+    "replanEmpty": true
   }
 ]

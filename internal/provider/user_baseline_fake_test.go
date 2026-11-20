@@ -211,7 +211,7 @@ func (f *userFake) checkRequest(query url.Values, body any) {
 }
 
 func (f *userFake) handle(method, path string, query url.Values, body any) (int, any) {
-	if !strings.HasSuffix(path, userBasePath) {
+	if !strings.HasSuffix(path, userBasePath) && !strings.HasSuffix(path, userStatusesPath) {
 		// The real gateway fails to parse the nonexistent tail as the user_account_id path
 		// parameter of an unknown route and answers 400, not 404 (EU2 recording).
 		return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: type mismatch, parameter: user_account_id, error: <domain>: parsing \"no-such-route\": invalid syntax"}
@@ -233,7 +233,13 @@ func (f *userFake) handle(method, path string, query url.Values, body any) (int,
 // updateStatuses answers the remove: the PATCH deactivates the users the body names. The read
 // of a deactivated user returns it with the INACTIVE status, as the API holds deactivated team
 // members until they are removed.
+// userStatusesPath is the remove route: a PATCH that deactivates the named users.
+const userStatusesPath = userBasePath + ":updateStatuses"
+
 func (f *userFake) updateStatuses(body any) (int, any) {
+	if f.updateStatus != 0 {
+		return userFakeError(f.updateStatus)
+	}
 	request, ok := body.(map[string]any)
 	if !ok {
 		return userFakeError(http.StatusBadRequest)

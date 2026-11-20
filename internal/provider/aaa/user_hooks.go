@@ -18,12 +18,16 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
+	"fmt"
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	tfstack "github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
@@ -69,7 +73,7 @@ var userNameAttrTypes = map[string]attr.Type{
 // userBeforeWrite folds the released Terraform shape into the request body. The body is the
 // Create item (*CreateUserRequest, with the template and the fixed onboarding mode beside it)
 // or the Update item (*UpdateUserRequest); the template in it carries the resource fields.
-func userBeforeWrite(ctx context.Context, plan tfstack.Plan, state *tfstack.State, body any) diag.Diagnostics {
+func userBeforeWrite(ctx context.Context, plan tfsdk.Plan, state *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var template *users_management_service.UserTemplate
 	switch request := body.(type) {
@@ -87,6 +91,23 @@ func userBeforeWrite(ctx context.Context, plan tfstack.Plan, state *tfstack.Stat
 			return diags
 		}
 		template = request.UserTemplate
+		// The API ignores a username change: the PUT answers 200 and keeps the old
+		// name, and the read then reports a resource that differs from the plan. The
+		// released resource refused the change with a clear diagnostic, so the hook
+		// does the same. A case-only change is no rename: the backend normalizes the
+		// case of an SSO login.
+		if state != nil && template != nil && template.GetUsername() != "" {
+			var priorModel user.RbacV2UserModel
+			if d := state.Get(ctx, &priorModel); d.HasError() {
+				diags.Append(d...)
+				return diags
+			}
+			if !priorModel.Username.IsNull() && !strings.EqualFold(template.GetUsername(), priorModel.Username.ValueString()) {
+				diags.AddAttributeError(path.Root("user_name"), "Unable to update user",
+					fmt.Sprintf("User name cannot be updated after the user is created: the API keeps %q. Remove the resource and create it again with the new name.", priorModel.Username.ValueString()))
+				return diags
+			}
+		}
 	default:
 		return diags
 	}
@@ -100,31 +121,28 @@ func userBeforeWrite(ctx context.Context, plan tfstack.Plan, state *tfstack.Stat
 	}
 	// The name object folds into the flat fields. A null object sends neither, as the
 	// released resource did for a user without a name. A component the configuration
-	// omits keeps the prior value: the API stores a name only as a whole, so an empty
-	// component would erase the stored one, as the released preserveUserName avoided.
+	// removes sends the empty string: the API stores an omitted name as "" and reads it
+	// back as null, so the state keeps the null the plan carries and the update plans no
+	// change after the apply.
 	if !model.Name.IsNull() && !model.Name.IsUnknown() {
 		var name userName
 		if d := model.Name.As(ctx, &name, basetypes.ObjectAsOptions{}); d.HasError() {
 			diags.Append(d...)
 			return diags
 		}
-		var prior userName
-		if state != nil {
-			var priorModel user.RbacV2UserModel
-			if d := state.Get(ctx, &priorModel); d.HasError() {
-				diags.Append(d...)
-				return diags
-			}
-			if !priorModel.Name.IsNull() && !priorModel.Name.IsUnknown() {
-				if d := priorModel.Name.As(ctx, &prior, basetypes.ObjectAsOptions{}); d.HasError() {
-					diags.Append(d...)
-					return diags
-				}
-			}
-		}
-		given, family := planNameComponent(name.GivenName, prior.GivenName), planNameComponent(name.FamilyName, prior.FamilyName)
+		given, family := name.GivenName.ValueString(), name.FamilyName.ValueString()
 		template.FirstName = &given
 		template.LastName = &family
+	}
+	// The schema skips the one-of discriminator of the access type, so the expand sends
+	// an empty one beside the chosen arm. The API reads every arm literally, and EU2
+	// always answers with the discriminator set, so the hook fills it from the arm.
+	if template.AccessType != nil {
+		if template.AccessType.TemporaryAccess != nil {
+			template.AccessType.AccessType = "temporary"
+		} else {
+			template.AccessType.AccessType = "permanent"
+		}
 	}
 	// active carries the status: true is ACTIVE, false INACTIVE. The attribute defaults
 	// to true, so a create always sends a status, and the batch PUT never clears one.
@@ -134,15 +152,6 @@ func userBeforeWrite(ctx context.Context, plan tfstack.Plan, state *tfstack.Stat
 	}
 	template.Status = &status
 	return diags
-}
-
-// planNameValue returns the value a write sends for one name component: the planned value,
-// or the prior one when the configuration omits it.
-func planNameComponent(planned, prior basetypes.StringValue) string {
-	if !planned.IsNull() {
-		return planned.ValueString()
-	}
-	return prior.ValueString()
 }
 
 // emptyAsNull reads an API name as null when it is absent or empty: the API
