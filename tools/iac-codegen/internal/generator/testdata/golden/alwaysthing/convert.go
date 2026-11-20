@@ -50,6 +50,8 @@ var createFields = []struct {
 	{attr: "note", serverDefault: true},
 	{attr: "limits", serverDefault: true},
 	{attr: "config", serverDefault: true},
+	{attr: "source_file", serverDefault: false},
+	{attr: "source_url", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -141,6 +143,8 @@ func flatten(ctx context.Context, v *always_things_service.AlwaysThing) (*Always
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
+	"source_file":  true,
+	"source_url":   true,
 	"config.http":  true,
 	"config.queue": true,
 }
@@ -317,6 +321,8 @@ func expandAlwaysThingsServiceUpdateAlwaysThingRequest(ctx context.Context, p pa
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
 		out.Config = expandAlwaysThingConfig(ctx, p.AtName("config"), &nested, diags)
 	}
+	out.SourceFile = expandString(m.SourceFile)
+	out.SourceUrl = expandString(m.SourceUrl)
 	return out
 }
 
@@ -422,6 +428,8 @@ func expandAlwaysThingsServiceUpdateAlwaysThingRequestUpdate(ctx context.Context
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
 		out.Config = expandAlwaysThingConfig(ctx, p.AtName("config"), &nested, diags)
 	}
+	out.SourceFile = expandString(m.SourceFile)
+	out.SourceUrl = expandString(m.SourceUrl)
 	return out
 }
 
@@ -444,6 +452,8 @@ func flattenAlwaysThing(ctx context.Context, p path.Path, v *always_things_servi
 		diags.Append(valueDiags...)
 		out.Config = value
 	}
+	out.SourceFile = types.StringPointerValue(v.SourceFile)
+	out.SourceUrl = types.StringPointerValue(v.SourceUrl)
 	return out
 }
 

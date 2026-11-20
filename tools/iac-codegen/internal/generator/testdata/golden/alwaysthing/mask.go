@@ -5,6 +5,7 @@ package alwaysthing
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -32,6 +33,8 @@ type maskNode struct {
 	groups        [][]string // oneOf groups among children, by attr
 }
 
+func (n *maskNode) names() (string, string) { return n.attr, n.api }
+
 // maskFields are the Update fields, in model order.
 var maskFields = []*maskNode{
 	{attr: "enabled", api: "enabled", serverDefault: true},
@@ -48,6 +51,8 @@ var maskFields = []*maskNode{
 			{attr: "topic", api: "topic", serverDefault: false},
 		}},
 	}},
+	{attr: "source_file", api: "sourceFile", serverDefault: false},
+	{attr: "source_url", api: "sourceUrl", serverDefault: false},
 }
 
 // updateMask returns the paths of the values that differ in the plan and in
@@ -60,6 +65,7 @@ var maskFields = []*maskNode{
 func updateMask(ctx context.Context, config, plan, state tfData) ([]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var mask []string
+	planValues, stateValues := map[string]attr.Value{}, map[string]attr.Value{}
 	for _, f := range maskFields {
 		var c, p, s attr.Value
 		var fieldDiags diag.Diagnostics
@@ -72,7 +78,9 @@ func updateMask(ctx context.Context, config, plan, state tfData) ([]string, diag
 		}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
 		mask = maskPaths(mask, "", f, p, s)
+		planValues[f.attr], stateValues[f.attr] = p, s
 	}
+	mask = dropSwitchedArms(mask, "", maskFields, maskGroups, planValues, stateValues)
 	return mask, diags
 }
 
@@ -99,6 +107,7 @@ func maskPaths(mask []string, prefix string, n *maskNode, p, s attr.Value) []str
 	for _, c := range n.children {
 		mask = maskPaths(mask, at, c, pa[c.attr], sa[c.attr])
 	}
+	mask = dropSwitchedArms(mask, at, n.children, n.groups, pa, sa)
 	return mask
 }
 
@@ -128,6 +137,44 @@ func activeArm(n *maskNode, o types.Object) *maskNode {
 		}
 	}
 	return nil
+}
+
+// maskGroups are the oneOf groups among the Update fields, by attr.
+var maskGroups = [][]string{
+	{"source_file", "source_url"},
+}
+
+// dropSwitchedArms removes the old arm of each oneOf group that changed to
+// another arm: the mask names only the new arm, and the server replaces the
+// old one (contract 2.6). A removed oneOf keeps the old arm (2.7).
+func dropSwitchedArms[F interface{ names() (string, string) }](mask []string, prefix string, fields []F, groups [][]string, p, s map[string]attr.Value) []string {
+	api := map[string]string{}
+	for _, f := range fields {
+		a, n := f.names()
+		api[a] = n
+	}
+	for _, g := range groups {
+		pArm, sArm := setArm(g, p), setArm(g, s)
+		if pArm == "" || sArm == "" || pArm == sArm {
+			continue
+		}
+		old := api[sArm]
+		if prefix != "" {
+			old = prefix + "." + old
+		}
+		mask = slices.DeleteFunc(mask, func(m string) bool { return m == old })
+	}
+	return mask
+}
+
+// setArm returns the arm of group g that v sets, or "".
+func setArm(g []string, v map[string]attr.Value) string {
+	for _, a := range g {
+		if x, ok := v[a]; ok && x != nil && !x.IsNull() {
+			return a
+		}
+	}
+	return ""
 }
 
 // updateRequest returns the Update body and updateMask query parameter. The

@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -57,9 +58,9 @@ func TestGoldenOutputAlwaysThing(t *testing.T) {
 	}
 	// The model holds a nested object that the configuration may leave out as an unknown-capable value.
 	model := readGenerated(t, out, "model.go")
-	for _, want := range []string{"Limits  types.Object", "Config  types.Object"} {
-		if !strings.Contains(model, want) {
-			t.Errorf("model.go does not contain %q", want)
+	for _, want := range []string{`Limits\s+types\.Object`, `Config\s+types\.Object`} {
+		if !regexp.MustCompile(want).MatchString(model) {
+			t.Errorf("model.go does not match %q", want)
 		}
 	}
 	if err := os.WriteFile(filepath.Join(out, "createrequest_test.go"), []byte(createRequestTest), 0o644); err != nil {
@@ -126,6 +127,39 @@ func TestCreateWithAnOmittedNestedObject(t *testing.T) {
 	plan.Enabled = types.BoolValue(true)
 	if got := createMask(t, config, plan); got != "enabled" {
 		t.Errorf("mask = %q, want enabled", got)
+	}
+}
+
+// The arms of a top-level oneOf are the choice of the configuration. They keep no value of the API:
+// a kept arm would stay in the plan next to the arm that replaces it.
+func TestTopLevelArmsKeepNoValue(t *testing.T) {
+	for _, name := range []string{"source_file", "source_url"} {
+		if Schema().Attributes[name].IsComputed() {
+			t.Errorf("%s is computed, so a switch of arms keeps the old arm in the plan", name)
+		}
+	}
+}
+
+func TestSwitchOfTopLevelArmsSendsOnlyTheNewArm(t *testing.T) {
+	s := Schema()
+	base := AlwaysThingModel{
+		Id:      types.StringValue(SingletonID),
+		Enabled: types.BoolValue(true),
+		Note:    types.StringValue("n"),
+		Limits:  types.ObjectNull(alwaysThingLimitsAttrTypes()),
+		Config:  types.ObjectNull(alwaysThingConfigAttrTypes()),
+	}
+	state, plan := base, base
+	state.SourceFile = types.StringValue("f")
+	plan.SourceUrl = types.StringValue("u")
+	raw := tfsdk.Plan{Schema: s, Raw: rawOf(t, plan)}
+	body, mask, diags := updateRequest(context.Background(),
+		tfsdk.Config{Schema: s, Raw: raw.Raw}, raw, tfsdk.State{Schema: s, Raw: rawOf(t, state)})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if mask != "sourceUrl" || body.SourceFile != nil || body.SourceUrl == nil {
+		t.Errorf("mask = %q, file = %v, url = %v; want only the new arm", mask, body.SourceFile, body.SourceUrl)
 	}
 }
 

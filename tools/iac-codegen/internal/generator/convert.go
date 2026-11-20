@@ -1583,6 +1583,11 @@ type convBuilder struct {
 // value from the state), and the request does not send the field. A singleton whose Update is a
 // full replace does not keep it: an omitted field resets.
 func keepsAPIValue(r *model.Resource, f *model.ResourceField) bool {
+	if slices.ContainsFunc(r.Groups, func(g model.OneOfGroup) bool { return slices.Contains(g.Arms, f.Name) }) {
+		// An arm of a top-level oneOf is the choice of the configuration. A kept arm would stay next to
+		// the arm that replaces it, and the request would hold two arms.
+		return false
+	}
 	return r.OmitKeepsValue() && f.Behavior == model.Normal && !hasServerDefault(f) && (f.Create == nil || !f.Create.Required)
 }
 

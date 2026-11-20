@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -103,13 +104,26 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "How the thing runs.",
 			},
+			"source_file": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A file that the thing reads.",
+			},
+			"source_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A URL that the thing reads.",
+			},
 		},
 	}
 }
 
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
-	return []resource.ConfigValidator{}
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("source_file"),
+			path.MatchRoot("source_url"),
+		),
+	}
 }
 
 // oneOfArmsValidator checks the oneOf groups of an object. It runs on the object and reads its

@@ -72,6 +72,7 @@ const fullConfig = `resource "coralogix_always_thing" "test" {
       endpoint = "@{run}-endpoint"
     }
   }
+  source_file = "@{run}-source_file"
 }`
 
 const updatedConfig = `resource "coralogix_always_thing" "test" {
@@ -86,9 +87,11 @@ const updatedConfig = `resource "coralogix_always_thing" "test" {
       endpoint = "@{run}-endpoint-updated"
     }
   }
+  source_file = "@{run}-source_file-updated"
 }`
 
 const minimalConfig = `resource "coralogix_always_thing" "test" {
+  source_file = "@{run}-source_file"
 }`
 
 func config(run, resourceBlock string) string {
@@ -111,6 +114,7 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "limits.max", resourceAddress, "limits.max"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "limits.min", resourceAddress, "limits.min"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "config.http.endpoint", resourceAddress, "config.http.endpoint"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "source_file", resourceAddress, "source_file"),
 	)
 }
 
@@ -121,6 +125,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "limits.min", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "config.http.endpoint", render(run, "@{run}-endpoint")),
+		resource.TestCheckResourceAttr(resourceAddress, "source_file", render(run, "@{run}-source_file")),
 	)
 }
 
@@ -131,11 +136,14 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "limits.min", "2"),
 		resource.TestCheckResourceAttr(resourceAddress, "config.http.endpoint", render(run, "@{run}-endpoint-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "source_file", render(run, "@{run}-source_file-updated")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "source_file", render(run, "@{run}-source_file")),
+	)
 }
 
 // removedChecks are the checks after the full config, when the minimal config removes attributes:
@@ -277,4 +285,5 @@ const variant1Config = `resource "coralogix_always_thing" "test" {
       topic = "@{run}-topic"
     }
   }
+  source_url = "@{run}-source_url"
 }`

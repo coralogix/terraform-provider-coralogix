@@ -3227,7 +3227,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		for _, arm := range g.Arms {
 			name := terraformName(r.Policy, r.Name, arm)
 			arms = append(arms, rootPath(file.GroupPath(arm), name).expr())
-			if file.Types[r.Name].Fields[arm].RequireOne {
+			if file != nil && file.Types[r.Name].Fields[arm].RequireOne {
 				// The released resource required one arm although the contract allows none.
 				g.AllowNone = false
 			}

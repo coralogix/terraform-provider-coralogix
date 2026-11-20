@@ -8,11 +8,13 @@ import (
 )
 
 type AlwaysThingModel struct {
-	Id      types.String `tfsdk:"id"`
-	Enabled types.Bool   `tfsdk:"enabled"`
-	Note    types.String `tfsdk:"note"`
-	Limits  types.Object `tfsdk:"limits"`
-	Config  types.Object `tfsdk:"config"`
+	Id         types.String `tfsdk:"id"`
+	Enabled    types.Bool   `tfsdk:"enabled"`
+	Note       types.String `tfsdk:"note"`
+	Limits     types.Object `tfsdk:"limits"`
+	Config     types.Object `tfsdk:"config"`
+	SourceFile types.String `tfsdk:"source_file"`
+	SourceUrl  types.String `tfsdk:"source_url"`
 }
 
 type AlwaysThingLimitsModel struct {

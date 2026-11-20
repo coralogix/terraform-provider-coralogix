@@ -27,6 +27,11 @@ paths:
                 note: {type: string, description: A free note., x-coralogix-presence: true}
                 limits: {allOf: [{$ref: '#/components/schemas/AlwaysThingLimitsUpdate'}], description: The limits of the thing.}
                 config: {allOf: [{$ref: '#/components/schemas/AlwaysThingConfig'}], description: How the thing runs.}
+                sourceFile: {type: string, description: A file that the thing reads., x-coralogix-presence: true}
+                sourceUrl: {type: string, description: A URL that the thing reads., x-coralogix-presence: true}
+              oneOf:
+                - required: [sourceFile]
+                - required: [sourceUrl]
       responses:
         '200': {description: ok, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/AlwaysThing'}], description: The updated thing.}}}}
 components:
@@ -40,6 +45,11 @@ components:
         note: {type: string, description: A free note.}
         limits: {allOf: [{$ref: '#/components/schemas/AlwaysThingLimits'}], description: The limits of the thing.}
         config: {allOf: [{$ref: '#/components/schemas/AlwaysThingConfig'}], description: How the thing runs.}
+        sourceFile: {type: string, description: A file that the thing reads.}
+        sourceUrl: {type: string, description: A URL that the thing reads.}
+      oneOf:
+        - required: [sourceFile]
+        - required: [sourceUrl]
     AlwaysThingLimits:
       type: object
       required: []

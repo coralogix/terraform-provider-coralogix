@@ -6,10 +6,12 @@ import (
 )
 
 type AlwaysThing struct {
-	Enabled bool
-	Note    *string
-	Limits  *AlwaysThingLimits
-	Config  *AlwaysThingConfig
+	Enabled    bool
+	Note       *string
+	Limits     *AlwaysThingLimits
+	Config     *AlwaysThingConfig
+	SourceFile *string
+	SourceUrl  *string
 }
 
 type AlwaysThingLimits struct {
@@ -36,10 +38,12 @@ type AlwaysThingQueue struct {
 }
 
 type AlwaysThingsServiceUpdateAlwaysThingRequest struct {
-	Enabled *bool
-	Note    *string
-	Limits  *AlwaysThingLimitsUpdate
-	Config  *AlwaysThingConfig
+	Enabled    *bool
+	Note       *string
+	Limits     *AlwaysThingLimitsUpdate
+	Config     *AlwaysThingConfig
+	SourceFile *string
+	SourceUrl  *string
 }
 
 type AlwaysThingsServiceAPIService struct{}
