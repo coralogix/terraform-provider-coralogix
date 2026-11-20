@@ -71,7 +71,7 @@
         "temporary_access": null
       },
       "active": false,
-      "allowed_login_mode": null,
+      "allowed_login_mode": "(unknown)",
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -110,9 +110,6 @@
         ],
         "status": 200
       }
-    ],
-    "inconsistentResult": [
-      "allowed_login_mode"
     ],
     "state": {
       "access_type": {

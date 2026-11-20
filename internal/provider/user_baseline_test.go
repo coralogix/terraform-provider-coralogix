@@ -53,6 +53,14 @@ func newUserHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, userTypeName, newUserFake(t))
 }
 
+// withNullAllowed copies the state attributes and nulls the login modes: the shape of a
+// state upgraded from the released provider, which had no attribute for them.
+func withNullAllowed(s tftypes.Value) map[string]any {
+	attrs := userStateJSON(s)
+	attrs["allowed_login_mode"] = nil
+	return attrs
+}
+
 // userStateJSON reads the state value as a JSON map of the attribute names.
 func userStateJSON(s tftypes.Value) map[string]any {
 	out := map[string]any{}
@@ -400,14 +408,17 @@ var userScenarios = map[string]func(h *grHarness){
 		// read of the released resource returned, and no schema value.
 		// The backend has the modes even though the upgraded state does not.
 		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
-		// The upgraded state has no allowed_login_mode: the schema of 3.26.0 had none.
-		withNull := map[string]any{}
-		for name, v := range userStateJSON(s) {
-			withNull[name] = v
-		}
-		withNull["allowed_login_mode"] = nil
-		s = h.stateFromJSON(withNull)
+		s = h.stateFromJSON(withNullAllowed(s))
 		h.Apply("update: the PUT sends the modes of the released echo", s, userConfig(userA, j{"name": userTestName, "active": false}))
+	},
+	// The recovery of an upgraded state refuses to update when the search fails: continuing
+	// would clear the modes of the user.
+	"legacy-echo-recovery-fails": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
+		h.users().searchStatus = 500
+		sLegacy := h.stateFromJSON(withNullAllowed(s))
+		h.Apply("update: the search answers 500", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
 	},
 	"update-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))

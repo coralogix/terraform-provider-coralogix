@@ -31,6 +31,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // userHooks returns the handwritten steps around the generated coralogix_user. The resource and
@@ -49,6 +51,7 @@ func UserHooks() user.Hooks {
 		BeforeWrite:  userBeforeWrite,
 		Get:          userGet,
 		AfterFlatten: userAfterFlatten,
+		ModifyPlan:   userLegacyUpdatePlan,
 	}
 }
 
@@ -56,6 +59,40 @@ func UserHooks() user.Hooks {
 // to the hook through the context, for the values only the API knows.
 func NewResource(hooks user.Hooks) resource.Resource {
 	return &UserResource{Resource: *user.NewResource(hooks).(*user.Resource)}
+}
+
+// userLegacyUpdatePlan keeps the login modes of an upgraded state unknown: the plan of
+// a state that carries none (the schema of 3.26.0 had no attribute) plans them null,
+// but the recovery reads the modes the backend has, and a known null the read does not
+// answer is an inconsistent result after the apply. An unknown plans as (known after
+// apply) and matches what the read stores.
+func userLegacyUpdatePlan(_ context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return // A destroy plans no values.
+	}
+	var plan user.RbacV2UserModel
+	if d := req.Plan.Get(context.Background(), &plan); d.HasError() {
+		return
+	}
+	if !plan.AllowedLoginMode.IsNull() {
+		return // The plan already knows the modes: no recovery runs.
+	}
+	if plan.Username.IsNull() {
+		return // Nothing to recover for.
+	}
+	attrs := map[string]tftypes.Value{}
+	if err := req.Plan.Raw.As(&attrs); err != nil {
+		return
+	}
+	planned := req.Plan.Raw
+	// The state carries the resource: a legacy-state update.
+	if !req.State.Raw.IsNull() {
+		at, ok := attrs["allowed_login_mode"]
+		if ok && at.IsNull() {
+			attrs["allowed_login_mode"] = tftypes.NewValue(at.Type(), tftypes.UnknownValue)
+			resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
+		}
+	}
 }
 
 // userSearchKey is the context key of the search the hook can run for the values the
@@ -179,16 +216,32 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 	// schema of 3.26.0 had no attribute for them, and its private state is a form this
 	// framework discards. Without a refresh the plan keeps them unknown, and the expand
 	// omits them: the PUT would clear the modes of the user. The hook searches the API
-	// for the prior user and sends the modes it answers with.
+	// for the prior user and sends the modes it answers with. A failed search stops the
+	// update: continuing would clear the modes of the user, and the released resource
+	// propagated a lookup failure the same way.
 	if template.AllowedLoginMode == nil && state != nil {
 		var prior user.RbacV2UserModel
 		if d := state.Get(ctx, &prior); !d.HasError() && !prior.Username.IsNull() {
-			if search, ok := ctx.Value(userSearchKey{}).(func(string) (*users_management_service.SearchUsersResponse, error)); ok {
-				if found, err := search(prior.Username.ValueString()); err == nil && found != nil {
-					for i := range found.Users {
-						if strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
-							template.AllowedLoginMode = found.Users[i].AllowedLoginMode
-						}
+			search, ok := ctx.Value(userSearchKey{}).(func(string) (*users_management_service.SearchUsersResponse, error))
+			if !ok {
+				diags.AddAttributeError(path.Root("allowed_login_mode"), "Unable to recover the login modes of the user",
+					"The state of an upgraded user carries no login modes, and the resource has no users client to search for them. Refresh the resource to read them.")
+				return diags
+			}
+			found, err := search(prior.Username.ValueString())
+			if err != nil {
+				// A 404 of the search says nothing about the modes: the update path
+				// reads the user after the write and reports a resource that is gone.
+				// Any other failure stops the update, which would clear the modes.
+				if !strings.Contains(err.Error(), "404") {
+					diags.AddAttributeError(path.Root("allowed_login_mode"), "Unable to recover the login modes of the user",
+						fmt.Sprintf("The search for %q failed: %s. Refresh the resource to read the modes, then update again.", prior.Username.ValueString(), err))
+					return diags
+				}
+			} else if found != nil {
+				for i := range found.Users {
+					if strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
+						template.AllowedLoginMode = found.Users[i].AllowedLoginMode
 					}
 				}
 			}
