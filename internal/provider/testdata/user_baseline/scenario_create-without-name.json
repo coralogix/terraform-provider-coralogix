@@ -33,16 +33,10 @@
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "",
-        "given_name": ""
-      },
+      "name": null,
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -58,15 +52,9 @@
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "",
-        "given_name": ""
-      },
+      "name": null,
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   }
 ]

@@ -69,7 +69,7 @@ var userNameAttrTypes = map[string]attr.Type{
 // userBeforeWrite folds the released Terraform shape into the request body. The body is the
 // Create item (*CreateUserRequest, with the template and the fixed onboarding mode beside it)
 // or the Update item (*UpdateUserRequest); the template in it carries the resource fields.
-func userBeforeWrite(ctx context.Context, config tfstack.Config, body any) diag.Diagnostics {
+func userBeforeWrite(ctx context.Context, plan tfstack.Plan, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var template *users_management_service.UserTemplate
 	switch request := body.(type) {
@@ -94,7 +94,7 @@ func userBeforeWrite(ctx context.Context, config tfstack.Config, body any) diag.
 		return diags
 	}
 	var model user.RbacV2UserModel
-	if d := config.Get(ctx, &model); d.HasError() {
+	if d := plan.Get(ctx, &model); d.HasError() {
 		diags.Append(d...)
 		return diags
 	}
@@ -121,6 +121,15 @@ func userBeforeWrite(ctx context.Context, config tfstack.Config, body any) diag.
 	return diags
 }
 
+// emptyAsNull reads an API name as null when it is absent or empty: the API
+// stores an omitted name as "".
+func emptyAsNull(v *string) basetypes.StringValue {
+	if v == nil || *v == "" {
+		return basetypes.NewStringNull()
+	}
+	return basetypes.NewStringValue(*v)
+}
+
 // userAfterFlatten projects the flat API fields into the extra attributes: the name object,
 // the active bool, and the groups set of decimal strings.
 func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_management_service.RbacV2User) diag.Diagnostics {
@@ -128,16 +137,27 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 	if m == nil || v == nil {
 		return diags
 	}
+	// The API stores an omitted name as the empty string and echoes it back as
+	// "": the attribute reads as null, as the released resource recorded. The
+	// model carries the kept prior name when the API holds none of it, so the
+	// empty API name only replaces an absent prior name.
 	name := userName{
-		GivenName:  basetypes.NewStringPointerValue(v.FirstName),
-		FamilyName: basetypes.NewStringPointerValue(v.LastName),
+		GivenName:  emptyAsNull(v.FirstName),
+		FamilyName: emptyAsNull(v.LastName),
 	}
-	object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
-		"given_name":  name.GivenName,
-		"family_name": name.FamilyName,
-	})
-	diags.Append(d...)
-	m.Name = object
+	if name.GivenName.IsNull() && name.FamilyName.IsNull() {
+		// The API stores no name: the plan or the prior state keeps the name the
+		// configuration set, even the empty one (the API cannot tell a null name
+		// from an empty one, and the released resource kept the prior). Without a
+		// prior, m.Name already is the null object that flatten built.
+	} else {
+		object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
+			"given_name":  name.GivenName,
+			"family_name": name.FamilyName,
+		})
+		diags.Append(d...)
+		m.Name = object
+	}
 	// active is ACTIVE; every other status is inactive: an unknown status never reports a
 	// user as usable.
 	m.Active = basetypes.NewBoolValue(v.GetStatus() == users_management_service.USERSTATUS_USER_STATUS_ACTIVE)

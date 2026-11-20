@@ -42,7 +42,7 @@ type Resource struct {
 // so a resource that is used without the overlay package does not silently skip them.
 type Hooks struct {
 	// BeforeWrite mutates the expanded request body before the API call.
-	BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+	BeforeWrite func(context.Context, tfsdk.Plan, any) diag.Diagnostics
 	// AfterRead mutates state after flatten. prior is the plan after Create or
 	// Update, or the state before Read.
 	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
@@ -100,11 +100,13 @@ func (r *Resource) ValidateConfig(ctx context.Context, req resource.ValidateConf
 }
 
 // beforeWrite checks the resolved configuration again, because a value that comes from another
-// resource is unknown while Terraform validates the configuration, and then runs the BeforeWrite hook.
-func (r *Resource) beforeWrite(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+// resource is unknown while Terraform validates the configuration, and then runs the BeforeWrite hook
+// with the plan: the plan holds the resolved values, including the ones that the configuration omits
+// and the state carries (an Optional and Computed attribute keeps its state value in the plan).
+func (r *Resource) beforeWrite(ctx context.Context, plan tfsdk.Plan, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeWrite != nil {
-		diags.Append(r.hooks.BeforeWrite(ctx, config, body)...)
+		diags.Append(r.hooks.BeforeWrite(ctx, plan, body)...)
 	}
 	return diags
 }
@@ -143,7 +145,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, body)...)
+	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Plan, body)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -204,7 +206,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 	if body != nil {
-		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, body)...)
+		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Plan, body)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}

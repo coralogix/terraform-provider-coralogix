@@ -36,25 +36,18 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "name.family_name"
-    ],
     "state": {
       "active": true,
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
-        "family_name": "",
+        "family_name": null,
         "given_name": ""
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")",
-      "AttributeName(\"name\").AttributeName(\"family_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -71,15 +64,11 @@
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
-        "family_name": "",
+        "family_name": null,
         "given_name": ""
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")",
-      "AttributeName(\"name\").AttributeName(\"family_name\")"
-    ]
+    "replanEmpty": true
   }
 ]

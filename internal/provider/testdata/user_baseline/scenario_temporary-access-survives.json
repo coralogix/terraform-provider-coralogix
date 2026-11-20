@@ -95,7 +95,7 @@
         "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL"
       ],
-      "groups": "(unknown)",
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",

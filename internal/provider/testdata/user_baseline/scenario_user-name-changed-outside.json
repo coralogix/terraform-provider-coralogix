@@ -75,7 +75,6 @@
     ],
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"groups\")",
       "AttributeName(\"user_name\")"
     ]
   }

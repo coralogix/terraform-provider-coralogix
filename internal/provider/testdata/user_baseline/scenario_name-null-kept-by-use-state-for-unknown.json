@@ -33,16 +33,10 @@
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "",
-        "given_name": ""
-      },
+      "name": null,
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update active with name omitted: name stays null because UseStateForUnknown keeps the null prior value",
@@ -53,12 +47,9 @@
     "plan": {
       "active": false,
       "allowed_login_mode": [],
-      "groups": "(unknown)",
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "",
-        "given_name": ""
-      },
+      "name": null,
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "requests": [
@@ -83,16 +74,10 @@
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "",
-        "given_name": ""
-      },
+      "name": null,
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -108,15 +93,9 @@
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": {
-        "family_name": "",
-        "given_name": ""
-      },
+      "name": null,
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   }
 ]

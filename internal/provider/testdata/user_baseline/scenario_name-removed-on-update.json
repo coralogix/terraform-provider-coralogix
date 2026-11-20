@@ -58,7 +58,7 @@
     "plan": {
       "active": true,
       "allowed_login_mode": [],
-      "groups": "(unknown)",
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -66,13 +66,7 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
-        "status": 200
-      }
-    ],
+    "noChange": true,
     "state": {
       "active": true,
       "allowed_login_mode": [],
@@ -83,11 +77,7 @@
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    }
   },
   {
     "step": "remove name and deactivate: the update sends the prior name",
@@ -98,7 +88,7 @@
     "plan": {
       "active": false,
       "allowed_login_mode": [],
-      "groups": "(unknown)",
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -115,6 +105,8 @@
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
               "allowedLoginMode": [],
+              "firstName": "Test",
+              "lastName": "User",
               "status": "USER_STATUS_INACTIVE",
               "username": "tf-acc-user-1@coralogix.com"
             }
@@ -123,25 +115,18 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "name.family_name",
-      "name.given_name"
-    ],
     "state": {
       "active": false,
       "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
-        "family_name": "",
-        "given_name": ""
+        "family_name": "User",
+        "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -158,14 +143,11 @@
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
-        "family_name": "",
-        "given_name": ""
+        "family_name": "User",
+        "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"groups\")"
-    ]
+    "replanEmpty": true
   }
 ]

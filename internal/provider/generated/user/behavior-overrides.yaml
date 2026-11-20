@@ -89,6 +89,7 @@ types:
         type: set
         elementType: string
         computed: true
+        useStateForUnknown: true
         markdownDescription: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
   AccessType:
     fields:
