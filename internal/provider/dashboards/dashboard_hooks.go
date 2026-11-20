@@ -100,7 +100,7 @@ func allowUnsupportedWithContentJSON(ctx context.Context, data any) bool {
 
 // beforeDashboardWrite puts what the generated request lacks in the body: a request id, the access
 // policy that the configuration sets, and the dashboard that content_json holds.
-func beforeDashboardWrite(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+func beforeDashboardWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var dashboard *dashboardservice.Dashboard
 	var accessPolicy **string

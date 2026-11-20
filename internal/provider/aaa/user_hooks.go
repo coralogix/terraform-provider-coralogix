@@ -73,7 +73,7 @@ var userNameAttrTypes = map[string]attr.Type{
 // userBeforeWrite folds the released Terraform shape into the request body. The body is the
 // Create item (*CreateUserRequest, with the template and the fixed onboarding mode beside it)
 // or the Update item (*UpdateUserRequest); the template in it carries the resource fields.
-func userBeforeWrite(ctx context.Context, plan tfsdk.Plan, state *tfsdk.State, body any) diag.Diagnostics {
+func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var template *users_management_service.UserTemplate
 	switch request := body.(type) {

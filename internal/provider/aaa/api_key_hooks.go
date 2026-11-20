@@ -103,7 +103,7 @@ func accessPolicyChanged(ctx context.Context, plan tfsdk.Plan, state tfsdk.State
 // deactivate, or change the lists of a key gets a 403 for the whole request. The released resource
 // sent the policy only when it changed. An Update that carries no decision, the one that follows
 // Create, leaves it out too: Create has stored it.
-func omitUnchangedAccessPolicy(ctx context.Context, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+func omitUnchangedAccessPolicy(ctx context.Context, _ tfsdk.Config, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	update, ok := body.(*apiKeys.UpdateApiKeyRequest)
 	if !ok {
 		return nil

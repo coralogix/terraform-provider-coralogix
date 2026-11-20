@@ -32,7 +32,7 @@ import (
 // released Create omitted a description and a dpxl_filter that the configuration does not set,
 // while Update sends "" to clear them (the API keeps a value that a request omits).
 var actionHooks = action.Hooks{
-	BeforeWrite: func(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+	BeforeWrite: func(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 		create, ok := body.(*actionss.ActionsServiceCreateActionRequest)
 		if !ok {
 			return nil

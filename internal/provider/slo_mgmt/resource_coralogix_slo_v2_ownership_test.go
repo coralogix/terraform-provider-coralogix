@@ -27,7 +27,7 @@ import (
 // API keeps them when the field is left out.
 func TestClearOwnershipOnReplaceSendsAnEmptyObject(t *testing.T) {
 	body := &slos.Slo1{}
-	if diags := clearOwnershipOnReplace(context.Background(), tfsdk.Plan{}, nil, body); diags.HasError() {
+	if diags := clearOwnershipOnReplace(context.Background(), tfsdk.Config{}, tfsdk.Plan{}, nil, body); diags.HasError() {
 		t.Fatal(diags)
 	}
 	raw, err := json.Marshal(body)
@@ -48,7 +48,7 @@ func TestClearOwnershipOnReplaceSendsAnEmptyObject(t *testing.T) {
 func TestClearOwnershipOnReplaceKeepsConfiguredTags(t *testing.T) {
 	tag := slos.SloOwnershipTag{StaticValues: []string{"payments"}}
 	body := &slos.Slo1{OwnershipTags: &slos.SloOwnershipTags{Team: &tag}}
-	if diags := clearOwnershipOnReplace(context.Background(), tfsdk.Plan{}, nil, body); diags.HasError() {
+	if diags := clearOwnershipOnReplace(context.Background(), tfsdk.Config{}, tfsdk.Plan{}, nil, body); diags.HasError() {
 		t.Fatal(diags)
 	}
 	if body.OwnershipTags.Team == nil || len(body.OwnershipTags.Team.StaticValues) != 1 {

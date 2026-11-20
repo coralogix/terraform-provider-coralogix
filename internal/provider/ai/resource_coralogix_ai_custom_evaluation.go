@@ -147,7 +147,7 @@ func (r *aiCustomEvaluationResource) Update(ctx context.Context, req resource.Up
 
 // beforeWrite sends criteria through the fields safe, violates, and examples, and the applications
 // of a Create as ids.
-func (r *aiCustomEvaluationResource) beforeWrite(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+func (r *aiCustomEvaluationResource) beforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var criteria types.Object
 	diags.Append(plan.GetAttribute(ctx, path.Root("criteria"), &criteria)...)

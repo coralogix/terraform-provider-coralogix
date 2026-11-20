@@ -40,34 +40,34 @@ const (
 
 // beforeWriteAlert adds what the generated request does not hold: the schedule, which the API
 // stores in UTC, and the access policy.
-func beforeWriteAlert(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+func beforeWriteAlert(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	switch b := body.(type) {
 	case *alertapi.CreateAlertDefinitionRequest:
-		return beforeCreateAlert(ctx, plan, nil, b)
+		return beforeCreateAlert(ctx, config, plan, b)
 	case *alertapi.ReplaceAlertDefinitionRequest:
-		return beforeUpdateAlert(ctx, plan, nil, b)
+		return beforeUpdateAlert(ctx, config, plan, nil, b)
 	default:
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Unexpected request body", fmt.Sprintf("The alert request body is %T.", body))}
 	}
 }
 
-func beforeCreateAlert(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body *alertapi.CreateAlertDefinitionRequest) diag.Diagnostics {
+func beforeCreateAlert(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, body *alertapi.CreateAlertDefinitionRequest) diag.Diagnostics {
 	diags := setActiveOn(ctx, plan, body.AlertDefProperties)
 	if diags.HasError() {
 		return diags
 	}
-	policy, policyDiags := configuredAccessPolicy(ctx, plan)
+	policy, policyDiags := configuredAccessPolicy(ctx, config)
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyForCreate(policy)
 	return diags
 }
 
-func beforeUpdateAlert(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body *alertapi.ReplaceAlertDefinitionRequest) diag.Diagnostics {
+func beforeUpdateAlert(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body *alertapi.ReplaceAlertDefinitionRequest) diag.Diagnostics {
 	diags := setActiveOn(ctx, plan, body.AlertDefProperties)
 	if diags.HasError() {
 		return diags
 	}
-	policy, policyDiags := configuredAccessPolicy(ctx, plan)
+	policy, policyDiags := configuredAccessPolicy(ctx, config)
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyActionForUpdate(policy)
 	diags.Append(clearOmittedDescription(ctx, plan, body.AlertDefProperties)...)
@@ -115,10 +115,12 @@ func setActiveOn(ctx context.Context, plan tfsdk.Plan, properties *alertapi.Aler
 	return diags
 }
 
-// configuredAccessPolicy returns the access_policy of the configuration.
-func configuredAccessPolicy(ctx context.Context, plan tfsdk.Plan) (types.String, diag.Diagnostics) {
+// configuredAccessPolicy returns the access_policy the configuration sets: an Optional and
+// Computed attribute keeps its state value in the plan, so the plan cannot tell a configured
+// policy from one the backend read carried.
+func configuredAccessPolicy(ctx context.Context, config tfsdk.Config) (types.String, diag.Diagnostics) {
 	var policy types.String
-	diags := plan.GetAttribute(ctx, path.Root("access_policy"), &policy)
+	diags := config.GetAttribute(ctx, path.Root("access_policy"), &policy)
 	return policy, diags
 }
 

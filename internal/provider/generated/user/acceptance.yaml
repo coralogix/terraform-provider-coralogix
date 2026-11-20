@@ -3,4 +3,15 @@
 # synthetic, and active flips on the update. The upgrade test creates the user
 # with the released provider (3.26.0) and plans it with this build.
 resource: rbac.v2.User
+
+# The update config keeps the username: the API refuses a rename after the user
+# exists, so the hook rejects the change. The update flips the login modes instead.
+values:
+  user_name: '"@{run}-user_name"'
+  allowed_login_mode: '["ALLOWED_LOGIN_MODE_SSO"]'
+
+updatedValues:
+  user_name: '"@{run}-user_name"'
+  allowed_login_mode: '["ALLOWED_LOGIN_MODE_LOCAL"]'
+
 upgradeFrom: "3.26.0"

@@ -150,7 +150,7 @@ func requestMetadata(body any) *integrationsSDK.IntegrationMetadata {
 
 // beforeWrite puts the parameters of the configuration in the request, then asks the API to test
 // the integration before Create and Update save it.
-func (h *integrationHooks) beforeWrite(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+func (h *integrationHooks) beforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	diags := h.setParameters(ctx, plan, nil, body)
 	if diags.HasError() {
 		return diags

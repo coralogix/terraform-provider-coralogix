@@ -321,7 +321,7 @@ func isKnown(value attr.Value) bool {
 // recordingRulesHooks send the groups of yaml_content, and its name when the configuration sets no
 // name. The data source shares them: it writes no request.
 var recordingRulesHooks = recordingrulesgroupsset.Hooks{
-	BeforeWrite: func(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+	BeforeWrite: func(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 		var document, name types.String
 		diags := plan.GetAttribute(ctx, path.Root("yaml_content"), &document)
 		diags.Append(plan.GetAttribute(ctx, path.Root("name"), &name)...)

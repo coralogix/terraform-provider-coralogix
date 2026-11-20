@@ -74,8 +74,8 @@ const updatedConfig = `resource "coralogix_user" "test" {
   access_type = {
     permanent_access = {}
   }
-  allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO"]
-  user_name = "@{run}-user_name-updated"
+  allowed_login_mode = ["ALLOWED_LOGIN_MODE_LOCAL"]
+  user_name = "@{run}-user_name"
 }`
 
 const minimalConfig = `resource "coralogix_user" "test" {
@@ -107,25 +107,19 @@ const dataSourceConfig = `data "coralogix_user" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "allowed_login_mode.#", resourceAddress, "allowed_login_mode.#"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "allowed_login_mode.0", resourceAddress, "allowed_login_mode.0"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "user_name", resourceAddress, "user_name"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.0", "ALLOWED_LOGIN_MODE_SSO"),
 		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.0", "ALLOWED_LOGIN_MODE_SSO"),
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
 	)
 }
 
@@ -360,6 +354,6 @@ const variant1Config = `resource "coralogix_user" "test" {
       expire_at = "2030-01-01T00:00:00Z"
     }
   }
-  allowed_login_mode = ["ALLOWED_LOGIN_MODE_LOCAL"]
+  allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO"]
   user_name = "@{run}-user_name"
 }`

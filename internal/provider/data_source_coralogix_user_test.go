@@ -66,7 +66,8 @@ func TestAccCoralogixDataSourceUser_userNameRejected(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCoralogixDataSourceUser_readByUserNameOnly(randUserName()),
-				ExpectError: regexp.MustCompile("read-only attribute"),
+				ExpectError: regexp.MustCompile("Value for unconfigurable attribute"),
+
 			},
 		},
 	})
