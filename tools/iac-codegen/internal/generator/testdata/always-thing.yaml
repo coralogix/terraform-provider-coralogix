@@ -1,0 +1,86 @@
+# A singleton that the API cannot create or remove: a GET reads it, and a PATCH with an update mask
+# on the same path changes it. The contract has no POST and no DELETE.
+openapi: 3.1.0
+info: {title: always things, version: 1.0.0}
+paths:
+  /always-things/v1:
+    get:
+      operationId: AlwaysThingsService_GetAlwaysThing
+      tags: [Always Things Service]
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/AlwaysThing'}], description: The thing.}}}}
+    patch:
+      operationId: AlwaysThingsService_UpdateAlwaysThing
+      tags: [Always Things Service]
+      parameters:
+        - name: update_mask
+          in: query
+          required: true
+          schema: {type: string, minLength: 1, maxLength: 512, pattern: '^[A-Za-z_][A-Za-z0-9_.]*(,[A-Za-z_][A-Za-z0-9_.]*)*$', x-coralogix-presence: true}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: {type: boolean, description: Whether the thing is on., x-coralogix-presence: true}
+                note: {type: string, description: A free note., x-coralogix-presence: true}
+                limits: {allOf: [{$ref: '#/components/schemas/AlwaysThingLimitsUpdate'}], description: The limits of the thing.}
+                config: {allOf: [{$ref: '#/components/schemas/AlwaysThingConfig'}], description: How the thing runs.}
+                sourceFile: {type: string, description: A file that the thing reads., x-coralogix-presence: true}
+                sourceUrl: {type: string, description: A URL that the thing reads., x-coralogix-presence: true}
+              oneOf:
+                - required: [sourceFile]
+                - required: [sourceUrl]
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/AlwaysThing'}], description: The updated thing.}}}}
+components:
+  schemas:
+    AlwaysThing:
+      type: object
+      required: [enabled]
+      description: A thing that always exists.
+      properties:
+        enabled: {type: boolean, description: Whether the thing is on.}
+        note: {type: string, description: A free note.}
+        limits: {allOf: [{$ref: '#/components/schemas/AlwaysThingLimits'}], description: The limits of the thing.}
+        config: {allOf: [{$ref: '#/components/schemas/AlwaysThingConfig'}], description: How the thing runs.}
+        sourceFile: {type: string, description: A file that the thing reads.}
+        sourceUrl: {type: string, description: A URL that the thing reads.}
+      oneOf:
+        - required: [sourceFile]
+        - required: [sourceUrl]
+    AlwaysThingLimits:
+      type: object
+      required: []
+      description: The limits of the thing.
+      properties:
+        max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+        min: {type: integer, format: int32, description: The fewest items., x-coralogix-presence: true}
+    AlwaysThingLimitsUpdate:
+      type: object
+      required: []
+      description: The limits of the thing.
+      properties:
+        max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+        min: {type: integer, format: int32, description: The fewest items., x-coralogix-presence: true}
+    AlwaysThingConfig:
+      type: object
+      required: []
+      description: How the thing runs.
+      properties:
+        http: {$ref: '#/components/schemas/AlwaysThingHttp'}
+        queue: {$ref: '#/components/schemas/AlwaysThingQueue'}
+      oneOf:
+        - required: [http]
+        - required: [queue]
+    AlwaysThingHttp:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint: {type: string, minLength: 1, description: The URL.}
+    AlwaysThingQueue:
+      type: object
+      required: [topic]
+      properties:
+        topic: {type: string, minLength: 1, description: The topic.}

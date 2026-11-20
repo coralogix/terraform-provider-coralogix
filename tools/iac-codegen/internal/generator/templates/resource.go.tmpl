@@ -321,6 +321,45 @@ func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequ
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+{{- if .AlwaysExists}}
+	// The API has no Create call: the singleton exists. Create sets the configured fields with
+	// the Update call. It reads the singleton when the configuration sets none.
+	resp.Diagnostics.Append(validateCreate(ctx, req.Config, req.Plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	body, mask, diags := createRequest(ctx, req.Config, req.Plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	var v *{{$sdk}}.{{.Resource}}
+	var err error
+	if body == nil {
+		v, err = r.get(ctx, SingletonID)
+	} else {
+{{- if .MaskInBody}}
+		{{- if $.Conv.UpdateMaskPointer}}
+		body.{{$.Conv.UpdateMaskField}} = &mask
+		{{- else}}
+		body.{{$.Conv.UpdateMaskField}} = mask
+		{{- end}}
+{{- end}}
+		v, err = r.update(ctx, SingletonID, body{{if not .MaskInBody}}, mask{{end}})
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
+		return
+	}
+	diags = r.setState(ctx, v, req.Plan, &resp.State)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		// The singleton exists, but the state is not complete. Keep the id, so
+		// Terraform marks the resource as tainted.
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), SingletonID)...)
+	}
+}
+{{- else}}
 {{- if .GetHooks}}
 	ctx, _ = withGetResult(ctx)
 {{- end}}
@@ -392,6 +431,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 {{- end}}
 }
+{{- end}}
 
 {{if .UpdateOnly -}}
 // updateOnlyFields are the attributes that Create cannot send. Create stores
@@ -624,7 +664,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
-{{if .Upsert -}}
+{{if .NoDelete -}}
 // Delete removes the resource from the state only. The API cannot remove it, so
 // it keeps the last configuration that Terraform set.
 func (r *Resource) Delete(_ context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -662,6 +702,7 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 
 // The API calls. Each returns the error with its HTTP status and body.
 
+{{if not .AlwaysExists -}}
 func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBody}}) (*{{$sdk}}.{{.Resource}}, error) {
 {{- if .Create.Copy}}
 	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
@@ -781,6 +822,7 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 {{- end}}
 }
+{{- end}}
 {{- end}}
 {{- end}}
 
@@ -995,7 +1037,7 @@ func (r *Resource) delete(ctx context.Context, _ {{.IDGoType}}) error {
 	_, httpResp, err := r.client.{{.Delete.Method}}(ctx).{{.Delete.Body}}({{$sdk}}.{{$.Conv.CreateBody}}{}).Execute()
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
 }
-{{- else if not .Upsert -}}
+{{- else if not .NoDelete -}}
 func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 {{- if .Delete.Body}}
 	// The remove sends the id in a batch body (api.delete.ids), beside the fixed values.

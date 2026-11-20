@@ -481,6 +481,12 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
+	if keepsAPIValue(r, f) {
+		// The singleton holds a value before Create, and a field that the configuration leaves out
+		// keeps it. The state then holds the value that Get returns, so the plan keeps it too.
+		a.Computed = true
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+	}
 	clientSetID := r.Policy.ClientSetID && f.Name == r.ID()
 	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
@@ -2936,7 +2942,7 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior), r.Policy.ComputedLine(r.Name, f.Name))
+		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior), r.Policy.ComputedLine(r.Name, f.Name) || keepsAPIValue(r, f))
 		if group == "" {
 			out.Attributes = append(out.Attributes, a)
 			root.Fields = append(root.Fields, field)
@@ -3198,6 +3204,9 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 // validators when a behavior-overrides group holds the arms.
 func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrides.File, groups *tfGroups) error {
 	for _, g := range r.Groups {
+		if err := checkKeptOneOf(r, file, g); err != nil {
+			return err
+		}
 		if group, err := groups.oneOf(g); err != nil {
 			return err
 		} else if group != "" {
@@ -3221,7 +3230,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		for _, arm := range g.Arms {
 			name := terraformName(r.Policy, r.Name, arm)
 			arms = append(arms, rootPath(file.GroupPath(arm), name).expr())
-			if file.Types[r.Name].Fields[arm].RequireOne {
+			if file != nil && file.Types[r.Name].Fields[arm].RequireOne {
 				// The released resource required one arm although the contract allows none.
 				g.AllowNone = false
 			}
@@ -3238,6 +3247,22 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}
 	return nil
+}
+
+// checkKeptOneOf rejects an optional top-level oneOf in a singleton that always exists and keeps the
+// value of the API for an omitted field. The arms cannot keep the value: a kept arm would stay next
+// to the arm that replaces it. With no arm in the configuration, the singleton may still hold one, so
+// the first apply would read back a value that the plan did not have.
+func checkKeptOneOf(r *model.Resource, file *overrides.File, g model.OneOfGroup) error {
+	if !r.OmitKeepsValue() || !g.AllowNone {
+		return nil
+	}
+	for _, arm := range g.Arms {
+		if file != nil && file.Types[r.Name].Fields[arm].RequireOne {
+			return nil // the released resource requires one arm
+		}
+	}
+	return fmt.Errorf("%s: a singleton that always exists does not support an optional top-level oneOf (arms %s): with no arm configured, the singleton may still hold one, and the plan would not have it", r.Name, strings.Join(g.Arms, ", "))
 }
 
 // nestedGroups builds the groups of a nested component (types.<Type>.groups): required objects

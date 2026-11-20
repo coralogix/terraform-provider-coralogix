@@ -233,7 +233,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		Address:          "coralogix_" + typeName + ".test",
 		TypeName:         "coralogix_" + typeName,
 		FailSingleton:    res.CRUD.Singleton || res.CRUD.Overwrite,
-		FailNoDelete:     res.CRUD.Upsert,
+		FailNoDelete:     res.CRUD.NoDelete,
 		FailReadFromList: res.CRUD.Get.FromList,
 		FailPathsImport:  providerModule + "/internal/acctest/failpaths",
 		IDAttr:           res.CRUD.IDAttr,

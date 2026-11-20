@@ -265,6 +265,84 @@ func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName
 	}
 	return body, strings.Join(mask, ","), diags
 }
+{{- if .AlwaysExists}}
+
+// createRequest returns the Update body and updateMask for Create. The API has no Create call: the
+// singleton exists. The mask names every top-level field that the configuration sets, so a field
+// that it leaves out keeps the value of the API. It returns nil when the configuration sets no
+// field. Then the caller sends no request and reads the singleton.
+func createRequest(ctx context.Context, config, plan tfData) (*{{.SDKName}}.{{.Update.SDK}}, string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var mask []string
+	for _, f := range maskFields {
+		var c, p attr.Value
+		var fieldDiags diag.Diagnostics
+		fieldDiags.Append(config.GetAttribute(ctx, path.Root(f.attr), &c)...)
+		fieldDiags.Append(plan.GetAttribute(ctx, path.Root(f.attr), &p)...)
+		diags.Append(fieldDiags...)
+		if fieldDiags.HasError() {
+			continue
+		}
+		if c.IsNull() {
+			continue // the plan holds the value of the API for a field that the configuration leaves out
+		}
+{{- if $.RequestFilter}}
+		p = requestValue(ctx, f.attr, p, &diags)
+{{- end}}
+		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
+{{- if .LeafMask}}
+		mask = createPaths(mask, "", f, p)
+{{- else}}
+		mask = append(mask, f.api)
+{{- end}}
+	}
+	if diags.HasError() || len(mask) == 0 {
+		return nil, "", diags
+	}
+	var m {{.Update.Model}}
+	diags.Append(plan.Get(ctx, &m)...)
+	if diags.HasError() {
+		return nil, "", diags
+	}
+	body, d := expandUpdate(ctx, &m)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil, "", diags
+	}
+	return body, strings.Join(mask, ","), diags
+}
+{{- if .LeafMask}}
+
+// createPaths adds the paths of the values below n, for Create. The singleton may already hold a
+// value, so the mask names every value that the plan holds. A oneOf names the selected arm, because a
+// parent path alone can leave another arm in place (contract 2.6). An object names each of its fields.
+// A field that the plan leaves null is named with no value: the server clears it, so the state
+// matches the plan.
+func createPaths(mask []string, prefix string, n *maskNode, p attr.Value) []string {
+	if p.IsUnknown() {
+		return mask
+	}
+	at := n.api
+	if prefix != "" {
+		at = prefix + "." + n.api
+	}
+	po, ok := p.(types.Object)
+	if p.IsNull() || n.children == nil || !ok {
+		return append(mask, at)
+	}
+	if n.oneOf {
+		if arm := activeArm(n, po); arm != nil {
+			return append(mask, at+"."+arm.api)
+		}
+		return append(mask, at)
+	}
+	for _, c := range n.children {
+		mask = createPaths(mask, at, c, po.Attributes()[c.attr])
+	}
+	return mask
+}
+{{- end}}
+{{- end}}
 {{- end}}
 
 {{- define "maskNode" -}}
