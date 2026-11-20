@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -205,6 +206,40 @@ func TestCreateClearsTheFieldsThatAnObjectLeavesOut(t *testing.T) {
 	}
 }
 `
+
+// A top-level oneOf that allows no arm cannot keep the value of the API: with no arm configured, the
+// singleton may still hold one. The check and the generation both refuse it.
+func TestAlwaysThingRefusesAnOptionalTopLevelOneOf(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "always-thing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := "- required: [sourceUrl]\n"
+	if strings.Count(string(spec), old) != 2 {
+		t.Fatal("the fixture has no two top-level oneOf lists")
+	}
+	spec = regexp.MustCompile(`(?m)^( *)- required: \[sourceUrl\]\n`).ReplaceAll(spec,
+		[]byte("${0}${1}- not: {anyOf: [{required: [sourceFile]}, {required: [sourceUrl]}]}\n"))
+	input.OpenAPI = spec
+	candidate := filepath.Join(t.TempDir(), "candidate.yaml")
+	if err := os.WriteFile(candidate, spec, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	checkErr := Check(CheckOptions{Resource: "AlwaysThing", OpenAPIPath: candidate})
+	out := filepath.Join(t.TempDir(), "alwaysthing")
+	generateErr := generateFromInput(Options{Resource: "AlwaysThing", OutputDir: out}, input, loadDir)
+	var eligibility *EligibilityError
+	if !errors.As(generateErr, &eligibility) || !strings.Contains(generateErr.Error(), "optional top-level oneOf") {
+		t.Fatalf("generate error = %v, want the optional top-level oneOf refusal", generateErr)
+	}
+	if checkErr == nil || checkErr.Error() != generateErr.Error() {
+		t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
+	}
+	if _, err := os.Stat(out); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("generated output exists after the refusal: %v", err)
+	}
+}
 
 func readGenerated(t *testing.T, dir, name string) string {
 	t.Helper()

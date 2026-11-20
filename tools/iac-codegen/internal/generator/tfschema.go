@@ -3204,6 +3204,9 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 // validators when a behavior-overrides group holds the arms.
 func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrides.File, groups *tfGroups) error {
 	for _, g := range r.Groups {
+		if err := checkKeptOneOf(r, file, g); err != nil {
+			return err
+		}
 		if group, err := groups.oneOf(g); err != nil {
 			return err
 		} else if group != "" {
@@ -3244,6 +3247,22 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}
 	return nil
+}
+
+// checkKeptOneOf rejects an optional top-level oneOf in a singleton that always exists and keeps the
+// value of the API for an omitted field. The arms cannot keep the value: a kept arm would stay next
+// to the arm that replaces it. With no arm in the configuration, the singleton may still hold one, so
+// the first apply would read back a value that the plan did not have.
+func checkKeptOneOf(r *model.Resource, file *overrides.File, g model.OneOfGroup) error {
+	if !r.OmitKeepsValue() || !g.AllowNone {
+		return nil
+	}
+	for _, arm := range g.Arms {
+		if file != nil && file.Types[r.Name].Fields[arm].RequireOne {
+			return nil // the released resource requires one arm
+		}
+	}
+	return fmt.Errorf("%s: a singleton that always exists does not support an optional top-level oneOf (arms %s): with no arm configured, the singleton may still hold one, and the plan would not have it", r.Name, strings.Join(g.Arms, ", "))
 }
 
 // nestedGroups builds the groups of a nested component (types.<Type>.groups): required objects
