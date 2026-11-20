@@ -310,6 +310,12 @@ func TestExampleProblem(t *testing.T) {
 		"list too long":     {&modelType{Kind: "list", Elem: &modelType{Kind: "string"}, MaxItems: int64Ptr(1)}, listExample("a", "b"), "2 elements"},
 		"element too short": {&modelType{Kind: "list", Elem: &modelType{Kind: "string", MinLength: int64Ptr(2)}}, listExample("a"), "shorter than minLength"},
 		"object ignored":    {&modelType{Kind: "object"}, text("x"), ""},
+		"minimum boundary":  {&modelType{Kind: "number", Minimum: float64Ptr(0.1)}, numberExample("0.1"), ""},
+		"maximum boundary":  {&modelType{Kind: "number", Maximum: float64Ptr(0.3)}, numberExample("0.3"), ""},
+		"below minimum":     {&modelType{Kind: "number", Minimum: float64Ptr(0.1)}, numberExample("0.09"), "below the minimum"},
+		"above maximum":     {&modelType{Kind: "number", Maximum: float64Ptr(0.3)}, numberExample("0.31"), "above the maximum"},
+		"empty list ok":     {&modelType{Kind: "list", Elem: &modelType{Kind: "string"}}, &contractExample{Items: []exampleItem{{Array: true}}}, ""},
+		"empty list needed": {&modelType{Kind: "list", Elem: &modelType{Kind: "string"}, MinItems: int64Ptr(1)}, &contractExample{Items: []exampleItem{{Array: true}}}, "0 elements"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -322,5 +328,31 @@ func TestExampleProblem(t *testing.T) {
 }
 
 func int64Ptr(v int64) *int64 { return &v }
+
+func float64Ptr(v float64) *float64 { return &v }
+
+func numberExample(text string) *contractExample {
+	return &contractExample{Items: []exampleItem{{Values: []exampleValue{{Text: text, Tag: "!!float"}}}}}
+}
+
+// An explicit empty array is an example: the test config has the empty collection and counts 0.
+func TestExampleElementsKeepAnEmptyArray(t *testing.T) {
+	a := &tfAttr{Name: "names", Kind: "List", ElementType: "types.StringType", Example: &contractExample{Items: []exampleItem{
+		{Array: true},
+		{Array: true, Values: []exampleValue{{Text: "a", Tag: "!!str"}}},
+	}}}
+	s := &accSynth{}
+	hcl, states, ok := s.exampleElements(a, "String", accFull)
+	if !ok {
+		t.Fatal("the empty array example is dropped")
+	}
+	value, checks, err := exampleCollection(a, "names", hcl, states)
+	if err != nil || value != "[]" || len(checks) != 1 || checks[0].Value != "0" {
+		t.Fatalf("value %q, checks %v, err %v: want [] and a count of 0", value, checks, err)
+	}
+	if hcl, _, ok = s.exampleElements(a, "String", accUpdated); !ok || len(hcl) != 1 {
+		t.Fatalf("the updated config takes the second example: %v %v", hcl, ok)
+	}
+}
 
 type modelType = model.Type

@@ -306,14 +306,21 @@ func stringProblem(t *model.Type, text string) string {
 	return ""
 }
 
+// limitRat returns a schema limit as an exact decimal. The model holds the limit as a float64, so
+// the shortest text of that float is read: the limit 0.1 gives 1/10, the same value as the example 0.1.
+func limitRat(limit float64) *big.Rat {
+	r, _ := new(big.Rat).SetString(strconv.FormatFloat(limit, 'g', -1, 64))
+	return r
+}
+
 func rangeProblem(t *model.Type, v *big.Rat, text string) string {
 	if t.Minimum != nil {
-		if low := new(big.Rat).SetFloat64(*t.Minimum); low != nil && v.Cmp(low) < 0 {
+		if low := limitRat(*t.Minimum); low != nil && v.Cmp(low) < 0 {
 			return fmt.Sprintf("%s is below the minimum %v", text, *t.Minimum)
 		}
 	}
 	if t.Maximum != nil {
-		if high := new(big.Rat).SetFloat64(*t.Maximum); high != nil && v.Cmp(high) > 0 {
+		if high := limitRat(*t.Maximum); high != nil && v.Cmp(high) > 0 {
 			return fmt.Sprintf("%s is above the maximum %v", text, *t.Maximum)
 		}
 	}
@@ -401,7 +408,8 @@ func (s *accSynth) exampleScalar(a *tfAttr, mode accMode) (hcl, state string, ok
 // A set drops an element that repeats.
 func (s *accSynth) exampleElements(a *tfAttr, kind string, mode accMode) (hcl, state []string, ok bool) {
 	item, ok := s.exampleItemFor(a, mode)
-	if !ok || a.ElementType == rfc3339Type || len(item.Values) == 0 {
+	// An empty array is a valid example: it gives the empty collection.
+	if !ok || a.ElementType == rfc3339Type || len(item.Values) == 0 && !item.Array {
 		return nil, nil, false
 	}
 	for _, v := range item.Values {
