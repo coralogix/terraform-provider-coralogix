@@ -22,11 +22,13 @@ import (
 
 	"fmt"
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -48,6 +50,45 @@ func UserHooks() user.Hooks {
 		Get:          userGet,
 		AfterFlatten: userAfterFlatten,
 	}
+}
+
+// NewResource returns the generated user resource wrapped: Update hands the client
+// to the hook through the context, for the values only the API knows.
+func NewResource(hooks user.Hooks) resource.Resource {
+	return &UserResource{Resource: *user.NewResource(hooks).(*user.Resource)}
+}
+
+// userSearchKey is the context key of the search the hook can run for the values the
+// state of an upgraded resource does not carry.
+type userSearchKey struct{}
+
+// NewUserResource returns the wrapped user resource with the released hooks.
+func NewUserResource() resource.Resource {
+	return NewResource(UserHooks())
+}
+
+// UserResource wraps the generated user resource: Update hands the users client to
+// the hook through the context, and Configure captures it from the provider data.
+type UserResource struct {
+	user.Resource
+	client *users_management_service.UsersManagementServiceAPIService
+}
+
+func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	r.Resource.Configure(ctx, req, resp)
+	if cs, ok := req.ProviderData.(*clientset.ClientSet); ok {
+		r.client = cs.Users()
+	}
+}
+
+func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	if r.client != nil {
+		ctx = context.WithValue(ctx, userSearchKey{}, func(username string) (*users_management_service.SearchUsersResponse, error) {
+			resp, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).Execute()
+			return resp, err
+		})
+	}
+	r.Resource.Update(ctx, req, resp)
 }
 
 // userGet pages the Search at the released page size: the released read sent
@@ -133,6 +174,25 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 		given, family := name.GivenName.ValueString(), name.FamilyName.ValueString()
 		template.FirstName = &given
 		template.LastName = &family
+	}
+	// A state upgraded from the released provider carries the login modes nowhere: the
+	// schema of 3.26.0 had no attribute for them, and its private state is a form this
+	// framework discards. Without a refresh the plan keeps them unknown, and the expand
+	// omits them: the PUT would clear the modes of the user. The hook searches the API
+	// for the prior user and sends the modes it answers with.
+	if template.AllowedLoginMode == nil && state != nil {
+		var prior user.RbacV2UserModel
+		if d := state.Get(ctx, &prior); !d.HasError() && !prior.Username.IsNull() {
+			if search, ok := ctx.Value(userSearchKey{}).(func(string) (*users_management_service.SearchUsersResponse, error)); ok {
+				if found, err := search(prior.Username.ValueString()); err == nil && found != nil {
+					for i := range found.Users {
+						if strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
+							template.AllowedLoginMode = found.Users[i].AllowedLoginMode
+						}
+					}
+				}
+			}
+		}
 	}
 	// The schema skips the one-of discriminator of the access type, so the expand sends
 	// an empty one beside the chosen arm. The API reads every arm literally, and EU2

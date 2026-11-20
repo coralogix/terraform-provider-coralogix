@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,6 +25,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
@@ -48,6 +51,19 @@ const (
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestUserBaseline
 func newUserHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, userTypeName, newUserFake(t))
+}
+
+// userStateJSON reads the state value as a JSON map of the attribute names.
+func userStateJSON(s tftypes.Value) map[string]any {
+	out := map[string]any{}
+	raw, _ := json.Marshal(toJSON(s))
+	_ = json.Unmarshal(raw, &out)
+	return out
+}
+
+// stateFromJSON rebuilds a state value with one attribute changed.
+func (h *grHarness) stateFromJSON(attrs map[string]any) tftypes.Value {
+	return fromJSON(h.t, h.typ, attrs)
 }
 
 func TestUserBaselineSchema(t *testing.T) {
@@ -374,6 +390,24 @@ var userScenarios = map[string]func(h *grHarness){
 		}
 		s = h.RefreshPlan("refresh: SearchUsers returns the user without userId", s)
 		h.Apply("apply the same config again: the user still exists but has no id", s, userConfig(userA, j{"name": userTestName}))
+	},
+	// A state upgraded from the released provider has the login modes only in the
+	// private state: the schema of 3.26.0 had no attribute for them. An update without
+	// a refresh must send them, not clear them.
+	"legacy-echo-update": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// Replace the private state with the released echo: the login modes the last
+		// read of the released resource returned, and no schema value.
+		// The backend has the modes even though the upgraded state does not.
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
+		// The upgraded state has no allowed_login_mode: the schema of 3.26.0 had none.
+		withNull := map[string]any{}
+		for name, v := range userStateJSON(s) {
+			withNull[name] = v
+		}
+		withNull["allowed_login_mode"] = nil
+		s = h.stateFromJSON(withNull)
+		h.Apply("update: the PUT sends the modes of the released echo", s, userConfig(userA, j{"name": userTestName, "active": false}))
 	},
 	"update-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))

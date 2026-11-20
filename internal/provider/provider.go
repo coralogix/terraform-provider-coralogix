@@ -476,7 +476,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		aaa.NewCustomRoleSource,
 		aaa.NewGroupResource,
 		aaa.NewGroupAttachmentResource,
-		func() resource.Resource { return user.NewResource(aaa.UserHooks()) },
+		func() resource.Resource { return aaa.NewUserResource() },
 		aaa.NewScopeResource,
 		func() resource.Resource { return ipaccess.NewResource(ipaccess.Hooks{}) },
 		aaa.NewTeamResource,
