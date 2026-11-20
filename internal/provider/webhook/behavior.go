@@ -315,9 +315,11 @@ func webhookCredentialWarnings(config *generatedwebhook.OutgoingWebhookModel) di
 	return diags
 }
 
-func webhookBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, request any) diag.Diagnostics {
+func webhookBeforeWrite(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, request any) diag.Diagnostics {
+	// The write-only credentials live only in the configuration: the framework keeps
+	// them out of the plan and the state, so the model comes from the configuration.
 	var model generatedwebhook.OutgoingWebhookModel
-	diags := plan.Get(ctx, &model)
+	diags := config.Get(ctx, &model)
 	if diags.HasError() {
 		return diags
 	}

@@ -65,8 +65,10 @@ func TestAccCoralogixDataSourceUser_userNameRejected(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				// The data source reads by id only: a user_name-only config fails on the
+				// required id before the read-only check can name the attribute.
 				Config:      testAccCoralogixDataSourceUser_readByUserNameOnly(randUserName()),
-				ExpectError: regexp.MustCompile("Value for unconfigurable attribute"),
+				ExpectError: regexp.MustCompile(`Missing required argument`),
 			},
 		},
 	})
