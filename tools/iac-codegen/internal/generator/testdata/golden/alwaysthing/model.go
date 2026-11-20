@@ -11,4 +11,23 @@ type AlwaysThingModel struct {
 	Id      types.String `tfsdk:"id"`
 	Enabled types.Bool   `tfsdk:"enabled"`
 	Note    types.String `tfsdk:"note"`
+	Limits  types.Object `tfsdk:"limits"`
+	Config  types.Object `tfsdk:"config"`
+}
+
+type AlwaysThingLimitsModel struct {
+	Max types.Int32 `tfsdk:"max"`
+}
+
+type AlwaysThingHttpModel struct {
+	Endpoint types.String `tfsdk:"endpoint"`
+}
+
+type AlwaysThingQueueModel struct {
+	Topic types.String `tfsdk:"topic"`
+}
+
+type AlwaysThingConfigModel struct {
+	Http  *AlwaysThingHttpModel  `tfsdk:"http"`
+	Queue *AlwaysThingQueueModel `tfsdk:"queue"`
 }

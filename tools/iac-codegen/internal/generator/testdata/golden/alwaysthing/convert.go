@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/always_things_service"
 )
@@ -47,6 +48,8 @@ var createFields = []struct {
 }{
 	{attr: "enabled", serverDefault: true},
 	{attr: "note", serverDefault: true},
+	{attr: "limits", serverDefault: true},
+	{attr: "config", serverDefault: true},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -137,7 +140,10 @@ func flatten(ctx context.Context, v *always_things_service.AlwaysThing) (*Always
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
-var oneOfArms = map[string]bool{}
+var oneOfArms = map[string]bool{
+	"config.http":  true,
+	"config.queue": true,
+}
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
@@ -145,10 +151,15 @@ var computedAttrs = map[string]bool{
 	"id":      true,
 	"enabled": true,
 	"note":    true,
+	"limits":  true,
+	"config":  true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
-var requiredAttrs = map[string]bool{}
+var requiredAttrs = map[string]bool{
+	"config.http.endpoint": true,
+	"config.queue.topic":   true,
+}
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
 // prior data and the new state. The API does not tell null from an empty
@@ -296,7 +307,101 @@ func expandAlwaysThingsServiceUpdateAlwaysThingRequest(ctx context.Context, p pa
 	out := &always_things_service.AlwaysThingsServiceUpdateAlwaysThingRequest{}
 	out.Enabled = expandBool(m.Enabled)
 	out.Note = expandString(m.Note)
+	if v := m.Limits; !v.IsNull() && !v.IsUnknown() {
+		var nested AlwaysThingLimitsModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Limits = expandAlwaysThingLimitsUpdate(ctx, p.AtName("limits"), &nested, diags)
+	}
+	if v := m.Config; !v.IsNull() && !v.IsUnknown() {
+		var nested AlwaysThingConfigModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Config = expandAlwaysThingConfig(ctx, p.AtName("config"), &nested, diags)
+	}
 	return out
+}
+
+func expandAlwaysThingLimitsUpdate(ctx context.Context, p path.Path, m *AlwaysThingLimitsModel, diags *diag.Diagnostics) *always_things_service.AlwaysThingLimitsUpdate {
+	if m == nil {
+		return nil
+	}
+	out := &always_things_service.AlwaysThingLimitsUpdate{}
+	out.Max = expandInt32(m.Max)
+	return out
+}
+
+func expandAlwaysThingConfig(ctx context.Context, p path.Path, m *AlwaysThingConfigModel, diags *diag.Diagnostics) *always_things_service.AlwaysThingConfig {
+	if m == nil {
+		return nil
+	}
+	out := &always_things_service.AlwaysThingConfig{}
+	out.Http = expandAlwaysThingHttp(ctx, p.AtName("http"), m.Http, diags)
+	out.Queue = expandAlwaysThingQueue(ctx, p.AtName("queue"), m.Queue, diags)
+	return out
+}
+
+func flattenAlwaysThingConfig(ctx context.Context, p path.Path, v *always_things_service.AlwaysThingConfig, diags *diag.Diagnostics) *AlwaysThingConfigModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlwaysThingConfigModel{}
+	out.Http = flattenAlwaysThingHttp(ctx, p.AtName("http"), v.Http, diags)
+	out.Queue = flattenAlwaysThingQueue(ctx, p.AtName("queue"), v.Queue, diags)
+	return out
+}
+
+func alwaysThingConfigAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"http":  types.ObjectType{AttrTypes: alwaysThingHttpAttrTypes()},
+		"queue": types.ObjectType{AttrTypes: alwaysThingQueueAttrTypes()},
+	}
+}
+
+func expandAlwaysThingHttp(ctx context.Context, p path.Path, m *AlwaysThingHttpModel, diags *diag.Diagnostics) *always_things_service.AlwaysThingHttp {
+	if m == nil {
+		return nil
+	}
+	out := &always_things_service.AlwaysThingHttp{}
+	out.Endpoint = valueOf(expandString(m.Endpoint))
+	return out
+}
+
+func flattenAlwaysThingHttp(ctx context.Context, p path.Path, v *always_things_service.AlwaysThingHttp, diags *diag.Diagnostics) *AlwaysThingHttpModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlwaysThingHttpModel{}
+	out.Endpoint = types.StringPointerValue(&v.Endpoint)
+	return out
+}
+
+func alwaysThingHttpAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"endpoint": types.StringType,
+	}
+}
+
+func expandAlwaysThingQueue(ctx context.Context, p path.Path, m *AlwaysThingQueueModel, diags *diag.Diagnostics) *always_things_service.AlwaysThingQueue {
+	if m == nil {
+		return nil
+	}
+	out := &always_things_service.AlwaysThingQueue{}
+	out.Topic = valueOf(expandString(m.Topic))
+	return out
+}
+
+func flattenAlwaysThingQueue(ctx context.Context, p path.Path, v *always_things_service.AlwaysThingQueue, diags *diag.Diagnostics) *AlwaysThingQueueModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlwaysThingQueueModel{}
+	out.Topic = types.StringPointerValue(&v.Topic)
+	return out
+}
+
+func alwaysThingQueueAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"topic": types.StringType,
+	}
 }
 
 func expandAlwaysThingsServiceUpdateAlwaysThingRequestUpdate(ctx context.Context, p path.Path, m *AlwaysThingModel, diags *diag.Diagnostics) *always_things_service.AlwaysThingsServiceUpdateAlwaysThingRequest {
@@ -306,6 +411,16 @@ func expandAlwaysThingsServiceUpdateAlwaysThingRequestUpdate(ctx context.Context
 	out := &always_things_service.AlwaysThingsServiceUpdateAlwaysThingRequest{}
 	out.Enabled = expandBool(m.Enabled)
 	out.Note = expandString(m.Note)
+	if v := m.Limits; !v.IsNull() && !v.IsUnknown() {
+		var nested AlwaysThingLimitsModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Limits = expandAlwaysThingLimitsUpdate(ctx, p.AtName("limits"), &nested, diags)
+	}
+	if v := m.Config; !v.IsNull() && !v.IsUnknown() {
+		var nested AlwaysThingConfigModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Config = expandAlwaysThingConfig(ctx, p.AtName("config"), &nested, diags)
+	}
 	return out
 }
 
@@ -316,7 +431,44 @@ func flattenAlwaysThing(ctx context.Context, p path.Path, v *always_things_servi
 	out := &AlwaysThingModel{}
 	out.Enabled = types.BoolPointerValue(&v.Enabled)
 	out.Note = types.StringPointerValue(v.Note)
+	out.Limits = types.ObjectNull(alwaysThingLimitsAttrTypes())
+	if nested := flattenAlwaysThingLimits(ctx, p.AtName("limits"), v.Limits, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, alwaysThingLimitsAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Limits = value
+	}
+	out.Config = types.ObjectNull(alwaysThingConfigAttrTypes())
+	if nested := flattenAlwaysThingConfig(ctx, p.AtName("config"), v.Config, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, alwaysThingConfigAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Config = value
+	}
 	return out
+}
+
+func flattenAlwaysThingLimits(ctx context.Context, p path.Path, v *always_things_service.AlwaysThingLimits, diags *diag.Diagnostics) *AlwaysThingLimitsModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlwaysThingLimitsModel{}
+	out.Max = types.Int32PointerValue(v.Max)
+	return out
+}
+
+func alwaysThingLimitsAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"max": types.Int32Type,
+	}
+}
+
+// valueOf returns the value of p, or the zero value for nil. It fills an SDK
+// field that is a value, not a pointer.
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // elements is a types.Set or a types.List.
@@ -530,4 +682,12 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+func expandInt32(v types.Int32) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt32()
+	return &n
 }

@@ -63,11 +63,27 @@ const prerequisites = ``
 const fullConfig = `resource "coralogix_always_thing" "test" {
   enabled = true
   note = "@{run}-note"
+  limits = {
+    max = 1
+  }
+  config = {
+    http = {
+      endpoint = "@{run}-endpoint"
+    }
+  }
 }`
 
 const updatedConfig = `resource "coralogix_always_thing" "test" {
   enabled = false
   note = "@{run}-note-updated"
+  limits = {
+    max = 2
+  }
+  config = {
+    http = {
+      endpoint = "@{run}-endpoint-updated"
+    }
+  }
 }`
 
 const minimalConfig = `resource "coralogix_always_thing" "test" {
@@ -90,6 +106,8 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "enabled", resourceAddress, "enabled"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "note", resourceAddress, "note"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "limits.max", resourceAddress, "limits.max"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "config.http.endpoint", resourceAddress, "config.http.endpoint"),
 	)
 }
 
@@ -97,6 +115,8 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "note", render(run, "@{run}-note")),
+		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config.http.endpoint", render(run, "@{run}-endpoint")),
 	)
 }
 
@@ -104,6 +124,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "note", render(run, "@{run}-note-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "limits.max", "2"),
+		resource.TestCheckResourceAttr(resourceAddress, "config.http.endpoint", render(run, "@{run}-endpoint-updated")),
 	)
 }
 
@@ -177,6 +199,23 @@ func TestAccCoralogixResourceAlwaysThingGenerated(t *testing.T) {
 			},
 		})
 	})
+
+	// values-and-choices sends every enum value and every oneOf arm to the API. It applies the full
+	// config, then one config for each step of the generator: a step sets the values and the arms
+	// that no earlier config sets, in the elements of its lists and in copies of the resource. After each apply, the framework plans again and fails when the
+	// plan is not empty, so a value that the API changes or drops fails the step. A value or an arm
+	// that the tenant refuses goes in skipValues or skipChoices of the acceptance file, with the reason.
+	t.Run("values-and-choices", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, variant1Config)},
+			},
+		})
+	})
 }
 
 // TestFailurePathsAlwaysThingGenerated checks, without a tenant, what the resource does when the API
@@ -211,8 +250,25 @@ func TestConfigsValidateAlwaysThingGenerated(t *testing.T) {
 		ProviderServer: func() (tfprotov6.ProviderServer, error) { return providerFactories["coralogix"]() },
 		TypeName:       "coralogix_always_thing",
 	}, map[string]string{
-		"full":    offline.Replace(fullConfig),
-		"updated": offline.Replace(updatedConfig),
-		"minimal": offline.Replace(minimalConfig),
+		"full":     offline.Replace(fullConfig),
+		"updated":  offline.Replace(updatedConfig),
+		"minimal":  offline.Replace(minimalConfig),
+		"variant1": offline.Replace(variant1Config),
 	})
 }
+
+// The configs of the values-and-choices subtest. A config sets the enum values and the oneOf arms
+// that no config before it sets.
+
+const variant1Config = `resource "coralogix_always_thing" "test" {
+  enabled = true
+  note = "@{run}-note"
+  limits = {
+    max = 1
+  }
+  config = {
+    queue = {
+      topic = "@{run}-topic"
+    }
+  }
+}`

@@ -55,8 +55,120 @@ func TestGoldenOutputAlwaysThing(t *testing.T) {
 			t.Errorf("schema.go does not contain %q", want)
 		}
 	}
+	// The model holds a nested object that the configuration may leave out as an unknown-capable value.
+	model := readGenerated(t, out, "model.go")
+	for _, want := range []string{"Limits  types.Object", "Config  types.Object"} {
+		if !strings.Contains(model, want) {
+			t.Errorf("model.go does not contain %q", want)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(out, "createrequest_test.go"), []byte(createRequestTest), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	compileGenerated(t, out, input)
 }
+
+// createRequestTest runs the generated createRequest. A nested object that the configuration leaves
+// out is unknown in the plan, and Create must still build the request. A oneOf names its arm in the
+// mask, because the singleton can hold another arm.
+const createRequestTest = `package alwaysthing
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+)
+
+func rawOf(t *testing.T, m AlwaysThingModel) tftypes.Value {
+	t.Helper()
+	ctx := context.Background()
+	s := Schema()
+	plan := tfsdk.Plan{Schema: s, Raw: tftypes.NewValue(s.Type().TerraformType(ctx), nil)}
+	if diags := plan.Set(ctx, &m); diags.HasError() {
+		t.Fatal(diags)
+	}
+	return plan.Raw
+}
+
+func createMask(t *testing.T, config, plan AlwaysThingModel) string {
+	t.Helper()
+	s := Schema()
+	_, mask, diags := createRequest(context.Background(),
+		tfsdk.Config{Schema: s, Raw: rawOf(t, config)}, tfsdk.Plan{Schema: s, Raw: rawOf(t, plan)})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return mask
+}
+
+func unknownRest() AlwaysThingModel {
+	return AlwaysThingModel{
+		Id:     types.StringValue(SingletonID),
+		Note:   types.StringUnknown(),
+		Limits: types.ObjectUnknown(alwaysThingLimitsAttrTypes()),
+		Config: types.ObjectUnknown(alwaysThingConfigAttrTypes()),
+	}
+}
+
+func TestCreateWithAnOmittedNestedObject(t *testing.T) {
+	config := AlwaysThingModel{
+		Id:      types.StringNull(),
+		Enabled: types.BoolValue(true),
+		Note:    types.StringNull(),
+		Limits:  types.ObjectNull(alwaysThingLimitsAttrTypes()),
+		Config:  types.ObjectNull(alwaysThingConfigAttrTypes()),
+	}
+	plan := unknownRest()
+	plan.Enabled = types.BoolValue(true)
+	if got := createMask(t, config, plan); got != "enabled" {
+		t.Errorf("mask = %q, want enabled", got)
+	}
+}
+
+func TestCreateNamesTheSelectedArm(t *testing.T) {
+	armTypes := alwaysThingConfigAttrTypes()
+	httpType := armTypes["http"].(types.ObjectType)
+	queueType := armTypes["queue"].(types.ObjectType)
+	configured := types.ObjectValueMust(alwaysThingConfigAttrTypes(), map[string]attr.Value{
+		"http":  types.ObjectNull(httpType.AttrTypes),
+		"queue": types.ObjectValueMust(queueType.AttrTypes, map[string]attr.Value{"topic": types.StringValue("t")}),
+	})
+	config := AlwaysThingModel{
+		Id:      types.StringNull(),
+		Enabled: types.BoolNull(),
+		Note:    types.StringNull(),
+		Limits:  types.ObjectNull(alwaysThingLimitsAttrTypes()),
+		Config:  configured,
+	}
+	plan := unknownRest()
+	plan.Enabled = types.BoolUnknown()
+	plan.Config = configured
+	if got := createMask(t, config, plan); got != "config.queue" {
+		t.Errorf("mask = %q, want config.queue", got)
+	}
+}
+
+func TestCreateNamesTheFieldsOfAnObject(t *testing.T) {
+	limits := types.ObjectValueMust(alwaysThingLimitsAttrTypes(), map[string]attr.Value{"max": types.Int32Value(3)})
+	config := AlwaysThingModel{
+		Id:      types.StringNull(),
+		Enabled: types.BoolNull(),
+		Note:    types.StringNull(),
+		Limits:  limits,
+		Config:  types.ObjectNull(alwaysThingConfigAttrTypes()),
+	}
+	plan := unknownRest()
+	plan.Enabled = types.BoolUnknown()
+	plan.Limits = limits
+	if got := createMask(t, config, plan); got != "limits.max" {
+		t.Errorf("mask = %q, want limits.max", got)
+	}
+}
+`
 
 func readGenerated(t *testing.T, dir, name string) string {
 	t.Helper()

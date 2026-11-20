@@ -290,7 +290,11 @@ func createRequest(ctx context.Context, config, plan tfData) (*{{.SDKName}}.{{.U
 		p = requestValue(ctx, f.attr, p, &diags)
 {{- end}}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
+{{- if .LeafMask}}
+		mask = createPaths(mask, "", f, p)
+{{- else}}
 		mask = append(mask, f.api)
+{{- end}}
 	}
 	if diags.HasError() || len(mask) == 0 {
 		return nil, "", diags
@@ -307,6 +311,40 @@ func createRequest(ctx context.Context, config, plan tfData) (*{{.SDKName}}.{{.U
 	}
 	return body, strings.Join(mask, ","), diags
 }
+{{- if .LeafMask}}
+
+// createPaths adds the paths of the values that p sets below n, for Create. The singleton may
+// already hold a value, so a parent path alone can leave an old part of it in place (contract 2.6).
+// A oneOf names the selected arm. An object names the paths of the fields that it sets, or itself
+// when it sets none.
+func createPaths(mask []string, prefix string, n *maskNode, p attr.Value) []string {
+	if p.IsNull() || p.IsUnknown() {
+		return mask
+	}
+	at := n.api
+	if prefix != "" {
+		at = prefix + "." + n.api
+	}
+	po, ok := p.(types.Object)
+	if n.children == nil || !ok {
+		return append(mask, at)
+	}
+	if n.oneOf {
+		if arm := activeArm(n, po); arm != nil {
+			return append(mask, at+"."+arm.api)
+		}
+		return append(mask, at)
+	}
+	before := len(mask)
+	for _, c := range n.children {
+		mask = createPaths(mask, at, c, po.Attributes()[c.attr])
+	}
+	if len(mask) == before {
+		return append(mask, at)
+	}
+	return mask
+}
+{{- end}}
 {{- end}}
 {{- end}}
 

@@ -2942,7 +2942,7 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior), r.Policy.ComputedLine(r.Name, f.Name))
+		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior), r.Policy.ComputedLine(r.Name, f.Name) || keepsAPIValue(r, f))
 		if group == "" {
 			out.Attributes = append(out.Attributes, a)
 			root.Fields = append(root.Fields, field)

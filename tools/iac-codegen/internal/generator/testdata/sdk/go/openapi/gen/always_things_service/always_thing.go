@@ -8,11 +8,36 @@ import (
 type AlwaysThing struct {
 	Enabled bool
 	Note    *string
+	Limits  *AlwaysThingLimits
+	Config  *AlwaysThingConfig
+}
+
+type AlwaysThingLimits struct {
+	Max *int32
+}
+
+type AlwaysThingLimitsUpdate struct {
+	Max *int32
+}
+
+type AlwaysThingConfig struct {
+	Http  *AlwaysThingHttp
+	Queue *AlwaysThingQueue
+}
+
+type AlwaysThingHttp struct {
+	Endpoint string
+}
+
+type AlwaysThingQueue struct {
+	Topic string
 }
 
 type AlwaysThingsServiceUpdateAlwaysThingRequest struct {
 	Enabled *bool
 	Note    *string
+	Limits  *AlwaysThingLimitsUpdate
+	Config  *AlwaysThingConfig
 }
 
 type AlwaysThingsServiceAPIService struct{}

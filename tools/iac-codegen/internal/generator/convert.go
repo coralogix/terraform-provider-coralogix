@@ -1369,8 +1369,9 @@ func (f *convField) ValueKind() string {
 // markComputedObjectValue makes a directly nested computed field capable of
 // holding the unknown value that Terraform plans before Create.
 func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceField, response bool) {
-	// An object of a computed line is optional and computed: every root holds it as a value.
-	line := b.resource.Policy.ComputedLine(b.resource.Name, f.Name)
+	// An object of a computed line is optional and computed: every root holds it as a value. So is
+	// an object that keeps the value of the API: its plan is unknown before Create.
+	line := b.resource.Policy.ComputedLine(b.resource.Name, f.Name) || keepsAPIValue(b.resource, f)
 	if !line && (!response || f.Behavior != model.Computed) {
 		return
 	}

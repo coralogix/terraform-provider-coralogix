@@ -25,6 +25,8 @@ paths:
               properties:
                 enabled: {type: boolean, description: Whether the thing is on., x-coralogix-presence: true}
                 note: {type: string, description: A free note., x-coralogix-presence: true}
+                limits: {allOf: [{$ref: '#/components/schemas/AlwaysThingLimitsUpdate'}], description: The limits of the thing.}
+                config: {allOf: [{$ref: '#/components/schemas/AlwaysThingConfig'}], description: How the thing runs.}
       responses:
         '200': {description: ok, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/AlwaysThing'}], description: The updated thing.}}}}
 components:
@@ -36,3 +38,37 @@ components:
       properties:
         enabled: {type: boolean, description: Whether the thing is on.}
         note: {type: string, description: A free note.}
+        limits: {allOf: [{$ref: '#/components/schemas/AlwaysThingLimits'}], description: The limits of the thing.}
+        config: {allOf: [{$ref: '#/components/schemas/AlwaysThingConfig'}], description: How the thing runs.}
+    AlwaysThingLimits:
+      type: object
+      required: []
+      description: The limits of the thing.
+      properties:
+        max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+    AlwaysThingLimitsUpdate:
+      type: object
+      required: []
+      description: The limits of the thing.
+      properties:
+        max: {type: integer, format: int32, description: The most items., x-coralogix-presence: true}
+    AlwaysThingConfig:
+      type: object
+      required: []
+      description: How the thing runs.
+      properties:
+        http: {$ref: '#/components/schemas/AlwaysThingHttp'}
+        queue: {$ref: '#/components/schemas/AlwaysThingQueue'}
+      oneOf:
+        - required: [http]
+        - required: [queue]
+    AlwaysThingHttp:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint: {type: string, minLength: 1, description: The URL.}
+    AlwaysThingQueue:
+      type: object
+      required: [topic]
+      properties:
+        topic: {type: string, minLength: 1, description: The topic.}

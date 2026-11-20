@@ -36,6 +36,17 @@ type maskNode struct {
 var maskFields = []*maskNode{
 	{attr: "enabled", api: "enabled", serverDefault: true},
 	{attr: "note", api: "note", serverDefault: true},
+	{attr: "limits", api: "limits", serverDefault: true, children: []*maskNode{
+		{attr: "max", api: "max", serverDefault: false},
+	}},
+	{attr: "config", api: "config", serverDefault: true, oneOf: true, children: []*maskNode{
+		{attr: "http", api: "http", serverDefault: false, children: []*maskNode{
+			{attr: "endpoint", api: "endpoint", serverDefault: false},
+		}},
+		{attr: "queue", api: "queue", serverDefault: false, children: []*maskNode{
+			{attr: "topic", api: "topic", serverDefault: false},
+		}},
+	}},
 }
 
 // updateMask returns the paths of the values that differ in the plan and in
@@ -160,7 +171,7 @@ func createRequest(ctx context.Context, config, plan tfData) (*always_things_ser
 			continue // the plan holds the value of the API for a field that the configuration leaves out
 		}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
-		mask = append(mask, f.api)
+		mask = createPaths(mask, "", f, p)
 	}
 	if diags.HasError() || len(mask) == 0 {
 		return nil, "", diags
@@ -176,4 +187,36 @@ func createRequest(ctx context.Context, config, plan tfData) (*always_things_ser
 		return nil, "", diags
 	}
 	return body, strings.Join(mask, ","), diags
+}
+
+// createPaths adds the paths of the values that p sets below n, for Create. The singleton may
+// already hold a value, so a parent path alone can leave an old part of it in place (contract 2.6).
+// A oneOf names the selected arm. An object names the paths of the fields that it sets, or itself
+// when it sets none.
+func createPaths(mask []string, prefix string, n *maskNode, p attr.Value) []string {
+	if p.IsNull() || p.IsUnknown() {
+		return mask
+	}
+	at := n.api
+	if prefix != "" {
+		at = prefix + "." + n.api
+	}
+	po, ok := p.(types.Object)
+	if n.children == nil || !ok {
+		return append(mask, at)
+	}
+	if n.oneOf {
+		if arm := activeArm(n, po); arm != nil {
+			return append(mask, at+"."+arm.api)
+		}
+		return append(mask, at)
+	}
+	before := len(mask)
+	for _, c := range n.children {
+		mask = createPaths(mask, at, c, po.Attributes()[c.attr])
+	}
+	if len(mask) == before {
+		return append(mask, at)
+	}
+	return mask
 }
