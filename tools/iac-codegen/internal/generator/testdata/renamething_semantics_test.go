@@ -129,7 +129,7 @@ func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 	rename_things_service.Stored = rename_things_service.RenameThing{Id: &id, Kind: &kind}
 	r, schemaResp, root := thingSchema(t)
 	var order []string
-	r.hooks.BeforeWrite = func(context.Context, tfsdk.Config, any) diag.Diagnostics {
+	r.hooks.BeforeWrite = func(context.Context, tfsdk.Plan, *tfsdk.State, any) diag.Diagnostics {
 		order = append(order, "BeforeWrite")
 		return nil
 	}

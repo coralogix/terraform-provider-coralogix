@@ -23,7 +23,7 @@ var unknown = struct{}{}
 
 // fillIDs is the BeforeWrite hook of a resource like the archive retention tags: a write without ids
 // (Create) reads the tags and sends their ids by position. A failed read stops the write.
-func fillIDs(ctx context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+func fillIDs(ctx context.Context, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	req := body.(*retag_things_service.RenameTagsRequest)
 	if len(req.TagUpdates) == 0 || req.TagUpdates[0].Id != "" {
