@@ -95,7 +95,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 			return
 		}
 	}
-	m, diags := flatten(ctx, v)
+	m, diags := flatten(ctx, v, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

@@ -89,9 +89,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "user_name"
-    ],
     "state": {
       "active": true,
       "allowed_login_mode": [],
@@ -101,12 +98,9 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "tf-acc-user-1@coralogix.com"
+      "user_name": "TF-ACC-USER-1@Coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan",
@@ -126,11 +120,8 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "tf-acc-user-1@coralogix.com"
+      "user_name": "TF-ACC-USER-1@Coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+    "replanEmpty": true
   }
 ]

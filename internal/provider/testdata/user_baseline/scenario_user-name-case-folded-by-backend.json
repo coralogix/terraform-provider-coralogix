@@ -37,9 +37,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "user_name"
-    ],
     "state": {
       "active": true,
       "allowed_login_mode": [],
@@ -49,12 +46,9 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "tf-acc-user-1@coralogix.com"
+      "user_name": "TF-ACC-USER-1@Coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh writes the case of the backend, and the replan stays empty",
@@ -74,12 +68,9 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "tf-acc-user-1@coralogix.com"
+      "user_name": "TF-ACC-USER-1@Coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply the config again",
@@ -101,28 +92,7 @@
       },
       "user_name": "TF-ACC-USER-1@Coralogix.com"
     },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "allowedLoginMode": [],
-              "firstName": "Test",
-              "lastName": "User",
-              "status": "USER_STATUS_ACTIVE",
-              "username": "TF-ACC-USER-1@Coralogix.com"
-            }
-          }
-        ],
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "user_name"
-    ],
+    "noChange": true,
     "state": {
       "active": true,
       "allowed_login_mode": [],
@@ -132,11 +102,7 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "tf-acc-user-1@coralogix.com"
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+      "user_name": "TF-ACC-USER-1@Coralogix.com"
+    }
   }
 ]

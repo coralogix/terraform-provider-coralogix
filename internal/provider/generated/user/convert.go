@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -65,13 +67,13 @@ func expandUpdate(ctx context.Context, m *RbacV2UserModel) (*users_management_se
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *users_management_service.RbacV2User) (*RbacV2UserModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *users_management_service.RbacV2User, prior *RbacV2UserModel) (*RbacV2UserModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no RbacV2User.")
 		return nil, diags
 	}
-	out := flattenRbacV2User(ctx, path.Empty(), v, &diags)
+	out := flattenRbacV2User(ctx, path.Empty(), v, prior, &diags)
 	if out.UserId.IsNull() || out.UserId.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -257,7 +259,7 @@ func expandRbacV2UserUpdate(ctx context.Context, p path.Path, m *RbacV2UserModel
 	return out
 }
 
-func flattenRbacV2User(ctx context.Context, p path.Path, v *users_management_service.RbacV2User, diags *diag.Diagnostics) *RbacV2UserModel {
+func flattenRbacV2User(ctx context.Context, p path.Path, v *users_management_service.RbacV2User, prior *RbacV2UserModel, diags *diag.Diagnostics) *RbacV2UserModel {
 	if v == nil {
 		return nil
 	}
@@ -265,6 +267,9 @@ func flattenRbacV2User(ctx context.Context, p path.Path, v *users_management_ser
 	out.AllowedLoginMode = flattenEnumsList(ctx, p.AtName("allowed_login_mode"), v.AllowedLoginMode, "ALLOWED_LOGIN_MODE_UNSPECIFIED", diags)
 	out.UserId = types.StringPointerValue(&v.UserId)
 	out.Username = types.StringPointerValue(&v.Username)
+	if prior != nil {
+		out.Username = keepEquivalentText(prior.Username, out.Username, caseInsensitiveEqual)
+	}
 	out.Active = types.BoolNull()
 	out.Groups = types.SetNull(types.StringType)
 	out.Name = types.ObjectNull(map[string]attr.Type{"family_name": types.StringType, "given_name": types.StringType})
@@ -419,6 +424,58 @@ func flattenTime(v *time.Time) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(v.Format(time.RFC3339Nano))
+}
+
+// keepPriorElementCase returns the API elements, each in the spelling of the prior element that
+// differs from it only in case. An element without a prior twin keeps the API spelling. A prior
+// element serves one API element. In a list (ordered), the prior element at the same index serves
+// the API element at that index when the two match in any case, so twins that differ only in case
+// keep their spellings at their places. Then, in a list or a set, an exact match goes first, and
+// then the first unused twin, so that elements that differ only in case keep their own spellings.
+func keepPriorElementCase(prior []attr.Value, api []string, ordered bool) []string {
+	if api == nil {
+		return nil
+	}
+	spellings := make([]string, len(prior))
+	known := make([]bool, len(prior))
+	for j, element := range prior {
+		if s, ok := element.(types.String); ok && !s.IsNull() && !s.IsUnknown() {
+			spellings[j], known[j] = s.ValueString(), true
+		}
+	}
+	used := make([]bool, len(prior))
+	out := slices.Clone(api)
+	done := make([]bool, len(api))
+	if ordered {
+		for i, element := range api {
+			if i < len(prior) && known[i] && strings.EqualFold(spellings[i], element) {
+				out[i], used[i], done[i] = spellings[i], true, true
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if known[j] && !used[j] && spelled == element {
+				used[j], done[i] = true, true
+				break
+			}
+		}
+	}
+	for i, element := range api {
+		if done[i] {
+			continue
+		}
+		for j, spelled := range spellings {
+			if known[j] && !used[j] && strings.EqualFold(spelled, element) {
+				used[j], out[i] = true, spelled
+				break
+			}
+		}
+	}
+	return out
 }
 
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {

@@ -667,10 +667,21 @@ func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 }
 
 // caseInsensitiveElementsProblem checks equality: caseInsensitive. The key keeps the spelling of
-// the prior element of a list or set of plain strings, so any other field has nothing to keep.
+// the prior element of a list or set of plain strings, or of a plain string field whose value the
+// API echoes in another case.
 func caseInsensitiveElementsProblem(built *base.Schema, line overrides.Line) *lineIssue {
 	plain := func(s *base.Schema) bool {
 		return s != nil && slices.Equal(s.Type, []string{"string"}) && len(s.Enum) == 0 && s.Format == ""
+	}
+	if plain(built) {
+		if line.ReadOnly {
+			return &lineIssue{
+				code:    "OVERRIDE_EQUALITY_COMPUTED",
+				message: fmt.Sprintf("equality: caseInsensitive keeps the text that the user writes, but only the server sets %q", line.Field),
+				fix:     "Delete the equality key: Terraform never compares a configured value of a computed-only field.",
+			}
+		}
+		return nil
 	}
 	var items *base.Schema
 	if slices.Equal(built.Type, []string{"array"}) && built.Items != nil && built.Items.IsA() {
@@ -679,8 +690,8 @@ func caseInsensitiveElementsProblem(built *base.Schema, line overrides.Line) *li
 	if !plain(items) {
 		return &lineIssue{
 			code:    "OVERRIDE_EQUALITY_NOT_STRING",
-			message: fmt.Sprintf("equality: caseInsensitive keeps the spelling of the elements of a list or set of plain strings, but %q is not one", line.Field),
-			fix:     "Delete the equality key, or set it on a list of strings.",
+			message: fmt.Sprintf("equality: caseInsensitive keeps the spelling of a string or of the elements of a list or set of plain strings, but %q is not one", line.Field),
+			fix:     "Delete the equality key, or set it on a string or a list of strings.",
 		}
 	}
 	if line.ReadOnly || built.ReadOnly != nil && *built.ReadOnly {

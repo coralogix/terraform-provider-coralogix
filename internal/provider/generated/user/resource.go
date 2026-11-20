@@ -418,7 +418,7 @@ func (r *Resource) setState(ctx context.Context, v *users_management_service.Rba
 			return diags
 		}
 	}
-	m, flattenDiags := flatten(ctx, v)
+	m, flattenDiags := flatten(ctx, v, priorModel(ctx, prior))
 	diags.Append(flattenDiags...)
 	if diags.HasError() {
 		return diags
@@ -469,10 +469,21 @@ func (r *Resource) setState(ctx context.Context, v *users_management_service.Rba
 	return diags
 }
 
+// priorModel returns the model in the state or the plan, or nil when there is none or it
+// cannot be read. The prior keeps a value the API does not return on its own: the order of a
+// list, the text of a document, or a configured empty string.
+func priorModel(ctx context.Context, data tfData) *RbacV2UserModel {
+	var m RbacV2UserModel
+	if data == nil || data.Get(ctx, &m).HasError() {
+		return nil
+	}
+	return &m
+}
+
 // Flatten returns the Terraform model of a resource in an API response, for a data source that
 // uses the schema and the model of this resource. It has no prior model.
 func Flatten(ctx context.Context, v *users_management_service.RbacV2User) (*RbacV2UserModel, diag.Diagnostics) {
-	return flatten(ctx, v)
+	return flatten(ctx, v, nil)
 }
 
 // Expand returns what Create sends in the place of the resource, for a hook that has to build the

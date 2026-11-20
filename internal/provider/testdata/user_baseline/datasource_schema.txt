@@ -15,4 +15,4 @@ name.family_name  tftypes.String computed
 name.given_name  tftypes.String computed
     description: The given (first) name of the user.
 user_name  tftypes.String computed
-    description: Unique username
+    description: User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.

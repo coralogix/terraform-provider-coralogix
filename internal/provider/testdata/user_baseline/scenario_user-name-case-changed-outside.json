@@ -68,15 +68,9 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
+      "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "drift": [
-      "AttributeName(\"user_name\")"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "apply the config again",
@@ -98,28 +92,7 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "allowedLoginMode": [],
-              "firstName": "Test",
-              "lastName": "User",
-              "status": "USER_STATUS_ACTIVE",
-              "username": "tf-acc-user-1@coralogix.com"
-            }
-          }
-        ],
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "user_name"
-    ],
+    "noChange": true,
     "state": {
       "active": true,
       "allowed_login_mode": [],
@@ -129,11 +102,7 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"user_name\")"
-    ]
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
   }
 ]

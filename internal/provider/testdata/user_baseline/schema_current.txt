@@ -1,4 +1,5 @@
 (schema)  version=0
+    markdown: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/."
 active  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to true
     markdown: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`."
@@ -19,4 +20,4 @@ name.family_name  StringAttribute optional
 name.given_name  StringAttribute optional
     markdown: "The given (first) name of the user."
 user_name  StringAttribute required
-    markdown: "Unique username"
+    markdown: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans."
