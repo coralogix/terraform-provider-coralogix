@@ -4,7 +4,10 @@
 from: 3.26.0
 attributes:
     active: {type: Bool}
-    allowed_login_mode: {type: List(String)}
+    emails: {type: Set(SingleNested)}
+    emails.primary: {type: Bool}
+    emails.type: {type: String}
+    emails.value: {type: String}
     groups: {type: Set(String)}
     id: {type: String}
     name: {type: SingleNested}

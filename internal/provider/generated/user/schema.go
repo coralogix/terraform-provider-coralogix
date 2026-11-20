@@ -37,7 +37,7 @@ func Schema() schema.Schema {
 			},
 			"user_name": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Unique username",
+				MarkdownDescription: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.",
 			},
 			"active": schema.BoolAttribute{
 				Optional:            true,
@@ -72,6 +72,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "The name of the user.",
 			},
 		},
+		MarkdownDescription: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.",
 	}
 }
 

@@ -58,13 +58,13 @@ resource "coralogix_group" "example" {
 
 ### Optional
 
-- `active` (Boolean)
-- `name` (Attributes) (see [below for nested schema](#nestedatt--name))
+- `active` (Boolean) Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
+- `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both.
+- `name` (Attributes) The name of the user. (see [below for nested schema](#nestedatt--name))
 
 ### Read-Only
 
-- `emails` (Attributes Set) (see [below for nested schema](#nestedatt--emails))
-- `groups` (Set of String)
+- `groups` (Set of String) The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
 - `id` (String) User ID.
 
 <a id="nestedatt--name"></a>
@@ -72,18 +72,8 @@ resource "coralogix_group" "example" {
 
 Optional:
 
-- `family_name` (String)
-- `given_name` (String)
-
-
-<a id="nestedatt--emails"></a>
-### Nested Schema for `emails`
-
-Read-Only:
-
-- `primary` (Boolean)
-- `type` (String)
-- `value` (String)
+- `family_name` (String) The family (last) name of the user.
+- `given_name` (String) The given (first) name of the user.
 
 ## Import
 

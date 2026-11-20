@@ -5,6 +5,9 @@
 resource: rbac.v2.User
 mode: existing
 typeName: user
+
+markdownDescription: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/."
+
 validators:
   inferred: false
 afterFlatten: true
@@ -51,6 +54,7 @@ types:
         name: user_name
         required: true
         releasedLimits: true
+        markdownDescription: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans."
       firstName:
         skip: true
       lastName:

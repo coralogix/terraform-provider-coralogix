@@ -7,6 +7,7 @@ allowed_login_mode  ListAttribute optional computed elem=basetypes.StringType
     plan modifier: listplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 groups  SetAttribute computed elem=basetypes.StringType
     markdown: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
+    plan modifier: setplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 id  StringAttribute computed
     markdown: "User ID."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

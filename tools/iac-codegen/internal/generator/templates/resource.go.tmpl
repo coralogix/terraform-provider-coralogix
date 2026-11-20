@@ -896,12 +896,36 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	{{- end}}
 	{{- if .GetNextPageValue}}
 	pageToken := out.{{.GetNextPageField}}
+{{- if .GetNextPageInt}}
+	// The token is an offset into the result set: a missing token, or one that does
+	// not move forward, means this was the last page.
+	prevPageToken := {{if .GetNextPageValue}}0{{else}}0{{end}}
+{{- end}}
 	for page := 1; {{if .GetNextPageInt}}pageToken != 0{{else}}pageToken != ""{{end}} && page < 100; page++ {
 		out, httpResp, err = {{if .GetHooks}}pageExecute(pageToken){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}(pageToken).Execute(){{end}}
+	{{- if .GetNextPageInt}}
+		if pageToken <= prevPageToken && page > 1 {
+			// The pages stopped moving forward: the List ended, and the resource is
+			// not in it. Terraform treats the resource as removed.
+			return nil, nil
+		}
+		prevPageToken = pageToken
+	{{- end}}
 	{{- else}}
 	pageToken := out.{{.GetNextPageField}}
+{{- if .GetNextPageInt}}
+	var prevPageToken int64
+{{- end}}
 	for page := 1; pageToken != nil && *pageToken != {{if .GetNextPageInt}}0{{else}}""{{end}} && page < 100; page++ {
 		out, httpResp, err = {{if .GetHooks}}pageExecute(pageToken){{else}}r.client.{{.Get.Method}}(ctx){{range .GetQuery}}.{{.Method}}({{.Value}}){{end}}.{{.GetNextPage}}(*pageToken).Execute(){{end}}
+	{{- if .GetNextPageInt}}
+		if *pageToken <= prevPageToken && page > 1 {
+			// The token is an offset into the result set: one that does not move
+			// forward means the pages ended, and the resource is not in them.
+			return nil, nil
+		}
+		prevPageToken = *pageToken
+	{{- end}}
 	{{- end}}
 		if err != nil {
 			return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)

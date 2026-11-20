@@ -76,6 +76,11 @@ const minimalConfig = `resource "coralogix_user" "test" {
   user_name = "@{run}-user_name"
 }`
 
+// upgradeFullConfig is the full config without the attributes that provider 3.26.0 does not have.
+const upgradeFullConfig = `resource "coralogix_user" "test" {
+  user_name = "@{run}-user_name"
+}`
+
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_user" "test" {
   user_name = "@{run}-user_name"
@@ -122,6 +127,12 @@ func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
 		resource.TestCheckResourceAttr(resourceAddress, "active", "true"),
+	)
+}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
 	)
 }
 
@@ -319,7 +330,7 @@ func TestAccCoralogixResourceUserGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
 				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})

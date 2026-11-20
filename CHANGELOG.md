@@ -1,5 +1,17 @@
 # Unreleased
 
+#### resource/coralogix_user
+
+- FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them.
+- FIX: The read pages the Search with the page size of 100, and stops when the page token stops moving forward, as the released resource did.
+- BREAKING: `data.coralogix_user` loses the `user_name` lookup until the generator can send a configured value as a Search filter (the V6 follow-up): it reads by `id` only, and a configuration that sets `user_name` is rejected as a read-only attribute.
+- BREAKING: `emails` is removed. The Users API has no email collection: the released set always held exactly one primary work email whose value was `user_name`, which a configuration can read from `user_name` directly. The state upgrade drops it.
+
+#### data-source/coralogix_user
+
+- FEAT: `data.coralogix_user` is generated from the Users API contract, and reads by `id`.
+- BREAKING: The `user_name` lookup is removed, as on the resource (the V6 follow-up above).
+
 #### resource/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
 - CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.

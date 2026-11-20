@@ -341,8 +341,15 @@ func (r *Resource) get(ctx context.Context, id string) (*users_management_servic
 		return pageRequest(*token)().Execute()
 	}
 	pageToken := out.NextPageToken
+	var prevPageToken int64
 	for page := 1; pageToken != nil && *pageToken != 0 && page < 100; page++ {
 		out, httpResp, err = pageExecute(pageToken)
+		if *pageToken <= prevPageToken && page > 1 {
+			// The token is an offset into the result set: one that does not move
+			// forward means the pages ended, and the resource is not in them.
+			return nil, nil
+		}
+		prevPageToken = *pageToken
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}
