@@ -356,3 +356,13 @@ func TestExampleElementsKeepAnEmptyArray(t *testing.T) {
 }
 
 type modelType = model.Type
+
+// A number example has no exponent in the config or in the check: Terraform shows 1000000, not 1e+06.
+func TestExampleLiteralOfANumberHasNoExponent(t *testing.T) {
+	for text, want := range map[string]string{"1000000": "1000000", "0.00001": "0.00001", "1e6": "1000000", "2.5": "2.5"} {
+		hcl, state, ok := exampleLiteral("Float64", exampleValue{Text: text, Tag: "!!float"})
+		if !ok || hcl != want || state != want {
+			t.Fatalf("%s: hcl %q, state %q, ok %v, want %q", text, hcl, state, ok, want)
+		}
+	}
+}

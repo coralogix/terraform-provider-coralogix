@@ -389,7 +389,8 @@ func exampleLiteral(kind string, v exampleValue) (hcl, state string, ok bool) {
 		if err != nil {
 			return "", "", false
 		}
-		text := strconv.FormatFloat(f, 'g', -1, 64)
+		// Terraform shows a number in fixed-point notation, so the check text has no exponent.
+		text := strconv.FormatFloat(f, 'f', -1, 64)
 		return text, text, true
 	}
 	return "", "", false
