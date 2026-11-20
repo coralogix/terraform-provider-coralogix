@@ -1,0 +1,23 @@
+provider:
+  name: coralogix
+
+resources:
+  rule_group:
+    create:
+      path: /parsing-rules/rule-groups/v1
+      method: POST
+    read:
+      path: /parsing-rules/rule-groups/v1/{group_id}
+      method: GET
+    update:
+      path: /parsing-rules/rule-groups/v1/{group_id}
+      method: PUT
+    delete:
+      path: /parsing-rules/rule-groups/v1/{group_id}
+      method: DELETE
+
+data_sources:
+  rule_group:
+    read:
+      path: /parsing-rules/rule-groups/v1/{group_id}
+      method: GET
