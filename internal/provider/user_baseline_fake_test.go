@@ -42,6 +42,39 @@ const (
 //   - PUT replaces the whole template of each user: an omitted login mode list is written as none,
 //     and an omitted status as inactive
 //   - there is no DELETE and no read by userId
+//
+// canonicalModes deduplicates the allowed login modes of a request template and
+// answers them in the canonical order of the backend: LOCAL before SSO. It is the
+// shape the real identity-service answers on every read.
+func canonicalModes(modes any) []any {
+	out := []any{}
+	if modes == nil {
+		return out
+	}
+	list, ok := modes.([]any)
+	if !ok {
+		return out
+	}
+	local := "ALLOWED_LOGIN_MODE_LOCAL"
+	sso := "ALLOWED_LOGIN_MODE_SSO"
+	hasLocal, hasSSO := false, false
+	for _, m := range list {
+		switch m {
+		case local:
+			hasLocal = true
+		case sso:
+			hasSSO = true
+		}
+	}
+	if hasLocal {
+		out = append(out, local)
+	}
+	if hasSSO {
+		out = append(out, sso)
+	}
+	return out
+}
+
 type userFake struct {
 	mu       sync.Mutex
 	t        *testing.T
@@ -418,10 +451,10 @@ func (f *userFake) update(body any) (int, any) {
 		if status, ok := template["status"]; ok {
 			user["status"] = status
 		}
-		user["allowedLoginMode"] = []any{}
-		if modes, ok := template["allowedLoginMode"]; ok {
-			user["allowedLoginMode"] = modes
-		}
+		// The real backend canonicalizes the modes: it answers each distinct mode
+		// once, local before SSO (identity-service allowed_login_mode_from), whatever
+		// order or repetitions the request sent.
+		user["allowedLoginMode"] = canonicalModes(template["allowedLoginMode"])
 		// The real PUT answers the user with its access type; the template does not carry it.
 		// A template that does carry one (the temporary-access scenario) is kept as sent.
 		if access, ok := template["accessType"]; ok {

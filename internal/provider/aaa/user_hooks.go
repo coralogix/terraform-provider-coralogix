@@ -143,23 +143,24 @@ func userAfterRead(ctx context.Context, state *tfsdk.State, prior any) diag.Diag
 	if priorModes.IsNull() || priorModes.IsUnknown() {
 		return diags
 	}
-	priorElems := priorModes.Elements()
-	elems := modes.Elements()
-	if len(priorElems) != len(elems) {
-		return diags // A different multiset: the read wins, and the plan must follow.
+	// The backend answers each distinct mode once; the configuration may repeat
+	// one. The lists reconcile when they hold the same distinct elements: the
+	// state keeps the prior list, repetitions and all, and the read's shorter
+	// answer never shortens it.
+	priorSet := map[string]bool{}
+	for _, v := range priorModes.Elements() {
+		priorSet[v.String()] = true
 	}
-	used := make([]bool, len(elems))
-	for _, want := range priorElems {
-		found := false
-		for i, got := range elems {
-			if !used[i] && want.Equal(got) {
-				used[i] = true
-				found = true
-				break
-			}
-		}
-		if !found {
-			return diags // Not the same elements: the read wins.
+	answerSet := map[string]bool{}
+	for _, v := range modes.Elements() {
+		answerSet[v.String()] = true
+	}
+	if len(priorSet) != len(answerSet) {
+		return diags // A different set of modes: the read wins, and the plan must follow.
+	}
+	for m := range priorSet {
+		if !answerSet[m] {
+			return diags
 		}
 	}
 	if d := state.SetAttribute(ctx, path.Root("allowed_login_mode"), priorModes); d.HasError() {
