@@ -16,22 +16,20 @@ package aaa
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"fmt"
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
@@ -51,7 +49,7 @@ func UserHooks() user.Hooks {
 		BeforeWrite:  userBeforeWrite,
 		Get:          userGet,
 		AfterFlatten: userAfterFlatten,
-		ModifyPlan:   userLegacyUpdatePlan,
+		ModifyPlan:   userUpdatePlan,
 	}
 }
 
@@ -61,21 +59,60 @@ func NewResource(hooks user.Hooks) resource.Resource {
 	return &UserResource{Resource: *user.NewResource(hooks).(*user.Resource)}
 }
 
-// userLegacyUpdatePlan keeps the login modes of an upgraded state unknown: the plan of
-// a state that carries none (the schema of 3.26.0 had no attribute) plans them null,
-// but the recovery reads the modes the backend has, and a known null the read does not
-// answer is an inconsistent result after the apply. An unknown plans as (known after
-// apply) and matches what the read stores.
-func userLegacyUpdatePlan(_ context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if req.Plan.Raw.IsNull() {
+// userUpdatePlan shapes the plan of every update. The backend answers the login
+// modes in its canonical order — LOCAL before SSO, without duplicates
+// (identity-service allowed_login_mode_from) — while the configuration may list
+// them in any order or repeat one, and Terraform compares a list in order: any
+// non-canonical plan fails the apply as an inconsistent result. The hook rewrites
+// the planned modes to the canonical order (a repeated mode collapses to one), so
+// the plan always matches what the read of the apply stores. It also keeps the
+// modes of an upgraded state unknown: a state that carries none (the schema of
+// 3.26.0 had no attribute) plans them null, but the recovery reads the modes the
+// backend has, and a known null the read does not answer is an inconsistent
+// result after the apply. An unknown plans as (known after apply) and matches
+// what the read stores; the access type of an upgraded state is likewise unknown,
+// because the PUT response supplies it too.
+func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if resp.Plan.Raw.IsNull() {
 		return // A destroy plans no values.
 	}
+	// The plan the generated steps left: the plan-equality step may have set it to
+	// the state, and the hook must shape that plan, not the raw input.
+	planRaw := resp.Plan.Raw
 	var plan user.RbacV2UserModel
-	if d := req.Plan.Get(context.Background(), &plan); d.HasError() {
+	if d := resp.Plan.Get(ctx, &plan); d.HasError() {
 		return
 	}
 	if plan.Username.IsNull() {
 		return // Nothing to recover for.
+	}
+	attrs := map[string]tftypes.Value{}
+	if err := planRaw.As(&attrs); err != nil {
+		return
+	}
+	planned := planRaw
+	changed := false
+	// The canonical order of the backend: LOCAL, then SSO, once. The plan of a
+	// known list is rewritten when it differs; unknown and null plans stay.
+	if at, ok := attrs["allowed_login_mode"]; ok && !at.IsNull() && !at.Equal(tftypes.NewValue(at.Type(), tftypes.UnknownValue)) {
+		var elems []tftypes.Value
+		if err := at.As(&elems); err == nil {
+			canonical := canonicalLoginModes(elems)
+			if len(canonical) != len(elems) {
+				changed = true
+			} else {
+				for i := range elems {
+					if !elems[i].Equal(canonical[i]) {
+						changed = true
+						break
+					}
+				}
+			}
+			if changed {
+				listType := tftypes.List{ElementType: tftypes.String}
+				attrs["allowed_login_mode"] = tftypes.NewValue(listType, canonical)
+			}
+		}
 	}
 	// The state carries the resource: a legacy-state update. The schema of 3.26.0
 	// had no access_type either: a missing value plans null, and the PUT response
@@ -83,12 +120,6 @@ func userLegacyUpdatePlan(_ context.Context, req resource.ModifyPlanRequest, res
 	// would reject as an inconsistent result. Plan both unknown until the read of
 	// the apply fills them.
 	if !req.State.Raw.IsNull() {
-		attrs := map[string]tftypes.Value{}
-		if err := req.Plan.Raw.As(&attrs); err != nil {
-			return
-		}
-		planned := req.Plan.Raw
-		changed := false
 		for _, name := range []string{"allowed_login_mode", "access_type"} {
 			at, ok := attrs[name]
 			if ok && at.IsNull() && (name != "allowed_login_mode" || plan.AllowedLoginMode.IsNull()) {
@@ -96,10 +127,40 @@ func userLegacyUpdatePlan(_ context.Context, req resource.ModifyPlanRequest, res
 				changed = true
 			}
 		}
-		if changed {
-			resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
+	}
+	if changed {
+		resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
+	}
+}
+
+// canonicalLoginModes orders the login modes the way the backend answers them and
+// drops a repeated one. The elements are string values; an unknown element stays
+// unknown and passes through untouched.
+func canonicalLoginModes(modes []tftypes.Value) []tftypes.Value {
+	local := tftypes.NewValue(tftypes.String, "ALLOWED_LOGIN_MODE_LOCAL")
+	sso := tftypes.NewValue(tftypes.String, "ALLOWED_LOGIN_MODE_SSO")
+	hasLocal, hasSSO, unknown := false, false, false
+	for _, m := range modes {
+		switch {
+		case m.Equal(local):
+			hasLocal = true
+		case m.Equal(sso):
+			hasSSO = true
+		case m.Equal(tftypes.NewValue(tftypes.String, tftypes.UnknownValue)):
+			unknown = true
 		}
 	}
+	if unknown {
+		return modes // The read of the apply fills an unknown; keep the plan as it is.
+	}
+	out := []tftypes.Value{}
+	if hasLocal {
+		out = append(out, local)
+	}
+	if hasSSO {
+		out = append(out, sso)
+	}
+	return out
 }
 
 // userSearchKey is the context key of the search the hook can run for the values the
@@ -128,8 +189,28 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	if r.client != nil {
 		ctx = context.WithValue(ctx, userSearchKey{}, func(username string) (*users_management_service.SearchUsersResponse, error) {
-			resp, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).Execute()
-			return resp, err
+			out, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).Execute()
+			if err != nil {
+				return out, err
+			}
+			// Page through the rest: a user past the first page is a real user,
+			// and missing one would send a PUT without its values, which the
+			// backend treats as clear-them.
+			users := out.GetUsers()
+			pageToken := out.GetNextPageToken()
+			for page := 1; pageToken != 0 && page < 100; page++ {
+				next, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).PageToken(pageToken).Execute()
+				if err != nil {
+					return out, err
+				}
+				users = append(users, next.GetUsers()...)
+				pageToken = next.GetNextPageToken()
+				if len(next.GetUsers()) == 0 {
+					break
+				}
+			}
+			out.Users = users
+			return out, nil
 		})
 	}
 	r.Resource.Update(ctx, req, resp)

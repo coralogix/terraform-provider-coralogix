@@ -92,7 +92,11 @@
       "AttributeName(\"allowed_login_mode\").ElementKeyInt(0)",
       "AttributeName(\"allowed_login_mode\").ElementKeyInt(1)"
     ],
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"allowed_login_mode\").ElementKeyInt(0)",
+      "AttributeName(\"allowed_login_mode\").ElementKeyInt(1)"
+    ]
   },
   {
     "step": "rename: the PUT sends the temporary access back",
@@ -112,8 +116,8 @@
       },
       "active": true,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_SSO",
-        "ALLOWED_LOGIN_MODE_LOCAL"
+        "ALLOWED_LOGIN_MODE_LOCAL",
+        "ALLOWED_LOGIN_MODE_SSO"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
@@ -138,8 +142,8 @@
                 }
               },
               "allowedLoginMode": [
-                "ALLOWED_LOGIN_MODE_SSO",
-                "ALLOWED_LOGIN_MODE_LOCAL"
+                "ALLOWED_LOGIN_MODE_LOCAL",
+                "ALLOWED_LOGIN_MODE_SSO"
               ],
               "firstName": "Renamed",
               "lastName": "Person",
@@ -160,8 +164,8 @@
       },
       "active": true,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_SSO",
-        "ALLOWED_LOGIN_MODE_LOCAL"
+        "ALLOWED_LOGIN_MODE_LOCAL",
+        "ALLOWED_LOGIN_MODE_SSO"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
@@ -191,8 +195,8 @@
       },
       "active": true,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_SSO",
-        "ALLOWED_LOGIN_MODE_LOCAL"
+        "ALLOWED_LOGIN_MODE_LOCAL",
+        "ALLOWED_LOGIN_MODE_SSO"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",

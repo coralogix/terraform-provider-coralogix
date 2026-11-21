@@ -11,7 +11,7 @@ access_type.temporary_access.expire_at  tftypes.String computed
 active  tftypes.Bool computed
     description: Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
 allowed_login_mode  tftypes.List[tftypes.String] computed
-    description: List of allowed login modes. Can include SSO, local authentication, or both.
+    description: List of allowed login modes. Can include SSO, local authentication, or both. The backend answers them in its own order (local, then SSO): the resource stores that order regardless of the order in the configuration, and a repeated mode counts once. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
 groups  tftypes.Set[tftypes.String] computed
     description: The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
 id  tftypes.String required
@@ -23,4 +23,4 @@ name.family_name  tftypes.String computed
 name.given_name  tftypes.String computed
     description: The given (first) name of the user.
 user_name  tftypes.String computed
-    description: User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.
+    description: User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name still plans an update, which the resource refuses: the API ignores a username change.

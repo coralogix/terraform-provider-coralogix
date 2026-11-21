@@ -51,12 +51,13 @@ types:
         releasedLimits: true
         computed: true
         useStateForUnknown: true
+        markdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both. The backend answers them in its own order (local, then SSO): the resource stores that order regardless of the order in the configuration, and a repeated mode counts once. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`."
       username:
         name: user_name
         required: true
         releasedLimits: true
         equality: caseInsensitive
-        markdownDescription: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans."
+        markdownDescription: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name still plans an update, which the resource refuses: the API ignores a username change."
       firstName:
         skip: true
       lastName:

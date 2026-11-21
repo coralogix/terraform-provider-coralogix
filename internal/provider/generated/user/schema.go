@@ -63,7 +63,7 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both.",
+				MarkdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both. The backend answers them in its own order (local, then SSO): the resource stores that order regardless of the order in the configuration, and a repeated mode counts once. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.",
 			},
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -74,7 +74,7 @@ func Schema() schema.Schema {
 			},
 			"user_name": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.",
+				MarkdownDescription: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name still plans an update, which the resource refuses: the API ignores a username change.",
 			},
 			"active": schema.BoolAttribute{
 				Optional:            true,

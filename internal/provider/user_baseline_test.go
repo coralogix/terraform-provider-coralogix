@@ -424,6 +424,14 @@ var userScenarios = map[string]func(h *grHarness){
 		sLegacy = h.Apply("update: the PUT sends the modes and the temporary access of the search", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
 		h.RefreshPlan("refresh and replan", sLegacy)
 	},
+	// The backend answers the modes in its canonical order (local, then SSO): a
+	// configuration that lists them the other way round, or repeats one, still
+	// plans and applies as the canonical order, so the read of the apply matches
+	// the plan.
+	"login-modes-canonical-order": func(h *grHarness) {
+		s := h.Apply("create with the modes reversed and a duplicate", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL", "ALLOWED_LOGIN_MODE_SSO"}}))
+		h.RefreshPlan("refresh: the state carries the canonical order", s)
+	},
 	// The recovery of an upgraded state refuses to update when the search fails: continuing
 	// would clear the modes of the user.
 	"legacy-echo-recovery-fails": func(h *grHarness) {
