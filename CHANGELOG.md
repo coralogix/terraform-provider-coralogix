@@ -1,5 +1,20 @@
 # Unreleased
 
+#### resource/coralogix_user
+
+- FIX: `allowed_login_mode` keeps the order and repetitions of the configuration in the state: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change.
+- FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them.
+- FIX: The read pages the Search with the page size of 100, and stops when the page token stops moving forward, as the released resource did.
+- BREAKING: `data.coralogix_user` loses the `user_name` lookup until the generator can send a configured value as a Search filter (the V6 follow-up): it reads by `id` only, and a configuration that sets `user_name` is rejected as a read-only attribute.
+- BREAKING: `emails` is removed. The Users API has no email collection: the released set always held exactly one primary work email whose value was `user_name`, which a configuration can read from `user_name` directly. The state upgrade drops it.
+- BREAKING: A user can no longer be imported by `user_name` (an email): the generated import reads by `id`, as the Users API has no lookup by email. Import with the user id instead.
+- BREAKING: A case-only `user_name` change (e.g. `User@x.com` to `user@x.com`) now plans an update, which the API answers by keeping the old name: the update fails with a clear diagnostic instead of silently matching. The backend folds the case of an SSO login itself, so an SSO login that the backend recased reads as no change.
+
+#### data-source/coralogix_user
+
+- FEAT: `data.coralogix_user` is generated from the Users API contract, and reads by `id`.
+- BREAKING: The `user_name` lookup is removed, as on the resource (the V6 follow-up above).
+
 #### resource/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
 - CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.

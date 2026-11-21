@@ -9,8 +9,9 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -38,14 +39,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
@@ -60,38 +59,27 @@
     "step": "destroy: the PUT route answers 404",
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "accessType": {
-                "accessType": "permanent",
-                "permanentAccess": {}
-              },
-              "allowedLoginMode": [],
-              "firstName": "Test",
-              "lastName": "User",
-              "status": "USER_STATUS_INACTIVE"
-            }
-          }
-        ],
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/aaa/users/v2:updateStatuses",
+        "body": {
+          "status": "USER_STATUS_INACTIVE",
+          "userIds": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        },
         "status": 404
       }
     ],
     "applyDiagnostics": [
-      "error: Error Deleting User 00000000-0000-4000-8000-000000000001 | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}\noperation - UpdateUsers"
+      "error: Unable to delete user | id 00000000-0000-4000-8000-000000000001: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
+      "allowed_login_mode": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {

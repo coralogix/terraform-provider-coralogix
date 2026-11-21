@@ -195,7 +195,7 @@ func TestViewFollowUpUpdateRunsBeforeWrite(t *testing.T) {
 	}
 	var writes []string
 	r := view.NewResourceWithClient(views_service.NewAPIClient(views_service.NewConfiguration()).ViewsServiceAPI, view.Hooks{
-		BeforeWrite: func(_ context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+		BeforeWrite: func(_ context.Context, _ tfsdk.Config, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 			writes = append(writes, fmt.Sprintf("%T", body))
 			return nil
 		},

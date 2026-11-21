@@ -116,8 +116,8 @@ func quotaRulesFromConfig(raw tftypes.Value) []quotaRuleConfig {
 // validateQuotaAllocationRulesBeforeWrite runs the checks again on the resolved configuration: a
 // value that comes from another resource is unknown while Terraform validates the configuration,
 // so the checks skip it, and the write is the first place that sees it.
-func validateQuotaAllocationRulesBeforeWrite(_ context.Context, config tfsdk.Config, _ any) diag.Diagnostics {
-	return validateQuotaAllocationRules(quotaRulesFromConfig(config.Raw))
+func validateQuotaAllocationRulesBeforeWrite(_ context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, _ any) diag.Diagnostics {
+	return validateQuotaAllocationRules(quotaRulesFromConfig(plan.Raw))
 }
 
 func validateQuotaAllocationRulesConfig(_ context.Context, config tfsdk.Config) diag.Diagnostics {

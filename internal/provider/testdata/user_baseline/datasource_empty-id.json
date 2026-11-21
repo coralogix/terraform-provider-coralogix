@@ -4,9 +4,17 @@
     "config": {
       "id": ""
     },
-    "validateDiagnostics": [
-      "error: Invalid Attribute Value Length [AttributeName(\"id\")] | Attribute id string length must be at least 1, got: 0"
+    "applyDiagnostics": [
+      "error: Unable to read coralogix_user | id must be set to a non-empty user id."
     ],
-    "state": null
+    "state": {
+      "access_type": null,
+      "active": null,
+      "allowed_login_mode": null,
+      "groups": null,
+      "id": "",
+      "name": null,
+      "user_name": null
+    }
   }
 ]

@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -25,7 +26,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 )
 
@@ -49,9 +53,32 @@ func newUserHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, userTypeName, newUserFake(t))
 }
 
+// withNullAllowed copies the state attributes and nulls the login modes and the access
+// type: the shape of a state upgraded from the released provider, whose schema had no
+// attribute for either. Terraform plans a missing legacy attribute null.
+func withNullAllowed(s tftypes.Value) map[string]any {
+	attrs := userStateJSON(s)
+	attrs["allowed_login_mode"] = nil
+	attrs["access_type"] = nil
+	return attrs
+}
+
+// userStateJSON reads the state value as a JSON map of the attribute names.
+func userStateJSON(s tftypes.Value) map[string]any {
+	out := map[string]any{}
+	raw, _ := json.Marshal(toJSON(s))
+	_ = json.Unmarshal(raw, &out)
+	return out
+}
+
+// stateFromJSON rebuilds a state value with one attribute changed.
+func (h *grHarness) stateFromJSON(attrs map[string]any) tftypes.Value {
+	return fromJSON(h.t, h.typ, attrs)
+}
+
 func TestUserBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
-	aaa.NewUserResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
+	user.NewResource(aaa.UserHooks()).Schema(context.Background(), resource.SchemaRequest{}, &current)
 	checkGoldenAt(t, userGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
 }
 
@@ -373,6 +400,53 @@ var userScenarios = map[string]func(h *grHarness){
 		}
 		s = h.RefreshPlan("refresh: SearchUsers returns the user without userId", s)
 		h.Apply("apply the same config again: the user still exists but has no id", s, userConfig(userA, j{"name": userTestName}))
+	},
+	// A state upgraded from the released provider has the login modes only in the
+	// private state: the schema of 3.26.0 had no attribute for them. An update without
+	// a refresh must send them, not clear them.
+	"legacy-echo-update": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// Replace the private state with the released echo: the login modes the last
+		// read of the released resource returned, and no schema value.
+		// The backend has the modes even though the upgraded state does not.
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
+		s = h.stateFromJSON(withNullAllowed(s))
+		h.Apply("update: the PUT sends the modes of the released echo", s, userConfig(userA, j{"name": userTestName, "active": false}))
+	},
+	// A legacy temporary-access user: the upgraded state carries neither attribute, the
+	// backend holds temporary access with its expiry, and the recovery PUT must send
+	// both back — an omitted access type would replace the temporary access with a
+	// permanent one and discard the expiry.
+	"legacy-echo-temporary-access": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes, "accessType": userTemporaryAccess})
+		sLegacy := h.stateFromJSON(withNullAllowed(s))
+		sLegacy = h.Apply("update: the PUT sends the modes and the temporary access of the search", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
+		h.RefreshPlan("refresh and replan", sLegacy)
+	},
+	// The backend answers the modes in its canonical order (local, then SSO): a
+	// configuration that lists them the other way round, or repeats one, still
+	// plans and applies as the canonical order, so the read of the apply matches
+	// the plan.
+	"login-modes-canonical-order": func(h *grHarness) {
+		s := h.Apply("create with the modes reversed and a duplicate", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL", "ALLOWED_LOGIN_MODE_SSO"}}))
+		h.RefreshPlan("refresh: the state carries the canonical order", s)
+	},
+	// The attribute is Optional+Computed: only an explicit empty list clears the
+	// modes, and the read of the cleared user answers none, which the state keeps.
+	"login-modes-cleared": func(h *grHarness) {
+		s := h.Apply("create with both modes", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL"}}))
+		s = h.Apply("clear with an empty list", s, userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{}}))
+		h.RefreshPlan("refresh: the modes stay cleared", s)
+	},
+	// The recovery of an upgraded state refuses to update when the search fails: continuing
+	// would clear the modes of the user.
+	"legacy-echo-recovery-fails": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
+		h.users().searchStatus = 500
+		sLegacy := h.stateFromJSON(withNullAllowed(s))
+		h.Apply("update: the search answers 500", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
 	},
 	"update-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))

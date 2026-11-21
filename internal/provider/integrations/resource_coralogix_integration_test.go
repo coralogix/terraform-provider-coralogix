@@ -248,7 +248,7 @@ func TestSetParametersExpandsTheParametersOfThePlan(t *testing.T) {
 	config.Raw = state.Raw
 
 	body := &cxsdk.SaveIntegrationRequest{}
-	if diags := (&integrationHooks{}).setParameters(ctx, config, body); diags.HasError() {
+	if diags := (&integrationHooks{}).setParameters(ctx, tfsdk.Plan{Raw: config.Raw, Schema: config.Schema}, nil, body); diags.HasError() {
 		t.Fatal(diags)
 	}
 	got := body.Metadata.IntegrationParameters.Parameters

@@ -1,9 +1,28 @@
 [
   {
     "step": "import by email: SearchUsers returns the user without userId",
-    "applyDiagnostics": [
-      "error: Error importing User | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"accessType\":{\"accessType\":\"permanent\",\"permanentAccess\":{}},\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
-    ],
     "state": null
+  },
+  {
+    "step": "import by email: SearchUsers returns the user without userId (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to read user | id tf-acc-user-1@coralogix.com: no value given for required property userId — {\"totalCount\":1,\"users\":[{\"accessType\":{\"accessType\":\"permanent\",\"permanentAccess\":{}},\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
+    ],
+    "state": {
+      "access_type": null,
+      "active": null,
+      "allowed_login_mode": null,
+      "groups": null,
+      "id": "tf-acc-user-1@coralogix.com",
+      "name": null,
+      "user_name": null
+    }
   }
 ]

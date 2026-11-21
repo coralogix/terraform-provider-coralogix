@@ -110,7 +110,7 @@ env:
   # in the catch-all. IP access has its own serial provider-migration shard.
   NON_DASHBOARD_SHARD_USER_GROUP_MEMBERSHIP: &non_dashboard_shard_user_group_membership '^TestAccCoralogixResourceUserGroupMembership$'
   NON_DASHBOARD_SHARD_USER_DATA_SOURCE: &non_dashboard_shard_user_data_source '^TestAccCoralogixDataSourceUser'
-  NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive)$'
+  NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive|LoginModesReversedAndCleared)$'
   NON_DASHBOARD_SHARD_ACCESS_CONTROL: &non_dashboard_shard_access_control '^Test(AccCoralogix(Resource|DataSource)(CustomRole|ApiKey|Group|Scope)|ApiKeyResource|CustomRole)'
   NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|AiEvaluation|AiCustomEvaluation|ViewFolder)|(DataSource)?RecordingRules)'
 

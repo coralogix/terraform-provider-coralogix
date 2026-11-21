@@ -63,6 +63,13 @@ func alertConfig(ctx context.Context, set map[string]tftypes.Value) tfsdk.Config
 	return tfsdk.Config{Schema: s, Raw: nullObject(s.Type().TerraformType(ctx), set)}
 }
 
+// alertPlan returns a plan of the generated schema with the given top-level values: the form the
+// BeforeWrite hooks read.
+func alertPlan(ctx context.Context, set map[string]tftypes.Value) tfsdk.Plan {
+	s := alert.Schema()
+	return tfsdk.Plan{Schema: s, Raw: nullObject(s.Type().TerraformType(ctx), set)}
+}
+
 // typeDefinitionOf returns a type_definition value that sets the arms of set (each an object whose
 // attributes are the given values or null).
 func typeDefinitionOf(ctx context.Context, arms map[string]map[string]tftypes.Value) tftypes.Value {

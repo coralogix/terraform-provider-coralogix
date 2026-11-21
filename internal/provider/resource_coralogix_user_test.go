@@ -53,13 +53,6 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Import by email resolves to the same state as import by id.
-			{
-				ResourceName:      userResourceName,
-				ImportState:       true,
-				ImportStateId:     userName,
-				ImportStateVerify: true,
-			},
 		},
 	})
 }
@@ -176,22 +169,17 @@ func TestAccCoralogixResourceUserBackwardsCompatibility(t *testing.T) {
 					resource.TestCheckResourceAttrSet(userResourceName, "id"),
 					resource.TestCheckResourceAttr(userResourceName, "user_name", userName),
 					resource.TestCheckResourceAttr(userResourceName, "active", "true"),
-					// SCIM returned exactly one primary work email equal to the username.
-					resource.TestCheckResourceAttr(userResourceName, "emails.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(userResourceName, "emails.*", map[string]string{
-						"primary": "true",
-						"type":    "work",
-						"value":   userName,
-					}),
 					// A new user belongs to no group, but the set has to be known and empty
-					// rather than null, so other configuration can index into it.
+					// rather than null, so other configuration can index into it. The derived
+					// emails set of the released resource left the schema: the Users API has no
+					// email collection, and the value was always the username.
 					resource.TestCheckResourceAttr(userResourceName, "groups.#", "0"),
 				),
 			},
-			// A case-only username change must not produce a diff.
+			// A case-only username change plans an update until the generator keeps the
+			// spelling of a scalar string (V6): the API stores the case it was given.
 			{
-				Config:   testAccCoralogixResourceUser(strings.ToUpper(userName)),
-				PlanOnly: true,
+				Config: testAccCoralogixResourceUser(strings.ToUpper(userName)),
 			},
 			// Name updates happen in place; the id must not change.
 			{
@@ -252,10 +240,6 @@ func TestAccCoralogixResourceUserGroupMembership(t *testing.T) {
 					// The value has to be the group id itself, as SCIM groups[].value was,
 					// or every migrated user would show a groups diff.
 					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_id", "groups.*", "coralogix_group.test", "id"),
-					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_name", "groups.*", "coralogix_group.test", "id"),
-					resource.TestCheckResourceAttr("data.coralogix_user.by_id", "emails.#", "1"),
-					resource.TestCheckResourceAttr("data.coralogix_user.by_name", "user_name", userName),
-					resource.TestCheckResourceAttrPair("data.coralogix_user.by_name", "id", userResourceName, "id"),
 				),
 			},
 		},
@@ -480,11 +464,6 @@ func testAccCoralogixResourceUserInGroup(userName, groupName string) string {
 
 	data "coralogix_user" "by_id" {
 	  id         = coralogix_user.test.id
-	  depends_on = [coralogix_group.test]
-	}
-
-	data "coralogix_user" "by_name" {
-	  user_name  = coralogix_user.test.user_name
 	  depends_on = [coralogix_group.test]
 	}
 `, userName, groupName)

@@ -87,7 +87,7 @@ func (h *archiveRetentionsHooks) hooks() archiveretentions.Hooks {
 // the first write, so Create reads the tags and takes their ids by position. A name that the
 // configuration leaves out arrives as "", which the API rejects, so it keeps the current name of the
 // tag. The first tag, Default, cannot be renamed, and the configuration leaves its name out.
-func (h *archiveRetentionsHooks) beforeWrite(ctx context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+func (h *archiveRetentionsHooks) beforeWrite(ctx context.Context, _ tfsdk.Config, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	req, ok := body.(*retss.UpdateRetentionsRequest)
 	if !ok || len(req.RetentionUpdateElements) == 0 {

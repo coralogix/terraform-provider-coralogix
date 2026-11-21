@@ -100,7 +100,7 @@ func allowUnsupportedWithContentJSON(ctx context.Context, data any) bool {
 
 // beforeDashboardWrite puts what the generated request lacks in the body: a request id, the access
 // policy that the configuration sets, and the dashboard that content_json holds.
-func beforeDashboardWrite(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+func beforeDashboardWrite(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var dashboard *dashboardservice.Dashboard
 	var accessPolicy **string
@@ -119,6 +119,9 @@ func beforeDashboardWrite(ctx context.Context, config tfsdk.Config, body any) di
 		return diags
 	}
 
+	// The policy presence is a configuration check: an Optional and Computed attribute
+	// keeps its state value in the plan, so the plan cannot tell a configured policy from
+	// one the backend read carried, and an unrelated update would write it again.
 	var policy types.String
 	diags.Append(config.GetAttribute(ctx, path.Root("access_policy"), &policy)...)
 	// A null or blank policy sends nothing: Create keeps the policy that the API gives, and Update keeps
@@ -128,7 +131,7 @@ func beforeDashboardWrite(ctx context.Context, config tfsdk.Config, body any) di
 	}
 
 	var contentJSON types.String
-	diags.Append(config.GetAttribute(ctx, path.Root("content_json"), &contentJSON)...)
+	diags.Append(plan.GetAttribute(ctx, path.Root("content_json"), &contentJSON)...)
 	if diags.HasError() || contentJSON.IsNull() || contentJSON.IsUnknown() {
 		return diags
 	}
@@ -138,7 +141,7 @@ func beforeDashboardWrite(ctx context.Context, config tfsdk.Config, body any) di
 		return diags
 	}
 	var folder types.Object
-	diags.Append(config.GetAttribute(ctx, path.Root("folder"), &folder)...)
+	diags.Append(plan.GetAttribute(ctx, path.Root("folder"), &folder)...)
 	applyFolder(parsed, folder)
 	*dashboard = *parsed
 	return diags

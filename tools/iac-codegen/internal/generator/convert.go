@@ -3287,9 +3287,11 @@ func markPriorFields(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Equality == overrides.EqualityCaseInsensitive {
-				// The elements of a list or set of strings keep the spelling of the prior elements.
-				if f.Conv != convStrings || f.Enum || f.Projection != nil || f.EnumMap != nil {
-					return fmt.Errorf("%s.%s: equality caseInsensitive needs a list or set of plain strings", obj.Model, f.TFName)
+				// The elements of a list or set of strings keep the spelling of the prior elements,
+				// and a scalar string keeps the spelling of the prior value, which the API echoes
+				// in another case.
+				if f.Conv != convStrings && f.Conv != convString || f.Enum || f.Projection != nil || f.EnumMap != nil {
+					return fmt.Errorf("%s.%s: equality caseInsensitive needs a string or a list or set of plain strings", obj.Model, f.TFName)
 				}
 				obj.NeedsPrior = true
 			} else if f.Equality != "" {
@@ -3555,7 +3557,12 @@ func (d *convData) UsesEquality(kind ...string) bool {
 func (d *convData) UsesFieldEquality(kind ...string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			// A caseInsensitive line is a flatten step, with no document comparison or ModifyPlan.
+			// A caseInsensitive line on a list or set is a flatten step, with no document
+			// comparison or ModifyPlan. On a scalar string it keeps the prior spelling through
+			// the same helper, which lives in equality.go.
+			if f.Equality == overrides.EqualityCaseInsensitive && f.Conv == convString && (len(kind) == 0 || slices.Contains(kind, "caseInsensitive")) {
+				return true
+			}
 			if f.Equality != "" && f.Equality != overrides.EqualityCaseInsensitive && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
 				return true
 			}

@@ -1,0 +1,166 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "access_type": "(unknown)",
+      "active": true,
+      "allowed_login_mode": "(unknown)",
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+            "userTemplate": {
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
+      "active": true,
+      "allowed_login_mode": [],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the PUT sends the modes and the temporary access of the search",
+    "config": {
+      "active": false,
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "access_type": "(unknown)",
+      "active": false,
+      "allowed_login_mode": "(unknown)",
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "accessType": {
+                "accessType": "temporary",
+                "temporaryAccess": {
+                  "expireAt": "2030-01-01T00:00:00Z"
+                }
+              },
+              "allowedLoginMode": [
+                "ALLOWED_LOGIN_MODE_SSO",
+                "ALLOWED_LOGIN_MODE_LOCAL"
+              ],
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_INACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_type": {
+        "permanent_access": null,
+        "temporary_access": {
+          "expire_at": "2030-01-01T00:00:00Z"
+        }
+      },
+      "active": false,
+      "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_LOCAL",
+        "ALLOWED_LOGIN_MODE_SSO"
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_type": {
+        "permanent_access": null,
+        "temporary_access": {
+          "expire_at": "2030-01-01T00:00:00Z"
+        }
+      },
+      "active": false,
+      "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_LOCAL",
+        "ALLOWED_LOGIN_MODE_SSO"
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  }
+]
