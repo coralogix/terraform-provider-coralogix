@@ -74,22 +74,29 @@ func userLegacyUpdatePlan(_ context.Context, req resource.ModifyPlanRequest, res
 	if d := req.Plan.Get(context.Background(), &plan); d.HasError() {
 		return
 	}
-	if !plan.AllowedLoginMode.IsNull() {
-		return // The plan already knows the modes: no recovery runs.
-	}
 	if plan.Username.IsNull() {
 		return // Nothing to recover for.
 	}
-	attrs := map[string]tftypes.Value{}
-	if err := req.Plan.Raw.As(&attrs); err != nil {
-		return
-	}
-	planned := req.Plan.Raw
-	// The state carries the resource: a legacy-state update.
+	// The state carries the resource: a legacy-state update. The schema of 3.26.0
+	// had no access_type either: a missing value plans null, and the PUT response
+	// supplies both the login modes and the access type, which a known-null plan
+	// would reject as an inconsistent result. Plan both unknown until the read of
+	// the apply fills them.
 	if !req.State.Raw.IsNull() {
-		at, ok := attrs["allowed_login_mode"]
-		if ok && at.IsNull() {
-			attrs["allowed_login_mode"] = tftypes.NewValue(at.Type(), tftypes.UnknownValue)
+		attrs := map[string]tftypes.Value{}
+		if err := req.Plan.Raw.As(&attrs); err != nil {
+			return
+		}
+		planned := req.Plan.Raw
+		changed := false
+		for _, name := range []string{"allowed_login_mode", "access_type"} {
+			at, ok := attrs[name]
+			if ok && at.IsNull() && (name != "allowed_login_mode" || plan.AllowedLoginMode.IsNull()) {
+				attrs[name] = tftypes.NewValue(at.Type(), tftypes.UnknownValue)
+				changed = true
+			}
+		}
+		if changed {
 			resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
 		}
 	}

@@ -53,11 +53,13 @@ func newUserHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, userTypeName, newUserFake(t))
 }
 
-// withNullAllowed copies the state attributes and nulls the login modes: the shape of a
-// state upgraded from the released provider, which had no attribute for them.
+// withNullAllowed copies the state attributes and nulls the login modes and the access
+// type: the shape of a state upgraded from the released provider, whose schema had no
+// attribute for either. Terraform plans a missing legacy attribute null.
 func withNullAllowed(s tftypes.Value) map[string]any {
 	attrs := userStateJSON(s)
 	attrs["allowed_login_mode"] = nil
+	attrs["access_type"] = nil
 	return attrs
 }
 
