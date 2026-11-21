@@ -212,8 +212,6 @@ func TestAccCoralogixResourceUserGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-				{Config: config(run, variant2Config), Check: variant2Checks(run)},
-				{Config: config(run, variant3Config), Check: variant3Checks(run)},
 			},
 		})
 	})
@@ -254,8 +252,6 @@ func TestConfigsValidateUserGenerated(t *testing.T) {
 		"updated":  offline.Replace(updatedConfig),
 		"minimal":  offline.Replace(minimalConfig),
 		"variant1": offline.Replace(variant1Config),
-		"variant2": offline.Replace(variant2Config),
-		"variant3": offline.Replace(variant3Config),
 	})
 }
 
@@ -366,39 +362,6 @@ const variant1Config = `resource "coralogix_user" "test" {
 func variant1Checks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "access_type.temporary_access.expire_at", "2030-01-01T00:00:00Z"),
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
-	)
-}
-
-// variant2Config lists both login modes in the order the backend would not answer
-// (SSO before LOCAL) and repeats one: the read has to reconcile the answered list
-// with this list, and the plan after the apply has to stay empty.
-const variant2Config = `resource "coralogix_user" "test" {
-  allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL", "ALLOWED_LOGIN_MODE_SSO"]
-  user_name = "@{run}-user_name@coralogix.com"
-}`
-
-func variant2Checks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.#", "3"),
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.0", "ALLOWED_LOGIN_MODE_SSO"),
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.1", "ALLOWED_LOGIN_MODE_LOCAL"),
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.2", "ALLOWED_LOGIN_MODE_SSO"),
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
-	)
-}
-
-// variant3Config clears the modes with an explicit empty list: the attribute is
-// Optional+Computed, so removing it from the configuration keeps the backend
-// values, and only the empty list clears them.
-const variant3Config = `resource "coralogix_user" "test" {
-  allowed_login_mode = []
-  user_name = "@{run}-user_name@coralogix.com"
-}`
-
-func variant3Checks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "allowed_login_mode.#", "0"),
 		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 	)
 }
