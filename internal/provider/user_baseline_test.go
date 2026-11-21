@@ -413,6 +413,17 @@ var userScenarios = map[string]func(h *grHarness){
 		s = h.stateFromJSON(withNullAllowed(s))
 		h.Apply("update: the PUT sends the modes of the released echo", s, userConfig(userA, j{"name": userTestName, "active": false}))
 	},
+	// A legacy temporary-access user: the upgraded state carries neither attribute, the
+	// backend holds temporary access with its expiry, and the recovery PUT must send
+	// both back — an omitted access type would replace the temporary access with a
+	// permanent one and discard the expiry.
+	"legacy-echo-temporary-access": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes, "accessType": userTemporaryAccess})
+		sLegacy := h.stateFromJSON(withNullAllowed(s))
+		sLegacy = h.Apply("update: the PUT sends the modes and the temporary access of the search", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
+		h.RefreshPlan("refresh and replan", sLegacy)
+	},
 	// The recovery of an upgraded state refuses to update when the search fails: continuing
 	// would clear the modes of the user.
 	"legacy-echo-recovery-fails": func(h *grHarness) {

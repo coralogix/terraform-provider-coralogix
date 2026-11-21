@@ -90,6 +90,10 @@
           {
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
+              "accessType": {
+                "accessType": "permanent",
+                "permanentAccess": {}
+              },
               "allowedLoginMode": [
                 "ALLOWED_LOGIN_MODE_SSO",
                 "ALLOWED_LOGIN_MODE_LOCAL"

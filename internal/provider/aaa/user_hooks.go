@@ -219,14 +219,16 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 		template.FirstName = &given
 		template.LastName = &family
 	}
-	// A state upgraded from the released provider carries the login modes nowhere: the
-	// schema of 3.26.0 had no attribute for them, and its private state is a form this
-	// framework discards. Without a refresh the plan keeps them unknown, and the expand
-	// omits them: the PUT would clear the modes of the user. The hook searches the API
-	// for the prior user and sends the modes it answers with. A failed search stops the
-	// update: continuing would clear the modes of the user, and the released resource
-	// propagated a lookup failure the same way.
-	if template.AllowedLoginMode == nil && state != nil {
+	// A state upgraded from the released provider carries the login modes and the
+	// access type nowhere: the schema of 3.26.0 had no attribute for either, and its
+	// private state is a form this framework discards. Without a refresh the plan
+	// keeps them unknown, and the expand omits them: the PUT would clear the modes
+	// and replace the access type with permanent, discarding a temporary access
+	// expiry. The hook searches the API for the prior user and sends the modes and
+	// the access type it answers with. A failed search stops the update: continuing
+	// would destroy both, and the released resource propagated a lookup failure the
+	// same way.
+	if (template.AllowedLoginMode == nil || template.AccessType == nil) && state != nil {
 		var prior user.RbacV2UserModel
 		if d := state.Get(ctx, &prior); !d.HasError() && !prior.Username.IsNull() {
 			search, ok := ctx.Value(userSearchKey{}).(func(string) (*users_management_service.SearchUsersResponse, error))
@@ -237,9 +239,10 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 			}
 			found, err := search(prior.Username.ValueString())
 			if err != nil {
-				// A 404 of the search says nothing about the modes: the update path
+				// A 404 of the search says nothing about the values: the update path
 				// reads the user after the write and reports a resource that is gone.
-				// Any other failure stops the update, which would clear the modes.
+				// Any other failure stops the update, which would destroy the modes
+				// and the access type.
 				if !strings.Contains(err.Error(), "404") {
 					diags.AddAttributeError(path.Root("allowed_login_mode"), "Unable to recover the login modes of the user",
 						fmt.Sprintf("The search for %q failed: %s. Refresh the resource to read the modes, then update again.", prior.Username.ValueString(), err))
@@ -248,7 +251,22 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 			} else if found != nil {
 				for i := range found.Users {
 					if strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
-						template.AllowedLoginMode = found.Users[i].AllowedLoginMode
+						if template.AllowedLoginMode == nil {
+							template.AllowedLoginMode = found.Users[i].AllowedLoginMode
+						}
+						if template.AccessType == nil {
+							// A user without an explicit access type in the API is
+							// permanent-access; send it literally so the PUT keeps
+							// the user's access rather than relying on the backend
+							// default.
+							template.AccessType = found.Users[i].AccessType
+							if template.AccessType == nil {
+								template.AccessType = &users_management_service.AccessType{
+									AccessType:      "permanent",
+									PermanentAccess: map[string]interface{}{},
+								}
+							}
+						}
 					}
 				}
 			}
