@@ -432,6 +432,13 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create with the modes reversed and a duplicate", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL", "ALLOWED_LOGIN_MODE_SSO"}}))
 		h.RefreshPlan("refresh: the state carries the canonical order", s)
 	},
+	// The attribute is Optional+Computed: only an explicit empty list clears the
+	// modes, and the read of the cleared user answers none, which the state keeps.
+	"login-modes-cleared": func(h *grHarness) {
+		s := h.Apply("create with both modes", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL"}}))
+		s = h.Apply("clear with an empty list", s, userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{}}))
+		h.RefreshPlan("refresh: the modes stay cleared", s)
+	},
 	// The recovery of an upgraded state refuses to update when the search fails: continuing
 	// would clear the modes of the user.
 	"legacy-echo-recovery-fails": func(h *grHarness) {
