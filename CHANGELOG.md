@@ -2,6 +2,7 @@
 
 #### resource/coralogix_user
 
+- FIX: `allowed_login_mode` keeps the order and repetitions of the configuration in the state: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change.
 - FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them.
 - FIX: The read pages the Search with the page size of 100, and stops when the page token stops moving forward, as the released resource did.
 - BREAKING: `data.coralogix_user` loses the `user_name` lookup until the generator can send a configured value as a Search filter (the V6 follow-up): it reads by `id` only, and a configuration that sets `user_name` is rejected as a read-only attribute.

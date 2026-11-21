@@ -17,6 +17,7 @@
       "access_type": "(unknown)",
       "active": true,
       "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL",
         "ALLOWED_LOGIN_MODE_SSO"
       ],
@@ -37,6 +38,7 @@
             "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
             "userTemplate": {
               "allowedLoginMode": [
+                "ALLOWED_LOGIN_MODE_SSO",
                 "ALLOWED_LOGIN_MODE_LOCAL",
                 "ALLOWED_LOGIN_MODE_SSO"
               ],
@@ -57,6 +59,7 @@
       },
       "active": true,
       "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL",
         "ALLOWED_LOGIN_MODE_SSO"
       ],
@@ -86,6 +89,7 @@
       },
       "active": true,
       "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL",
         "ALLOWED_LOGIN_MODE_SSO"
       ],

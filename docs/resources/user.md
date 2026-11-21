@@ -60,7 +60,7 @@ resource "coralogix_group" "example" {
 
 - `access_type` (Attributes) Access type configuration - defines whether user access is permanent or temporary with expiration (see [below for nested schema](#nestedatt--access_type))
 - `active` (Boolean) Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
-- `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both. The backend answers them in its own order (local, then SSO): the resource stores that order regardless of the order in the configuration, and a repeated mode counts once. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
+- `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
 - `name` (Attributes) The name of the user. (see [below for nested schema](#nestedatt--name))
 
 ### Read-Only

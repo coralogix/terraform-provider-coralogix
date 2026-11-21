@@ -126,10 +126,6 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"allowed_login_mode\").ElementKeyInt(0)",
-      "AttributeName(\"allowed_login_mode\").ElementKeyInt(1)"
-    ]
+    "replanEmpty": true
   }
 ]

@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
@@ -49,6 +50,7 @@ func UserHooks() user.Hooks {
 		BeforeWrite:  userBeforeWrite,
 		Get:          userGet,
 		AfterFlatten: userAfterFlatten,
+		AfterRead:    userAfterRead,
 		ModifyPlan:   userUpdatePlan,
 	}
 }
@@ -59,19 +61,15 @@ func NewResource(hooks user.Hooks) resource.Resource {
 	return &UserResource{Resource: *user.NewResource(hooks).(*user.Resource)}
 }
 
-// userUpdatePlan shapes the plan of every update. The backend answers the login
-// modes in its canonical order — LOCAL before SSO, without duplicates
-// (identity-service allowed_login_mode_from) — while the configuration may list
-// them in any order or repeat one, and Terraform compares a list in order: any
-// non-canonical plan fails the apply as an inconsistent result. The hook rewrites
-// the planned modes to the canonical order (a repeated mode collapses to one), so
-// the plan always matches what the read of the apply stores. It also keeps the
-// modes of an upgraded state unknown: a state that carries none (the schema of
-// 3.26.0 had no attribute) plans them null, but the recovery reads the modes the
-// backend has, and a known null the read does not answer is an inconsistent
-// result after the apply. An unknown plans as (known after apply) and matches
-// what the read stores; the access type of an upgraded state is likewise unknown,
-// because the PUT response supplies it too.
+// userUpdatePlan shapes the plan of every update. It keeps the modes of an
+// upgraded state unknown: a state that carries none (the schema of 3.26.0 had no
+// attribute) plans them null, but the recovery reads the modes the backend has,
+// and a known null the read does not answer is an inconsistent result after the
+// apply. An unknown plans as (known after apply) and matches what the read
+// stores; the access type of an upgraded state is likewise unknown, because the
+// PUT response supplies it too. The order of the login modes needs no plan: the
+// generator's keepPriorOrder makes the read store them in the order of the plan,
+// so a configuration that lists them the way the backend would not still matches.
 func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if resp.Plan.Raw.IsNull() {
 		return // A destroy plans no values.
@@ -92,28 +90,6 @@ func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *r
 	}
 	planned := planRaw
 	changed := false
-	// The canonical order of the backend: LOCAL, then SSO, once. The plan of a
-	// known list is rewritten when it differs; unknown and null plans stay.
-	if at, ok := attrs["allowed_login_mode"]; ok && !at.IsNull() && !at.Equal(tftypes.NewValue(at.Type(), tftypes.UnknownValue)) {
-		var elems []tftypes.Value
-		if err := at.As(&elems); err == nil {
-			canonical := canonicalLoginModes(elems)
-			if len(canonical) != len(elems) {
-				changed = true
-			} else {
-				for i := range elems {
-					if !elems[i].Equal(canonical[i]) {
-						changed = true
-						break
-					}
-				}
-			}
-			if changed {
-				listType := tftypes.List{ElementType: tftypes.String}
-				attrs["allowed_login_mode"] = tftypes.NewValue(listType, canonical)
-			}
-		}
-	}
 	// The state carries the resource: a legacy-state update. The schema of 3.26.0
 	// had no access_type either: a missing value plans null, and the PUT response
 	// supplies both the login modes and the access type, which a known-null plan
@@ -133,34 +109,63 @@ func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *r
 	}
 }
 
-// canonicalLoginModes orders the login modes the way the backend answers them and
-// drops a repeated one. The elements are string values; an unknown element stays
-// unknown and passes through untouched.
-func canonicalLoginModes(modes []tftypes.Value) []tftypes.Value {
-	local := tftypes.NewValue(tftypes.String, "ALLOWED_LOGIN_MODE_LOCAL")
-	sso := tftypes.NewValue(tftypes.String, "ALLOWED_LOGIN_MODE_SSO")
-	hasLocal, hasSSO, unknown := false, false, false
-	for _, m := range modes {
-		switch {
-		case m.Equal(local):
-			hasLocal = true
-		case m.Equal(sso):
-			hasSSO = true
-		case m.Equal(tftypes.NewValue(tftypes.String, tftypes.UnknownValue)):
-			unknown = true
+// userAfterRead reconciles the login modes with the plan or state the read came
+// from: the backend answers them in its canonical order (LOCAL before SSO, once)
+// while the configuration may list them in any order or repeat one, and Terraform
+// compares a list in order — a state in the backend's order under a plan in the
+// configured order would fail the apply as an inconsistent result. When the modes
+// the API answered hold the same elements as the prior list, the state keeps the
+// prior order (a repeated mode stays repeated); the wire value is unaffected, and
+// the backend folds the order itself.
+func userAfterRead(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if state == nil || prior == nil {
+		return diags
+	}
+	getter, ok := prior.(interface {
+		Get(ctx context.Context, target any) diag.Diagnostics
+	})
+	if !ok {
+		return diags
+	}
+	var modes types.List
+	if d := state.GetAttribute(ctx, path.Root("allowed_login_mode"), &modes); d.HasError() {
+		return diags
+	}
+	if modes.IsNull() || !modes.IsUnknown() && len(modes.Elements()) == 0 {
+		return diags
+	}
+	var priorModel user.RbacV2UserModel
+	if d := getter.Get(ctx, &priorModel); d.HasError() {
+		return diags
+	}
+	priorModes := priorModel.AllowedLoginMode
+	if priorModes.IsNull() || priorModes.IsUnknown() {
+		return diags
+	}
+	priorElems := priorModes.Elements()
+	elems := modes.Elements()
+	if len(priorElems) != len(elems) {
+		return diags // A different multiset: the read wins, and the plan must follow.
+	}
+	used := make([]bool, len(elems))
+	for _, want := range priorElems {
+		found := false
+		for i, got := range elems {
+			if !used[i] && want.Equal(got) {
+				used[i] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return diags // Not the same elements: the read wins.
 		}
 	}
-	if unknown {
-		return modes // The read of the apply fills an unknown; keep the plan as it is.
+	if d := state.SetAttribute(ctx, path.Root("allowed_login_mode"), priorModes); d.HasError() {
+		return d
 	}
-	out := []tftypes.Value{}
-	if hasLocal {
-		out = append(out, local)
-	}
-	if hasSSO {
-		out = append(out, sso)
-	}
-	return out
+	return diags
 }
 
 // userSearchKey is the context key of the search the hook can run for the values the

@@ -104,8 +104,8 @@
       },
       "active": true,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_LOCAL",
-        "ALLOWED_LOGIN_MODE_SSO"
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
@@ -128,8 +128,8 @@
                 "permanentAccess": {}
               },
               "allowedLoginMode": [
-                "ALLOWED_LOGIN_MODE_LOCAL",
-                "ALLOWED_LOGIN_MODE_SSO"
+                "ALLOWED_LOGIN_MODE_SSO",
+                "ALLOWED_LOGIN_MODE_LOCAL"
               ],
               "firstName": "Renamed",
               "lastName": "Person",
@@ -148,8 +148,8 @@
       },
       "active": true,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_LOCAL",
-        "ALLOWED_LOGIN_MODE_SSO"
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
@@ -178,8 +178,8 @@
       },
       "active": false,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_LOCAL",
-        "ALLOWED_LOGIN_MODE_SSO"
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
@@ -202,8 +202,8 @@
                 "permanentAccess": {}
               },
               "allowedLoginMode": [
-                "ALLOWED_LOGIN_MODE_LOCAL",
-                "ALLOWED_LOGIN_MODE_SSO"
+                "ALLOWED_LOGIN_MODE_SSO",
+                "ALLOWED_LOGIN_MODE_LOCAL"
               ],
               "firstName": "Renamed",
               "lastName": "Person",
@@ -222,8 +222,8 @@
       },
       "active": false,
       "allowed_login_mode": [
-        "ALLOWED_LOGIN_MODE_LOCAL",
-        "ALLOWED_LOGIN_MODE_SSO"
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",

@@ -63,7 +63,7 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both. The backend answers them in its own order (local, then SSO): the resource stores that order regardless of the order in the configuration, and a repeated mode counts once. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.",
+				MarkdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.",
 			},
 			"id": schema.StringAttribute{
 				Computed: true,
