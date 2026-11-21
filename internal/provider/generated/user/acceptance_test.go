@@ -67,7 +67,7 @@ const fullConfig = `resource "coralogix_user" "test" {
     permanent_access = {}
   }
   allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO"]
-  user_name = "@{run}-user_name"
+  user_name = "@{run}-user_name@coralogix.com"
 }`
 
 const updatedConfig = `resource "coralogix_user" "test" {
@@ -75,21 +75,21 @@ const updatedConfig = `resource "coralogix_user" "test" {
     permanent_access = {}
   }
   allowed_login_mode = ["ALLOWED_LOGIN_MODE_LOCAL"]
-  user_name = "@{run}-user_name"
+  user_name = "@{run}-user_name@coralogix.com"
 }`
 
 const minimalConfig = `resource "coralogix_user" "test" {
-  user_name = "@{run}-user_name"
+  user_name = "@{run}-user_name@coralogix.com"
 }`
 
 // upgradeFullConfig is the full config without the attributes that provider 3.26.0 does not have.
 const upgradeFullConfig = `resource "coralogix_user" "test" {
-  user_name = "@{run}-user_name"
+  user_name = "@{run}-user_name@coralogix.com"
 }`
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_user" "test" {
-  user_name = "@{run}-user_name"
+  user_name = "@{run}-user_name@coralogix.com"
 }`
 
 func config(run, resourceBlock string) string {
@@ -113,32 +113,32 @@ func dataSourceChecks() resource.TestCheckFunc {
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 		resource.TestCheckResourceAttr(resourceAddress, "active", "true"),
 	)
 }
 
 func upgradeFullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 	)
 }
 
@@ -355,13 +355,13 @@ const variant1Config = `resource "coralogix_user" "test" {
     }
   }
   allowed_login_mode = ["ALLOWED_LOGIN_MODE_SSO"]
-  user_name = "@{run}-user_name"
+  user_name = "@{run}-user_name@coralogix.com"
 }`
 
 // variant1Checks assert what the step sets: each attribute that the config states has its value.
 func variant1Checks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "access_type.temporary_access.expire_at", "2030-01-01T00:00:00Z"),
-		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name")),
+		resource.TestCheckResourceAttr(resourceAddress, "user_name", render(run, "@{run}-user_name@coralogix.com")),
 	)
 }
