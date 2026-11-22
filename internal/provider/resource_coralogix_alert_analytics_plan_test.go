@@ -88,6 +88,25 @@ func alertValueFromJSON(t *testing.T, object tftypes.Object, raw string, overrid
 	return value
 }
 
+// withAttribute returns value with the attribute at the path of names replaced.
+func withAttribute(t *testing.T, value, replacement tftypes.Value, names ...string) tftypes.Value {
+	t.Helper()
+	target := tftypes.NewAttributePath()
+	for _, name := range names {
+		target = target.WithAttributeName(name)
+	}
+	out, err := tftypes.Transform(value, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+		if p.Equal(target) {
+			return replacement, nil
+		}
+		return v, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // describeValueDiff names the top-level attributes that differ, so a failure
 // points at an attribute instead of dumping the whole alert object.
 func describeValueDiff(t *testing.T, want, got tftypes.Value) string {
@@ -109,6 +128,12 @@ func describeValueDiff(t *testing.T, want, got tftypes.Value) string {
 }
 
 func planAlertResourceChange(ctx context.Context, t *testing.T, object tftypes.Object, prior, config tftypes.Value) tftypes.Value {
+	return planAlertResourceChangeProposing(ctx, t, object, prior, config, config)
+}
+
+// planAlertResourceChangeProposing plans with the proposed new state that Terraform core would send:
+// the config, plus the prior value of each Computed attribute that the config leaves null.
+func planAlertResourceChangeProposing(ctx context.Context, t *testing.T, object tftypes.Object, prior, config, proposed tftypes.Value) tftypes.Value {
 	t.Helper()
 	server, err := testAccProtoV6ProviderFactories["coralogix"]()
 	if err != nil {
@@ -123,13 +148,13 @@ func planAlertResourceChange(ctx context.Context, t *testing.T, object tftypes.O
 	}
 	// Terraform core's proposed new state takes the config value wherever the config
 	// sets one and the prior value for a Computed attribute the config leaves null.
-	// Every Computed attribute these fixtures leave null is also null in the prior
-	// state, so the proposed new state is the config itself.
+	// planAlertResourceChange passes the config itself, which is right while every
+	// Computed attribute the config leaves null is also null in the prior state.
 	resp, err := server.PlanResourceChange(ctx, &tfprotov6.PlanResourceChangeRequest{
 		TypeName:         "coralogix_alert",
 		PriorState:       encode(prior),
 		Config:           encode(config),
-		ProposedNewState: encode(config),
+		ProposedNewState: encode(proposed),
 	})
 	if err != nil {
 		t.Fatalf("PlanResourceChange: %s", err)
@@ -213,8 +238,13 @@ func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 				"deleted":            "false",
 				"notification_group": alertNotificationGroupDefault,
 			})
-
 			planned := planAlertResourceChange(ctx, t, object, prior, config)
+			if tc.name == "analytics_result_count" {
+				// The API reads back the operator of a result count alert that leaves it out. The
+				// config matches the state, so Terraform proposes the prior state itself.
+				prior = withAttribute(t, prior, tftypes.NewValue(tftypes.String, "MORE_THAN"), "type_definition", "analytics_result_count", "operator")
+				planned = planAlertResourceChangeProposing(ctx, t, object, prior, config, prior)
+			}
 			if !planned.Equal(prior) {
 				t.Fatalf("plan is not empty for a config that matches state:%s", describeValueDiff(t, prior, planned))
 			}
@@ -242,7 +272,8 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
 				"timeframe_minutes": 10,
-				"custom_evaluation_delay": 120000
+				"custom_evaluation_delay": 120000,
+				"operator": "MORE_THAN"
 			}
 		}
 	}`, map[string]string{"notification_group": alertNotificationGroupDefault})
@@ -280,7 +311,13 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 		}
 	}`, map[string]string{"notification_group": alertNotificationGroupDefault})
 
-	planned := planAlertResourceChange(ctx, t, object, prior, config)
+	// operator is computed: the API fills it, so an update that leaves it out plans it unknown.
+	// operator is Computed: Terraform proposes its prior value, and the framework plans it unknown
+	// because the update changes the alert.
+	proposed := withAttribute(t, config, tftypes.NewValue(tftypes.String, "MORE_THAN"), "type_definition", "analytics_result_count", "operator")
+	want = withAttribute(t, want, tftypes.NewValue(tftypes.String, tftypes.UnknownValue), "type_definition", "analytics_result_count", "operator")
+
+	planned := planAlertResourceChangeProposing(ctx, t, object, prior, config, proposed)
 	if !planned.Equal(want) {
 		t.Fatalf("removing the optional attributes did not plan them back to null:%s", describeValueDiff(t, want, planned))
 	}

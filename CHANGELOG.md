@@ -1,5 +1,12 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FIX: `type_definition.analytics_result_count` can set a count threshold: `rules` (up to 5, each with `override.priority` and a `condition` of an optional `count_threshold` of at least 1 and an optional `expression`; `condition = {}` counts every row) and `operator`. Without them, the alert fires on any result row. `operator` is required when `rules` is set. Without rules, leave it out: the API uses `MORE_THAN`, and alerts created with 3.26.1 plan no change.
+- FIX: The deprecation warning on `priority` shows for `analytics_result_count` only when it sets `rules`. Without rules, the alert fires at `priority`.
+
+#### data-source/coralogix_alert
+- FIX: Read `rules` and `operator` of `type_definition.analytics_result_count`, the same attributes as on the resource.
+
 #### resource/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
 - CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.

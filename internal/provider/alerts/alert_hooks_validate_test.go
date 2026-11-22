@@ -16,12 +16,15 @@ package alerts
 
 import (
 	"context"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
@@ -144,7 +147,8 @@ func TestValidatePriorityDeprecation(t *testing.T) {
 		{"logs_ratio_threshold warns", "logs_ratio_threshold", true, true},
 		{"logs_time_relative_threshold warns", "logs_time_relative_threshold", true, true},
 		{"analytics_threshold warns", "analytics_threshold", true, true},
-		{"analytics_result_count does not warn", "analytics_result_count", true, false},
+		{"analytics_result_count with rules warns", "analytics_result_count", true, true},
+		{"analytics_result_count without rules does not warn", "analytics_result_count", true, false},
 		{"metric_anomaly does not warn", "metric_anomaly", true, false},
 		{"logs_immediate does not warn", "logs_immediate", true, false},
 		{"tracing_threshold does not warn", "tracing_threshold", true, false},
@@ -159,7 +163,15 @@ func TestValidatePriorityDeprecation(t *testing.T) {
 				set["priority"] = stringValue("P1")
 			}
 			if tc.arm != "" {
-				set["type_definition"] = typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{tc.arm: nil})
+				typeDefinition := typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{tc.arm: nil})
+				if tc.wantWarn {
+					values := withOneRule(attributeType(typeDefinition.Type(), tc.arm))
+					if tc.arm == "analytics_result_count" {
+						values["operator"] = stringValue("MORE_THAN") // required with rules
+					}
+					typeDefinition = typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{tc.arm: values})
+				}
+				set["type_definition"] = typeDefinition
 			}
 			diags := validateAlertConfig(ctx, alertConfig(ctx, set))
 			if diags.HasError() {
@@ -170,6 +182,31 @@ func TestValidatePriorityDeprecation(t *testing.T) {
 			}
 		})
 	}
+}
+
+// withOneRule returns the values of an arm that sets one rule in its rules list, or in the first nested
+// object that has one (the slo_threshold rules sit in error_budget and burn_rate).
+func withOneRule(arm tftypes.Type) map[string]tftypes.Value {
+	object := arm.(tftypes.Object)
+	switch rules := object.AttributeTypes["rules"].(type) {
+	case tftypes.List:
+		return map[string]tftypes.Value{"rules": tftypes.NewValue(rules, []tftypes.Value{nullObject(rules.ElementType, nil)})}
+	case tftypes.Set:
+		return map[string]tftypes.Value{"rules": tftypes.NewValue(rules, []tftypes.Value{nullObject(rules.ElementType, nil)})}
+	}
+	names := make([]string, 0, len(object.AttributeTypes))
+	for name := range object.AttributeTypes {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if child, ok := object.AttributeTypes[name].(tftypes.Object); ok {
+			if values := withOneRule(child); values != nil {
+				return map[string]tftypes.Value{name: nullObject(child, values)}
+			}
+		}
+	}
+	return nil
 }
 
 func TestValidateGroupBy(t *testing.T) {
@@ -270,6 +307,62 @@ func TestValidateNoDataPolicyUnspecifiedWarning(t *testing.T) {
 		diags := validateAlertConfig(ctx, alertConfig(ctx, set))
 		if diags.HasError() || (len(diags.Warnings()) == 1) != wantWarn {
 			t.Errorf("state %s: diagnostics = %v, want a warning: %v", state, diags, wantWarn)
+		}
+	}
+}
+
+func TestValidateResultCountOperator(t *testing.T) {
+	ctx := context.Background()
+	arm := attributeType(alert.Schema().Type().TerraformType(ctx), "type_definition", "analytics_result_count")
+	rules := attributeType(arm, "rules").(tftypes.List)
+	oneRule := tftypes.NewValue(rules, []tftypes.Value{nullObject(rules.ElementType, nil)})
+	for _, tc := range []struct {
+		name    string
+		values  map[string]tftypes.Value
+		wantErr bool
+	}{
+		{"rules without operator", map[string]tftypes.Value{"rules": oneRule}, true},
+		{"rules with operator", map[string]tftypes.Value{"rules": oneRule, "operator": stringValue("MORE_THAN")}, false},
+		{"no rules and no operator", nil, false},
+		{"unknown rules", map[string]tftypes.Value{"rules": tftypes.NewValue(rules, tftypes.UnknownValue)}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := alertConfig(ctx, map[string]tftypes.Value{
+				"type_definition": typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{"analytics_result_count": tc.values}),
+			})
+			if got := validateAlertConfig(ctx, config).HasError(); got != tc.wantErr {
+				t.Fatalf("error = %v, want %v", got, tc.wantErr)
+			}
+		})
+	}
+}
+
+// The backend trims a result count expression with the whitespace set of JavaScript and Rust, wider than
+// Go's \s. An expression it would change must not validate, or it reads back as other text.
+func TestResultCountExpressionRejectsTrimmedWhitespace(t *testing.T) {
+	ctx := context.Background()
+	arm := alert.Schema().Attributes["type_definition"].(schema.SingleNestedAttribute).Attributes["analytics_result_count"].(schema.SingleNestedAttribute)
+	rules := arm.Attributes["rules"].(schema.ListNestedAttribute)
+	condition := rules.NestedObject.Attributes["condition"].(schema.SingleNestedAttribute)
+	expression := condition.Attributes["expression"].(schema.StringAttribute)
+	for value, valid := range map[string]bool{
+		"errors > 100":       true,
+		"a\u00a0b":           true,
+		"":                   false,
+		" errors > 100":      false,
+		"errors > 100\n":     false,
+		"errors > 100\u00a0": false,
+		"\verrors > 100":     false,
+		"\ufefferrors > 100": false,
+		"errors > 100\u2028": false,
+		"errors > 100\u3000": false,
+	} {
+		response := &validator.StringResponse{}
+		for _, v := range expression.Validators {
+			v.ValidateString(ctx, validator.StringRequest{ConfigValue: types.StringValue(value)}, response)
+		}
+		if got := !response.Diagnostics.HasError(); got != valid {
+			t.Errorf("%q: valid = %v, want %v", value, got, valid)
 		}
 	}
 }
