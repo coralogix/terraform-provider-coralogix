@@ -101,10 +101,11 @@ func Schema() schema.Schema {
 							"operator": schema.StringAttribute{
 								Optional: true,
 								Computed: true,
+								Default:  stringdefault.StaticString("MORE_THAN"),
 								Validators: []validator.String{
 									stringvalidator.OneOf("EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "MORE_THAN", "MORE_THAN_OR_EQUALS", "NOT_EQUALS"),
 								},
-								MarkdownDescription: "The comparison operator applied to the row count of every rule. With grouping, rows are counted per group. Required when `rules` is set. Without rules, leave it out: the API uses `MORE_THAN`, the only operator an alert without rules accepts.",
+								MarkdownDescription: "The comparison operator applied to the row count of every rule. With grouping, rows are counted per group. Required when `rules` is set. Without rules, leave it out: it defaults to `MORE_THAN`, the only operator an alert without rules accepts.",
 							},
 							"rules": schema.ListNestedAttribute{
 								Optional: true,

@@ -227,7 +227,7 @@ types:
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
       noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
       timeframeMinutes: {required: true, validators: [{atLeast: 1}]}
-      operator: {computed: true, validators: [{enum: true}], markdownDescription: "The comparison operator applied to the row count of every rule. With grouping, rows are counted per group. Required when `rules` is set. Without rules, leave it out: the API uses `MORE_THAN`, the only operator an alert without rules accepts."}
+      operator: {computed: true, default: MORE_THAN, validators: [{enum: true}], markdownDescription: "The comparison operator applied to the row count of every rule. With grouping, rows are counted per group. Required when `rules` is set. Without rules, leave it out: it defaults to `MORE_THAN`, the only operator an alert without rules accepts."}
       rules: {validators: [{sizeAtLeast: 1}], markdownDescription: "The per-priority trigger rules, between 1 and 5. Each rule compares the number of result rows meeting its condition to its count threshold; when several rules hold, the highest priority wins. When omitted, the alert has one rule at its own `priority` with a count threshold of 0. This is an ordered list: the API preserves the submitted order."}
   AnalyticsResultCountRule:
     fields:

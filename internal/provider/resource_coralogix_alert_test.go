@@ -1789,7 +1789,7 @@ func TestAccCoralogixResourceAlert_analytics_result_count_noDataPolicy(t *testin
 // condition = {} counts every row.
 func TestAccCoralogixResourceAlert_analytics_result_count_rules(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
@@ -1852,7 +1852,7 @@ func TestAccCoralogixResourceAlert_analytics_result_count_rules(t *testing.T) {
 // must not plan a change.
 func TestAccCoralogixResourceAlert_analytics_result_count_upgrade(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccAnalyticsAlertsPreCheck(t) },
+		PreCheck:     func() { testAccPreCheck(t) },
 		CheckDestroy: testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
