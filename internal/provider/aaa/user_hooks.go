@@ -794,11 +794,20 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 	// a configuration whose component is explicitly empty keeps its own form.
 	// m.Name here is the value setState kept from the plan or the prior state,
 	// or the flatten's own value when there was no prior.
-	name := userName{
-		GivenName:  emptyAsNull(v.FirstName),
-		FamilyName: emptyAsNull(v.LastName),
+	apiGiven, apiFamily := emptyAsNull(v.FirstName), emptyAsNull(v.LastName)
+	apiCleared := apiGiven.IsNull() && apiFamily.IsNull()
+	// The released flattenUserName: with any name present, a missing component
+	// reads as ""; with no name at all, the object is null.
+	given, family := apiGiven, apiFamily
+	if !apiCleared {
+		if given.IsNull() {
+			given = basetypes.NewStringValue("")
+		}
+		if family.IsNull() {
+			family = basetypes.NewStringValue("")
+		}
 	}
-	apiCleared := name.GivenName.IsNull() && name.FamilyName.IsNull()
+	name := userName{GivenName: given, FamilyName: family}
 	keepName := false
 	if !m.Name.IsNull() && !m.Name.IsUnknown() {
 		// The released preserveUserName: the prior form survives when both of
@@ -817,8 +826,15 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 	}
 	if !keepName {
 		if apiCleared {
+			// The API holds no name at all: the released flattenUserName wrote
+			// the null object.
 			m.Name = basetypes.NewObjectNull(userNameAttrTypes)
 		} else {
+			// The released flattenUserName wrote an empty string — not null —
+			// for the one component the API does not hold: a read without a
+			// prior (an import, a data source) shows the name the released
+			// resource showed, so a consumer that passes the component to a
+			// string function keeps working.
 			object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
 				"given_name":  name.GivenName,
 				"family_name": name.FamilyName,

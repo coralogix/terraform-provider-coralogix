@@ -586,6 +586,13 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Import("import by email in another letter case", "TF-ACC-USER-1@CORALOGIX.COM")
 		h.Apply("plan matching config", s, userConfig(userA, j{"name": userTestName}))
 	},
+	"import-partial-name": func(h *grHarness) {
+		// The released read wrote an empty string for the one component the API
+		// does not hold: the import of a partly named user shows that form.
+		id := h.users().seed(j{"username": userA, "lastName": "User"})
+		s := h.Import("import a user with only a family name", id)
+		h.Apply("plan matching config", s, userConfig(userA, j{}))
+	},
 	"import-by-email-partial-match": func(h *grHarness) {
 		// The search matches part of a username, so the code filters to the exact one.
 		h.users().seed(j{"username": userPartialMatch})
