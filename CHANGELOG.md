@@ -1,5 +1,11 @@
 # Unreleased
 
+#### data-source/coralogix_alert
+- FEAT: Add `case_settings.overrides`, `case_settings.overrides.kpi`, `case_settings.overrides.kpi.thresholds`, `case_settings.overrides.kpi.thresholds.enabled`, `case_settings.overrides.kpi.thresholds.priority`, `case_settings.overrides.kpi.thresholds.threshold`, `case_settings.overrides.kpi.thresholds.type`, `case_settings.overrides.priority_escalation`, `case_settings.overrides.priority_escalation.enabled`, `case_settings.overrides.priority_escalation.rules`, `case_settings.overrides.priority_escalation.rules.from_priority`, `case_settings.overrides.priority_escalation.rules.period`, `case_settings.overrides.priority_escalation.rules.to_priority` from the API contract of Management SDK `v1.9.4-0.20261123163026-0c61264a7f60`.
+
+#### resource/coralogix_alert
+- FEAT: Add `case_settings.overrides`, `case_settings.overrides.kpi`, `case_settings.overrides.kpi.thresholds`, `case_settings.overrides.kpi.thresholds.enabled`, `case_settings.overrides.kpi.thresholds.priority`, `case_settings.overrides.kpi.thresholds.threshold`, `case_settings.overrides.kpi.thresholds.type`, `case_settings.overrides.priority_escalation`, `case_settings.overrides.priority_escalation.enabled`, `case_settings.overrides.priority_escalation.rules`, `case_settings.overrides.priority_escalation.rules.from_priority`, `case_settings.overrides.priority_escalation.rules.period`, `case_settings.overrides.priority_escalation.rules.to_priority` from the API contract of Management SDK `v1.9.4-0.20261123163026-0c61264a7f60`.
+
 #### resource/coralogix_user
 
 - FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them. The state keeps the order and the repetitions of the configuration: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change. The read pages the Search with the page size of 100, and stops when the page token stops moving forward.
