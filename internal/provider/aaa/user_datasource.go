@@ -68,11 +68,13 @@ func (d *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 	resp.Schema.Attributes["user_name"] = userName
 }
 
-// idAttrAsOptional returns the id attribute as optional, for a data source with two
-// lookup keys: exactly one of the two must be set, so neither is required.
+// idAttrAsOptional returns the id attribute as optional and computed, for a data
+// source with two lookup keys: exactly one of the two must be set, so neither is
+// required, and the read fills the id when the lookup is the user_name.
 func idAttrAsOptional(attr datasourceschema.StringAttribute) datasourceschema.StringAttribute {
 	attr.Required = false
 	attr.Optional = true
+	attr.Computed = true
 	attr.MarkdownDescription = "User ID. Exactly one of `id` or `user_name` must be set."
 	return attr
 }

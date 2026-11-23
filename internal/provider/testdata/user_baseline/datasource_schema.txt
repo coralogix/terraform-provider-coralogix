@@ -14,7 +14,7 @@ allowed_login_mode  tftypes.List[tftypes.String] computed
     description: List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
 groups  tftypes.Set[tftypes.String] computed
     description: The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
-id  tftypes.String optional
+id  tftypes.String optional,computed
     description: User ID. Exactly one of `id` or `user_name` must be set.
 name  nested SINGLE computed
     description: The name of the user.

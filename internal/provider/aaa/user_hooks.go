@@ -214,7 +214,7 @@ func resolveUserByUsername(ctx context.Context, client *users_management_service
 	var diags diag.Diagnostics
 	var matches []*users_management_service.RbacV2User
 	pageToken := int64(0)
-	for page := 0; page < 100; page++ {
+	for page := 1; ; page++ {
 		request := client.UsersMgmtServiceSearchUsers(ctx).Username(userName).PageSize(100)
 		if pageToken != 0 {
 			request = request.PageToken(pageToken)
@@ -236,14 +236,14 @@ func resolveUserByUsername(ctx context.Context, client *users_management_service
 			// released search recorded.
 			break
 		}
+		if page == userLookupPageCap {
+			diags.AddError(summary, fmt.Sprintf("The search for user_name %q did not end within %d pages; give up or report this to the provider developers.", userName, userLookupPageCap))
+			return nil, diags
+		}
 		pageToken = next
 		if len(out.GetUsers()) == 0 {
 			break
 		}
-	}
-	if pageToken >= userLookupPageCap {
-		diags.AddError(summary, fmt.Sprintf("The search for user_name %q did not end within %d pages; give up or report this to the provider developers.", userName, userLookupPageCap))
-		return nil, diags
 	}
 	switch len(matches) {
 	case 0:

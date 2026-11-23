@@ -53,22 +53,26 @@ func TestAccCoralogixDataSourceUser_noLookupKeySet(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      `data "coralogix_user" "no_key" {}`,
-				ExpectError: regexp.MustCompile("Missing required argument"),
+				ExpectError: regexp.MustCompile("(?i)exactly one of these attributes must be configured"),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixDataSourceUser_userNameRejected(t *testing.T) {
+func TestAccCoralogixDataSourceUser_userNameLookup(t *testing.T) {
+	userName := randUserName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// The data source reads by id only: a user_name-only config fails on the
-				// required id before the read-only check can name the attribute.
-				Config:      testAccCoralogixDataSourceUser_readByUserNameOnly(randUserName()),
-				ExpectError: regexp.MustCompile(`Missing required argument`),
+				// The user exists: the test creates it by inviting with the same
+				// user_name the lookup configures.
+				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameOnly(userName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coralogix_user.by_user_name", "user_name", userName),
+					resource.TestCheckResourceAttrSet("data.coralogix_user.by_user_name", "id"),
+				),
 			},
 		},
 	})
