@@ -366,3 +366,76 @@ func TestExampleLiteralOfANumberHasNoExponent(t *testing.T) {
 		}
 	}
 }
+
+// A released resource keeps its tests. An example of the contract fills only an attribute that the
+// release does not have.
+func TestReleasedResourceUsesExamplesOnlyForNewAttributes(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	edited := string(spec)
+	for _, edit := range [][2]string{
+		// name is an attribute of the release: its example must not change the test.
+		{"        name:\n          type: string\n          pattern: '^[\\s\\S]*$'\n", "        name:\n          type: string\n          examples: [old-example]\n          pattern: '^[\\s\\S]*$'\n"},
+		// labels.env is the attribute that the release lacks in this test.
+		{"        env: {type: string}\n", "        env: {type: string, examples: [new-example]}\n"},
+	} {
+		if !strings.Contains(edited, edit[0]) {
+			t.Fatalf("the spec has no %q", edit[0])
+		}
+		edited = strings.Replace(edited, edit[0], edit[1], 1)
+	}
+	// The fixture skips labels.env: take the skip line out so that the test sets the attribute.
+	output := func() string {
+		out := legacyOutputWithAcceptance(t)
+		file := filepath.Join(out, acceptance.FileName)
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		unskipped := strings.Replace(string(data), "skip:\n  - labels.env\n", "", 1)
+		if unskipped == string(data) {
+			t.Fatal("the acceptance fixture has no skip of labels.env")
+		}
+		if err := os.WriteFile(file, []byte(unskipped), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	generate := func(out string, contract string) string {
+		input, loadDir := syntheticInput(t)
+		input.OpenAPI = []byte(contract)
+		options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
+		if err := generateFromInput(options, input, loadDir); err != nil {
+			t.Fatal(err)
+		}
+		return readGenerated(t, out, "acceptance_test.go")
+	}
+	// Without a stored upgrade list, every attribute counts as released: examples change nothing.
+	if strings.Contains(generate(output(), edited), "new-example") {
+		t.Error("an example was used for a resource with no upgrade list")
+	}
+	// With the list of a release that has no labels.env, the attribute is new and takes its example.
+	out := output()
+	generate(out, string(spec))
+	list := filepath.Join(out, acceptance.UpgradeFileName)
+	data, err := os.ReadFile(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+	released := strings.Replace(string(data), "    labels.env: {type: String}\n", "", 1)
+	if released == string(data) {
+		t.Fatalf("the upgrade attributes have no labels.env:\n%s", data)
+	}
+	if err := os.WriteFile(list, []byte(released), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	test := generate(out, edited)
+	if !strings.Contains(test, `"new-example"`) {
+		t.Error("the new attribute labels.env does not use its example")
+	}
+	if strings.Contains(test, "old-example") {
+		t.Error("an attribute of the release used its example")
+	}
+}
