@@ -369,21 +369,25 @@ func TestResultCountExpressionRejectsTrimmedWhitespace(t *testing.T) {
 
 func TestValidateAnalyticsRuleCount(t *testing.T) {
 	ctx := context.Background()
-	rulesType := attributeType(alert.Schema().Type().TerraformType(ctx), "type_definition", "analytics_threshold", "rules")
-	rule := nullObject(rulesType.(tftypes.List).ElementType, nil)
-	for count, wantError := range map[int]bool{1: false, 5: false, 6: true} {
-		rules := make([]tftypes.Value, count)
-		for i := range rules {
-			rules[i] = rule
-		}
-		set := map[string]tftypes.Value{
-			"type_definition": typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{
-				"analytics_threshold": {"rules": tftypes.NewValue(rulesType, rules)},
-			}),
-		}
-		diags := validateAlertConfig(ctx, alertConfig(ctx, set))
-		if diags.HasError() != wantError {
-			t.Errorf("%d rules: errors = %v, want an error: %v", count, errorSummaries(diags), wantError)
+	for _, arm := range analyticsArms {
+		rulesType := attributeType(alert.Schema().Type().TerraformType(ctx), "type_definition", arm, "rules")
+		rule := nullObject(rulesType.(tftypes.List).ElementType, nil)
+		for count, wantError := range map[int]bool{1: false, 5: false, 6: true} {
+			rules := make([]tftypes.Value, count)
+			for i := range rules {
+				rules[i] = rule
+			}
+			values := map[string]tftypes.Value{"rules": tftypes.NewValue(rulesType, rules)}
+			if arm == "analytics_result_count" {
+				values["operator"] = stringValue("MORE_THAN")
+			}
+			set := map[string]tftypes.Value{
+				"type_definition": typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{arm: values}),
+			}
+			diags := validateAlertConfig(ctx, alertConfig(ctx, set))
+			if diags.HasError() != wantError {
+				t.Errorf("%s, %d rules: errors = %v, want an error: %v", arm, count, errorSummaries(diags), wantError)
+			}
 		}
 	}
 }

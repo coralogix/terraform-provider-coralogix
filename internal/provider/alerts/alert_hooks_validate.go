@@ -279,30 +279,32 @@ func allNull(attrs map[string]attr.Value) bool {
 	return true
 }
 
-// maxAnalyticsRules is the number of rules that an analytics_threshold alert takes.
+// maxAnalyticsRules is the number of rules that an analytics alert takes.
 const maxAnalyticsRules = 5
 
 // checkAnalyticsRuleCount rejects more rules than the API takes. The generated schema checks the minimum.
 func checkAnalyticsRuleCount(ctx context.Context, config tfsdk.Config, typeDefinition types.Object) diag.Diagnostics {
-	if !armIsSet(typeDefinition, "analytics_threshold") {
-		return nil
+	var diags diag.Diagnostics
+	for _, arm := range analyticsArms {
+		if !armIsSet(typeDefinition, arm) {
+			continue
+		}
+		rulesPath := path.Root("type_definition").AtName(arm).AtName("rules")
+		var rules types.List
+		diags.Append(config.GetAttribute(ctx, rulesPath, &rules)...)
+		if diags.HasError() || rules.IsNull() || rules.IsUnknown() || len(rules.Elements()) <= maxAnalyticsRules {
+			continue
+		}
+		request := validator.ListRequest{Config: config, ConfigValue: rules, Path: rulesPath, PathExpression: rulesPath.Expression()}
+		response := &validator.ListResponse{}
+		listvalidator.SizeBetween(1, maxAnalyticsRules).ValidateList(ctx, request, response)
+		diags.Append(response.Diagnostics...)
 	}
-	rulesPath := path.Root("type_definition").AtName("analytics_threshold").AtName("rules")
-	var rules types.List
-	diags := config.GetAttribute(ctx, rulesPath, &rules)
-	if diags.HasError() || rules.IsNull() || rules.IsUnknown() || len(rules.Elements()) <= maxAnalyticsRules {
-		return diags
-	}
-	request := validator.ListRequest{Config: config, ConfigValue: rules, Path: rulesPath, PathExpression: rulesPath.Expression()}
-	response := &validator.ListResponse{}
-	listvalidator.SizeBetween(1, maxAnalyticsRules).ValidateList(ctx, request, response)
-	diags.Append(response.Diagnostics...)
 	return diags
 }
 
-// checkResultCountOperator requires operator when an analytics_result_count alert sets rules. operator is
-// Computed, so an update that leaves it out sends none and the API resets it to MORE_THAN: an alert with
-// rules would silently change how it compares. Without rules, MORE_THAN is the only valid operator.
+// checkResultCountOperator requires operator when an analytics_result_count alert sets rules, so the
+// comparison is chosen rather than inherited from the MORE_THAN default that an alert without rules uses.
 func checkResultCountOperator(typeDefinition types.Object) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if !armIsSet(typeDefinition, "analytics_result_count") {
