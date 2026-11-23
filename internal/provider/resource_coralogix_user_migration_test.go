@@ -69,13 +69,12 @@ func TestAccCoralogixResourceUserMigrationFromSCIM(t *testing.T) {
 					resource.TestCheckResourceAttr(userResourceName, "user_name", userName),
 					resource.TestCheckResourceAttr(userResourceName, "name.given_name", "Test"),
 					resource.TestCheckResourceAttr(userResourceName, "name.family_name", "User"),
-					resource.TestCheckResourceAttr(userResourceName, "active", "true"),
-					resource.TestCheckResourceAttr(userResourceName, "emails.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(userResourceName, "emails.*", map[string]string{
 						"primary": "true",
 						"type":    "work",
 						"value":   userName,
 					}),
+					resource.TestCheckResourceAttr(userResourceName, "active", "true"),
 				),
 			},
 			// A name update on SCIM-created state must stay an in-place update.

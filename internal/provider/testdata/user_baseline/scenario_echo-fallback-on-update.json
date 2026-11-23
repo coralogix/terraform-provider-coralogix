@@ -9,8 +9,16 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -38,7 +46,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -66,7 +79,12 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -84,11 +102,6 @@
     },
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
-        "status": 200
-      },
-      {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/users/v2",
         "body": [
@@ -99,13 +112,11 @@
                 "accessType": "permanent",
                 "permanentAccess": {}
               },
-              "allowedLoginMode": [
-                "ALLOWED_LOGIN_MODE_SSO",
-                "ALLOWED_LOGIN_MODE_LOCAL"
-              ],
+              "allowedLoginMode": [],
               "firstName": "Renamed",
               "lastName": "Person",
-              "status": "USER_STATUS_ACTIVE"
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
             }
           }
         ],
@@ -113,7 +124,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -141,7 +157,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,

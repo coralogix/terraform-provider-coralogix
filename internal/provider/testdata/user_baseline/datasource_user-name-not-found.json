@@ -15,7 +15,9 @@
       "error: User with user_name \"tf-acc-user-1@coralogix.com\" not found"
     ],
     "state": {
+      "access_type": null,
       "active": null,
+      "allowed_login_mode": null,
       "emails": null,
       "groups": null,
       "id": null,

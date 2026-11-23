@@ -9,10 +9,20 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40CORALOGIX.COM",
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40CORALOGIX.COM",
+        "status": 200
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,

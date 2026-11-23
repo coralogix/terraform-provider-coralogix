@@ -9,8 +9,16 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -38,7 +46,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -57,7 +70,7 @@
     "replanEmpty": true
   },
   {
-    "step": "change only the case of user_name: nothing is planned",
+    "step": "a case-only change of user_name plans no change, as the released plan modifier made it",
     "config": {
       "name": {
         "family_name": "User",
@@ -66,7 +79,12 @@
       "user_name": "TF-ACC-USER-1@Coralogix.com"
     },
     "plan": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -84,7 +102,12 @@
     },
     "noChange": true,
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -111,7 +134,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,

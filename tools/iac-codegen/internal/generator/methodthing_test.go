@@ -61,7 +61,7 @@ func TestMethodThingRuntimeSemantics(t *testing.T) {
 
 // equality: caseInsensitive keeps the spelling of the elements of a list or set of strings. On a
 // plain string, or on a list of objects, there is nothing to keep, and the generator says so.
-func TestCaseInsensitiveEqualityNeedsAListOfStrings(t *testing.T) {
+func TestCaseInsensitiveScalarStringKeepsThePriorSpelling(t *testing.T) {
 	spec, err := os.ReadFile(filepath.Join("testdata", "methodthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -81,9 +81,22 @@ func TestCaseInsensitiveEqualityNeedsAListOfStrings(t *testing.T) {
 	}
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = spec
-	err = generateFromInput(Options{Resource: "MethodThing", OutputDir: filepath.Join(dir, "methodthing"), OverridesPath: path}, input, loadDir)
-	if err == nil || !strings.Contains(err.Error(), "OVERRIDE_EQUALITY_NOT_STRING") {
-		t.Fatalf("err = %v, want OVERRIDE_EQUALITY_NOT_STRING for a plain string", err)
+	if err := generateFromInput(Options{Resource: "MethodThing", OutputDir: filepath.Join(dir, "methodthing"), OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatalf("a scalar equality caseInsensitive generates: %v", err)
+	}
+	convert, err := os.ReadFile(filepath.Join(dir, "methodthing", "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(convert), "keepEquivalentText(prior.Name, out.Name, caseInsensitiveEqual)") {
+		t.Error("the scalar flatten does not keep the prior spelling")
+	}
+	equality, err := os.ReadFile(filepath.Join(dir, "methodthing", "equality.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(equality), "func caseInsensitiveEqual") {
+		t.Error("equality.go does not carry caseInsensitiveEqual")
 	}
 }
 

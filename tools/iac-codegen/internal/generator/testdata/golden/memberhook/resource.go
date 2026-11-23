@@ -41,7 +41,7 @@ type Resource struct {
 // so a resource that is used without the overlay package does not silently skip them.
 type Hooks struct {
 	// BeforeWrite mutates the expanded request body before the API call.
-	BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+	BeforeWrite func(context.Context, tfsdk.Config, tfsdk.Plan, *tfsdk.State, any) diag.Diagnostics
 	// AfterRead mutates state after flatten. prior is the plan after Create or
 	// Update, or the state before Read.
 	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
@@ -97,11 +97,13 @@ func (r *Resource) ValidateConfig(ctx context.Context, req resource.ValidateConf
 }
 
 // beforeWrite checks the resolved configuration again, because a value that comes from another
-// resource is unknown while Terraform validates the configuration, and then runs the BeforeWrite hook.
-func (r *Resource) beforeWrite(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+// resource is unknown while Terraform validates the configuration, and then runs the BeforeWrite hook
+// with the plan: the plan holds the resolved values, including the ones that the configuration omits
+// and the state carries (an Optional and Computed attribute keeps its state value in the plan).
+func (r *Resource) beforeWrite(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, state *tfsdk.State, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeWrite != nil {
-		diags.Append(r.hooks.BeforeWrite(ctx, config, body)...)
+		diags.Append(r.hooks.BeforeWrite(ctx, config, plan, state, body)...)
 	}
 	return diags
 }
@@ -140,7 +142,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, body)...)
+	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, req.Plan, nil, body)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -190,6 +192,9 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 // (D14).
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	ctx, _ = withGetResult(ctx)
+	// The hook of a skipped field reads the prior value here: the plan holds only
+	// what the schema carries.
+	ctx = context.WithValue(ctx, writeStateKey{}, &req.State)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -201,7 +206,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 	if body != nil {
-		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, body)...)
+		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, req.Plan, &req.State, body)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -268,16 +273,28 @@ func (r *Resource) create(ctx context.Context, body *member_hook_service.CreateM
 		created = true
 	}
 	if !created {
+		// The released resource named the refusing status in the error: the
+		// message the result carries says why, the status says which refusal.
 		if result.Message != nil && *result.Message != "" {
-			return nil, fmt.Errorf("the API did not create the %s: %s", TypeName, *result.Message)
+			return nil, fmt.Errorf("the API did not create the %s (status %v): %s", TypeName, *result.Status, *result.Message)
 		}
-		return nil, fmt.Errorf("the API did not create the %s", TypeName)
+		return nil, fmt.Errorf("the API did not create the %s (status %v)", TypeName, *result.Status)
 	}
 	if result.Member == nil {
 		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)
 	}
 	// The result holds the resource that the API created, with the id that the API gave it.
 	return r.readAfterWrite(ctx, result.Member), nil
+}
+
+// writeStateKey is the context key of the prior state of an Update: a hook reads the value of
+// a field that the schema skips from it.
+type writeStateKey struct{}
+
+// writeState returns the prior state of the running Update, or nil.
+func writeState(ctx context.Context) *tfsdk.State {
+	state, _ := ctx.Value(writeStateKey{}).(*tfsdk.State)
+	return state
 }
 
 // getResultKey is the key of the getResult that a CRUD method puts in its context.
@@ -336,8 +353,15 @@ func (r *Resource) get(ctx context.Context, id string) (*member_hook_service.Mem
 		return pageRequest(*token)().Execute()
 	}
 	pageToken := out.NextPageToken
+	var prevPageToken int64
 	for page := 1; pageToken != nil && *pageToken != 0 && page < 100; page++ {
 		out, httpResp, err = pageExecute(pageToken)
+		if *pageToken <= prevPageToken && page > 1 {
+			// The token is an offset into the result set: one that does not move
+			// forward means the pages ended, and the resource is not in them.
+			return nil, nil
+		}
+		prevPageToken = *pageToken
 		if err != nil {
 			return nil, cxsdk.NewAPIError(httpResp, err)
 		}

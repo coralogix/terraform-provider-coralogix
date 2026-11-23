@@ -33,7 +33,7 @@ func NewSLOV2Resource() resource.Resource {
 // drops its ownership tags when a replace omits them, but an APM SLO keeps them, so removing
 // `ownership_tags` from the configuration of an APM SLO ended in an inconsistent result. An empty
 // object clears the tags of both, and on a create it stores none (checked against the API).
-func clearOwnershipOnReplace(_ context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+func clearOwnershipOnReplace(_ context.Context, _ tfsdk.Config, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	if slo, ok := body.(*slos.Slo1); ok && slo.OwnershipTags == nil {
 		slo.OwnershipTags = &slos.SloOwnershipTags{}
 	}

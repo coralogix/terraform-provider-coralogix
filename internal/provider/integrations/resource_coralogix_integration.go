@@ -114,9 +114,9 @@ type integrationHooks struct {
 
 // setParameters puts the parameters of the plan, or of the configuration when the plan has none,
 // in the Create or Update request.
-func (h *integrationHooks) setParameters(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+func (h *integrationHooks) setParameters(ctx context.Context, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	var parameters types.Dynamic
-	diags := config.GetAttribute(ctx, path.Root("parameters"), &parameters)
+	diags := plan.GetAttribute(ctx, path.Root("parameters"), &parameters)
 	if diags.HasError() {
 		return diags
 	}
@@ -150,8 +150,8 @@ func requestMetadata(body any) *integrationsSDK.IntegrationMetadata {
 
 // beforeWrite puts the parameters of the configuration in the request, then asks the API to test
 // the integration before Create and Update save it.
-func (h *integrationHooks) beforeWrite(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
-	diags := h.setParameters(ctx, config, body)
+func (h *integrationHooks) beforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+	diags := h.setParameters(ctx, plan, nil, body)
 	if diags.HasError() {
 		return diags
 	}

@@ -13,6 +13,20 @@ Coralogix User. For more info please review - https://coralogix.com/docs/user-gu
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 3.0"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_custom_role" "example" {
   name        = "Example custom role"
   description = "This role is created with terraform!"
@@ -54,19 +68,42 @@ resource "coralogix_group" "members_by_email" {
 
 ### Read-Only
 
-- `active` (Boolean)
-- `emails` (Attributes Set) (see [below for nested schema](#nestedatt--emails))
-- `groups` (Set of String)
-- `name` (Attributes) (see [below for nested schema](#nestedatt--name))
+- `access_type` (Attributes) Access type configuration - defines whether user access is permanent or temporary with expiration (see [below for nested schema](#nestedatt--access_type))
+- `active` (Boolean) Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
+- `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
+- `emails` (Attributes Set) The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`. (see [below for nested schema](#nestedatt--emails))
+- `groups` (Set of String) The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
+- `name` (Attributes) The name of the user. (see [below for nested schema](#nestedatt--name))
+
+<a id="nestedatt--access_type"></a>
+### Nested Schema for `access_type`
+
+Read-Only:
+
+- `permanent_access` (Attributes) Permanent access configuration - user has indefinite access (see [below for nested schema](#nestedatt--access_type--permanent_access))
+- `temporary_access` (Attributes) Temporary access configuration - user access expires at a specified time (see [below for nested schema](#nestedatt--access_type--temporary_access))
+
+<a id="nestedatt--access_type--permanent_access"></a>
+### Nested Schema for `access_type.permanent_access`
+
+
+<a id="nestedatt--access_type--temporary_access"></a>
+### Nested Schema for `access_type.temporary_access`
+
+Read-Only:
+
+- `expire_at` (String) Timestamp when the user's temporary access will expire. After this time, the user will no longer be able to access the system.
+
+
 
 <a id="nestedatt--emails"></a>
 ### Nested Schema for `emails`
 
 Read-Only:
 
-- `primary` (Boolean)
-- `type` (String)
-- `value` (String)
+- `primary` (Boolean) Whether the email is the primary one. The API has one email per user, and it is primary.
+- `type` (String) The kind of the email. The API has one kind: work.
+- `value` (String) The email address. It is the `user_name` of the user.
 
 
 <a id="nestedatt--name"></a>
@@ -74,5 +111,5 @@ Read-Only:
 
 Read-Only:
 
-- `family_name` (String)
-- `given_name` (String)
+- `family_name` (String) The family (last) name of the user.
+- `given_name` (String) The given (first) name of the user.

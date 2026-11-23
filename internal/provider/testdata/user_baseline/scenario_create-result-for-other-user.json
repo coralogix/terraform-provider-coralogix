@@ -9,8 +9,16 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -37,9 +45,28 @@
         "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Error creating User | create returned no result for \"tf-acc-user-1@coralogix.com\""
-    ],
-    "state": null
+    "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
+      "active": true,
+      "allowed_login_mode": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
   }
 ]

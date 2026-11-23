@@ -283,11 +283,11 @@ func TestUpdate_RollbackOnAddFailure(t *testing.T) {
 
 	newUpdateReqResp := func() (resource.UpdateRequest, *resource.UpdateResponse) {
 		return resource.UpdateRequest{
-				Plan:  planFrom(t, s, planModel),
-				State: stateFrom(t, s, stateModel),
-			}, &resource.UpdateResponse{
-				State: stateFrom(t, s, stateModel),
-			}
+			Plan:  planFrom(t, s, planModel),
+			State: stateFrom(t, s, stateModel),
+		}, &resource.UpdateResponse{
+			State: stateFrom(t, s, stateModel),
+		}
 	}
 
 	const originalErrText = "boom: add enrichments failed"

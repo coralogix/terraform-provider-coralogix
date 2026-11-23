@@ -36,3 +36,5 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=GetRetentionsResponse OUT=archiveretentions
 
 //go:generate make -C ../.. codegen RESOURCE=v1.Scope OUT=scope
+
+//go:generate make -C ../.. codegen RESOURCE=rbac.v2.User OUT=user

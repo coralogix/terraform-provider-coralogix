@@ -9,8 +9,16 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -38,7 +46,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -47,7 +60,7 @@
         }
       ],
       "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
+      "id": "00000000-0000-4000-8000-000000000005",
       "name": {
         "family_name": "User",
         "given_name": "Test"
@@ -81,7 +94,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -90,7 +108,7 @@
         }
       ],
       "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
+      "id": "00000000-0000-4000-8000-000000000005",
       "name": {
         "family_name": "User",
         "given_name": "Test"
@@ -107,6 +125,11 @@
     ],
     "replanEmpty": false,
     "replanDiff": [
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-2@coralogix.com\">>)",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-2@coralogix.com\">>).AttributeName(\"primary\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-2@coralogix.com\">>).AttributeName(\"type\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-2@coralogix.com\">>).AttributeName(\"value\")",
       "AttributeName(\"user_name\")"
     ]
   }

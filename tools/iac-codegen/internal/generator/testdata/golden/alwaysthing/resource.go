@@ -131,6 +131,9 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 // Update sends only the Update fields that changed. When none changed, it
 // sends no request and reads the resource instead (D14).
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// The hook of a skipped field reads the prior value here: the plan holds only
+	// what the schema carries.
+	ctx = context.WithValue(ctx, writeStateKey{}, &req.State)
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -170,6 +173,16 @@ func (r *Resource) Delete(_ context.Context, _ resource.DeleteRequest, resp *res
 }
 
 // The API calls. Each returns the error with its HTTP status and body.
+
+// writeStateKey is the context key of the prior state of an Update: a hook reads the value of
+// a field that the schema skips from it.
+type writeStateKey struct{}
+
+// writeState returns the prior state of the running Update, or nil.
+func writeState(ctx context.Context) *tfsdk.State {
+	state, _ := ctx.Value(writeStateKey{}).(*tfsdk.State)
+	return state
+}
 
 func (r *Resource) get(ctx context.Context, id string) (*always_things_service.AlwaysThing, error) {
 	out, httpResp, err := r.client.AlwaysThingsServiceGetAlwaysThing(ctx).Execute()

@@ -32,7 +32,7 @@ import (
 // released Create omitted a description and a dpxl_filter that the configuration does not set,
 // while Update sends "" to clear them (the API keeps a value that a request omits).
 var actionHooks = action.Hooks{
-	BeforeWrite: func(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+	BeforeWrite: func(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 		create, ok := body.(*actionss.ActionsServiceCreateActionRequest)
 		if !ok {
 			return nil
@@ -40,7 +40,7 @@ var actionHooks = action.Hooks{
 		var diags diag.Diagnostics
 		for attribute, field := range map[string]**string{"description": &create.Description, "dpxl_filter": &create.DpxlFilter} {
 			var configured types.String
-			diags.Append(config.GetAttribute(ctx, path.Root(attribute), &configured)...)
+			diags.Append(plan.GetAttribute(ctx, path.Root(attribute), &configured)...)
 			if configured.IsNull() {
 				*field = nil
 			}

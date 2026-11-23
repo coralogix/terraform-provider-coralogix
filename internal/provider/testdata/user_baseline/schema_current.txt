@@ -1,26 +1,42 @@
 (schema)  version=0
     markdown: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/."
+access_type  SingleNestedAttribute optional computed
+    markdown: "Access type configuration - defines whether user access is permanent or temporary with expiration"
+    plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    validator: user.oneOfArmsValidator At most one arm of each one-of group can be set, and exactly one when the group needs an arm.
+access_type.permanent_access  SingleNestedAttribute optional
+    markdown: "Permanent access configuration - user has indefinite access"
+access_type.temporary_access  SingleNestedAttribute optional
+    markdown: "Temporary access configuration - user access expires at a specified time"
+access_type.temporary_access.expire_at  StringAttribute optional custom=timetypes.RFC3339Type
+    markdown: "Timestamp when the user's temporary access will expire. After this time, the user will no longer be able to access the system."
 active  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to true
+    markdown: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`."
+allowed_login_mode  ListAttribute optional computed elem=basetypes.StringType
+    markdown: "List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`."
+    plan modifier: listplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 emails  SetNestedAttribute computed
-    plan modifier: setplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    markdown: "The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`."
 emails[]  NestedObject
-    plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 emails[].primary  BoolAttribute computed
-    plan modifier: boolplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    markdown: "Whether the email is the primary one. The API has one email per user, and it is primary."
 emails[].type  StringAttribute computed
-    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    markdown: "The kind of the email. The API has one kind: work."
 emails[].value  StringAttribute computed
-    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    markdown: "The email address. It is the `user_name` of the user."
 groups  SetAttribute computed elem=basetypes.StringType
+    markdown: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
     plan modifier: setplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 id  StringAttribute computed
     markdown: "User ID."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 name  SingleNestedAttribute optional computed
+    markdown: "The name of the user."
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 name.family_name  StringAttribute optional
+    markdown: "The family (last) name of the user."
 name.given_name  StringAttribute optional
+    markdown: "The given (first) name of the user."
 user_name  StringAttribute required
-    markdown: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans."
-    plan modifier: aaa.caseInsensitiveStringPlanModifier Treats the value as case-insensitive — suppresses diffs that only change letter case.
+    markdown: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes only the letter case of the name plans no change, as the released plan modifier made it: the plan keeps the spelling of the state, which is the name the API stores. A configuration that changes the name itself fails: the API ignores a username change."

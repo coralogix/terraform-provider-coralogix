@@ -5,8 +5,16 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": "(unknown)",
@@ -29,7 +37,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -51,7 +64,12 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": false,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -77,9 +95,8 @@
                 "permanentAccess": {}
               },
               "allowedLoginMode": [],
-              "firstName": "",
-              "lastName": "",
-              "status": "USER_STATUS_INACTIVE"
+              "status": "USER_STATUS_INACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
             }
           }
         ],
@@ -87,7 +104,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": false,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -112,7 +134,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": false,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,

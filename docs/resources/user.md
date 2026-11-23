@@ -54,36 +54,59 @@ resource "coralogix_group" "example" {
 
 ### Required
 
-- `user_name` (String) User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.
+- `user_name` (String) User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes only the letter case of the name plans no change, as the released plan modifier made it: the plan keeps the spelling of the state, which is the name the API stores. A configuration that changes the name itself fails: the API ignores a username change.
 
 ### Optional
 
-- `active` (Boolean)
-- `name` (Attributes) (see [below for nested schema](#nestedatt--name))
+- `access_type` (Attributes) Access type configuration - defines whether user access is permanent or temporary with expiration (see [below for nested schema](#nestedatt--access_type))
+- `active` (Boolean) Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
+- `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
+- `name` (Attributes) The name of the user. (see [below for nested schema](#nestedatt--name))
 
 ### Read-Only
 
-- `emails` (Attributes Set) (see [below for nested schema](#nestedatt--emails))
-- `groups` (Set of String)
+- `emails` (Attributes Set) The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`. (see [below for nested schema](#nestedatt--emails))
+- `groups` (Set of String) The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
 - `id` (String) User ID.
+
+<a id="nestedatt--access_type"></a>
+### Nested Schema for `access_type`
+
+Optional:
+
+- `permanent_access` (Attributes) Permanent access configuration - user has indefinite access (see [below for nested schema](#nestedatt--access_type--permanent_access))
+- `temporary_access` (Attributes) Temporary access configuration - user access expires at a specified time (see [below for nested schema](#nestedatt--access_type--temporary_access))
+
+<a id="nestedatt--access_type--permanent_access"></a>
+### Nested Schema for `access_type.permanent_access`
+
+
+<a id="nestedatt--access_type--temporary_access"></a>
+### Nested Schema for `access_type.temporary_access`
+
+Optional:
+
+- `expire_at` (String) Timestamp when the user's temporary access will expire. After this time, the user will no longer be able to access the system.
+
+
 
 <a id="nestedatt--name"></a>
 ### Nested Schema for `name`
 
 Optional:
 
-- `family_name` (String)
-- `given_name` (String)
+- `family_name` (String) The family (last) name of the user.
+- `given_name` (String) The given (first) name of the user.
 
 
 <a id="nestedatt--emails"></a>
 ### Nested Schema for `emails`
 
-Read-Only:
+Optional:
 
-- `primary` (Boolean)
-- `type` (String)
-- `value` (String)
+- `primary` (Boolean) Whether the email is the primary one. The API has one email per user, and it is primary.
+- `type` (String) The kind of the email. The API has one kind: work.
+- `value` (String) The email address. It is the `user_name` of the user.
 
 ## Import
 
@@ -93,6 +116,7 @@ Import is supported using the following syntax:
 # Import by user id (UUID). This lists the team to find the user.
 terraform import coralogix_user.example 476b96bc-0f2e-42dd-b038-186bc1121b73
 
-# Import by email. This is one lookup, so it is faster for large teams.
+# Import by email. The import resolves the name through the Search username filter,
+# then reads the user by its id.
 terraform import coralogix_user.example someone@example.com
 ```

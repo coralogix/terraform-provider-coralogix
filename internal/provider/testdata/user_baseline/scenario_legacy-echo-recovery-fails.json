@@ -1,0 +1,131 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "access_type": "(unknown)",
+      "active": true,
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+            "userTemplate": {
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
+      "active": true,
+      "allowed_login_mode": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the search answers 500",
+    "config": {
+      "active": false,
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "access_type": "(unknown)",
+      "active": false,
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to recover the login modes of the user [AttributeName(\"allowed_login_mode\")] | The search for \"tf-acc-user-1@coralogix.com\" failed: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}. Refresh the resource to read the modes, then update again."
+    ],
+    "state": {
+      "access_type": null,
+      "active": true,
+      "allowed_login_mode": null,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  }
+]

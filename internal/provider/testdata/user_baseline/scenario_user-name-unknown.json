@@ -5,7 +5,9 @@
       "user_name": "(unknown)"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
+      "allowed_login_mode": "(unknown)",
       "emails": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",

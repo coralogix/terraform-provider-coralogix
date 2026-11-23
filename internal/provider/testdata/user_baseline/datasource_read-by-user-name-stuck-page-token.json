@@ -1,0 +1,47 @@
+[
+  {
+    "step": "read by user_name: the page token stops advancing, so the scan stops",
+    "config": {
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&page_token=2&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
+      "active": true,
+      "allowed_login_mode": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  }
+]

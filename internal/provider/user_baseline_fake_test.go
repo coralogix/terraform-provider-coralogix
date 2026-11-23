@@ -42,6 +42,39 @@ const (
 //   - PUT replaces the whole template of each user: an omitted login mode list is written as none,
 //     and an omitted status as inactive
 //   - there is no DELETE and no read by userId
+//
+// canonicalModes deduplicates the allowed login modes of a request template and
+// answers them in the canonical order of the backend: LOCAL before SSO. It is the
+// shape the real identity-service answers on every read.
+func canonicalModes(modes any) []any {
+	out := []any{}
+	if modes == nil {
+		return out
+	}
+	list, ok := modes.([]any)
+	if !ok {
+		return out
+	}
+	local := "ALLOWED_LOGIN_MODE_LOCAL"
+	sso := "ALLOWED_LOGIN_MODE_SSO"
+	hasLocal, hasSSO := false, false
+	for _, m := range list {
+		switch m {
+		case local:
+			hasLocal = true
+		case sso:
+			hasSSO = true
+		}
+	}
+	if hasLocal {
+		out = append(out, local)
+	}
+	if hasSSO {
+		out = append(out, sso)
+	}
+	return out
+}
+
 type userFake struct {
 	mu       sync.Mutex
 	t        *testing.T
@@ -211,7 +244,7 @@ func (f *userFake) checkRequest(query url.Values, body any) {
 }
 
 func (f *userFake) handle(method, path string, query url.Values, body any) (int, any) {
-	if !strings.HasSuffix(path, userBasePath) {
+	if !strings.HasSuffix(path, userBasePath) && !strings.HasSuffix(path, userStatusesPath) {
 		// The real gateway fails to parse the nonexistent tail as the user_account_id path
 		// parameter of an unknown route and answers 400, not 404 (EU2 recording).
 		return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: type mismatch, parameter: user_account_id, error: <domain>: parsing \"no-such-route\": invalid syntax"}
@@ -223,9 +256,41 @@ func (f *userFake) handle(method, path string, query url.Values, body any) (int,
 		return f.create(body)
 	case http.MethodPut:
 		return f.update(body)
+	case http.MethodPatch:
+		return f.updateStatuses(body)
 	default:
 		return userFakeError(http.StatusNotFound)
 	}
+}
+
+// updateStatuses answers the remove: the PATCH deactivates the users the body names. The read
+// of a deactivated user returns it with the INACTIVE status, as the API holds deactivated team
+// members until they are removed.
+// userStatusesPath is the remove route: a PATCH that deactivates the named users.
+const userStatusesPath = userBasePath + ":updateStatuses"
+
+func (f *userFake) updateStatuses(body any) (int, any) {
+	if f.updateStatus != 0 {
+		return userFakeError(f.updateStatus)
+	}
+	request, ok := body.(map[string]any)
+	if !ok {
+		return userFakeError(http.StatusBadRequest)
+	}
+	ids, _ := request["userIds"].([]any)
+	status, _ := request["status"].(string)
+	if status != "USER_STATUS_INACTIVE" {
+		return userFakeError(http.StatusBadRequest)
+	}
+	for _, id := range ids {
+		userID, _ := id.(string)
+		for _, user := range f.users {
+			if user["userId"] == userID {
+				user["status"] = "USER_STATUS_INACTIVE"
+			}
+		}
+	}
+	return http.StatusOK, map[string]any{}
 }
 
 // userFakeError answers as the API facade does. A 404 from a route that does not exist has the generic
@@ -386,10 +451,10 @@ func (f *userFake) update(body any) (int, any) {
 		if status, ok := template["status"]; ok {
 			user["status"] = status
 		}
-		user["allowedLoginMode"] = []any{}
-		if modes, ok := template["allowedLoginMode"]; ok {
-			user["allowedLoginMode"] = modes
-		}
+		// The real backend canonicalizes the modes: it answers each distinct mode
+		// once, local before SSO (identity-service allowed_login_mode_from), whatever
+		// order or repetitions the request sent.
+		user["allowedLoginMode"] = canonicalModes(template["allowedLoginMode"])
 		// The real PUT answers the user with its access type; the template does not carry it.
 		// A template that does carry one (the temporary-access scenario) is kept as sent.
 		if access, ok := template["accessType"]; ok {

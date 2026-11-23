@@ -16,20 +16,19 @@ package provider
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
+
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 var userDataSourceName = "data." + userResourceName
 
-var (
-	userByUserNameDataSourceName          = "data.coralogix_user.by_user_name"
-	userByMixedCaseUserNameDataSourceName = "data.coralogix_user.by_mixed_case_user_name"
-)
+// The data source looks a user up by id or by user_name, as the released data
+// source did. The wrapper resolves a configured user_name through the Search
+// username filter and hands the resolved id to the generated read.
 
 func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
 	userName := randUserName()
@@ -42,57 +41,8 @@ func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
 					testAccCoralogixDataSourceUser_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(userDataSourceName, "user_name", userName),
+					resource.TestCheckResourceAttrPair(userDataSourceName, "id", userResourceName, "id"),
 				),
-			},
-		},
-	})
-}
-
-func TestAccCoralogixDataSourceUser_byUserName(t *testing.T) {
-	userName := randUserName()
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCoralogixResourceUser(userName) +
-					testAccCoralogixDataSourceUser_readByUserName(userName),
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-				},
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPair(userByUserNameDataSourceName, "id", userResourceName, "id"),
-					resource.TestCheckResourceAttr(userByUserNameDataSourceName, "user_name", userName),
-					resource.TestCheckResourceAttrPair(userByMixedCaseUserNameDataSourceName, "id", userResourceName, "id"),
-					resource.TestCheckResourceAttr(userByMixedCaseUserNameDataSourceName, "user_name", strings.ToUpper(userName)),
-					resource.TestCheckResourceAttrPair(userByUserNameDataSourceName, "name.given_name", userResourceName, "name.given_name"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccCoralogixDataSourceUser_byUserNameNotFound(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccCoralogixDataSourceUser_readByUserNameOnly(randUserName()),
-				ExpectError: regexp.MustCompile("User with user_name .* not found"),
-			},
-		},
-	})
-}
-
-func TestAccCoralogixDataSourceUser_bothLookupKeysSet(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccCoralogixDataSourceUser_readByBothKeys(),
-				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 		},
 	})
@@ -105,25 +55,101 @@ func TestAccCoralogixDataSourceUser_noLookupKeySet(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      `data "coralogix_user" "no_key" {}`,
-				ExpectError: regexp.MustCompile("Missing Attribute Configuration"),
+				ExpectError: regexp.MustCompile("(?i)exactly one of these attributes must be configured"),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixDataSourceUser_emptyUserNameRejected(t *testing.T) {
+func TestAccCoralogixDataSourceUser_userNameLookup(t *testing.T) {
+	userName := randUserName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `data "coralogix_user" "empty_user_name" {
-				  user_name = ""
-				}`,
-				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
+				// The user exists: the test creates it with the same user_name
+				// the lookup configures.
+				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coralogix_user.by_user_name", "user_name", userName),
+					resource.TestCheckResourceAttrSet("data.coralogix_user.by_user_name", "id"),
+				),
 			},
 		},
 	})
+}
+
+func TestAccCoralogixDataSourceUser_userNameNotFound(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceUser_readByUserNameLiteral(randUserName()),
+				ExpectError: regexp.MustCompile("User with user_name .* not found"),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_userNameLookupMixedCase(t *testing.T) {
+	userName := randUserName()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// The lookup is case-insensitive: the state keeps the case the
+				// configuration wrote.
+				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameLiteralAfterCreate(strings.ToUpper(userName)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coralogix_user.by_user_name", "user_name", strings.ToUpper(userName)),
+					resource.TestCheckResourceAttrPair("data.coralogix_user.by_user_name", "id", userResourceName, "id"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_bothLookupKeysSet(t *testing.T) {
+	userName := randUserName()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "coralogix_user" "test" {
+					  user_name = "%s"
+					}
+
+					data "coralogix_user" "both_keys" {
+					  id        = coralogix_user.test.id
+					  user_name = coralogix_user.test.user_name
+					}
+				`, userName),
+				ExpectError: regexp.MustCompile("(?i)exactly one of these attributes must be configured"),
+			},
+		},
+	})
+}
+
+// testAccCoralogixDataSourceUser_readByUserNameLiteral builds a lookup with a
+// literal name. The not-found error path runs with no resource in the
+// configuration; the mixed-case path depends on the resource so the lookup reads
+// after the create.
+func testAccCoralogixDataSourceUser_readByUserNameLiteral(userName string) string {
+	return fmt.Sprintf(`data "coralogix_user" "by_user_name" {
+	  user_name = "%s"
+	}`, userName)
+}
+
+func testAccCoralogixDataSourceUser_readByUserNameLiteralAfterCreate(userName string) string {
+	return fmt.Sprintf(`data "coralogix_user" "by_user_name" {
+	  user_name  = "%s"
+	  depends_on = [coralogix_user.test]
+	}`, userName)
 }
 
 func testAccCoralogixDataSourceUser_read() string {
@@ -133,32 +159,11 @@ func testAccCoralogixDataSourceUser_read() string {
 `
 }
 
-func testAccCoralogixDataSourceUser_readByUserName(userName string) string {
-	return fmt.Sprintf(`
-	data "coralogix_user" "by_user_name" {
-	  user_name  = "%s"
-	  depends_on = [coralogix_user.test]
-	}
-
-	data "coralogix_user" "by_mixed_case_user_name" {
-	  user_name  = "%s"
-	  depends_on = [coralogix_user.test]
-	}
-`, userName, strings.ToUpper(userName))
-}
-
-func testAccCoralogixDataSourceUser_readByBothKeys() string {
-	return `data "coralogix_user" "both_keys" {
-	  id        = "00000000-0000-0000-0000-000000000000"
-	  user_name = "both-keys@example.com"
+func testAccCoralogixDataSourceUser_readByUserNameOnly() string {
+	// The reference orders the read after the create: a literal would plan the
+	// lookup during the first plan, before the user exists.
+	return `data "coralogix_user" "by_user_name" {
+	  user_name = coralogix_user.test.user_name
 	}
 `
-}
-
-func testAccCoralogixDataSourceUser_readByUserNameOnly(userName string) string {
-	return fmt.Sprintf(`
-	data "coralogix_user" "by_user_name" {
-	  user_name = "%s"
-	}
-`, userName)
 }

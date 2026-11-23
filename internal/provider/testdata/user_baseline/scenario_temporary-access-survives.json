@@ -9,8 +9,16 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": "(unknown)",
       "active": true,
-      "emails": "(unknown)",
+      "allowed_login_mode": "(unknown)",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {
@@ -38,7 +46,12 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": {},
+        "temporary_access": null
+      },
       "active": true,
+      "allowed_login_mode": [],
       "emails": [
         {
           "primary": true,
@@ -66,7 +79,17 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": null,
+        "temporary_access": {
+          "expire_at": "2030-01-01T00:00:00Z"
+        }
+      },
       "active": true,
+      "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
+      ],
       "emails": [
         {
           "primary": true,
@@ -82,6 +105,14 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
+    "drift": [
+      "AttributeName(\"access_type\").AttributeName(\"permanent_access\")",
+      "AttributeName(\"access_type\").AttributeName(\"temporary_access\")",
+      "AttributeName(\"access_type\").AttributeName(\"temporary_access\").AttributeName(\"expire_at\")",
+      "AttributeName(\"allowed_login_mode\")",
+      "AttributeName(\"allowed_login_mode\").ElementKeyInt(0)",
+      "AttributeName(\"allowed_login_mode\").ElementKeyInt(1)"
+    ],
     "replanEmpty": true
   },
   {
@@ -94,7 +125,17 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
+      "access_type": {
+        "permanent_access": null,
+        "temporary_access": {
+          "expire_at": "2030-01-01T00:00:00Z"
+        }
+      },
       "active": true,
+      "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
+      ],
       "emails": [
         {
           "primary": true,
@@ -130,7 +171,8 @@
               ],
               "firstName": "Renamed",
               "lastName": "Person",
-              "status": "USER_STATUS_ACTIVE"
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
             }
           }
         ],
@@ -138,7 +180,17 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": null,
+        "temporary_access": {
+          "expire_at": "2030-01-01T00:00:00Z"
+        }
+      },
       "active": true,
+      "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
+      ],
       "emails": [
         {
           "primary": true,
@@ -166,7 +218,17 @@
       }
     ],
     "state": {
+      "access_type": {
+        "permanent_access": null,
+        "temporary_access": {
+          "expire_at": "2030-01-01T00:00:00Z"
+        }
+      },
       "active": true,
+      "allowed_login_mode": [
+        "ALLOWED_LOGIN_MODE_SSO",
+        "ALLOWED_LOGIN_MODE_LOCAL"
+      ],
       "emails": [
         {
           "primary": true,
@@ -188,28 +250,14 @@
     "step": "destroy: the PUT sends the temporary access back",
     "requests": [
       {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "accessType": {
-                "accessType": "temporary",
-                "temporaryAccess": {
-                  "expireAt": "2030-01-01T00:00:00Z"
-                }
-              },
-              "allowedLoginMode": [
-                "ALLOWED_LOGIN_MODE_SSO",
-                "ALLOWED_LOGIN_MODE_LOCAL"
-              ],
-              "firstName": "Renamed",
-              "lastName": "Person",
-              "status": "USER_STATUS_INACTIVE"
-            }
-          }
-        ],
+        "method": "PATCH",
+        "path": "/mgmt/openapi/5/aaa/users/v2:updateStatuses",
+        "body": {
+          "status": "USER_STATUS_INACTIVE",
+          "userIds": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        },
         "status": 200
       }
     ],

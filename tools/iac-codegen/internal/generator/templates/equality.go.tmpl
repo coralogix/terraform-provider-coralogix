@@ -179,6 +179,14 @@ func (w *yamlWalk) merge(out map[any]any, n *yaml.Node) bool {
 	return true
 }
 {{- end}}
+{{- if .Conv.UsesFieldEquality "caseInsensitive"}}
+
+// caseInsensitiveEqual reports whether a and b are the same text in any case. The flatten of the
+// field keeps the spelling of the plan or the state.
+func caseInsensitiveEqual(a, b string) bool {
+	return strings.EqualFold(a, b)
+}
+{{- end}}
 {{- if .Conv.UsesEquality "json"}}
 
 // jsonEqual reports whether a and b are the same JSON value. A string that is not JSON only

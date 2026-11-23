@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,6 +25,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
@@ -47,6 +50,29 @@ const (
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestUserBaseline
 func newUserHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, userTypeName, newUserFake(t))
+}
+
+// withNullAllowed copies the state attributes and nulls the login modes and the access
+// type: the shape of a state upgraded from the released provider, whose schema had no
+// attribute for either. Terraform plans a missing legacy attribute null.
+func withNullAllowed(s tftypes.Value) map[string]any {
+	attrs := userStateJSON(s)
+	attrs["allowed_login_mode"] = nil
+	attrs["access_type"] = nil
+	return attrs
+}
+
+// userStateJSON reads the state value as a JSON map of the attribute names.
+func userStateJSON(s tftypes.Value) map[string]any {
+	out := map[string]any{}
+	raw, _ := json.Marshal(toJSON(s))
+	_ = json.Unmarshal(raw, &out)
+	return out
+}
+
+// stateFromJSON rebuilds a state value with one attribute changed.
+func (h *grHarness) stateFromJSON(attrs map[string]any) tftypes.Value {
+	return fromJSON(h.t, h.typ, attrs)
 }
 
 func TestUserBaselineSchema(t *testing.T) {
@@ -332,12 +358,12 @@ var userScenarios = map[string]func(h *grHarness){
 		config := userConfig(userA, j{"name": userTestName})
 		s := h.Apply("create", h.null(), config)
 		h.users().change(idOf(s), j{"username": "TF-ACC-USER-1@CORALOGIX.COM"})
-		s = h.RefreshPlan("refresh rewrites user_name to the case of the backend, and the replan stays empty", s)
+		s = h.RefreshPlan("refresh keeps the case of the configuration, and the replan stays empty", s)
 		h.Apply("apply the config again", s, config)
 	},
 	"user-name-case-only-change": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
-		s = h.Apply("change only the case of user_name: nothing is planned", s, userConfig("TF-ACC-USER-1@Coralogix.com", j{"name": userTestName}))
+		s = h.Apply("a case-only change of user_name plans no change, as the released plan modifier made it", s, userConfig("TF-ACC-USER-1@Coralogix.com", j{"name": userTestName}))
 		h.RefreshPlan("refresh and replan", s)
 	},
 	"user-name-rename-rejected": func(h *grHarness) {
@@ -353,10 +379,12 @@ var userScenarios = map[string]func(h *grHarness){
 	},
 	"user-name-changed-outside-multi-page": func(h *grHarness) {
 		h.users().pageLimit = 2
-		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// The seeds come first, so the created user sits past the first page:
+		// the fallback scan only finds the id on its third page.
 		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com", "tf-acc-user-6@coralogix.com"} {
 			h.users().seed(j{"username": name})
 		}
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().change(idOf(s), j{"username": userB})
 		// The search for the stored username misses, so the scan of the whole team reads every page.
 		h.RefreshPlan("refresh: the username search misses and the scan reads three pages", s)
@@ -373,6 +401,53 @@ var userScenarios = map[string]func(h *grHarness){
 		}
 		s = h.RefreshPlan("refresh: SearchUsers returns the user without userId", s)
 		h.Apply("apply the same config again: the user still exists but has no id", s, userConfig(userA, j{"name": userTestName}))
+	},
+	// A state upgraded from the released provider has the login modes only in the
+	// private state: the schema of 3.26.0 had no attribute for them. An update without
+	// a refresh must send them, not clear them.
+	"legacy-echo-update": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// Replace the private state with the released echo: the login modes the last
+		// read of the released resource returned, and no schema value.
+		// The backend has the modes even though the upgraded state does not.
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
+		s = h.stateFromJSON(withNullAllowed(s))
+		h.Apply("update: the PUT sends the modes of the released echo", s, userConfig(userA, j{"name": userTestName, "active": false}))
+	},
+	// A legacy temporary-access user: the upgraded state carries neither attribute, the
+	// backend holds temporary access with its expiry, and the recovery PUT must send
+	// both back — an omitted access type would replace the temporary access with a
+	// permanent one and discard the expiry.
+	"legacy-echo-temporary-access": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes, "accessType": userTemporaryAccess})
+		sLegacy := h.stateFromJSON(withNullAllowed(s))
+		sLegacy = h.Apply("update: the PUT sends the modes and the temporary access of the search", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
+		h.RefreshPlan("refresh and replan", sLegacy)
+	},
+	// The backend answers the modes in its canonical order (local, then SSO): a
+	// configuration that lists them the other way round, or repeats one, still
+	// plans and applies as the canonical order, so the read of the apply matches
+	// the plan.
+	"login-modes-canonical-order": func(h *grHarness) {
+		s := h.Apply("create with the modes reversed and a duplicate", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL", "ALLOWED_LOGIN_MODE_SSO"}}))
+		h.RefreshPlan("refresh: the state carries the canonical order", s)
+	},
+	// The attribute is Optional+Computed: only an explicit empty list clears the
+	// modes, and the read of the cleared user answers none, which the state keeps.
+	"login-modes-cleared": func(h *grHarness) {
+		s := h.Apply("create with both modes", h.null(), userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{"ALLOWED_LOGIN_MODE_SSO", "ALLOWED_LOGIN_MODE_LOCAL"}}))
+		s = h.Apply("clear with an empty list", s, userConfig(userA, j{"name": userTestName, "allowed_login_mode": []any{}}))
+		h.RefreshPlan("refresh: the modes stay cleared", s)
+	},
+	// The recovery of an upgraded state refuses to update when the search fails: continuing
+	// would clear the modes of the user.
+	"legacy-echo-recovery-fails": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		h.users().change(idOf(s), j{"allowedLoginMode": userLoginModes})
+		h.users().searchStatus = 500
+		sLegacy := h.stateFromJSON(withNullAllowed(s))
+		h.Apply("update: the search answers 500", sLegacy, userConfig(userA, j{"name": userTestName, "active": false}))
 	},
 	"update-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
@@ -416,12 +491,6 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().updateStatus = 500
 		h.Apply("update: the PUT answers 500", s, userConfig(userA, j{"name": userRenamedName}))
-	},
-	"update-search-error": func(h *grHarness) {
-		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
-		h.ForgetPrivateState()
-		h.users().searchStatus = 500
-		h.Apply("update with no private state: the search answers 500", s, userConfig(userA, j{"name": userRenamedName}))
 	},
 	"update-route-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
@@ -517,6 +586,13 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Import("import by email in another letter case", "TF-ACC-USER-1@CORALOGIX.COM")
 		h.Apply("plan matching config", s, userConfig(userA, j{"name": userTestName}))
 	},
+	"import-partial-name": func(h *grHarness) {
+		// The released read wrote an empty string for the one component the API
+		// does not hold: the import of a partly named user shows that form.
+		id := h.users().seed(j{"username": userA, "lastName": "User"})
+		s := h.Import("import a user with only a family name", id)
+		h.Apply("plan matching config", s, userConfig(userA, j{}))
+	},
 	"import-by-email-partial-match": func(h *grHarness) {
 		// The search matches part of a username, so the code filters to the exact one.
 		h.users().seed(j{"username": userPartialMatch})
@@ -556,6 +632,16 @@ var userScenarios = map[string]func(h *grHarness){
 		id := h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
 		h.Import("import by user id: the scan reads three pages", id)
 	},
+	"import-by-email-stuck-page-token": func(h *grHarness) {
+		h.users().pageLimit = 2
+		h.users().stuckPageToken = 2
+		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com"} {
+			h.users().seed(j{"username": name})
+		}
+		h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
+		s := h.Import("import by email: the page token stops advancing, so the scan stops", userA)
+		h.Apply("plan matching config", s, userConfig(userA, j{"name": userTestName}))
+	},
 	"import-by-id-stuck-page-token": func(h *grHarness) {
 		h.users().pageLimit = 2
 		h.users().stuckPageToken = 2
@@ -572,6 +658,15 @@ var userDataSourceScenarios = map[string]func(h *grHarness){
 		h.users().seed(j{"username": userB})
 		id := h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
 		h.ReadDataSource("read by id", j{"id": id})
+	},
+	"read-by-user-name-stuck-page-token": func(h *grHarness) {
+		h.users().pageLimit = 2
+		h.users().stuckPageToken = 2
+		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com"} {
+			h.users().seed(j{"username": name})
+		}
+		h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
+		h.ReadDataSource("read by user_name: the page token stops advancing, so the scan stops", j{"user_name": userA})
 	},
 	"read-by-user-name": func(h *grHarness) {
 		h.users().seed(j{"username": userB})

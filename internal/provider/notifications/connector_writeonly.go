@@ -29,7 +29,9 @@ type priorAttributes interface {
 	GetAttribute(context.Context, path.Path, any) diag.Diagnostics
 }
 
-func mergeWriteOnlyIntoRequest(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+func mergeWriteOnlyIntoRequest(ctx context.Context, config tfsdk.Config, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+	// A write-only value lives only in the configuration: the framework does not store it
+	// in the plan or the state.
 	var secrets types.Map
 	diags := config.GetAttribute(ctx, path.Root("connector_config").AtName("field_values_wo"), &secrets)
 	if diags.HasError() {

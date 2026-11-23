@@ -3103,10 +3103,10 @@ func rule(entity string, allocation any) map[string]tftypes.Value {
 }
 
 func TestGenericChecks(t *testing.T) {
-	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5), rule("metrics", 99.2), rule("alerts", 0.1))); d.HasError() {
+	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5), rule("metrics", 99.2), rule("alerts", 0.1)).Raw); d.HasError() {
 		t.Fatalf("valid config: %v", d)
 	}
-	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)))
+	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)).Raw)
 	if !d.HasError() || !strings.Contains(d[0].Summary(), "Duplicate rules entity_type") {
 		t.Fatalf("duplicate entity_type: %v", d)
 	}
@@ -3115,10 +3115,10 @@ func TestGenericChecks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d := configChecks(rulesConfig(t, rule("logs", almostHalf))); !d.HasError() {
+	if d := configChecks(rulesConfig(t, rule("logs", almostHalf)).Raw); !d.HasError() {
 		t.Fatalf("a number just above 0.5 reads back as 0.5: %v", d)
 	}
-	d = configChecks(rulesConfig(t, rule("logs", 0.1234567891)))
+	d = configChecks(rulesConfig(t, rule("logs", 0.1234567891)).Raw)
 	if !d.HasError() || !strings.Contains(d[0].Detail(), "stores it as float32") {
 		t.Fatalf("float32 precision: %v", d)
 	}

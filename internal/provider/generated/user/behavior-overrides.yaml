@@ -1,0 +1,121 @@
+# Behavior overrides for the user resource.
+# The Users API has no single-resource reads or writes: Create is a batch POST,
+# the read is the Search list, Update is a batch PUT, and the remove is a PATCH
+# that deactivates the users named in the body.
+resource: rbac.v2.User
+modifyPlan: true
+mode: existing
+typeName: user
+
+markdownDescription: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/."
+
+validators:
+  inferred: false
+afterFlatten: true
+getHooks: true
+api:
+  getFromList: {}
+  idProperty: userId
+  updateIDInBody: true
+  updateIDOutsideWrapper: true
+  operations:
+    create: UsersMgmtService_CreateUsers
+    get: UsersMgmtService_SearchUsers
+    update: UsersMgmtService_UpdateUsers
+    delete: UsersMgmtService_UpdateUsersStatuses
+  delete:
+    ids: userIds
+    values:
+      status: USER_STATUS_INACTIVE
+  batchWrite:
+    createResult:
+      resource: user
+      status: status
+      created:
+        - CREATE_USER_STATUS_CREATED
+        - CREATE_USER_STATUS_INVITED
+      message: message
+  requestWrapper: userTemplate
+  createValues:
+    onboardingMode: ONBOARDING_MODE_NO_INVITE
+dataSource:
+  description: Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
+types:
+  rbac.v2.User:
+    fields:
+      userId:
+        name: id
+        readOnly: true
+        markdownDescription: "User ID."
+      allowedLoginMode:
+        releasedLimits: true
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`."
+      username:
+        name: user_name
+        required: true
+        releasedLimits: true
+        equality: caseInsensitive
+        markdownDescription: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes only the letter case of the name plans no change, as the released plan modifier made it: the plan keeps the spelling of the state, which is the name the API stores. A configuration that changes the name itself fails: the API ignores a username change."
+      firstName:
+        skip: true
+      lastName:
+        skip: true
+      status:
+        skip: true
+      userAccountId:
+        skip: true
+      accessType:
+        computed: true
+        useStateForUnknown: true
+      groupIds:
+        skip: true
+    extraAttributes:
+      name:
+        type: object
+        optional: true
+        computed: true
+        useStateForUnknown: true
+        inUpdate: true
+        markdownDescription: "The name of the user."
+        attributes:
+          given_name:
+            type: string
+            markdownDescription: "The given (first) name of the user."
+          family_name:
+            type: string
+            markdownDescription: "The family (last) name of the user."
+      active:
+        type: bool
+        optional: true
+        computed: true
+        default: true
+        inUpdate: true
+        markdownDescription: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`."
+      groups:
+        type: set
+        elementType: string
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
+      emails:
+        type: set
+        optional: true
+        computed: true
+        default: []
+        markdownDescription: "The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`."
+        attributes:
+          primary:
+            type: bool
+            markdownDescription: "Whether the email is the primary one. The API has one email per user, and it is primary."
+          value:
+            type: string
+            markdownDescription: "The email address. It is the `user_name` of the user."
+          type:
+            type: string
+            markdownDescription: "The kind of the email. The API has one kind: work."
+  AccessType:
+    fields:
+      accessType:
+        skip: true
