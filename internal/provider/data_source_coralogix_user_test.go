@@ -102,7 +102,7 @@ func TestAccCoralogixDataSourceUser_userNameLookupMixedCase(t *testing.T) {
 			{
 				// The lookup is case-insensitive: the state keeps the case the
 				// configuration wrote.
-				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameLiteral(strings.ToUpper(userName)),
+				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameLiteralAfterCreate(strings.ToUpper(userName)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_user.by_user_name", "user_name", strings.ToUpper(userName)),
 					resource.TestCheckResourceAttrPair("data.coralogix_user.by_user_name", "id", userResourceName, "id"),
@@ -136,11 +136,19 @@ func TestAccCoralogixDataSourceUser_bothLookupKeysSet(t *testing.T) {
 }
 
 // testAccCoralogixDataSourceUser_readByUserNameLiteral builds a lookup with a
-// literal name: only the error paths use it, where the read must run during the
-// first plan and no resource exists.
+// literal name. The not-found error path runs with no resource in the
+// configuration; the mixed-case path depends on the resource so the lookup reads
+// after the create.
 func testAccCoralogixDataSourceUser_readByUserNameLiteral(userName string) string {
 	return fmt.Sprintf(`data "coralogix_user" "by_user_name" {
 	  user_name = "%s"
+	}`, userName)
+}
+
+func testAccCoralogixDataSourceUser_readByUserNameLiteralAfterCreate(userName string) string {
+	return fmt.Sprintf(`data "coralogix_user" "by_user_name" {
+	  user_name  = "%s"
+	  depends_on = [coralogix_user.test]
 	}`, userName)
 }
 
